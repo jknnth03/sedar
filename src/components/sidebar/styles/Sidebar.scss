@@ -1,0 +1,114 @@
+.sidebar-drawer {
+  height: 100vh;
+
+  .MuiDrawer-paper {
+    box-sizing: border-box;
+    position: unset;
+  }
+}
+
+.mainbox {
+  height: 100%;
+  transition: width 0.5s ease;
+  overflow-x: hidden;
+  position: relative;
+  background-color: white;
+  border-right: 1px solid #ddd;
+  box-shadow: 10px 10px 20px rgb(0, 0, 0) !important;
+  z-index: 1000;
+  padding-left: 10px;
+  padding-right: 10px;
+
+  &.open {
+    width: 240px;
+  }
+
+  &.closed {
+    width: 70px;
+  }
+}
+
+.sidebar__logo {
+  width: 100px;
+  margin-top: 10px;
+  margin-left: 70px;
+  margin-bottom: 6px;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.sidebar__logo2 {
+  width: 36px;
+  margin-top: 10px;
+  margin-left: 7px;
+  margin-bottom: 27.5px;
+  transition: all 0.3s ease-in-out;
+}
+
+.liststyle {
+  height: 50px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 10px;
+}
+
+.main-item {
+  color: rgb(33, 61, 112);
+  background-color: white;
+
+  &:not(.active):hover {
+    background-color: rgba(33, 61, 112, 0.1);
+    color: rgb(33, 61, 112);
+  }
+
+  &.active {
+    background-color: rgb(33, 61, 112);
+    color: white;
+
+    .icon {
+      color: white !important;
+    }
+  }
+}
+
+.sub-item {
+  color: rgb(55, 75, 115);
+  background-color: white;
+
+  &:not(.active):hover {
+    background-color: rgba(55, 75, 115, 0.1);
+    color: rgb(55, 75, 115);
+  }
+
+  &.active {
+    background-color: rgba(33, 61, 112, 0.15);
+    color: rgb(33, 61, 112);
+
+    .icon {
+      color: rgb(33, 61, 112) !important;
+    }
+  }
+}
+
+.icon {
+  color: rgb(33, 61, 112) !important;
+  margin-right: -2px;
+  margin-left: -2px;
+}
+
+.MuiListItemIcon-root {
+  min-width: 36px !important;
+}
+
+.text {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  transition: visibility 0.3s ease-in-out;
+}
+
+.main-item-wrapper {
+  margin-bottom: 4px;
+}
