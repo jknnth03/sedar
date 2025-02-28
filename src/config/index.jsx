@@ -14,7 +14,7 @@ import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
 export const MODULES = {
   DASHBOARD: {
     name: "Dashboard",
-    path: "/dashboard",
+    path: "/",
     icon: <DashboardIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
     icon_on: null,
     children: null,
