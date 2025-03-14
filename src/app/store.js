@@ -1,10 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { authApi } from "../features/api/authApi";
+import { sedarApi } from "../features/api";
+import { ymirApi } from "../features/api/ymirApi"; // Import ymirApi
 
 export const store = configureStore({
   reducer: {
-    [authApi.reducerPath]: authApi.reducer,
+    [sedarApi.reducerPath]: sedarApi.reducer,
+    [ymirApi.reducerPath]: ymirApi.reducer, // Add ymirApi reducer
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware),
+    getDefaultMiddleware().concat(sedarApi.middleware, ymirApi.middleware), // Add ymirApi middleware
 });

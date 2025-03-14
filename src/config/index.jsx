@@ -6,10 +6,12 @@ import MapsHomeWorkIcon from "@mui/icons-material/MapsHomeWork";
 import EmojiTransportationIcon from "@mui/icons-material/EmojiTransportation";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
-import EngineeringIcon from "@mui/icons-material/Engineering";
-import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
+import AddToPhotosIcon from "@mui/icons-material/AddToPhotos";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import SyncIcon from "@mui/icons-material/Sync";
+import MoreIcon from "@mui/icons-material/More";
+import TitleIcon from "@mui/icons-material/Title"; // Added icon for Titles
 
 export const MODULES = {
   DASHBOARD: {
@@ -25,41 +27,21 @@ export const MODULES = {
     icon: <SummarizeIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
     icon_on: null,
     children: {
-      LOCATION: {
-        name: "Location",
-        path: "location",
-        icon: (
-          <AddLocationAltIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      DIVISION: {
-        name: "Division",
-        path: "division",
-        icon: (
-          <DomainAddIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      DIVISION_CATEGORIES: {
-        name: "Division Categories",
-        path: "division-categories",
-        icon: (
-          <MapsHomeWorkIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
       COMPANIES: {
-        name: "Companies",
+        name: "Company",
         path: "companies",
         icon: (
           <EmojiTransportationIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      BUSINESS_UNIT: {
+        name: "Business Unit",
+        path: "businessunit",
+        icon: (
+          <DomainAddIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
           />
         ),
@@ -75,8 +57,18 @@ export const MODULES = {
         ),
         icon_on: null,
       },
+      UNITS: {
+        name: "Unit",
+        path: "units",
+        icon: (
+          <MapsHomeWorkIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
       SUB_UNITS: {
-        name: "Sub Units",
+        name: "Sub-Unit",
         path: "subunits",
         icon: (
           <AccountTreeIcon
@@ -85,19 +77,19 @@ export const MODULES = {
         ),
         icon_on: null,
       },
-      TITLES: {
-        name: "Titles",
-        path: "titles",
+      LOCATION: {
+        name: "Location",
+        path: "location",
         icon: (
-          <SubtitlesIcon
+          <AddLocationAltIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
           />
         ),
         icon_on: null,
       },
-      JOB_BANDS: {
-        name: "Job Bands",
-        path: "jobbands",
+      POSITIONS: {
+        name: "Position",
+        path: "positions",
         icon: (
           <WorkHistoryIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
@@ -105,21 +97,26 @@ export const MODULES = {
         ),
         icon_on: null,
       },
-      POSITIONS: {
-        name: "Positions",
-        path: "positions",
+    },
+  },
+  EMPLOYEES: {
+    name: "Employee",
+    path: "/employees",
+    icon: <FolderSharedIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+    icon_on: null,
+    children: null,
+  },
+  EXTRAS: {
+    name: "Extras",
+    path: "/extras",
+    icon: <MoreIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+    icon_on: null,
+    children: {
+      TITLES: {
+        name: "Titles",
+        path: "titles", // Fixed missing quote
         icon: (
-          <EngineeringIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      EXTRAS: {
-        name: "Extras",
-        path: "extras",
-        icon: (
-          <DataSaverOnIcon
+          <TitleIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
           />
         ),
@@ -154,6 +151,16 @@ export const CONSTANT = {
   BUTTONS: {
     LOGIN: {
       label: "Log In",
+    },
+    ADD: {
+      label: "Add",
+      icon: <AddToPhotosIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+      icon_on: null,
+    },
+    SYNC: {
+      label: "Sync",
+      icon: <SyncIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+      icon_on: null,
     },
   },
 };

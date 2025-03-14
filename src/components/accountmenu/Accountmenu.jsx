@@ -24,6 +24,7 @@ export default function AccountMenu() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
     handleClose();
     navigate("/login");
   };
@@ -32,14 +33,16 @@ export default function AccountMenu() {
     <React.Fragment>
       <Tooltip title="Account">
         <IconButton
+          sx={{ color: "yellow", ml: 2 }}
           className="logoutbutton"
           onClick={handleClick}
           size="small"
-          sx={{ ml: 2 }}
           aria-controls={open ? "account-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={open ? "true" : undefined}>
-          <Avatar sx={{ width: 32, height: 32 }}>M</Avatar>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: "rgb(33, 61, 112)" }}>
+            M
+          </Avatar>
         </IconButton>
       </Tooltip>
       <Menu

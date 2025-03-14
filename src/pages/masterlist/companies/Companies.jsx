@@ -10,28 +10,16 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { useGetLocationsQuery } from "../../../features/api/ymirApi";
+import { useGetCompaniesQuery } from "../../../features/api/ymirApi";
 import {
-  useGetShowLocationsQuery,
-  usePostLocationsMutation,
-} from "../../../features/api/locationsApi";
+  useGetShowCompaniesQuery,
+  usePostCompaniesMutation,
+} from "../../../features/api/companiesApi";
 import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
 import "../../masterlist/GeneralStyle_Table.scss";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  Tooltip,
-} from "@mui/material";
 
-const Locations = () => {
+const Companies = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,17 +27,14 @@ const Locations = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [isSearching, setIsSearching] = useState(false);
 
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedSubUnits, setSelectedSubUnits] = useState([]);
-
   const status = showArchived ? "inactive" : "active";
 
-  const { data: ymirData, isFetching: ymirFetching } = useGetLocationsQuery();
+  const { data: ymirData, isFetching: ymirFetching } = useGetCompaniesQuery();
   const {
     data: backendData,
     refetch: refetchBackend,
     isFetching: backendFetching,
-  } = useGetShowLocationsQuery(
+  } = useGetShowCompaniesQuery(
     {
       page,
       per_page: rowsPerPage,
@@ -63,16 +48,18 @@ const Locations = () => {
     }
   );
 
-  const [postLocations, { isLoading: syncing }] = usePostLocationsMutation();
+  console.log("YmirData:", ymirData);
 
-  const locations = useMemo(
+  const [postCompanies, { isLoading: syncing }] = usePostCompaniesMutation();
+
+  const companies = useMemo(
     () => backendData?.result?.data || [],
     [backendData]
   );
 
   const onSync = async () => {
     try {
-      const response = await postLocations({ ...ymirData });
+      const response = await postCompanies({ ...ymirData });
 
       if (response.error) {
         enqueueSnackbar(`Sync failed: ${response.error.data?.message}`, {
@@ -87,19 +74,10 @@ const Locations = () => {
     }
   };
 
-  const handleOpenDialog = (subUnits) => {
-    setSelectedSubUnits(subUnits || []);
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
-
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Locations</Typography>
+        <Typography className="header">Companies</Typography>
         <SyncButton onSync={onSync} isFetching={syncing} />
       </div>
 
@@ -124,10 +102,7 @@ const Locations = () => {
                   Code
                 </TableCell>
                 <TableCell className="table-header" align="center">
-                  Location
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Sub-units
+                  Company
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -135,38 +110,24 @@ const Locations = () => {
               {ymirFetching || backendFetching || isSearching ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={3}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : locations.length > 0 ? (
-                locations.map((location) => (
-                  <TableRow key={location.id}>
-                    <TableCell className="table-cell">{location.id}</TableCell>
-                    <TableCell className="table-cell">
-                      {location.code}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {location.name}
-                    </TableCell>
-                    <TableCell className="table-cell-multiple">
-                      <Tooltip title="View Sub-units">
-                        <VisibilityIcon
-                          className="EyeIcon"
-                          onClick={() =>
-                            handleOpenDialog(location.sub_units || [])
-                          }
-                        />
-                      </Tooltip>
-                    </TableCell>
+              ) : companies.length > 0 ? (
+                companies.map((company) => (
+                  <TableRow key={company.id}>
+                    <TableCell className="table-cell">{company.id}</TableCell>
+                    <TableCell className="table-cell">{company.code}</TableCell>
+                    <TableCell className="table-cell">{company.name}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={3}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
                     <img
@@ -194,35 +155,8 @@ const Locations = () => {
           }}
         />
       </Paper>
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth>
-        <DialogTitle style={{ backgroundColor: "rgb(233, 246, 255)" }}>
-          <Typography variant="h6" style={{ fontWeight: "bold" }}>
-            Sub-units
-          </Typography>
-        </DialogTitle>
-        <DialogContent style={{ backgroundColor: "white" }}>
-          <List>
-            {selectedSubUnits.map((subUnit, index) => (
-              <ListItem
-                key={subUnit.id || index}
-                style={{ borderBottom: "1px solid #ccc" }}>
-                <ListItemText primary={subUnit.name} />
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions style={{ backgroundColor: "white" }}>
-          <Button onClick={handleCloseDialog} color="primary">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 };
 
-export default Locations;
+export default Companies;

@@ -1,31 +1,52 @@
 import { Box, Collapse, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import PropTypes from "prop-types";
 
 const MenuItem = ({
-  onClick,
-  name,
-  path,
-  icon,
-  active,
-  isChild,
-  className,
+  name = "",
+  path = "",
+  icon = null,
+  active = false,
+  isChild = false,
+  onClick = () => {},
+  className = "",
+  sidebarOpen = false,
 }) => {
   return (
     <Box
-      key={name}
       className={`liststyle ${className} ${active ? "active" : ""}`}
       onClick={onClick}
-      style={{ cursor: "pointer", paddingLeft: isChild ? "32px" : "16px" }}>
+      style={{
+        cursor: "pointer",
+        paddingLeft: isChild ? "32px" : "16px",
+      }}>
       <Box className={`icon ${active ? "active-icon" : ""}`}>
         {icon || <span className="sidebar__placeholder-icon">📄</span>}
       </Box>
-      <Typography className={`text`}>{name}</Typography>
+      {sidebarOpen && <Typography className="text">{name}</Typography>}
     </Box>
   );
 };
 
-export const MainItem = ({ name, subItem, path, icon, active, className }) => {
+MenuItem.propTypes = {
+  name: PropTypes.string,
+  path: PropTypes.string,
+  icon: PropTypes.node,
+  active: PropTypes.bool,
+  isChild: PropTypes.bool,
+  onClick: PropTypes.func,
+  className: PropTypes.string,
+  sidebarOpen: PropTypes.bool,
+};
+
+export const MainItem = ({
+  name = "",
+  subItem = null,
+  path = "",
+  icon = null,
+  sidebarOpen = false,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,20 +55,21 @@ export const MainItem = ({ name, subItem, path, icon, active, className }) => {
 
   useEffect(() => {
     if (subItem) {
-      const anyChildActive = Object.values(subItem).some(
-        (item) => location.pathname === `/${item.path}`
+      const anyChildActive = Object.values(subItem).some((item) =>
+        location.pathname.startsWith(`/${item.path}`)
       );
       setOpenChildren(anyChildActive);
       setIsParentActive(anyChildActive);
     } else {
       const parentIsActive =
-        location.pathname.split("/")[1] === path.split("/")[1];
+        location.pathname === path || location.pathname.startsWith(`${path}/`);
+
       setIsParentActive(parentIsActive);
     }
   }, [location.pathname, subItem, path]);
 
-  const handleNavigation = (path) => {
-    navigate(`../${path}`);
+  const handleNavigation = (targetPath) => {
+    navigate(targetPath);
   };
 
   const handleChildren = () => {
@@ -62,28 +84,28 @@ export const MainItem = ({ name, subItem, path, icon, active, className }) => {
     <>
       <MenuItem
         name={name}
-        subItem={subItem}
         path={path}
         icon={icon}
         active={isParentActive}
         onClick={handleChildren}
-        className={`main-item ${isParentActive ? "active" : ""}`}
+        className="main-item"
+        sidebarOpen={sidebarOpen}
       />
-      {subItem && (
+      {subItem && sidebarOpen && (
         <Collapse in={openChildren}>
-          {Object.values(subItem).map((subItem, subindex) => {
-            const isSubItemActive = location.pathname === `/${subItem.path}`;
+          {Object.values(subItem).map(({ name, path, icon }, subIndex) => {
+            const isSubItemActive = location.pathname.startsWith(`/${path}`);
             return (
               <MenuItem
-                key={subindex}
-                name={subItem.name}
-                subItem={subItem.subItem}
-                path={subItem.path}
-                icon={subItem.icon}
+                key={subIndex}
+                name={name}
+                path={path}
+                icon={icon}
                 active={isSubItemActive}
                 isChild={true}
-                onClick={() => handleNavigation(`${subItem.path}`)}
-                className={`sub-item ${isSubItemActive ? "active" : ""}`}
+                onClick={() => handleNavigation(path)}
+                className="sub-item"
+                sidebarOpen={sidebarOpen}
               />
             );
           })}
@@ -91,4 +113,12 @@ export const MainItem = ({ name, subItem, path, icon, active, className }) => {
       )}
     </>
   );
+};
+
+MainItem.propTypes = {
+  name: PropTypes.string,
+  subItem: PropTypes.object,
+  path: PropTypes.string,
+  icon: PropTypes.node,
+  sidebarOpen: PropTypes.bool,
 };

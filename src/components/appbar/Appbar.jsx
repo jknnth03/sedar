@@ -36,7 +36,7 @@ export default function Appbar({ setOpen = () => {} }) {
         className="appbar_text"
         sx={{
           color: "rgb(33, 61, 112)",
-          fontSize: "16px",
+          fontSize: "14px",
           fontWeight: "bold",
         }}>
         Fresh morning, User!

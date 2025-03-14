@@ -1,0 +1,114 @@
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Impact&family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap");
+
+.positions-container {
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 81.5vw;
+  margin-left: 20px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  margin-bottom: 5px;
+}
+
+.header-title {
+  color: rgb(33, 61, 112) !important;
+  font-size: 25px !important;
+  font-family: "Anton", "Impact", "Poppins", "Roboto", sans-serif !important;
+}
+
+.add-button {
+  height: 35px;
+  width: 110px;
+}
+
+.search-bar {
+  position: relative;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.05);
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+  margin-left: auto;
+  width: 100%;
+  max-width: 200px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: black;
+}
+
+.search-input {
+  color: black;
+  width: 100%;
+  padding-left: 40px;
+}
+
+.table-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-header {
+  font-weight: bold;
+  font-size: 16px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+  text-align: left;
+  padding: 16px;
+  background-color: #f8f9fa;
+}
+
+.table-cell {
+  padding: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.no-data-cell {
+  text-align: center;
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.no-data-img {
+  width: 365px;
+}
+
+.table-pagination {
+  background-color: rgb(246, 246, 246);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+.table-appbar {
+  background-color: white !important;
+}
+
+.table-toolbar {
+  min-height: 64px;
+}
+
+.css-1jxw05q-MuiTableCell-root {
+  width: 13vw;
+}

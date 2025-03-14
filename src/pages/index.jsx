@@ -1,8 +1,15 @@
 import React from "react";
 import Layout from "./layout/Layout";
-import { Outlet } from "react-router";
+import { Outlet, Navigate } from "react-router";
+import { CONSTANT } from "../config";
 
 const PrivateRoutes = () => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return <Navigate to={CONSTANT.PAGES.LOGIN.path} replace />;
+  }
+
   return (
     <div>
       <Layout>

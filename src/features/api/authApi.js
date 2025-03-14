@@ -1,17 +1,15 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { sedarApi } from ".";
 
-export const authApi = createApi({
-  reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "http://10.10.13.9:8001/api/" }),
-  endpoints: (builder) => ({
-    postLogin: builder.mutation({
-      query: (credentials) => ({
+const authApi = sedarApi.injectEndpoints({
+  endpoints: (build) => ({
+    login: build.mutation({
+      query: (body) => ({
         url: "/login",
         method: "POST",
-        body: credentials,
+        body: body,
       }),
     }),
   }),
 });
 
-export const { usePostLoginMutation } = authApi;
+export const { useLoginMutation } = authApi;
