@@ -5,9 +5,13 @@ import Typography from "@mui/material/Typography";
 import Brightness5Icon from "@mui/icons-material/Brightness5";
 import img from "../../assets/welcome.png";
 import "../../pages/dashboard/Dashboard.scss";
+import { useSelector } from "react-redux";
 
 function DashboardLayoutNavigationActions() {
   const [currentDate, setCurrentDate] = React.useState("");
+  const token = useSelector((state) => state?.auth?.token);
+
+  console.log(token);
 
   React.useEffect(() => {
     const now = new Date();

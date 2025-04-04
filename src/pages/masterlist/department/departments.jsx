@@ -10,14 +10,14 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { useGetDepartmentsQuery } from "../../../../features/api/ymirApi";
+import { SearchBar, SyncButton } from "../../masterlist/masterlistComponents";
+import NoDataGIF from "../../../assets/no-data.gif";
+import "../../GeneralStyle.scss";
+import { useGetDepartmentsQuery } from "../../../features/api/masterlist/ymirApi";
 import {
   useGetShowDepartmentsQuery,
   usePostDepartmentsMutation,
-} from "../../../../features/api/departments";
-import { SearchBar, SyncButton } from "../../masterlistComponents";
-import NoDataGIF from "../../../assets/no-data.gif";
-import "../../masterlist/GeneralStyle_Table.scss";
+} from "../../../features/api/masterlist/departmentsApi";
 
 const Departments = () => {
   const [page, setPage] = useState(1);

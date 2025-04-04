@@ -6,11 +6,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import CircularProgress from "@mui/material/CircularProgress";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import Button from "@mui/material/Button";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import { styled, alpha } from "@mui/material/styles";
 import { TablePagination } from "@mui/material";
-import "../../pages/masterlist/GeneralStyle_table.scss";
+import "../../pages/GeneralStyle.scss";
 
 // Styled components for SearchBar
 const Search = styled("div")(({ theme }) => ({
@@ -40,6 +39,7 @@ const SearchIconWrapper = styled("div")(({ theme }) => ({
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
   color: "inherit",
   width: "100%",
+  fontFamily: "'Helvetica Neue', Arial, sans-serif",
   "& .MuiInputBase-input": {
     padding: theme.spacing(1, 1, 1, 0),
     paddingLeft: `calc(1em + ${theme.spacing(4)})`,
@@ -53,6 +53,24 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
+// Style for the Archive Checkbox Container
+const ArchiveContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  padding: "6px 12px",
+  marginLeft: "10px",
+  border: "2px solid transparent", // Invisible border
+  borderRadius: "6px",
+  backgroundColor: "white",
+  cursor: "pointer",
+  transition: "background-color 0.2s ease-in-out",
+  "&:hover": {
+    backgroundColor: "#E0E0E0",
+  },
+  marginBottom: "-7px",
+  fontFamily: "'Helvetica Neue', Arial, sans-serif",
+}));
+
 export const SearchBar = ({
   searchQuery,
   setSearchQuery,
@@ -62,27 +80,36 @@ export const SearchBar = ({
   <AppBar
     position="static"
     className="headbar"
-    elevation={0} // Removes the shadow
+    elevation={0}
     style={{
       boxShadow: "none",
       borderBottom: "none",
       backgroundColor: "transparent",
-    }} // Remove border & background
-  >
-    <Toolbar className="toolbar" style={{ borderBottom: "none" }}>
-      {/* Archived Checkbox */}
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            color="primary"
-          />
-        }
-        label="Archived"
-        className="checkbox-label"
-        style={{ marginRight: "16px", color: "black" }}
-      />
+    }}>
+    <Toolbar className="toolbar" style={{ borderBottom: "none", gap: "12px" }}>
+      {/* Archive Checkbox inside a Button-like Container */}
+      <ArchiveContainer onClick={() => setShowArchived(!showArchived)}>
+        <Checkbox
+          checked={showArchived}
+          onChange={(e) => setShowArchived(e.target.checked)}
+          sx={{
+            padding: "0px",
+            color: "rgb(135, 135, 135)",
+            "&.Mui-checked": {
+              color: "rgb(33, 61, 112)",
+            },
+          }}
+        />
+        <span
+          style={{
+            marginLeft: "8px",
+            color: "rgb(33, 61, 112)",
+            fontWeight: 450,
+            fontFamily: "'Helvetica Neue', Arial, sans-serif",
+          }}>
+          Archived
+        </span>
+      </ArchiveContainer>
 
       {/* Search Box */}
       <Search className="search">

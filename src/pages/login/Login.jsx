@@ -11,8 +11,12 @@ import img from "../../assets/business.png";
 import login_logo from "../../assets/login_logo.png";
 import { CONSTANT } from "../../config";
 import "./Login.scss";
+import { useDispatch } from "react-redux";
+import { resetAuth, setToken } from "../../features/slice/authSlice";
 
 const LoginForm = () => {
+  const dispatch = useDispatch();
+
   const {
     register,
     handleSubmit,
@@ -25,16 +29,12 @@ const LoginForm = () => {
   const [login] = useLoginMutation();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-
-  const setToken = (token) => {
-    localStorage.setItem("token", token);
-  };
-
   const submitHandler = async (data) => {
     try {
       const res = await login(data).unwrap();
-      setToken(res.token);
-
+      localStorage.setItem("token", res?.token);
+      localStorage.setItem("user", JSON.stringify(res?.user));
+      dispatch(setToken(res?.token));
       enqueueSnackbar("Login successful!", {
         variant: "success",
         autoHideDuration: 3000,

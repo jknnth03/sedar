@@ -10,14 +10,14 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { useGetCompaniesQuery } from "../../../features/api/ymirApi";
+import { useGetCompaniesQuery } from "../../../features/api/masterlist/ymirApi";
 import {
   useGetShowCompaniesQuery,
   usePostCompaniesMutation,
-} from "../../../features/api/companiesApi";
+} from "../../../features/api/masterlist/companiesApi";
 import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
-import "../../masterlist/GeneralStyle_Table.scss";
+import "../../GeneralStyle.scss";
 
 const Companies = () => {
   const [page, setPage] = useState(1);

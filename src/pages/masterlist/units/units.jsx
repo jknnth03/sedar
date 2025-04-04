@@ -10,14 +10,14 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { useGetUnitsQuery } from "../../../features/api/ymirApi";
+import { useGetUnitsQuery } from "../../../features/api/masterlist/ymirApi";
 import {
   useGetShowUnitsQuery,
   usePostUnitsMutation,
-} from "../../../features/api/unitsApi";
+} from "../../../features/api/masterlist/unitsApi";
 import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
-import "../../masterlist/GeneralStyle_Table.scss";
+import "../../GeneralStyle.scss";
 
 const Units = () => {
   const [page, setPage] = useState(1);

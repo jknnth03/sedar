@@ -1,0 +1,193 @@
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Impact&family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap");
+
+/* Main Layout */
+.main-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #f4f4f4;
+}
+
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header Styling */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  margin-bottom: 4px;
+}
+
+.header {
+  color: rgb(33, 61, 112) !important;
+  font-size: 25px !important;
+  font-family: "Anton", "Impact", "Poppins", "Roboto", sans-serif !important;
+}
+
+/* Sync Button */
+.sync-button:hover {
+  background-color: darkgreen !important;
+}
+
+/* Main Container */
+.container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 97%;
+  margin-left: 20px;
+}
+
+/* Table Controls: Checkbox + Search Bar */
+.table-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  justify-content: flex-start;
+}
+
+/* Fix Checkbox Alignment */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: black !important;
+}
+
+/* Override MUI Checkbox label color */
+.MuiFormControlLabel-label {
+  color: black !important;
+}
+
+/* Reduce extra space around checkbox */
+.checkbox-label .MuiCheckbox-root {
+  padding: 4px !important;
+  margin-right: 4px;
+}
+
+/* Table Container */
+.table-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 66vh;
+  min-height: 66vh;
+  max-height: 66vh;
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table-container thead {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+/* Search Bar */
+.search {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  color: black;
+}
+
+/* Table Headers */
+.table-header {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  padding-left: 50px !important;
+  height: 50px !important;
+  background-color: #f8f9fa;
+}
+
+/* Table Cells (Ensures Text Wrapping) */
+.table-cell {
+  padding-left: 50px !important;
+  height: 70px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: left;
+  max-width: 250px; /* Limits width */
+  white-space: normal; /* Allows text to wrap */
+  word-break: break-word; /* Prevents long words from overflowing */
+  overflow: hidden; /* Hide overflowing content */
+  text-overflow: ellipsis;
+}
+
+/* Scrollable Cell for Long Text */
+.scrollable-text {
+  max-width: 250px; /* Adjust width as needed */
+  max-height: 50px; /* Set height limit */
+  overflow-y: auto; /* Enable vertical scrolling */
+  display: block;
+  white-space: normal; /* Allow text to wrap */
+  word-break: break-word; /* Prevent long words from overflowing */
+  padding: 5px; /* Add some padding */
+  border: 1px solid #ddd; /* Optional: Adds a subtle border */
+}
+
+/* Table Data */
+.table_data {
+  display: block;
+  margin-left: 16px;
+  word-break: break-word;
+}
+
+/* Ensures Table Layout is Proper */
+.table {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pagination Styling */
+.table-pagination {
+  background-color: rgb(246, 246, 246) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+/* Add Button */
+.add-button {
+  background-color: #1976d2 !important;
+  color: white !important;
+  padding: 10px 20px;
+  min-height: 38px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  text-transform: uppercase;
+  font-family: "Roboto", sans-serif !important;
+  font-weight: normal !important;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.add-button:hover {
+  background-color: #1565c0 !important;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}

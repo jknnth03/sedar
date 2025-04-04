@@ -17,7 +17,7 @@ import Button from "@mui/material/Button";
 import { styled, alpha } from "@mui/material/styles";
 import axios from "axios";
 import { CONSTANT } from "../../config";
-import "../masterlist/GeneralStyle_table.scss";
+import "../GeneralStyle.scss";
 
 const label = { inputProps: { "aria-label": "Checkbox demo" } };
 
@@ -79,7 +79,6 @@ const Employees = () => {
         if (Array.isArray(response.data)) {
           setRows(response.data);
         } else {
-          console.error("Unexpected response format", response.data);
           setRows([]);
         }
       } catch (error) {

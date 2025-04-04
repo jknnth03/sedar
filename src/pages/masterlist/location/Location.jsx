@@ -10,14 +10,10 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { useGetLocationsQuery } from "../../../features/api/ymirApi";
-import {
-  useGetShowLocationsQuery,
-  usePostLocationsMutation,
-} from "../../../features/api/locationsApi";
+
 import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
-import "../../masterlist/GeneralStyle_Table.scss";
+import "../../GeneralStyle.scss";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Dialog,
@@ -30,6 +26,11 @@ import {
   ListItemText,
   Tooltip,
 } from "@mui/material";
+import { useGetLocationsQuery } from "../../../features/api/masterlist/ymirApi";
+import {
+  useGetShowLocationsQuery,
+  usePostLocationsMutation,
+} from "../../../features/api/masterlist/locationsApi";
 
 const Locations = () => {
   const [page, setPage] = useState(1);
