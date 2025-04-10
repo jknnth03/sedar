@@ -96,7 +96,7 @@ export default function TeamsModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedTeam ? "Edit Team" : "ADD TEAM"}
+          {selectedTeam ? "Edit Team" : "Add Team"}
         </Box>
       </DialogTitle>
 

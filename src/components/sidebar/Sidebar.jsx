@@ -6,8 +6,38 @@ import businessLogo from "../../assets/business.png";
 import "../../components/sidebar/styles/Sidebar.scss";
 import { MODULES } from "../../config/index";
 import { MainItem } from "./components/MainItem";
+import rolesApi from "../../features/api/usermanagement/rolesApi";
+import { ModeOutlined } from "@mui/icons-material";
 
 const Sidebar = ({ open }) => {
+  const userData = JSON.parse(localStorage.getItem("user")) || [];
+  const accessUserPermission = userData?.role?.access_permissions;
+  console.log("accesspermission", accessUserPermission);
+
+  const PermittedModules = Object.values(MODULES)
+    .map((MODULE) => {
+      if (MODULE.children) {
+        const permittedChildren = Object.values(MODULE.children).filter(
+          (CHILD) => accessUserPermission?.includes(CHILD.name)
+        );
+
+        if (permittedChildren.length > 0) {
+          return { ...MODULE, children: permittedChildren };
+        }
+      } else if (accessUserPermission?.includes(MODULE.name)) {
+        return MODULE;
+      }
+      return null;
+    })
+    .filter(Boolean); // Removes nulls from non-matching modules
+
+  console.log("PermittedSubModule", PermittedModules);
+  // Object.values(MODULE.children);
+
+  console.log("MODULESSSSS", MODULES);
+
+  console.log("access_permission", userData);
+
   return (
     <Drawer variant="permanent" anchor="left" className="sidebar-drawer">
       <Paper
@@ -23,7 +53,7 @@ const Sidebar = ({ open }) => {
         <Box
           className="sidebar-content"
           style={{ flexGrow: 1, overflowY: "auto" }}>
-          {Object.values(MODULES).map((item, index) => (
+          {Object.values(PermittedModules).map((item, index) => (
             <div className="main-item-wrapper" key={index}>
               <MainItem
                 name={item.name}

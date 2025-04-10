@@ -96,7 +96,7 @@ export default function TitleModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedTitle ? "Edit Title" : "ADD TITLE"}
+          {selectedTitle ? "Edit Title" : "Add Title"}
         </Box>
       </DialogTitle>
 

@@ -87,7 +87,7 @@ export default function FileTypeModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedFileType ? "Edit File Type" : "ADD FILE TYPE"}
+          {selectedFileType ? "Edit File Type" : "Add File Type"}
         </Box>
       </DialogTitle>
 

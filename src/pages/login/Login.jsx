@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { Box, TextField, Typography, Button } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useLoginMutation } from "../../features/api/authApi";
 import { schema } from "../../schema/ValidationSchema";
 import { useNavigate } from "react-router";
 import { useSnackbar } from "notistack";
@@ -12,10 +11,13 @@ import login_logo from "../../assets/login_logo.png";
 import { CONSTANT } from "../../config";
 import "./Login.scss";
 import { useDispatch } from "react-redux";
-import { resetAuth, setToken } from "../../features/slice/authSlice";
+import { setToken } from "../../features/slice/authSlice";
+import { useLoginMutation } from "../../features/api/authApi";
 
 const LoginForm = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   const {
     register,
@@ -27,20 +29,24 @@ const LoginForm = () => {
   });
 
   const [login] = useLoginMutation();
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
+
   const submitHandler = async (data) => {
     try {
       const res = await login(data).unwrap();
-      localStorage.setItem("token", res?.token);
-      localStorage.setItem("user", JSON.stringify(res?.user));
-      dispatch(setToken(res?.token));
-      enqueueSnackbar("Login successful!", {
-        variant: "success",
-        autoHideDuration: 3000,
-      });
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("user", JSON.stringify(res.user));
+      dispatch(setToken(res.token));
 
-      navigate("/");
+      // Check if the user needs to update their password
+      if (res.user.force_password_reset) {
+        navigate("/changepass"); // Redirect to password change page
+      } else {
+        enqueueSnackbar("Login successful!", {
+          variant: "success",
+          autoHideDuration: 3000,
+        });
+        navigate("/"); // Redirect to home page
+      }
     } catch (error) {
       enqueueSnackbar(error?.data?.message || "Invalid Credentials", {
         variant: "error",

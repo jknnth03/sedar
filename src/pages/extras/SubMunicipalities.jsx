@@ -1,136 +1,140 @@
 import React, { useState, useMemo } from "react";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
-import CircularProgress from "@mui/material/CircularProgress";
-import TableRow from "@mui/material/TableRow";
-import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
+import {
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  CircularProgress,
+  TableRow,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Chip,
+} from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import RestoreIcon from "@mui/icons-material/Restore";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
-import { useSnackbar } from "notistack";
 import AddIcon from "@mui/icons-material/Add";
+import HelpIcon from "@mui/icons-material/Help";
+import { useSnackbar } from "notistack";
 import { SearchBar } from "../masterlist/masterlistComponents";
-import ReligionModal from "../../components/modal/extras/ReligionsModal";
+
 import NoDataGIF from "../../assets/no-data.gif";
 import "../GeneralStyle.scss";
-
-import Box from "@mui/material/Box";
-import HelpIcon from "@mui/icons-material/Help";
-import { Chip } from "@mui/material";
 import {
-  useDeleteReligionsMutation,
-  useGetShowReligionsQuery,
-} from "../../features/api/extras/religionsApi";
+  useDeleteSubMunicipalityMutation,
+  useGetSubMunicipalitiesQuery,
+} from "../../features/api/extras/subMunicipalitiesApi";
+import SubMunicipalitiesModal from "../../components/modal/extras/SubMunicipalitesModal";
 
-const Religions = () => {
+const SubMunicipalities = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedReligion, setSelectedReligion] = useState(null);
+  const [selectedSubMunicipality, setSelectedSubMunicipality] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   const {
-    data: religions,
+    data: subMunicipalities,
     isLoading,
     isFetching,
     refetch,
-  } = useGetShowReligionsQuery({
+  } = useGetSubMunicipalitiesQuery({
     search: searchQuery,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
   });
 
-  const [deleteReligion] = useDeleteReligionsMutation();
-  const religionList = useMemo(
-    () => religions?.result?.data || [],
-    [religions]
+  const [archiveSubMunicipality] = useDeleteSubMunicipalityMutation();
+
+  const subMunicipalityList = useMemo(
+    () => subMunicipalities?.result?.data || [],
+    [subMunicipalities]
   );
 
-  const handleMenuOpen = (event, religionId) => {
-    setMenuAnchor({ [religionId]: event.currentTarget });
+  const handleMenuOpen = (event, subMunicipalityId) => {
+    setMenuAnchor({ [subMunicipalityId]: event.currentTarget });
   };
 
-  const handleMenuClose = (religionId) => {
-    setMenuAnchor((prev) => ({ ...prev, [religionId]: null }));
+  const handleMenuClose = (subMunicipalityId) => {
+    setMenuAnchor((prev) => {
+      const updatedMenuAnchor = { ...prev };
+      delete updatedMenuAnchor[subMunicipalityId];
+      return updatedMenuAnchor;
+    });
   };
 
-  const handleArchiveRestoreClick = (religion) => {
-    setSelectedReligion(religion);
-    setConfirmOpen(true);
-    handleMenuClose(religion.id);
+  const handleArchiveRestoreClick = (subMunicipality) => {
+    handleMenuClose(subMunicipality.id);
+    setTimeout(() => {
+      setSelectedSubMunicipality(subMunicipality);
+      setConfirmOpen(true);
+    }, 200);
   };
 
   const handleArchiveRestoreConfirm = async () => {
-    if (!selectedReligion) return;
+    if (!selectedSubMunicipality) return;
 
     try {
-      console.log("🟡 Archiving/Restoring:", selectedReligion);
-      await deleteReligion(selectedReligion.id).unwrap();
-      console.log("🟢 API Success");
+      await archiveSubMunicipality(selectedSubMunicipality.id).unwrap();
 
       enqueueSnackbar(
-        selectedReligion.deleted_at
-          ? "Religion restored successfully!"
-          : "Religion archived successfully!",
+        selectedSubMunicipality.deleted_at
+          ? "Sub-Municipality restored successfully!"
+          : "Sub-Municipality archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
 
-      await refetch();
-    } catch (error) {
-      console.error("❌ API Error:", error);
-      enqueueSnackbar("Action failed. Please try again.", {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
       setConfirmOpen(false);
-      setSelectedReligion(null);
+      setSelectedSubMunicipality(null);
+      refetch();
+    } catch (error) {
+      enqueueSnackbar(
+        error?.data?.message || "Action failed. Please try again.",
+        { variant: "error", autoHideDuration: 2000 }
+      );
     }
   };
 
-  const handleAddReligion = () => {
-    setSelectedReligion(null);
+  const handleAddSubMunicipality = () => {
+    setSelectedSubMunicipality(null);
     setModalOpen(true);
   };
 
-  const handleEditClick = (religion) => {
-    setSelectedReligion(religion);
+  const handleEditClick = (subMunicipality) => {
+    setSelectedSubMunicipality(subMunicipality);
     setModalOpen(true);
-    handleMenuClose(religion.id);
+    handleMenuClose(subMunicipality.id);
   };
 
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Religions</Typography>
+        <Typography className="header">Sub-Municipalities</Typography>
         <Button
           className="add-button"
           variant="contained"
-          onClick={handleAddReligion}
+          onClick={handleAddSubMunicipality}
           startIcon={<AddIcon />}>
           CREATE
         </Button>
       </div>
-
       <Paper className="container">
         <div className="table-controls">
           <SearchBar
@@ -140,7 +144,6 @@ const Religions = () => {
             setShowArchived={setShowArchived}
           />
         </div>
-
         <TableContainer
           className="table-container"
           style={{ maxHeight: "60vh" }}>
@@ -151,10 +154,13 @@ const Religions = () => {
                   ID
                 </TableCell>
                 <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>{" "}
+                  PSG Code
+                </TableCell>
                 <TableCell align="center" className="table-header">
-                  Religion Name
+                  Sub-Municipality Name
+                </TableCell>
+                <TableCell align="center" className="table-header">
+                  Population
                 </TableCell>
                 <TableCell
                   align="center"
@@ -179,44 +185,52 @@ const Religions = () => {
             <TableBody>
               {isLoading || isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={6} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : religionList.length > 0 ? (
-                religionList.map((religion) => (
-                  <TableRow key={religion.id}>
-                    <TableCell className="table-cell">{religion.id}</TableCell>
+              ) : subMunicipalityList.length > 0 ? (
+                subMunicipalityList.map((subMunicipality) => (
+                  <TableRow key={subMunicipality.id}>
                     <TableCell className="table-cell">
-                      {religion.code}
+                      {subMunicipality.id}
                     </TableCell>
                     <TableCell className="table-cell">
-                      {religion.name}
+                      {subMunicipality.psgc_id}
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-cell">
+                      {subMunicipality.name}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {subMunicipality.population}
+                    </TableCell>
+                    <TableCell align="center">
                       <Chip
-                        label={religion.deleted_at ? "Inactive" : "Active"}
-                        color={religion.deleted_at ? "error" : "success"}
+                        label={
+                          subMunicipality.deleted_at ? "Inactive" : "Active"
+                        }
+                        color={subMunicipality.deleted_at ? "error" : "success"}
                       />
                     </TableCell>
-
                     <TableCell align="center">
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, religion.id)}>
+                        onClick={(e) => handleMenuOpen(e, subMunicipality.id)}>
                         <MoreVertIcon />
                       </IconButton>
                       <Menu
-                        anchorEl={menuAnchor[religion.id]}
-                        open={Boolean(menuAnchor[religion.id])}
-                        onClose={() => handleMenuClose(religion.id)}>
+                        anchorEl={menuAnchor[subMunicipality.id]}
+                        open={Boolean(menuAnchor[subMunicipality.id])}
+                        onClose={() => handleMenuClose(subMunicipality.id)}>
                         <MenuItem
-                          onClick={() => handleEditClick(religion)}
-                          disabled={religion.deleted_at !== null}>
+                          onClick={() => handleEditClick(subMunicipality)}
+                          disabled={subMunicipality.deleted_at !== null}>
                           <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
                         </MenuItem>
                         <MenuItem
-                          onClick={() => handleArchiveRestoreClick(religion)}>
-                          {religion.deleted_at ? (
+                          onClick={() =>
+                            handleArchiveRestoreClick(subMunicipality)
+                          }>
+                          {subMunicipality.deleted_at ? (
                             <>
                               <RestoreIcon fontSize="small" sx={{ mr: 1 }} />{" "}
                               Restore
@@ -234,7 +248,7 @@ const Religions = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={6} align="center">
                     <img
                       src={NoDataGIF}
                       alt="No Data"
@@ -249,22 +263,20 @@ const Religions = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={religions?.result?.total || 0}
+          count={subMunicipalities?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={page - 1}
           onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
+          onRowsPerPageChange={(event) =>
+            setRowsPerPage(parseInt(event.target.value, 10))
+          }
         />
       </Paper>
-
-      <ReligionModal
+      <SubMunicipalitiesModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}
         refetch={refetch}
-        selectedReligion={selectedReligion}
+        selectedSubMunicipality={selectedSubMunicipality}
       />
 
       <Dialog
@@ -282,21 +294,17 @@ const Religions = () => {
             mb={1}>
             <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography variant="h6" fontWeight="bold">
             Confirmation
           </Typography>
         </DialogTitle>
-
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography>
             Are you sure you want to{" "}
-            <span style={{ fontWeight: "bold" }}>
-              {selectedReligion?.deleted_at ? "restore" : "archive"}
-            </span>{" "}
-            this title?
+            {selectedSubMunicipality?.deleted_at ? "restore" : "archive"} this
+            sub-municipality?
           </Typography>
         </DialogContent>
-
         <DialogActions sx={{ justifyContent: "center" }}>
           <Button
             onClick={() => setConfirmOpen(false)}
@@ -320,4 +328,4 @@ const Religions = () => {
   );
 };
 
-export default Religions;
+export default SubMunicipalities;

@@ -82,7 +82,7 @@ export default function ToolsModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedTool ? "Edit Tool" : "ADD TOOL"}
+          {selectedTool ? "Edit Tool" : "Add Tool"}
         </Box>
       </DialogTitle>
 

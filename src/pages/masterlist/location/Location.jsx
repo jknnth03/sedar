@@ -127,7 +127,13 @@ const Locations = () => {
                 <TableCell className="table-header" align="center">
                   Location
                 </TableCell>
-                <TableCell className="table-header" align="center">
+                <TableCell
+                  align="center"
+                  sx={{
+                    verticalAlign: "middle",
+                    fontWeight: "bold",
+                    fontSize: "1rem",
+                  }}>
                   Sub-units
                 </TableCell>
               </TableRow>
@@ -152,7 +158,7 @@ const Locations = () => {
                     <TableCell className="table-cell">
                       {location.name}
                     </TableCell>
-                    <TableCell className="table-cell-multiple">
+                    <TableCell align="center">
                       <Tooltip title="View Sub-units">
                         <VisibilityIcon
                           className="EyeIcon"
@@ -201,7 +207,12 @@ const Locations = () => {
         maxWidth="sm"
         fullWidth>
         <DialogTitle style={{ backgroundColor: "rgb(233, 246, 255)" }}>
-          <Typography variant="h6" style={{ fontWeight: "bold" }}>
+          <Typography
+            variant="h6"
+            style={{
+              fontWeight: "bold",
+              fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+            }}>
             Sub-units
           </Typography>
         </DialogTitle>
@@ -210,14 +221,30 @@ const Locations = () => {
             {selectedSubUnits.map((subUnit, index) => (
               <ListItem
                 key={subUnit.id || index}
-                style={{ borderBottom: "1px solid #ccc" }}>
-                <ListItemText primary={subUnit.name} />
+                style={{
+                  borderBottom: "1px solid #ccc",
+                  fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                }}>
+                <ListItemText
+                  primary={subUnit.name}
+                  primaryTypographyProps={{
+                    style: {
+                      fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                    },
+                  }}
+                />
               </ListItem>
             ))}
           </List>
         </DialogContent>
         <DialogActions style={{ backgroundColor: "white" }}>
-          <Button onClick={handleCloseDialog} color="primary">
+          <Button
+            variant="contained"
+            onClick={handleCloseDialog}
+            color="primary"
+            style={{
+              fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+            }}>
             Close
           </Button>
         </DialogActions>

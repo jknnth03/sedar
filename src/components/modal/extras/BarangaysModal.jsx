@@ -126,7 +126,7 @@ export default function BarangaysModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedBarangay ? "Edit Barangay" : "ADD BARANGAY"}
+          {selectedBarangay ? "Edit Barangay" : "Add Barangay"}
         </Box>
       </DialogTitle>
 

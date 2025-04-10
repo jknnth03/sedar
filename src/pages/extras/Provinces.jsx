@@ -143,13 +143,13 @@ const Provinces = () => {
                   ID
                 </TableCell>
                 <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
                   PSG Code
                 </TableCell>
                 <TableCell align="center" className="table-header">
                   Province Name
+                </TableCell>
+                <TableCell align="center" className="table-header">
+                  Region
                 </TableCell>
                 <TableCell
                   align="center"
@@ -183,13 +183,13 @@ const Provinces = () => {
                   <TableRow key={province.id}>
                     <TableCell className="table-cell">{province.id}</TableCell>
                     <TableCell className="table-cell">
-                      {province.code}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {province.psgc_code}
+                      {province.psgc_id}
                     </TableCell>
                     <TableCell className="table-cell">
                       {province.name}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {province.region?.name}
                     </TableCell>
                     <TableCell align="center" sx={{ verticalAlign: "middle" }}>
                       <Chip

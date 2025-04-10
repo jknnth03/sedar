@@ -90,7 +90,7 @@ export default function HonorTitleModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedHonorTitle ? "Edit Honor Title" : "ADD HONOR TITLE"}
+          {selectedHonorTitle ? "Edit Honor Title" : "Add Honor Title"}
         </Box>
       </DialogTitle>
 

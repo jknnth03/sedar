@@ -33,7 +33,6 @@ const userApi = sedarApi
         }),
         invalidatesTags: ["users"],
       }),
-
       deleteUser: build.mutation({
         query: (id) => ({
           url: `users/${id}`,
@@ -43,16 +42,18 @@ const userApi = sedarApi
       }),
 
       getShowUser: build.query({
-        query: ({
-          page = 1,
-          perPage = 10,
-          status = "active",
-          search = "",
-        }) => ({
-          url: `users?pagination=1&page=${page}&per_page=${perPage}&status=${status}&search=${search}`,
+        query: (params = {}) => ({
+          url: `users?pagination=${params.pagination || 1}&page=${
+            params.page || 1
+          }&per_page=${params.rowsPerPage || 10}&search=${
+            params.searchQuery || ""
+          }&status=${params.status || "active"}`,
+          method: "GET",
         }),
-        transformResponse: (response) => response.result?.data || [],
-        providesTags: ["users"],
+        transformResponse: (response) => {
+          return response.result ? response.result.data : [];
+        },
+        providesTags: ["roles"],
       }),
     }),
   });

@@ -71,14 +71,15 @@ const Programs = () => {
   };
 
   const handleArchiveRestoreClick = (program) => {
-    console.log("Archive/Restore clicked for:", program); // Debugging
+    console.log("Archive/Restore clicked for:", program);
     setSelectedProgram(program);
     setConfirmOpen(true);
+    handleMenuClose(program.id);
   };
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedProgram) return;
-    console.log("Archiving/Restoring:", selectedProgram); // Debugging
+    console.log("Archiving/Restoring:", selectedProgram);
 
     try {
       await deleteProgram(selectedProgram.id).unwrap();
@@ -184,8 +185,8 @@ const Programs = () => {
                     <TableCell className="table-cell">{program.name}</TableCell>
                     <TableCell align="center" sx={{ verticalAlign: "middle" }}>
                       <Chip
-                        label={programs.deleted_at ? "Inactive" : "Active"}
-                        color={programs.deleted_at ? "error" : "success"}
+                        label={program.deleted_at ? "Inactive" : "Active"}
+                        color={program.deleted_at ? "error" : "success"}
                       />
                     </TableCell>
                     <TableCell align="center">

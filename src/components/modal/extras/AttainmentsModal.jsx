@@ -90,7 +90,7 @@ export default function AttainmentsModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedAttainment ? "Edit Attainment" : "ADD ATTAINMENT"}
+          {selectedAttainment ? "Edit Attainment" : "Add Attainment"}
         </Box>
       </DialogTitle>
 

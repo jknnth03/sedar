@@ -35,6 +35,7 @@ import {
   useGetShowRegionsQuery,
 } from "../../features/api/extras/regionsApi";
 import { Chip } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 const Regions = () => {
   const [page, setPage] = useState(1);
@@ -46,6 +47,7 @@ const Regions = () => {
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const [viewProvincesOpen, setViewProvincesOpen] = useState(false);
 
   const {
     data: regions,
@@ -141,13 +143,19 @@ const Regions = () => {
                   ID
                 </TableCell>
                 <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
                   PSG Code
                 </TableCell>
                 <TableCell align="center" className="table-header">
                   Region Name
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{
+                    verticalAlign: "middle",
+                    fontWeight: "bold",
+                    fontSize: "1rem",
+                  }}>
+                  Provinces
                 </TableCell>
                 <TableCell
                   align="center"
@@ -180,15 +188,23 @@ const Regions = () => {
                 regionList.map((region) => (
                   <TableRow key={region.id}>
                     <TableCell className="table-cell">{region.id}</TableCell>
-                    <TableCell className="table-cell">{region.code}</TableCell>
                     <TableCell className="table-cell">
-                      {region.psgc_code}
+                      {region.psgc_id}
                     </TableCell>
                     <TableCell className="table-cell">{region.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell align="center">
+                      <IconButton
+                        onClick={() => {
+                          setSelectedRegion(region);
+                          setViewProvincesOpen(true);
+                        }}>
+                        <VisibilityIcon style={{ color: "black" }} />
+                      </IconButton>
+                    </TableCell>
+                    <TableCell align="center">
                       <Chip
-                        label={regions.deleted_at ? "Inactive" : "Active"}
-                        color={regions.deleted_at ? "error" : "success"}
+                        label={region.deleted_at ? "Inactive" : "Active"}
+                        color={region.deleted_at ? "error" : "success"}
                       />
                     </TableCell>
                     <TableCell align="center">
@@ -303,6 +319,67 @@ const Regions = () => {
               Yes
             </Button>
           </Box>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={viewProvincesOpen}
+        onClose={() => {
+          setViewProvincesOpen(false);
+          setSelectedRegion(null);
+        }}
+        fullWidth
+        maxWidth="sm">
+        <DialogTitle style={{ backgroundColor: "rgb(233, 246, 255)" }}>
+          <Typography
+            variant="h6"
+            style={{
+              fontWeight: "bold",
+              fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+            }}>
+            Provinces in {selectedRegion?.name}
+          </Typography>
+        </DialogTitle>
+        <DialogContent style={{ backgroundColor: "white" }}>
+          {selectedRegion?.provinces?.length > 0 ? (
+            <div style={{ paddingTop: "1rem" }}>
+              {selectedRegion.provinces.map((province) => (
+                <div
+                  key={province.id}
+                  style={{
+                    borderBottom: "1px solid #ccc",
+                    padding: "0.5rem 0",
+                    fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                    fontSize: "1rem", // Set font size
+                    color: "#333", // Set font color
+                  }}>
+                  {province.name}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Typography
+              style={{
+                marginTop: "0.5rem",
+                marginBottom: "0.5rem",
+                padding: "0.5rem",
+                fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                fontSize: "1rem", // Set font size
+                color: "#333", // Set font color
+              }}>
+              No provinces found.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions style={{ backgroundColor: "white" }}>
+          <Button
+            onClick={() => {
+              setViewProvincesOpen(false);
+              setSelectedRegion(null);
+            }}
+            variant="contained"
+            color="primary">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </>

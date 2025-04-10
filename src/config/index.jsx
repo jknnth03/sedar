@@ -30,6 +30,7 @@ import EmojiObjectsIcon from "@mui/icons-material/EmojiObjects";
 import ChurchIcon from "@mui/icons-material/Church";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import CategoryIcon from "@mui/icons-material/Category";
 
 export const MODULES = {
   DASHBOARD: {
@@ -260,6 +261,16 @@ export const MODULES = {
         path: "municipalities",
         icon: (
           <GavelIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      SUBMUNICIPALITIES: {
+        name: "Sub Municipalities",
+        path: "submunicipalities",
+        icon: (
+          <CategoryIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
           />
         ),

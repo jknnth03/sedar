@@ -1,38 +1,44 @@
 import React, { useState, useMemo } from "react";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
-import CircularProgress from "@mui/material/CircularProgress";
-import TableRow from "@mui/material/TableRow";
-import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
+import {
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  CircularProgress,
+  TableRow,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Chip,
+  Checkbox,
+  FormControlLabel,
+} from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import RestoreIcon from "@mui/icons-material/Restore";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
-import { useSnackbar } from "notistack";
+import HelpIcon from "@mui/icons-material/Help";
 import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useSnackbar } from "notistack";
 import { SearchBar } from "../masterlist/masterlistComponents";
 import RolesModal from "../../components/modal/usermanagement/RolesModal";
 import NoDataGIF from "../../assets/no-data.gif";
-import "../GeneralStyle.scss";
-import HelpIcon from "@mui/icons-material/Help";
-import { Box, Chip } from "@mui/material";
 import {
   useDeleteRoleMutation,
   useGetShowRolesQuery,
 } from "../../features/api/usermanagement/rolesApi";
+import "../GeneralStyle.scss";
 
 const Roles = () => {
   const [page, setPage] = useState(1);
@@ -43,23 +49,24 @@ const Roles = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewPermissionsOpen, setViewPermissionsOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   const {
-    data: roles,
+    data: roles = [],
     isLoading,
     isFetching,
     refetch,
   } = useGetShowRolesQuery({
-    search: searchQuery,
-    page,
-    per_page: rowsPerPage,
-    status: showArchived ? "inactive" : "active",
+    page: page,
+    rowsPerPage,
+    searchQuery,
+    status: showArchived === false ? "active" : "inactive",
   });
 
-  const [deleteRole] = useDeleteRoleMutation();
+  console.log("Fetched Roles:", roles);
 
-  const roleList = useMemo(() => roles?.result?.data || [], [roles]);
+  const [deleteRole] = useDeleteRoleMutation();
 
   const handleMenuOpen = (event, role) => {
     setMenuAnchor(event.currentTarget);
@@ -71,26 +78,23 @@ const Roles = () => {
   };
 
   const handleArchiveRestoreClick = () => {
-    if (!selectedRole) return;
     setConfirmOpen(true);
     handleMenuClose();
   };
 
   const handleArchiveRestoreConfirm = async () => {
-    if (!selectedRole) return;
     try {
       await deleteRole(selectedRole.id).unwrap();
       enqueueSnackbar(
         selectedRole.deleted_at
           ? "Role restored successfully!"
           : "Role archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success" }
       );
       refetch();
     } catch (error) {
       enqueueSnackbar("Action failed. Please try again.", {
         variant: "error",
-        autoHideDuration: 2000,
       });
     } finally {
       setConfirmOpen(false);
@@ -129,6 +133,15 @@ const Roles = () => {
             showArchived={showArchived}
             setShowArchived={setShowArchived}
           />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+              />
+            }
+            label="Show Archived Roles"
+          />
         </div>
 
         <TableContainer
@@ -137,11 +150,16 @@ const Roles = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Role Name
+                <TableCell className="table-header">ID</TableCell>
+                <TableCell className="table-header">Role Name</TableCell>
+                <TableCell
+                  align="center"
+                  sx={{
+                    verticalAlign: "middle",
+                    fontWeight: "bold",
+                    fontSize: "1rem",
+                  }}>
+                  Access Permission
                 </TableCell>
                 <TableCell
                   align="center"
@@ -170,11 +188,22 @@ const Roles = () => {
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : roleList.length > 0 ? (
-                roleList.map((role) => (
+              ) : roles.length > 0 ? (
+                roles.map((role) => (
                   <TableRow key={role.id}>
                     <TableCell className="table-cell">{role.id}</TableCell>
-                    <TableCell className="table-cell">{role.name}</TableCell>
+                    <TableCell className="table-cell">
+                      {role.role_name}
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        onClick={() => {
+                          setSelectedRole(role);
+                          setViewPermissionsOpen(true);
+                        }}>
+                        <VisibilityIcon style={{ color: "black" }} />
+                      </IconButton>
+                    </TableCell>
                     <TableCell align="center">
                       <Chip
                         label={role.deleted_at ? "Inactive" : "Active"}
@@ -185,43 +214,6 @@ const Roles = () => {
                       <IconButton onClick={(e) => handleMenuOpen(e, role)}>
                         <MoreVertIcon />
                       </IconButton>
-                      <Menu
-                        anchorEl={menuAnchor}
-                        open={Boolean(menuAnchor)}
-                        onClose={handleMenuClose}
-                        sx={{
-                          "& .MuiPaper-root": {
-                            boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.12)",
-                            borderRadius: "8px",
-                          },
-                        }}>
-                        <MenuItem onClick={handleEditClick}>
-                          <EditIcon
-                            fontSize="small"
-                            style={{ marginRight: 8 }}
-                          />
-                          Edit
-                        </MenuItem>
-                        <MenuItem onClick={handleArchiveRestoreClick}>
-                          {selectedRole && selectedRole.deleted_at ? (
-                            <>
-                              <RestoreIcon
-                                fontSize="small"
-                                style={{ marginRight: 8 }}
-                              />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveIcon
-                                fontSize="small"
-                                style={{ marginRight: 8 }}
-                              />
-                              Archive
-                            </>
-                          )}
-                        </MenuItem>
-                      </Menu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -243,18 +235,37 @@ const Roles = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={roles?.result?.total || 0}
+          count={length}
           rowsPerPage={rowsPerPage}
           page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
+          onPageChange={(e, newPage) => setPage(newPage + 1)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
             setPage(1);
           }}
         />
       </Paper>
 
-      {/* Confirmation Dialog */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}>
+        <MenuItem onClick={handleEditClick}>
+          <EditIcon sx={{ mr: 1 }} /> Edit
+        </MenuItem>
+        <MenuItem onClick={handleArchiveRestoreClick}>
+          {selectedRole?.deleted_at ? (
+            <>
+              <RestoreIcon sx={{ mr: 1 }} /> Restore
+            </>
+          ) : (
+            <>
+              <ArchiveIcon sx={{ mr: 1 }} /> Archive
+            </>
+          )}
+        </MenuItem>
+      </Menu>
+
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -274,9 +285,8 @@ const Roles = () => {
             Confirmation
           </Typography>
         </DialogTitle>
-
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1">
             Are you sure you want to{" "}
             <span style={{ fontWeight: "bold" }}>
               {selectedRole?.deleted_at ? "restore" : "archive"}
@@ -284,7 +294,6 @@ const Roles = () => {
             this role?
           </Typography>
         </DialogContent>
-
         <DialogActions sx={{ justifyContent: "center" }}>
           <Button
             onClick={() => setConfirmOpen(false)}
@@ -301,6 +310,55 @@ const Roles = () => {
               "&:hover": { backgroundColor: "rgb(0, 102, 14)" },
             }}>
             Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={viewPermissionsOpen}
+        onClose={() => setViewPermissionsOpen(false)}
+        maxWidth="sm"
+        fullWidth>
+        <DialogTitle style={{ backgroundColor: "rgb(233, 246, 255)" }}>
+          <Typography variant="h6" style={{ fontWeight: "bold" }}>
+            Access Permissions
+          </Typography>
+        </DialogTitle>
+        <DialogContent style={{ backgroundColor: "white" }}>
+          {selectedRole?.access_permissions?.length ? (
+            <div style={{ paddingTop: "1rem" }}>
+              {selectedRole.access_permissions.map((perm, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    borderBottom: "1px solid #ccc",
+                    padding: "0.5rem 0",
+                    fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                    fontSize: "1rem", // Change font size
+                    color: "#333", // Change font color
+                  }}>
+                  {perm}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Typography
+              style={{
+                marginTop: "0.5rem",
+                marginBottom: "0.5rem",
+                padding: "0.5rem",
+                fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+              }}>
+              No permissions assigned.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions style={{ backgroundColor: "white" }}>
+          <Button
+            onClick={() => setViewPermissionsOpen(false)}
+            variant="contained"
+            color="primary">
+            Close
           </Button>
         </DialogActions>
       </Dialog>

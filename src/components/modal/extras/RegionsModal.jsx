@@ -39,7 +39,7 @@ export default function RegionsModal({
   useEffect(() => {
     if (open) {
       setRegionName(selectedRegion?.name || "");
-      setPsgcCode(selectedRegion?.psgc_code || "");
+      setPsgcCode(selectedRegion?.psgc_id || "");
       setRegionCode(selectedRegion?.code || "");
       setErrorMessage(null);
       setErrors({ regionName: false, psgcCode: false, regionCode: false });
@@ -104,7 +104,7 @@ export default function RegionsModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedRegion ? "Edit Region" : "ADD REGION"}
+          {selectedRegion ? "Edit Region" : "Add Region"}
         </Box>
       </DialogTitle>
 
@@ -127,18 +127,6 @@ export default function RegionsModal({
             error={errors.psgcCode}
             helperText={errors.psgcCode ? "PSGC Code is required" : ""}
             sx={{ marginTop: 3 }}
-          />
-
-          <TextField
-            label="Region Code"
-            variant="outlined"
-            fullWidth
-            margin="dense"
-            value={regionCode}
-            onChange={(e) => setRegionCode(e.target.value)}
-            disabled={adding || updating}
-            error={errors.regionCode}
-            helperText={errors.regionCode ? "Region Code is required" : ""}
           />
 
           <TextField

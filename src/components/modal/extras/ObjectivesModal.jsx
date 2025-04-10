@@ -100,7 +100,7 @@ export default function ObjectivesModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedObjective ? "Edit Objective" : "ADD OBJECTIVE"}
+          {selectedObjective ? "Edit Objective" : "Add Objective"}
         </Box>
       </DialogTitle>
 

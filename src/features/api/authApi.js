@@ -1,6 +1,6 @@
 import { sedarApi } from ".";
 
-const authApi = sedarApi.injectEndpoints({
+const extendedApi = sedarApi.injectEndpoints({
   endpoints: (build) => ({
     login: build.mutation({
       query: (body) => ({
@@ -12,4 +12,4 @@ const authApi = sedarApi.injectEndpoints({
   }),
 });
 
-export const { useLoginMutation } = authApi;
+export const { useLoginMutation } = extendedApi;

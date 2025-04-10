@@ -202,8 +202,8 @@ const Attainments = () => {
                         onClose={handleMenuClose}
                         sx={{
                           "& .MuiPaper-root": {
-                            boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.12)", // Lighter shadow
-                            borderRadius: "8px", // Optional: Softer corners
+                            boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.12)",
+                            borderRadius: "8px",
                           },
                         }}>
                         <MenuItem onClick={handleEditClick}>

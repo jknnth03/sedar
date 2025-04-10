@@ -22,6 +22,7 @@ import Degrees from "../../pages/extras/Degrees.jsx";
 import FileTypes from "../../pages/extras/FileTypes.jsx";
 import HonorTitles from "../../pages/extras/HonorTitles.jsx";
 import Municipalites from "../../pages/extras/Municipalities.jsx";
+import SubMunicipalites from "../../pages/extras/SubMunicipalities.jsx";
 import Objectives from "../../pages/extras/Objectives.jsx";
 import Prefixes from "../../pages/extras/Prefixes.jsx";
 import Programs from "../../pages/extras/Programs.jsx";
@@ -51,6 +52,9 @@ export const ROUTES = [
         id: MODULES.DASHBOARD.name,
         path: MODULES.DASHBOARD.path,
         element: <Dashboard />,
+        handle: {
+          permission: MODULES.DASHBOARD.name,
+        },
       },
       {
         id: CONSTANT.PAGES.USERMANAGEMENT.children.USER.name,
@@ -215,6 +219,14 @@ export const ROUTES = [
         element: <Municipalites />,
         handle: {
           permission: CONSTANT.PAGES.EXTRAS.children.MUNICIPALITIES.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.EXTRAS.children.SUBMUNICIPALITIES.name,
+        path: CONSTANT.PAGES.EXTRAS.children.SUBMUNICIPALITIES.path,
+        element: <SubMunicipalites />,
+        handle: {
+          permission: CONSTANT.PAGES.EXTRAS.children.SUBMUNICIPALITIES.name,
         },
       },
       {

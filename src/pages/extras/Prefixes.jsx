@@ -183,8 +183,8 @@ const Prefixes = () => {
                     <TableCell className="table-cell">{prefix.name}</TableCell>
                     <TableCell align="center" sx={{ verticalAlign: "middle" }}>
                       <Chip
-                        label={prefixes.deleted_at ? "Inactive" : "Active"}
-                        color={prefixes.deleted_at ? "error" : "success"}
+                        label={prefix.deleted_at ? "Inactive" : "Active"}
+                        color={prefix.deleted_at ? "error" : "success"}
                       />
                     </TableCell>
                     <TableCell align="center">

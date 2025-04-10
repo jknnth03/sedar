@@ -153,13 +153,13 @@ const Municipalities = () => {
                   ID
                 </TableCell>
                 <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
                   PSG Code
                 </TableCell>
                 <TableCell align="center" className="table-header">
                   Municipality Name
+                </TableCell>
+                <TableCell align="center" className="table-header">
+                  Province Name {/* Added header for Province Name */}
                 </TableCell>
                 <TableCell
                   align="center"
@@ -195,13 +195,14 @@ const Municipalities = () => {
                       {municipality.id}
                     </TableCell>
                     <TableCell className="table-cell">
-                      {municipality.code}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {municipality.psgc_code}
+                      {municipality.psgc_id}
                     </TableCell>
                     <TableCell className="table-cell">
                       {municipality.name}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {municipality.province?.name}{" "}
+                      {/* Access the province name safely */}
                     </TableCell>
                     <TableCell align="center">
                       <Chip

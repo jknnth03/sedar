@@ -8,17 +8,26 @@ const rolesApi = sedarApi
         query: (body) => ({
           url: "roles",
           method: "POST",
-          body,
+          body: {
+            name: body.role_name,
+            access_permissions: body.access_permissions,
+          },
         }),
         invalidatesTags: ["roles"],
       }),
 
       getShowRoles: build.query({
-        query: () => ({
-          url: `roles?pagination=none`,
+        query: (params = {}) => ({
+          url: `roles?pagination=none&page=${params.page || 1}&limit=${
+            params.rowsPerPage || 10
+          }&search=${params.searchQuery || ""}&status=${
+            params.status || "active"
+          }`,
           method: "GET",
         }),
-        // transformResponse: (response) => response.result?.data || [],
+        transformResponse: (response) => {
+          return response.result ? response.result : [];
+        },
         providesTags: ["roles"],
       }),
 
@@ -26,7 +35,10 @@ const rolesApi = sedarApi
         query: ({ id, ...body }) => ({
           url: `roles/${id}`,
           method: "PATCH",
-          body,
+          body: {
+            name: body.role_name,
+            access_permissions: body.access_permissions,
+          },
         }),
         invalidatesTags: ["roles"],
       }),
@@ -44,7 +56,6 @@ const rolesApi = sedarApi
 export const {
   usePostRoleMutation,
   useGetShowRolesQuery,
-  // useLazyGetRolesDropDownQuery,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 } = rolesApi;

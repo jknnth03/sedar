@@ -16,7 +16,7 @@ export default function Appbar({ setOpen = () => {} }) {
     setIsOpen((prev) => !prev);
     setOpen((prev) => !prev); // Keeps original sidebar toggle logic
   };
-
+  const userData = JSON.parse(localStorage.getItem("user")) || [];
   return (
     <Toolbar
       className="appbar"
@@ -48,7 +48,7 @@ export default function Appbar({ setOpen = () => {} }) {
           fontSize: "14px",
           fontWeight: "bold",
         }}>
-        Fresh morning, User!
+        {`Fresh morning, ${userData.username}!`}
       </Typography>
 
       <Box className="account-menu" sx={{ zIndex: 2000, overflow: "visible" }}>

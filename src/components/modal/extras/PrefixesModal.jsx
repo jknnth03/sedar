@@ -96,7 +96,7 @@ export default function PrefixesModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedPrefix ? "Edit Prefix" : "ADD PREFIX"}
+          {selectedPrefix ? "Edit Prefix" : "Add Prefix"}
         </Box>
       </DialogTitle>
 

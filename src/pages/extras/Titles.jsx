@@ -40,7 +40,7 @@ const Titles = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const [menuAnchor, setMenuAnchor] = useState({}); // Fixing menu state
+  const [menuAnchor, setMenuAnchor] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -70,6 +70,7 @@ const Titles = () => {
   };
 
   const handleArchiveRestoreClick = (title) => {
+    handleMenuClose(title.id);
     setSelectedTitle(title);
     setConfirmOpen(true);
   };
@@ -97,12 +98,12 @@ const Titles = () => {
   };
 
   const handleAddTitle = () => {
-    setSelectedTitle(null); // Reset selected title
+    setSelectedTitle(null);
     setModalOpen(true);
   };
 
   const handleEditClick = (title) => {
-    setSelectedTitle(title); // Set selected title for editing
+    setSelectedTitle(title);
     setModalOpen(true);
     handleMenuClose(title.id);
   };

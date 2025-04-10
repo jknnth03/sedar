@@ -97,7 +97,7 @@ export default function ProvincesModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedProvince ? "Edit Province" : "ADD PROVINCE"}
+          {selectedProvince ? "Edit Province" : "Add Province"}
         </Box>
       </DialogTitle>
 

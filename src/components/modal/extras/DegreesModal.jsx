@@ -82,7 +82,7 @@ export default function DegreesModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedDegree ? "Edit Degree" : "ADD DEGREE"}
+          {selectedDegree ? "Edit Degree" : "Add Degree"}
         </Box>
       </DialogTitle>
 

@@ -97,7 +97,7 @@ export default function ReligionsModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedReligion ? "Edit Religion" : "ADD RELIGION"}
+          {selectedReligion ? "Edit Religion" : "Add Religion"}
         </Box>
       </DialogTitle>
 

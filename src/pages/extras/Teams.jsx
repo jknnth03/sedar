@@ -73,6 +73,7 @@ const Teams = () => {
   const handleArchiveRestoreClick = (team) => {
     setSelectedTeam(team);
     setConfirmOpen(true);
+    handleMenuClose(team.id);
   };
 
   const handleArchiveRestoreConfirm = async () => {
@@ -175,8 +176,8 @@ const Teams = () => {
                     <TableCell className="table-cell">{team.name}</TableCell>
                     <TableCell align="center" sx={{ verticalAlign: "middle" }}>
                       <Chip
-                        label={teams.deleted_at ? "Inactive" : "Active"}
-                        color={teams.deleted_at ? "error" : "success"}
+                        label={team.deleted_at ? "Inactive" : "Active"}
+                        color={team.deleted_at ? "error" : "success"}
                       />
                     </TableCell>
                     <TableCell className="table-cell">

@@ -25,6 +25,7 @@ export default function AccountMenu() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     handleClose();
     navigate("/login");
   };

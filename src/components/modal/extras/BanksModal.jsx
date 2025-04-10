@@ -24,7 +24,6 @@ const BanksModal = ({ open, handleClose, refetch, selectedBank }) => {
   const [createBank, { isLoading: isCreating }] = usePostBanksMutation();
   const [updateBank, { isLoading: isUpdating }] = useUpdateBanksMutation();
 
-  // Set form data when modal opens
   useEffect(() => {
     console.log("Modal Opened. Selected Bank:", selectedBank);
 
@@ -39,7 +38,6 @@ const BanksModal = ({ open, handleClose, refetch, selectedBank }) => {
     setErrorMessage(null);
   }, [selectedBank]);
 
-  // Handle Form Submission
   const handleSubmit = async (event) => {
     event.preventDefault();
 

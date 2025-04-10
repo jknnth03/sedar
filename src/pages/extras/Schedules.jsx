@@ -73,6 +73,7 @@ const Schedule = () => {
   };
 
   const handleArchiveRestoreClick = (schedule) => {
+    handleMenuClose(schedule.id);
     setSelectedSchedule(schedule);
     setConfirmOpen(true);
   };
@@ -94,8 +95,8 @@ const Schedule = () => {
         autoHideDuration: 2000,
       });
     } finally {
-      setConfirmOpen(false);
       setSelectedSchedule(null);
+      setConfirmOpen(false);
     }
   };
 
@@ -181,8 +182,8 @@ const Schedule = () => {
                     </TableCell>
                     <TableCell align="center" sx={{ verticalAlign: "middle" }}>
                       <Chip
-                        label={schedules.deleted_at ? "Inactive" : "Active"}
-                        color={schedules.deleted_at ? "error" : "success"}
+                        label={schedule.deleted_at ? "Inactive" : "Active"}
+                        color={schedule.deleted_at ? "error" : "success"}
                       />
                     </TableCell>
                     <TableCell className="table-cell">

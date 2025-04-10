@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Paper,
   Typography,
@@ -10,9 +10,6 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
   Chip,
   Button,
   Dialog,
@@ -21,24 +18,21 @@ import {
   DialogTitle,
   Box,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import ArchiveIcon from "@mui/icons-material/Archive";
-import RestoreIcon from "@mui/icons-material/Restore";
 import AddIcon from "@mui/icons-material/Add";
 import { useSnackbar } from "notistack";
 import { SearchBar } from "../masterlist/masterlistComponents";
 import UserModal from "../../components/modal/usermanagement/UserModal";
 import NoDataGIF from "../../assets/no-data.gif";
 import "../GeneralStyle.scss";
-import {
-  useDeleteUserMutation,
-  useGetShowUserQuery,
-} from "../../features/api/usermanagement/userApi";
 import { useDispatch } from "react-redux";
 import { setUserModal } from "../../features/slice/modalSlice";
 import HelpIcon from "@mui/icons-material/Help";
 import useDebounce from "../../hooks/useDebounce";
+import UserActions from "./UserActions";
+import {
+  useDeleteUserMutation,
+  useGetShowUserQuery,
+} from "../../features/api/usermanagement/userApi";
 
 const User = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -53,13 +47,14 @@ const User = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const debouncevalue = useDebounce(searchQuery, 500);
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const { data, isLoading, isFetching, refetch } = useGetShowUserQuery({
-    search: debouncevalue,
+    searchQuery: debounceValue,
     page,
-    per_page: rowsPerPage,
+    rowsPerPage,
     status: showArchived ? "inactive" : "active",
+    pagination: 1,
   });
 
   const userList = useMemo(() => data || [], [data]);
@@ -73,7 +68,6 @@ const User = () => {
     setSelectedUser(user);
     setMenuAnchor(null);
     setModalOpen(true);
-    handleMenuClose();
   };
 
   const handleMenuOpen = (event, user) => {
@@ -99,8 +93,8 @@ const User = () => {
       await deleteUser(selectedUser.id).unwrap();
       enqueueSnackbar(
         selectedUser.deleted_at
-          ? "User restored successfully!"
-          : "User archived successfully!",
+          ? "User  restored successfully!"
+          : "User  archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
       refetch();
@@ -137,7 +131,7 @@ const User = () => {
         <div className="table-controls">
           <SearchBar
             searchQuery={searchQuery}
-            setSearchQuery={handleSearchChange} // Apply search change immediately
+            setSearchQuery={handleSearchChange}
             showArchived={showArchived}
             setShowArchived={setShowArchived}
           />
@@ -214,48 +208,12 @@ const User = () => {
                       />
                     </TableCell>
                     <TableCell align="center">
-                      <IconButton onClick={(e) => handleMenuOpen(e, user)}>
-                        <MoreVertIcon />
-                      </IconButton>
-
-                      <Menu
-                        anchorEl={menuAnchor}
-                        open={Boolean(menuAnchor)}
-                        onClose={handleMenuClose}
-                        PaperProps={{
-                          elevation: 2,
-                          sx: {
-                            borderRadius: 2,
-                            boxShadow: "0px 2px 5px rgba(0,0,0,0.15)",
-                          },
-                        }}>
-                        <MenuItem onClick={() => handleEditUser(user)}>
-                          <EditIcon
-                            fontSize="small"
-                            style={{ marginRight: 8 }}
-                          />
-                          Edit
-                        </MenuItem>
-                        <MenuItem onClick={handleArchiveRestoreClick}>
-                          {selectedUser?.deleted_at ? (
-                            <>
-                              <RestoreIcon
-                                fontSize="small"
-                                style={{ marginRight: 8 }}
-                              />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveIcon
-                                fontSize="small"
-                                style={{ marginRight: 8 }}
-                              />
-                              Archive
-                            </>
-                          )}
-                        </MenuItem>
-                      </Menu>
+                      <UserActions
+                        user={user}
+                        showArchived={showArchived}
+                        handleEditUser={handleEditUser}
+                        handleArchiveRestoreClick={handleArchiveRestoreClick}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -287,8 +245,6 @@ const User = () => {
           }}
         />
       </Paper>
-
-      {/* Modals */}
       <UserModal
         key={selectedUser?.id || "new-user"}
         open={modalOpen}
@@ -296,7 +252,6 @@ const User = () => {
         refetch={refetch}
         selectedUser={selectedUser}
       />
-
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -316,8 +271,7 @@ const User = () => {
         <DialogContent>
           <Typography variant="body1" gutterBottom>
             Are you sure you want to{" "}
-            <strong>{selectedUser?.deleted_at ? "restore" : "archive"}</strong>{" "}
-            this user?
+            <strong>{showArchived ? "restore" : "archive"}</strong> this user?
           </Typography>
         </DialogContent>
         <DialogActions>

@@ -7,24 +7,61 @@ import {
   TextField,
   Button,
   Grid,
+  Typography,
+  IconButton,
 } from "@mui/material";
+import Autocomplete from "@mui/material/Autocomplete";
 import EditIcon from "@mui/icons-material/Edit";
 import { useSnackbar } from "notistack";
-import Autocomplete from "@mui/material/Autocomplete";
+import { useDispatch, useSelector } from "react-redux";
 import {
   useCreateUserMutation,
   useUpdateUserMutation,
   useGetEmployeeIdNumbersQuery,
   useGetSingleUserQuery,
 } from "../../../features/api/usermanagement/userApi";
-import { useDispatch, useSelector } from "react-redux";
+
 import { resetModal } from "../../../features/slice/modalSlice";
 import { useGetShowRolesQuery } from "../../../features/api/usermanagement/rolesApi";
-
 const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
+  const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const userModal = useSelector((state) => state.modal.userModal);
-  const dispatch = useDispatch();
+
+  const [formData, setFormData] = useState({
+    employeeId: "",
+    role: null,
+    username: "",
+    firstName: "",
+    lastName: "",
+    middleName: "",
+    suffix: "",
+    company: "",
+    businessUnit: "",
+    department: "",
+    unit: "",
+    subUnit: "",
+    location: "",
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  const { data: employeeData, isLoading: employeeLoading } =
+    useGetEmployeeIdNumbersQuery();
+  const employeeIdOptions = employeeData?.result || [];
+
+  const { data: rolesData } = useGetShowRolesQuery();
+
+  const employeeIdNumber = formData.employeeId?.id || null;
+
+  const { data: userDetails } = useGetSingleUserQuery(
+    { id: employeeIdNumber },
+    { skip: !userModal || !employeeIdNumber }
+  );
+
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
+
   const handleCloseModal = () => {
     dispatch(resetModal());
     setFormData({
@@ -44,92 +81,32 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
     });
   };
 
-  console.log("selectedUser", selectedUser);
-
-  const [formData, setFormData] = useState({
-    employeeId: "",
-    role: null,
-    username: "",
-    firstName: "",
-    lastName: "",
-    middleName: "",
-    suffix: "",
-    company: "",
-    businessUnit: "",
-    department: "",
-    unit: "",
-    subUnit: "",
-    location: "",
-  });
-
-  console.log("formData", formData);
-
-  const { data: employeeData, isLoading: employeeLoading } =
-    useGetEmployeeIdNumbersQuery();
-
-  console.log("employeeEdata", employeeData);
-
-  const employeeIdOptions = employeeData?.result || [];
-  const handleEmployeeIdChange = (event, newValue) => {
-    console.log("newvalue", newValue);
-    setFormData((prev) => {
-      console.log("prev", prev);
-      return {
-        ...prev,
-        employeeId: newValue || null,
-      };
-    });
+  const handleEmployeeIdChange = (_, newValue) => {
+    setFormData((prev) => ({
+      ...prev,
+      employeeId: newValue || null,
+    }));
   };
 
-  const employeeIdNumber = formData.employeeId ? formData.employeeId.id : null;
-
-  const { data: rolesData } = useGetShowRolesQuery();
-
-  const handleRoleChange = (event, newValue) => {
+  const handleRoleChange = (_, newValue) => {
     setFormData((prev) => ({
       ...prev,
       role: newValue || null,
     }));
   };
 
-  const { data: userDetails, isFetching: userFetching } = useGetSingleUserQuery(
-    { id: employeeIdNumber },
-    { skip: !userModal || !employeeIdNumber }
-  );
-
-  useEffect(() => {
-    if (userDetails?.result) {
-      setFormData((prev) => ({
-        ...prev,
-        firstName: userDetails.result.general_info?.first_name || "",
-        lastName: userDetails.result.general_info?.last_name || "",
-        middleName: userDetails.result.general_info?.middle_name || "",
-        suffix: userDetails.result.general_info?.suffix || "",
-        company: userDetails.result.unit_info?.company?.company_name || "",
-        businessUnit:
-          userDetails.result.unit_info?.business_unit?.business_unit_name || "",
-        department:
-          userDetails.result.unit_info?.department?.department_name || "",
-        unit: userDetails.result.unit_info?.unit?.unit_name || "",
-        subUnit: userDetails.result.unit_info?.sub_unit?.sub_unit_name || "",
-        location: userDetails.result.unit_info?.location?.location_name || "",
-      }));
-    }
-  }, [userDetails]);
-
-  console.log("user details", userDetails);
-  const [createUser] = useCreateUserMutation();
-  const [updateUser] = useUpdateUserMutation();
-  const [isEditing, setIsEditing] = useState(false);
+  const handleTextFieldChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   const generateUsername = () => {
-    const firstNameInitial = formData.firstName?.[0]?.toLowerCase() || "";
-    const middleNameInitial = formData.middleName
-      ? formData.middleName[0]?.toLowerCase()
-      : "";
-    const lastName = formData.lastName?.toLowerCase().replace(/\s+/g, "") || "";
-
-    return `${firstNameInitial}${middleNameInitial}${lastName}`.trim();
+    const f = formData.firstName?.[0]?.toLowerCase() || "";
+    const m = formData.middleName?.[0]?.toLowerCase() || "";
+    const l = formData.lastName?.toLowerCase().replace(/\s+/g, "") || "";
+    return `${f}${m}${l}`.trim();
   };
 
   useEffect(() => {
@@ -141,26 +118,72 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
     }
   }, [formData.firstName, formData.middleName, formData.lastName]);
 
+  useEffect(() => {
+    if (userDetails?.result) {
+      const g = userDetails.result.general_info;
+      const u = userDetails.result.unit_info;
+      setFormData((prev) => ({
+        ...prev,
+        firstName: g?.first_name || "",
+        lastName: g?.last_name || "",
+        middleName: g?.middle_name || "",
+        suffix: g?.suffix || "",
+        company: u?.company?.company_name || "",
+        businessUnit: u?.business_unit?.business_unit_name || "",
+        department: u?.department?.department_name || "",
+        unit: u?.unit?.unit_name || "",
+        subUnit: u?.sub_unit?.sub_unit_name || "",
+        location: u?.location?.location_name || "",
+      }));
+    }
+  }, [userDetails]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      setFormData((prev) => ({
+        ...prev,
+        firstName: selectedUser.first_name || "",
+        lastName: selectedUser.last_name || "",
+        middleName: selectedUser.middle_name || "",
+        suffix: selectedUser.suffix || "",
+        company: selectedUser.company?.company_name || "",
+        businessUnit: selectedUser.business_unit?.business_unit_name || "",
+        department: selectedUser.department?.department_name || "",
+        unit: selectedUser.unit?.unit_name || "",
+        subUnit: selectedUser.sub_unit?.sub_unit_name || "",
+        location: selectedUser.location?.location_name || "",
+        username: selectedUser.username || "",
+        role: selectedUser.role || null,
+      }));
+      setIsEditing(false);
+    } else {
+      setFormData({
+        employeeId: "",
+        role: null,
+        username: "",
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        suffix: "",
+        company: "",
+        businessUnit: "",
+        department: "",
+        unit: "",
+        subUnit: "",
+        location: "",
+      });
+      setIsEditing(true);
+    }
+  }, [selectedUser]);
+
   const handleSubmit = async () => {
+    const requestData = {
+      employee_id: formData.employeeId?.id || null,
+      role_id: formData.role?.id || null,
+      username: formData.username?.trim(),
+    };
+
     try {
-      const requestData = {
-        employee_id: formData.employeeId?.id || null,
-        role_id: formData.role?.id || null,
-        username: formData.username?.trim() || "",
-      };
-
-      console.log("Submitting data:", requestData);
-
-      if (!selectedUser && !requestData.employee_id) {
-        enqueueSnackbar("Employee ID is required.", { variant: "error" });
-        return;
-      }
-
-      if (!selectedUser && !requestData.role_id) {
-        enqueueSnackbar("Role is required.", { variant: "error" });
-        return;
-      }
-
       let response;
       if (selectedUser) {
         response = await updateUser({
@@ -171,35 +194,12 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
       } else {
         response = await createUser(requestData).unwrap();
         enqueueSnackbar("User created successfully!", { variant: "success" });
-
-        setFormData({
-          employeeId: "",
-          role: null,
-          username: "",
-          firstName: "",
-          lastName: "",
-          middleName: "",
-          suffix: "",
-          company: "",
-          businessUnit: "",
-          department: "",
-          unit: "",
-          subUnit: "",
-          location: "",
-        });
       }
-
-      console.log("API response for selected user:", response);
 
       await refetch();
-
-      if (typeof handleClose === "function") {
-        handleClose();
-      }
-
-      dispatch(resetModal());
+      handleCloseModal();
     } catch (error) {
-      console.error("Error details:", error);
+      console.error(error);
       enqueueSnackbar("An error occurred. Please try again.", {
         variant: "error",
       });
@@ -207,39 +207,18 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
   };
 
   const disabledStyle = { filter: "grayscale(100%)" };
-  const handleTextFieldChange = (event) => {
-    setFormData((prev) => ({
-      ...prev,
-      [event.target.name]: event.target.value,
-    }));
-  };
 
-  console.log("Modal open prop:", userModal);
-
-  useEffect(() => {
-    if (selectedUser) {
-      setFormData((prev) => ({
-        ...prev,
-        username: selectedUser.username || generateUsername(),
-        role: selectedUser.role || null,
-      }));
-      setIsEditing(false);
-    } else {
-      setIsEditing(true);
-    }
-  }, [selectedUser]);
+  const isCreateDisabled =
+    !selectedUser &&
+    (!formData.employeeId?.id || !formData.role?.id || !formData.username);
 
   return (
     <Dialog open={userModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
       <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
+        sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
         {selectedUser ? "Edit User" : "Register a New User"}
       </DialogTitle>
+
       <DialogContent dividers>
         <Grid container spacing={2}>
           <Grid item xs={8}>
@@ -247,15 +226,13 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
               <TextField
                 fullWidth
                 label="Employee ID"
-                value={selectedUser.full_id_number || "N/A"}
+                value={selectedUser.full_id_number || ""}
                 disabled
-                sx={{ filter: "grayscale(100%)" }}
+                sx={disabledStyle}
               />
             ) : (
               <Autocomplete
-                options={
-                  Array.isArray(employeeIdOptions) ? employeeIdOptions : []
-                }
+                options={employeeIdOptions}
                 value={
                   employeeIdOptions.find(
                     (emp) => emp.id === formData.employeeId?.id
@@ -272,9 +249,8 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
           </Grid>
           <Grid item xs={4}>
             <Autocomplete
-              disablePortal
-              options={rolesData?.result || []}
-              value={selectedUser ? selectedUser.role : formData.role || null}
+              options={rolesData || []}
+              value={formData.role || null}
               onChange={handleRoleChange}
               getOptionLabel={(option) => `${option.id} - ${option.role_name}`}
               renderInput={(params) => <TextField {...params} label="Role" />}
@@ -285,166 +261,42 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
               fullWidth
               label="Username"
               name="username"
-              value={
-                isEditing
-                  ? formData.username
-                  : selectedUser
-                  ? selectedUser.username
-                  : formData.username || ""
-              }
+              value={formData.username}
               onChange={handleTextFieldChange}
-              onClick={() => {
-                setIsEditing(true);
-                setFormData((prev) => ({
-                  ...prev,
-                  username: prev.username || selectedUser?.username || "",
-                }));
-              }}
-              InputProps={{
-                readOnly: !isEditing,
-                endAdornment: (
-                  <EditIcon
-                    style={{
-                      cursor: "pointer",
-                      transition: "color 0.2s ease-in-out",
-                    }}
-                    onMouseEnter={(e) => (e.target.style.color = "blue")}
-                    onMouseLeave={(e) => (e.target.style.color = "inherit")}
-                  />
-                ),
-              }}
             />
           </Grid>
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              label="First Name"
-              value={
-                selectedUser
-                  ? selectedUser.first_name
-                  : formData.firstName || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              label="Last Name"
-              value={
-                selectedUser ? selectedUser.last_name : formData.lastName || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={8}>
-            <TextField
-              fullWidth
-              label="Middle Name"
-              value={
-                selectedUser
-                  ? selectedUser.middle_name
-                  : formData.middleName || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <TextField
-              fullWidth
-              label="Suffix"
-              value={selectedUser ? selectedUser.suffix : formData.suffix || ""}
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Company"
-              value={
-                selectedUser
-                  ? selectedUser?.company?.company_name
-                  : formData.company || ""
-              }
-              disabled
-              sx={selectedUser ? { filter: "grayscale(100%)" } : disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Business Unit"
-              value={
-                selectedUser
-                  ? selectedUser?.business_unit?.business_unit_name
-                  : formData.businessUnit || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Department"
-              value={
-                selectedUser
-                  ? selectedUser?.department?.department_name
-                  : formData.department || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Unit"
-              value={
-                selectedUser
-                  ? selectedUser?.unit?.unit_name
-                  : formData.unit || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Sub Unit"
-              value={
-                selectedUser && selectedUser.sub_unit
-                  ? selectedUser?.sub_unit?.sub_unit_name
-                  : formData.subUnit || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Location"
-              value={
-                selectedUser
-                  ? selectedUser?.location?.location_name
-                  : formData.location || ""
-              }
-              disabled
-              sx={disabledStyle}
-            />
-          </Grid>
+          {[
+            { label: "First Name", value: formData.firstName },
+            { label: "Last Name", value: formData.lastName },
+            { label: "Middle Name", value: formData.middleName },
+            { label: "Suffix", value: formData.suffix },
+            { label: "Company", value: formData.company },
+            { label: "Business Unit", value: formData.businessUnit },
+            { label: "Department", value: formData.department },
+            { label: "Unit", value: formData.unit },
+            { label: "Sub Unit", value: formData.subUnit },
+            { label: "Location", value: formData.location },
+          ].map((field, index) => (
+            <Grid item xs={index === 2 ? 8 : index === 3 ? 4 : 12} key={index}>
+              <TextField
+                fullWidth
+                label={field.label}
+                value={field.value}
+                disabled
+                sx={disabledStyle}
+              />
+            </Grid>
+          ))}
         </Grid>
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={() => dispatch(resetModal())}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained">
+        <Button onClick={handleCloseModal}>Cancel</Button>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={isCreateDisabled}
+          sx={isCreateDisabled ? disabledStyle : {}}>
           {selectedUser ? "Update" : "Create"}
         </Button>
       </DialogActions>

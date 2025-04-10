@@ -25,14 +25,13 @@ export default function RolesModal({
   open,
   handleClose,
   refetch,
-  showArchived,
   selectedRole,
 }) {
   const [roleName, setRoleName] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-
+  console.log("selectedpermissions", selectedPermissions);
   const [postRole, { isLoading: adding }] = usePostRoleMutation();
   const [updateRole, { isLoading: updating }] = useUpdateRoleMutation();
   const { enqueueSnackbar } = useSnackbar();
@@ -51,15 +50,23 @@ export default function RolesModal({
 
   useEffect(() => {
     if (open) {
-      setRoleName(selectedRole?.name || "");
-      setSelectedPermissions(selectedRole?.permissions || []);
+      if (selectedRole) {
+        console.log("Selected Role:", selectedRole);
+        setRoleName(selectedRole.role_name || "");
+        setSelectedPermissions(selectedRole.access_permissions || []);
+        console.log("Selected Permissions:", selectedRole.access_permissions);
+        const permissionsLength = Array.isArray(selectedRole.access_permissions)
+          ? selectedRole.access_permissions.length
+          : 0;
+        setSelectAll(permissionsLength === permissionList.length);
+      } else {
+        setRoleName("");
+        setSelectedPermissions([]);
+        setSelectAll(false);
+      }
       setErrorMessage(null);
     }
   }, [open, selectedRole]);
-
-  useEffect(() => {
-    setSelectAll(selectedPermissions.length === permissionList.length);
-  }, [selectedPermissions]);
 
   const handlePermissionChange = (permissionValue) => {
     setSelectedPermissions((prev) =>
@@ -70,7 +77,15 @@ export default function RolesModal({
   };
 
   const handleSelectAll = () => {
-    setSelectedPermissions(selectAll ? [] : permissionList.map((p) => p.value));
+    const newSelectedPermissions = selectAll
+      ? []
+      : permissionList.map((p) => p.value);
+    setSelectedPermissions(newSelectedPermissions);
+    setSelectAll(!selectAll);
+  };
+
+  const isPermissionSelected = (permissionValue) => {
+    return selectedPermissions.includes(permissionValue);
   };
 
   const handleSubmit = async () => {
@@ -82,9 +97,8 @@ export default function RolesModal({
     }
 
     const payload = {
-      name: roleName.trim(),
-      permissions: selectedPermissions,
-      status: showArchived ? "inactive" : "active",
+      role_name: roleName.trim(),
+      access_permissions: selectedPermissions,
     };
 
     try {
@@ -108,15 +122,8 @@ export default function RolesModal({
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedRole ? "Edit Role" : "Add Role"}
-        </Box>
+        sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
+        {selectedRole ? <strong>Edit Role</strong> : <strong>Add Role</strong>}
       </DialogTitle>
 
       <DialogContent>
@@ -135,12 +142,11 @@ export default function RolesModal({
             value={roleName}
             onChange={(e) => setRoleName(e.target.value)}
             disabled={adding || updating}
-            sx={{ marginTop: 3 }}
+            sx={{ marginTop: 2 }}
           />
 
-          {/* Separate Permission Selection Box */}
           <Paper
-            sx={{ mt: 3, p: 2, borderRadius: 2, border: "1px solid #ddd" }}>
+            sx={{ mt: 1, p: 2, borderRadius: 2, border: "1px solid #ddd" }}>
             <Box display="flex" alignItems="center" gap={1} mb={2}>
               <FormControlLabel
                 control={
@@ -152,7 +158,7 @@ export default function RolesModal({
             </Box>
 
             <Typography variant="subtitle1" fontWeight="bold" mb={1}>
-              Usermanagement
+              Permissions
             </Typography>
 
             <Grid container spacing={1}>
@@ -161,7 +167,7 @@ export default function RolesModal({
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={selectedPermissions.includes(permission.value)}
+                        checked={isPermissionSelected(permission.value)} // Use the helper function to check if permission is included
                         onChange={() =>
                           handlePermissionChange(permission.value)
                         }

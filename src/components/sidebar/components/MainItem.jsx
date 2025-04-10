@@ -95,6 +95,7 @@ export const MainItem = ({
         <Collapse in={openChildren}>
           {Object.values(subItem).map(({ name, path, icon }, subIndex) => {
             const isSubItemActive = location.pathname.startsWith(`/${path}`);
+
             return (
               <MenuItem
                 key={subIndex}

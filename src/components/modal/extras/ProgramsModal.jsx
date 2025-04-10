@@ -96,7 +96,7 @@ export default function ProgramsModal({
           padding: "12px 16px",
         }}>
         <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedProgram ? "Edit Program" : "ADD PROGRAM"}
+          {selectedProgram ? "Edit Program" : "Add Program"}
         </Box>
       </DialogTitle>
 
