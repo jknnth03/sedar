@@ -19,7 +19,18 @@ const unitsApi = sedarApi
         }),
         providesTags: ["showUnits"],
       }),
+
+      getAllShowUnits: build.query({
+        query: () => ({
+          url: "units?pagination=none&status=active",
+        }),
+        providesTags: ["showUnits"],
+      }),
     }),
   });
 
-export const { usePostUnitsMutation, useGetShowUnitsQuery } = unitsApi;
+export const {
+  usePostUnitsMutation,
+  useGetShowUnitsQuery,
+  useGetAllShowUnitsQuery,
+} = unitsApi;

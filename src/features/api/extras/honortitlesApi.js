@@ -54,6 +54,12 @@ const honorTitlesApi = sedarApi
         }),
         invalidatesTags: ["honor-titles"],
       }),
+      getAllShowHonorTitles: build.query({
+        query: () => ({
+          url: "honor-titles?pagination=none&status=active",
+        }),
+        providesTags: ["honor-titles"],
+      }),
     }),
   });
 
@@ -62,4 +68,5 @@ export const {
   useGetShowHonorTitlesQuery,
   useUpdateHonorTitlesMutation,
   useDeleteHonorTitlesMutation,
+  useGetAllShowHonorTitlesQuery,
 } = honorTitlesApi;

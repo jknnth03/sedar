@@ -38,6 +38,7 @@ import {
   useGetShowBanksQuery,
 } from "../../features/api/extras/banksApi";
 import HelpIcon from "@mui/icons-material/Help";
+import useDebounce from "../../hooks/useDebounce";
 
 const Banks = () => {
   const [page, setPage] = useState(1);
@@ -49,6 +50,7 @@ const Banks = () => {
   const [selectedBank, setSelectedBank] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: banks,
@@ -56,7 +58,7 @@ const Banks = () => {
     isFetching,
     refetch,
   } = useGetShowBanksQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -65,24 +67,20 @@ const Banks = () => {
   const [deleteBank] = useDeleteBanksMutation();
   const bankList = useMemo(() => banks?.result?.data || [], [banks]);
 
-  // Open menu
   const handleMenuOpen = (event, bank) => {
     setMenuAnchor(event.currentTarget);
     setSelectedBank(bank);
   };
 
-  // Close menu
   const handleMenuClose = () => {
     setMenuAnchor(null);
   };
 
-  // Open archive/restore confirmation
   const handleArchiveRestoreClick = () => {
     setConfirmOpen(true);
     handleMenuClose();
   };
 
-  // Archive/Restore function
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedBank) return;
 
@@ -94,7 +92,7 @@ const Banks = () => {
           : "Bank archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
-      refetch(); // Refresh data
+      refetch();
     } catch (error) {
       enqueueSnackbar("Action failed. Please try again.", {
         variant: "error",
@@ -106,13 +104,11 @@ const Banks = () => {
     }
   };
 
-  // Open modal for adding a new bank
   const handleAddBank = () => {
-    setSelectedBank(null); // Ensure it's set to null for adding
+    setSelectedBank(null);
     setModalOpen(true);
   };
 
-  // Open modal for editing (FIXED)
   const handleEditClick = () => {
     setModalOpen(true);
     handleMenuClose();
@@ -120,9 +116,8 @@ const Banks = () => {
 
   return (
     <>
-      {/* Header */}
       <div className="header-container">
-        <Typography className="header">Banks</Typography>
+        <Typography className="header">BANKS</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -132,7 +127,6 @@ const Banks = () => {
         </Button>
       </div>
 
-      {/* Table Container */}
       <Paper className="container">
         <div className="table-controls">
           <SearchBar
@@ -143,39 +137,15 @@ const Banks = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Bank Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">BANK</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -189,15 +159,17 @@ const Banks = () => {
                 bankList.map((bank) => (
                   <TableRow key={bank.id}>
                     <TableCell className="table-cell">{bank.id}</TableCell>
-                    <TableCell className="table-cell">{bank.code}</TableCell>
+                    <TableCell className="table-cell2">{bank.code}</TableCell>
                     <TableCell className="table-cell">{bank.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={banks.deleted_at ? "Inactive" : "Active"}
-                        color={banks.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton onClick={(e) => handleMenuOpen(e, bank)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -206,18 +178,17 @@ const Banks = () => {
                         open={Boolean(menuAnchor)}
                         onClose={handleMenuClose}
                         PaperProps={{
-                          elevation: 2, // Lower elevation for a softer shadow
+                          elevation: 2,
                           sx: {
-                            borderRadius: 2, // Softer rounded corners
-                            boxShadow: "0px 2px 5px rgba(0,0,0,0.15)", // Reduce the shadow intensity
+                            borderRadius: 2,
+                            boxShadow: "0px 2px 5px rgba(0,0,0,0.15)",
                           },
                         }}>
-                        <MenuItem
-                          onClick={() =>
-                            setSelectedBank(bank) || handleEditClick()
-                          }>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!bank.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(bank)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem onClick={() => handleArchiveRestoreClick()}>
                           {bank.deleted_at ? (
                             <>
@@ -250,7 +221,6 @@ const Banks = () => {
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
@@ -315,7 +285,6 @@ const Banks = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Bank Modal */}
       <BanksModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}

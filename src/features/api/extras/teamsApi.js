@@ -14,24 +14,16 @@ const teamsApi = sedarApi
       }),
 
       getShowTeams: build.query({
-        query: ({
-          page = 1,
-          per_page = 10,
-          status,
-          search = "",
-          pagination = true,
-        }) => {
-          const queryParams = new URLSearchParams();
+        query: (params) => ({
+          url: `teams?page=${params.page}&per_page=${params.per_page}&status=${params.status}&search=${params.search}`,
+        }),
+        providesTags: ["teams"],
+      }),
 
-          queryParams.append("page", page);
-          queryParams.append("per_page", per_page);
-          queryParams.append("pagination", pagination);
-
-          if (status) queryParams.append("status", status);
-          if (search) queryParams.append("search", search);
-
-          return { url: `teams?${queryParams.toString()}` };
-        },
+      getAllShowTeams: build.query({
+        query: () => ({
+          url: `teams?pagination=none&status=active`,
+        }),
         providesTags: ["teams"],
       }),
 
@@ -57,6 +49,7 @@ const teamsApi = sedarApi
 export const {
   usePostTeamsMutation,
   useGetShowTeamsQuery,
+  useGetAllShowTeamsQuery,
   useUpdateTeamsMutation,
   useDeleteTeamsMutation,
 } = teamsApi;

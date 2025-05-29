@@ -51,6 +51,12 @@ const prefixesApi = sedarApi
         }),
         invalidatesTags: ["prefixes"],
       }),
+      getAllShowPrefixes: build.query({
+        query: () => ({
+          url: "prefixes?pagination=none&status=active",
+        }),
+        providesTags: ["prefixes"],
+      }),
     }),
   });
 
@@ -59,4 +65,5 @@ export const {
   useGetShowPrefixesQuery,
   useUpdatePrefixesMutation,
   useDeletePrefixesMutation,
+  useGetAllShowPrefixesQuery,
 } = prefixesApi;

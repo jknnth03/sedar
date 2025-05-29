@@ -14,6 +14,8 @@ import {
   usePostToolsMutation,
   useUpdateToolsMutation,
 } from "../../../features/api/extras/toolsApi";
+import { CONSTANT } from "../../../config";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function ToolsModal({
   open,
@@ -74,15 +76,9 @@ export default function ToolsModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedTool ? "Edit Tool" : "Add Tool"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedTool ? "EDIT TOOL" : "ADD TOOL"}
         </Box>
       </DialogTitle>
 
@@ -117,15 +113,37 @@ export default function ToolsModal({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating ? "Saving..." : selectedTool ? "Update" : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedTool
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedTool
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

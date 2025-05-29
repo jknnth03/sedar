@@ -34,6 +34,7 @@ import {
 import Box from "@mui/material/Box";
 import HelpIcon from "@mui/icons-material/Help";
 import { Chip } from "@mui/material";
+import useDebounce from "../../hooks/useDebounce";
 
 const Schedule = () => {
   const [page, setPage] = useState(1);
@@ -45,6 +46,7 @@ const Schedule = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: schedules,
@@ -52,7 +54,7 @@ const Schedule = () => {
     isFetching,
     refetch,
   } = useGetShowSchedulesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -114,7 +116,7 @@ const Schedule = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Schedules</Typography>
+        <Typography className="header">SCHEDULES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -134,33 +136,15 @@ const Schedule = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Schedule Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">SCHEDULE</TableCell>
+                <TableCell className="table-status2">STATUS</TableCell>
+                <TableCell className="table-status2">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -174,19 +158,21 @@ const Schedule = () => {
                 scheduleList.map((schedule) => (
                   <TableRow key={schedule.id}>
                     <TableCell className="table-cell">{schedule.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {schedule.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {schedule.name}
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status2">
                       <Chip
-                        label={schedule.deleted_at ? "Inactive" : "Active"}
-                        color={schedule.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-status2">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, schedule.id)}>
                         <MoreVertIcon />
@@ -195,11 +181,11 @@ const Schedule = () => {
                         anchorEl={menuAnchor[schedule.id]}
                         open={Boolean(menuAnchor[schedule.id])}
                         onClose={() => handleMenuClose(schedule.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(schedule)}
-                          disabled={schedule.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!schedule.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(schedule)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(schedule)}>
                           {schedule.deleted_at ? (
@@ -250,7 +236,6 @@ const Schedule = () => {
       <ScheduleModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}
-        refetch={refetch}
         selectedSchedule={selectedSchedule}
       />
       <Dialog

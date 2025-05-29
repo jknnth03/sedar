@@ -38,6 +38,7 @@ import {
   useDeleteToolsMutation,
   useGetShowToolsQuery,
 } from "../../features/api/extras/toolsApi";
+import useDebounce from "../../hooks/useDebounce";
 
 const Tools = () => {
   const [page, setPage] = useState(1);
@@ -49,6 +50,7 @@ const Tools = () => {
   const [selectedTool, setSelectedTool] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: tools,
@@ -56,7 +58,7 @@ const Tools = () => {
     isFetching,
     refetch,
   } = useGetShowToolsQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -114,7 +116,7 @@ const Tools = () => {
     <>
       {/* Header */}
       <div className="header-container">
-        <Typography className="header">Tools</Typography>
+        <Typography className="header">TOOLS</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -135,39 +137,15 @@ const Tools = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Tool Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">TOOL</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -181,15 +159,17 @@ const Tools = () => {
                 toolList.map((tool) => (
                   <TableRow key={tool.id}>
                     <TableCell className="table-cell">{tool.id}</TableCell>
-                    <TableCell className="table-cell">{tool.code}</TableCell>
+                    <TableCell className="table-cell2">{tool.code}</TableCell>
                     <TableCell className="table-cell">{tool.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={tools.deleted_at ? "Inactive" : "Active"}
-                        color={tools.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-status3">
                       <IconButton onClick={(e) => handleMenuOpen(e, tool)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -231,11 +211,11 @@ const Tools = () => {
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}>
-        <MenuItem
-          onClick={handleEditClick}
-          disabled={selectedTool?.deleted_at !== null}>
-          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-        </MenuItem>
+        {!selectedTool?.deleted_at && (
+          <MenuItem onClick={handleEditClick}>
+            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+          </MenuItem>
+        )}
         <MenuItem onClick={handleArchiveRestoreClick}>
           {selectedTool?.deleted_at ? (
             <>

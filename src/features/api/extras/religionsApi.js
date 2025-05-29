@@ -51,6 +51,13 @@ const religionsApi = sedarApi
         }),
         invalidatesTags: ["religions"],
       }),
+
+      getAllShowReligions: build.query({
+        query: () => ({
+          url: "religions?pagination=none&status=active",
+        }),
+        providesTags: ["showReligions"],
+      }),
     }),
   });
 
@@ -59,4 +66,5 @@ export const {
   useGetShowReligionsQuery,
   useUpdateReligionsMutation,
   useDeleteReligionsMutation,
+  useGetAllShowReligionsQuery,
 } = religionsApi;

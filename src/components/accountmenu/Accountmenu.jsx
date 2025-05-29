@@ -6,14 +6,33 @@ import Tooltip from "@mui/material/Tooltip";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
-import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
+import InfoIcon from "@mui/icons-material/Info";
 import "../accountmenu/accountmenu.scss";
 
 export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
+
+  // 🔤 Extract initials (first two letters from first and last name)
+  const getInitial = () => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return "";
+      const user = JSON.parse(storedUser);
+
+      const fullName = user.full_name || user.name || user.first_name || "";
+      const nameParts = fullName.trim().split(" ");
+
+      const firstInitial = nameParts[0]?.charAt(0).toUpperCase() || "";
+      const secondInitial = nameParts[1]?.charAt(0).toUpperCase() || "";
+
+      return firstInitial + secondInitial;
+    } catch (e) {
+      return "";
+    }
+  };
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -27,7 +46,7 @@ export default function AccountMenu() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     handleClose();
-    navigate("/login");
+    navigate("/login", { state: { loggedOut: true } });
   };
 
   return (
@@ -41,8 +60,14 @@ export default function AccountMenu() {
           aria-controls={open ? "account-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={open ? "true" : undefined}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: "rgb(33, 61, 112)" }}>
-            M
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: "#FF4500",
+              fontSize: "0.96rem",
+            }}>
+            {getInitial()}
           </Avatar>
         </IconButton>
       </Tooltip>
@@ -54,15 +79,15 @@ export default function AccountMenu() {
         onClick={handleClose}
         transformOrigin={{ horizontal: "right", vertical: "top" }}
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}>
-        <MenuItem onClick={handleClose}>
+        <MenuItem onClick={handleClose} sx={{ fontSize: "1rem" }}>
           <ListItemIcon>
-            <Settings fontSize="small" />
+            <InfoIcon fontSize="small" sx={{ color: "darkblue" }} />
           </ListItemIcon>
-          Settings
+          Info
         </MenuItem>
-        <MenuItem onClick={handleLogout}>
+        <MenuItem onClick={handleLogout} sx={{ fontSize: "0.99rem" }}>
           <ListItemIcon>
-            <Logout fontSize="small" />
+            <Logout fontSize="extra-small" sx={{ color: "red" }} />
           </ListItemIcon>
           Logout
         </MenuItem>

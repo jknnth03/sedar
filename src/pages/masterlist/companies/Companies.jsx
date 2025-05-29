@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
@@ -10,22 +10,24 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { useGetCompaniesQuery } from "../../../features/api/masterlist/ymirApi";
 import {
   useGetShowCompaniesQuery,
   usePostCompaniesMutation,
 } from "../../../features/api/masterlist/companiesApi";
+import { useGetCompaniesQuery } from "../../../features/api/masterlist/ymirApi";
 import { SearchBar, SyncButton } from "../masterlistComponents";
-import NoDataGIF from "../../../assets/no-data.gif";
 import "../../GeneralStyle.scss";
+import { CONSTANT } from "../../../config";
+import useDebounce from "../../../hooks/useDebounce";
 
 const Companies = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceValue = useDebounce(searchQuery, 500);
   const [showArchived, setShowArchived] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
   const [isSearching, setIsSearching] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   const status = showArchived ? "inactive" : "active";
 
@@ -38,7 +40,7 @@ const Companies = () => {
     {
       page,
       per_page: rowsPerPage,
-      search: searchQuery,
+      search: debounceValue,
       status,
     },
     {
@@ -47,8 +49,6 @@ const Companies = () => {
       onSettled: () => setIsSearching(false),
     }
   );
-
-  console.log("YmirData:", ymirData);
 
   const [postCompanies, { isLoading: syncing }] = usePostCompaniesMutation();
 
@@ -74,10 +74,17 @@ const Companies = () => {
     }
   };
 
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Companies</Typography>
+        <Typography className="header">COMPANIES</Typography>
         <SyncButton onSync={onSync} isFetching={syncing} />
       </div>
 
@@ -95,24 +102,15 @@ const Companies = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Company
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">COMPANY</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {ymirFetching || backendFetching || isSearching ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className="table-cell"
-                    style={{ textAlign: "center" }}>
+                  <TableCell colSpan={3} align="center" className="table-cell">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
@@ -127,14 +125,11 @@ const Companies = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
-                    className="table-cell"
-                    style={{ textAlign: "center" }}>
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                    colSpan={7}
+                    align="center"
+                    borderBottom="none"
+                    className="table-cell">
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
               )}
@@ -148,9 +143,9 @@ const Companies = () => {
           count={backendData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
+          onPageChange={(e, newPage) => setPage(newPage + 1)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
             setPage(1);
           }}
         />

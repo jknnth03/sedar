@@ -14,24 +14,16 @@ const titlesApi = sedarApi
       }),
 
       getShowTitles: build.query({
-        query: ({
-          page = 1,
-          per_page = 10,
-          status,
-          search = "",
-          pagination = true,
-        }) => {
-          const queryParams = new URLSearchParams();
+        query: (params) => ({
+          url: `titles?page=${params.page}&per_page=${params.per_page}&status=${params.status}&search=${params.search}`,
+        }),
+        providesTags: ["titles"],
+      }),
 
-          queryParams.append("page", page);
-          queryParams.append("per_page", per_page);
-          queryParams.append("pagination", pagination);
-
-          if (status) queryParams.append("status", status);
-          if (search) queryParams.append("search", search);
-
-          return { url: `titles?${queryParams.toString()}` };
-        },
+      getAllShowTitles: build.query({
+        query: () => ({
+          url: `titles?pagination=none&status=active`,
+        }),
         providesTags: ["titles"],
       }),
 
@@ -44,7 +36,7 @@ const titlesApi = sedarApi
         invalidatesTags: ["titles"],
       }),
 
-      deleteTitle: build.mutation({
+      deleteTitles: build.mutation({
         query: (id) => ({
           url: `titles/${id}`,
           method: "DELETE",
@@ -57,6 +49,7 @@ const titlesApi = sedarApi
 export const {
   usePostTitlesMutation,
   useGetShowTitlesQuery,
+  useGetAllShowTitlesQuery,
   useUpdateTitlesMutation,
-  useDeleteTitleMutation,
+  useDeleteTitlesMutation,
 } = titlesApi;

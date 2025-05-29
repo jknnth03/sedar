@@ -14,6 +14,7 @@ import {
   usePostTeamsMutation,
   useUpdateTeamsMutation,
 } from "../../../features/api/extras/teamsApi";
+import { CONSTANT } from "../../../config";
 
 export default function TeamsModal({
   open,
@@ -74,8 +75,7 @@ export default function TeamsModal({
           autoHideDuration: 2000,
         });
       }
-
-      if (typeof refetch === "function") refetch();
+      refetch();
       handleClose();
     } catch (error) {
       setErrorMessage(
@@ -88,15 +88,9 @@ export default function TeamsModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedTeam ? "Edit Team" : "Add Team"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedTeam ? "EDIT TEAM" : "ADD TEAM"}
         </Box>
       </DialogTitle>
 
@@ -135,15 +129,37 @@ export default function TeamsModal({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating ? "Saving..." : selectedTeam ? "Update" : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedTeam
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedTeam
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

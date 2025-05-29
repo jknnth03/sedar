@@ -4,9 +4,10 @@ import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
-import AccountMenu from "../accountmenu/AccountMenu";
 import Typography from "@mui/material/Typography";
+import AccountMenu from "../accountmenu/Accountmenu";
 import "../appbar/Appbar.scss";
 
 export default function Appbar({ setOpen = () => {} }) {
@@ -14,9 +15,14 @@ export default function Appbar({ setOpen = () => {} }) {
 
   const handleToggle = () => {
     setIsOpen((prev) => !prev);
-    setOpen((prev) => !prev); // Keeps original sidebar toggle logic
+    setOpen((prev) => !prev);
   };
-  const userData = JSON.parse(localStorage.getItem("user")) || [];
+
+  const userData = JSON.parse(localStorage.getItem("user")) || {};
+  const firstName = userData.full_name
+    ? userData.full_name.split(" ")[0]
+    : "User";
+
   return (
     <Toolbar
       className="appbar"
@@ -35,7 +41,7 @@ export default function Appbar({ setOpen = () => {} }) {
         edge="start"
         aria-label="menu"
         onClick={handleToggle}
-        sx={{ color: "rgb(33, 61, 112)" }}>
+        sx={{ color: "#FF4500" }}>
         {isOpen ? <MenuIcon /> : <KeyboardDoubleArrowLeftIcon />}
       </IconButton>
 
@@ -47,9 +53,26 @@ export default function Appbar({ setOpen = () => {} }) {
           color: "rgb(33, 61, 112)",
           fontSize: "14px",
           fontWeight: "bold",
+          paddingRight: "10px",
         }}>
-        {`Fresh morning, ${userData.username}!`}
+        {`Fresh morning, `}
+        <span style={{ color: "#FF4500" }}>{firstName} ❤</span>
       </Typography>
+
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {/* Notifications Icon */}
+        <IconButton
+          sx={{
+            color: "rgb(33, 61, 112)",
+            transition: "background-color 0.3s",
+            "&:hover": {
+              backgroundColor: "rgba(33, 61, 112, 0.1)",
+              cursor: "pointer",
+            },
+          }}>
+          <NotificationsIcon />
+        </IconButton>
+      </Box>
 
       <Box className="account-menu" sx={{ zIndex: 2000, overflow: "visible" }}>
         <AccountMenu />

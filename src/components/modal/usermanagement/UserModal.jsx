@@ -6,12 +6,10 @@ import {
   DialogActions,
   TextField,
   Button,
-  Grid,
+  Box,
   Typography,
-  IconButton,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
-import EditIcon from "@mui/icons-material/Edit";
 import { useSnackbar } from "notistack";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -20,9 +18,9 @@ import {
   useGetEmployeeIdNumbersQuery,
   useGetSingleUserQuery,
 } from "../../../features/api/usermanagement/userApi";
-
 import { resetModal } from "../../../features/slice/modalSlice";
-import { useGetShowRolesQuery } from "../../../features/api/usermanagement/rolesApi";
+import { useGetAllShowRolesQuery } from "../../../features/api/usermanagement/rolesApi";
+
 const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
@@ -50,7 +48,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
     useGetEmployeeIdNumbersQuery();
   const employeeIdOptions = employeeData?.result || [];
 
-  const { data: rolesData } = useGetShowRolesQuery();
+  const { data: rolesData } = useGetAllShowRolesQuery();
 
   const employeeIdNumber = formData.employeeId?.id || null;
 
@@ -212,82 +210,178 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
     !selectedUser &&
     (!formData.employeeId?.id || !formData.role?.id || !formData.username);
 
+  const SingleRow = ({ children }) => <Box mb={2}>{children}</Box>;
+
   return (
     <Dialog open={userModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
       <DialogTitle
         sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
-        {selectedUser ? "Edit User" : "Register a New User"}
+        {selectedUser ? "EDIT USER" : "ADD NEW USER"}
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Grid container spacing={2}>
-          <Grid item xs={8}>
-            {selectedUser ? (
-              <TextField
-                fullWidth
-                label="Employee ID"
-                value={selectedUser.full_id_number || ""}
-                disabled
-                sx={disabledStyle}
-              />
-            ) : (
-              <Autocomplete
-                options={employeeIdOptions}
-                value={
-                  employeeIdOptions.find(
-                    (emp) => emp.id === formData.employeeId?.id
-                  ) || null
-                }
-                onChange={handleEmployeeIdChange}
-                loading={employeeLoading}
-                getOptionLabel={(option) => option?.full_id_number || ""}
-                renderInput={(params) => (
-                  <TextField {...params} label="Employee ID" />
-                )}
-              />
-            )}
-          </Grid>
-          <Grid item xs={4}>
-            <Autocomplete
-              options={rolesData || []}
-              value={formData.role || null}
-              onChange={handleRoleChange}
-              getOptionLabel={(option) => `${option.id} - ${option.role_name}`}
-              renderInput={(params) => <TextField {...params} label="Role" />}
-            />
-          </Grid>
-          <Grid item xs={12}>
+      <DialogContent dividers sx={{ padding: 3 }}>
+        <SingleRow>
+          {selectedUser ? (
             <TextField
               fullWidth
-              label="Username"
-              name="username"
-              value={formData.username}
-              onChange={handleTextFieldChange}
+              label="Employee ID"
+              value={selectedUser.full_id_number || ""}
+              disabled
+              sx={disabledStyle}
             />
-          </Grid>
-          {[
-            { label: "First Name", value: formData.firstName },
-            { label: "Last Name", value: formData.lastName },
-            { label: "Middle Name", value: formData.middleName },
-            { label: "Suffix", value: formData.suffix },
-            { label: "Company", value: formData.company },
-            { label: "Business Unit", value: formData.businessUnit },
-            { label: "Department", value: formData.department },
-            { label: "Unit", value: formData.unit },
-            { label: "Sub Unit", value: formData.subUnit },
-            { label: "Location", value: formData.location },
-          ].map((field, index) => (
-            <Grid item xs={index === 2 ? 8 : index === 3 ? 4 : 12} key={index}>
-              <TextField
-                fullWidth
-                label={field.label}
-                value={field.value}
-                disabled
-                sx={disabledStyle}
-              />
-            </Grid>
-          ))}
-        </Grid>
+          ) : (
+            <Autocomplete
+              fullWidth
+              options={employeeIdOptions}
+              value={
+                employeeIdOptions.find(
+                  (emp) => emp.id === formData.employeeId?.id
+                ) || null
+              }
+              onChange={handleEmployeeIdChange}
+              loading={employeeLoading}
+              getOptionLabel={(option) => option?.full_id_number || ""}
+              renderInput={(params) => (
+                <TextField {...params} label="Employee ID" fullWidth />
+              )}
+            />
+          )}
+        </SingleRow>
+
+        <SingleRow>
+          <Autocomplete
+            fullWidth
+            options={rolesData || []}
+            value={formData.role || null}
+            onChange={handleRoleChange}
+            getOptionLabel={(option) => `${option.id} - ${option.role_name}`}
+            renderInput={(params) => (
+              <TextField {...params} label="Role" fullWidth />
+            )}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Username"
+            name="username"
+            value={formData.username}
+            onChange={handleTextFieldChange}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Password (FIRST LOGIN REQUIRES A PASSWORD CHANGE)"
+            name="password"
+            value={formData.username}
+            onChange={handleTextFieldChange}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="First Name"
+            value={formData.firstName}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Last Name"
+            value={formData.lastName}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Middle Name"
+            value={formData.middleName}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Suffix"
+            value={formData.suffix}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Company"
+            value={formData.company}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Business Unit"
+            value={formData.businessUnit}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Department"
+            value={formData.department}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Unit"
+            value={formData.unit}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Sub Unit"
+            value={formData.subUnit}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
+
+        <SingleRow>
+          <TextField
+            fullWidth
+            label="Location"
+            value={formData.location}
+            disabled
+            sx={disabledStyle}
+          />
+        </SingleRow>
       </DialogContent>
 
       <DialogActions>
@@ -295,9 +389,8 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={isCreateDisabled}
-          sx={isCreateDisabled ? disabledStyle : {}}>
-          {selectedUser ? "Update" : "Create"}
+          disabled={isCreateDisabled}>
+          {selectedUser ? "Update" : "Submit"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -37,6 +37,7 @@ import {
   useGetShowHonorTitlesQuery,
 } from "../../features/api/extras/honortitlesApi";
 import HelpIcon from "@mui/icons-material/Help";
+import useDebounce from "../../hooks/useDebounce";
 
 const HonorTitles = () => {
   const [page, setPage] = useState(1);
@@ -48,6 +49,7 @@ const HonorTitles = () => {
   const [selectedTitle, setSelectedTitle] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: honorTitles,
@@ -55,7 +57,7 @@ const HonorTitles = () => {
     isFetching,
     refetch,
   } = useGetShowHonorTitlesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -78,6 +80,7 @@ const HonorTitles = () => {
   const handleArchiveRestoreClick = (title) => {
     setSelectedTitle(title);
     setConfirmOpen(true);
+    handleMenuClose(title.id);
   };
 
   const handleArchiveRestoreConfirm = async () => {
@@ -107,12 +110,12 @@ const HonorTitles = () => {
   };
 
   const handleAddTitle = () => {
-    setSelectedTitle(null); // ✅ Clear selected title for adding
+    setSelectedTitle(null);
     setModalOpen(true);
   };
 
   const handleEditClick = (title) => {
-    setSelectedTitle(title); // ✅ Set selected title for editing
+    setSelectedTitle(title);
     setModalOpen(true);
     handleMenuClose(title.id);
   };
@@ -120,7 +123,7 @@ const HonorTitles = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Honor Titles</Typography>
+        <Typography className="header">HONOR TITLES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -144,33 +147,11 @@ const HonorTitles = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Honor Title
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">HONOR TITLE</TableCell>
+                <TableCell className="table-status3">StATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -184,15 +165,17 @@ const HonorTitles = () => {
                 honorTitleList.map((title) => (
                   <TableRow key={title.id}>
                     <TableCell className="table-cell">{title.id}</TableCell>
-                    <TableCell className="table-cell">{title.code}</TableCell>
+                    <TableCell className="table-cell2">{title.code}</TableCell>
                     <TableCell className="table-cell">{title.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={title.deleted_at ? "Inactive" : "Active"}
-                        color={title.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton onClick={(e) => handleMenuOpen(e, title.id)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -200,11 +183,11 @@ const HonorTitles = () => {
                         anchorEl={menuAnchor[title.id]}
                         open={Boolean(menuAnchor[title.id])}
                         onClose={() => handleMenuClose(title.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(title)}
-                          disabled={title.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!title.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(title)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(title)}>
                           {title.deleted_at ? (

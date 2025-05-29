@@ -6,13 +6,10 @@ import businessLogo from "../../assets/business.png";
 import "../../components/sidebar/styles/Sidebar.scss";
 import { MODULES } from "../../config/index";
 import { MainItem } from "./components/MainItem";
-import rolesApi from "../../features/api/usermanagement/rolesApi";
-import { ModeOutlined } from "@mui/icons-material";
 
 const Sidebar = ({ open }) => {
   const userData = JSON.parse(localStorage.getItem("user")) || [];
   const accessUserPermission = userData?.role?.access_permissions;
-  console.log("accesspermission", accessUserPermission);
 
   const PermittedModules = Object.values(MODULES)
     .map((MODULE) => {
@@ -29,14 +26,7 @@ const Sidebar = ({ open }) => {
       }
       return null;
     })
-    .filter(Boolean); // Removes nulls from non-matching modules
-
-  console.log("PermittedSubModule", PermittedModules);
-  // Object.values(MODULE.children);
-
-  console.log("MODULESSSSS", MODULES);
-
-  console.log("access_permission", userData);
+    .filter(Boolean);
 
   return (
     <Drawer variant="permanent" anchor="left" className="sidebar-drawer">
@@ -45,7 +35,10 @@ const Sidebar = ({ open }) => {
         className={`mainbox ${open ? "open" : "closed"}`}
         style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
         {open ? (
-          <img src={logo} alt="Logo" className="sidebar__logo" />
+          <div className="logo-container">
+            <img src={icon} alt="Icon" className="sidebar__logo2" />
+            <img src={logo} alt="Logo" className="sidebar__logo" />
+          </div>
         ) : (
           <img src={icon} alt="Logo" className="sidebar__logo2" />
         )}
@@ -66,16 +59,18 @@ const Sidebar = ({ open }) => {
           ))}
         </Box>
 
-        <Box
-          className="sidebar_footer"
-          style={{ textAlign: "center", padding: "10px 0" }}>
+        <Box className="sidebar_footer">
           <img
             src={businessLogo}
             alt="Business Logo"
             className="footer__logo"
           />
-          {open && <span>Powered by MIS All rights reserved</span>}
-          {open && <span>Copyright © 2025</span>}
+          {open && (
+            <span className="font-helvetica">
+              Powered by MIS All rights reserved
+            </span>
+          )}
+          {open && <span className="font-helvetica">Copyright © 2025</span>}
         </Box>
       </Paper>
     </Drawer>

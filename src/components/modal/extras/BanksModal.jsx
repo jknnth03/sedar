@@ -7,103 +7,172 @@ import {
   Button,
   TextField,
   Box,
-  Typography,
+  Alert,
 } from "@mui/material";
 import { useSnackbar } from "notistack";
+
+import { CONSTANT } from "../../../config";
+import EditIcon from "@mui/icons-material/Edit";
 import {
   usePostBanksMutation,
   useUpdateBanksMutation,
 } from "../../../features/api/extras/banksApi";
 
-const BanksModal = ({ open, handleClose, refetch, selectedBank }) => {
+const BanksModal = ({
+  open,
+  handleClose,
+  refetch,
+  showArchived,
+  selectedBank,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
+
   const [bankName, setBankName] = useState("");
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
+  const [errors, setErrors] = useState({
+    bankName: false,
+    code: false,
+  });
 
-  const [createBank, { isLoading: isCreating }] = usePostBanksMutation();
-  const [updateBank, { isLoading: isUpdating }] = useUpdateBanksMutation();
+  const [postBank, { isLoading: adding }] = usePostBanksMutation();
+  const [updateBank, { isLoading: updating }] = useUpdateBanksMutation();
 
   useEffect(() => {
-    console.log("Modal Opened. Selected Bank:", selectedBank);
-
-    if (selectedBank) {
-      setBankName(selectedBank.name || "");
-      setCode(selectedBank.code || "");
-    } else {
+    if (open && selectedBank) {
+      setBankName(selectedBank?.name || "");
+      setCode(selectedBank?.code || "");
+      setErrorMessage(null);
+      setErrors({ bankName: false, code: false });
+    } else if (!selectedBank) {
       setBankName("");
       setCode("");
+      setErrorMessage(null);
+      setErrors({ bankName: false, code: false });
     }
+  }, [open, selectedBank]);
 
+  const handleSubmit = async () => {
     setErrorMessage(null);
-  }, [selectedBank]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+    const newErrors = {
+      bankName: !bankName.trim(),
+      code: !code.trim(),
+    };
 
-    if (!bankName.trim() || !code.trim()) {
-      setErrorMessage("All fields are required.");
+    setErrors(newErrors);
+
+    if (newErrors.bankName || newErrors.code) {
+      setErrorMessage("Please fill out all required fields.");
       return;
     }
+
+    const payload = {
+      name: bankName.trim(),
+      code: code.trim(),
+      status: showArchived ? "inactive" : "active",
+    };
 
     try {
       if (selectedBank) {
         await updateBank({
           id: selectedBank.id,
-          name: bankName,
-          code: code,
+          ...payload,
         }).unwrap();
-        enqueueSnackbar("Bank updated successfully!", { variant: "success" });
+        enqueueSnackbar("Bank updated successfully!", {
+          variant: "success",
+        });
       } else {
-        await createBank({ name: bankName, code: code }).unwrap();
-        enqueueSnackbar("Bank added successfully!", { variant: "success" });
+        await postBank(payload).unwrap();
+        enqueueSnackbar("Bank created successfully!", {
+          variant: "success",
+        });
       }
 
-      refetch();
+      if (typeof refetch === "function") refetch();
       handleClose();
     } catch (error) {
-      setErrorMessage("Operation failed. Please try again.");
+      console.error("Error:", error);
+      setErrorMessage(
+        error?.data?.errors?.code
+          ? "The code has already been taken. Please use a different code."
+          : error?.data?.message || "An error occurred. Please try again."
+      );
     }
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{selectedBank ? "Edit Bank" : "Add Bank"}</DialogTitle>
+    <Dialog open={open} onClose={handleClose}>
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedBank ? "EDIT BANK" : "ADD BANK"}
+        </Box>
+      </DialogTitle>
       <DialogContent>
-        {errorMessage && (
-          <Typography color="error" sx={{ mb: 2 }}>
-            {errorMessage}
-          </Typography>
-        )}
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            label="Bank Name"
-            fullWidth
-            value={bankName}
-            onChange={(e) => setBankName(e.target.value)}
-            margin="dense"
-            required
-          />
+        <Box minWidth={300}>
+          {errorMessage && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {errorMessage}
+            </Alert>
+          )}
+
           <TextField
             label="Code"
+            variant="outlined"
             fullWidth
+            margin="dense"
             value={code}
             onChange={(e) => setCode(e.target.value)}
+            disabled={adding || updating}
+            error={errors.code}
+            helperText={errors.code ? "Code is required" : ""}
+            sx={{ mt: 3 }}
+          />
+
+          <TextField
+            label="Bank Name"
+            variant="outlined"
+            fullWidth
             margin="dense"
-            required
+            value={bankName}
+            onChange={(e) => setBankName(e.target.value)}
+            disabled={adding || updating}
+            error={errors.bankName}
+            helperText={errors.bankName ? "Bank name is required" : ""}
           />
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} color="secondary">
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
-          color="primary"
-          disabled={isCreating || isUpdating}>
-          {isCreating || isUpdating ? "Saving..." : "Save"}
+          size="medium"
+          className="add_button"
+          disabled={adding || updating}>
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedBank
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedBank
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

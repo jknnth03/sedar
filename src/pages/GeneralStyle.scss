@@ -1,15 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Anton&family=Impact&family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap");
 
-/* Main Layout */
+/* ==================== MAIN LAYOUT ==================== */
 .main-layout {
   display: flex;
   height: 100vh;
-}
-
-.sidebar {
-  width: 250px;
-  height: 100vh;
-  background-color: #f4f4f4;
 }
 
 .main-content {
@@ -19,37 +13,64 @@
   min-height: 100vh;
 }
 
-/* Header Styling */
+/* ==================== HEADER SECTION ==================== */
 .header-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 10px 24px;
-  margin-bottom: 4px;
+  padding: 5px;
+  margin-bottom: 1px;
+  gap: 12px;
+  margin-left: 15px;
 }
 
 .header {
   color: rgb(33, 61, 112) !important;
-  font-size: 25px !important;
+  font-size: 28px !important;
   font-family: "Anton", "Impact", "Poppins", "Roboto", sans-serif !important;
 }
 
-/* Sync Button */
-.sync-button:hover {
-  background-color: darkgreen !important;
+/* ==================== SYNC BUTTON ==================== */
+.sync-button {
+  height: 36px !important;
+  width: 120px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px;
+  background-color: green !important;
+  color: white !important;
+  font-family: "Roboto", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+
+  svg {
+    vertical-align: middle !important;
+    display: inline-block !important;
+  }
+
+  &:hover {
+    background-color: darkgreen !important;
+  }
 }
 
-/* Main Container */
+/* ==================== MAIN CONTAINER ==================== */
 .container {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  width: 97%;
-  margin-left: 20px;
-  min-height: 90%;
+  // display: flex;
+  // flex-direction: column;
+  // flex-grow: 1;
+  // min-width: 97%;
+  // max-width: 97%;
+  // margin-left: 20px;
+  // min-height: 99%;
+  // overflow: hidden;
+  background-color: #000000 !important;
 }
 
-/* Table Controls: Checkbox + Search Bar */
+/* ==================== TABLE CONTROLS ==================== */
 .table-controls {
   display: flex;
   align-items: center;
@@ -58,7 +79,6 @@
   justify-content: flex-start;
 }
 
-/* Fix Checkbox Alignment */
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -66,129 +86,448 @@
   font-weight: bold;
   color: black !important;
 }
-
-/* Override MUI Checkbox label color */
-.MuiFormControlLabel-label {
-  color: black !important;
-}
-
-/* Reduce extra space around checkbox */
-.checkbox-label .MuiCheckbox-root {
-  padding: 4px !important;
-  margin-right: 4px;
-}
-
-/* Table Container */
+/* ==================== TABLE CONTAINER ==================== */
 .table-container {
-  flex-grow: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  height: 66vh;
-  min-height: 66vh;
-  max-height: 66vh;
-}
-
-.table-container table {
+  // flex-grow: 1;
+  // display: flex;
+  // flex-direction: column;
+  // height: calc(100vh - 17rem);
+  // max-width: 98%;
+  // min-width: 90%;
+  // margin: 0 auto;
+  // z-index: 0;
+  // overflow-x: auto !important;
+  // overflow-y: visible !important;
+  // width: 100% !important;
+  // scroll-behavior: smooth;
+  // scrollbar-width: thin;
   width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+  background-color: red;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto !important;
+    min-width: 100% !important;
+  }
+
+  /* Scrollbar styling */
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
 }
 
-.table-container thead {
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 10;
-}
-
-/* Search Bar */
-.search {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  color: black;
-}
-
-/* Table Headers */
+/* ==================== TABLE HEADER CLASSES ==================== */
 .table-header {
   font-weight: bold !important;
   font-size: 16px !important;
   text-align: left !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 0 8px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 180px !important;
   white-space: nowrap !important;
-  padding-left: 50px !important;
-  height: 50px !important;
-  background-color: #f8f9fa;
 }
 
-/* Table Cells (Ensures Text Wrapping) */
+.table-header3 {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: left !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 0 8px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 140px !important;
+  white-space: nowrap !important;
+}
+
+.table-id {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: left !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 0 8px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 60px !important;
+  white-space: nowrap !important;
+}
+
+.table-id2 {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: left !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 0 8px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 120px !important;
+  white-space: nowrap !important;
+}
+
+.table-status {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 20px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 100px !important;
+  white-space: nowrap !important;
+}
+
+.table-status2 {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 20px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 160px !important;
+  white-space: nowrap !important;
+}
+
+.table-status3 {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 20px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 200px !important;
+  white-space: nowrap !important;
+}
+
+.table-action {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  color: rgb(33, 61, 112) !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+  vertical-align: middle !important;
+  padding: 8px 20px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 100px !important;
+  white-space: nowrap !important;
+}
+
+/* ==================== TABLE BODY CELL CLASSES ==================== */
+.table-cell {
+  text-align: left !important;
+  color: inherit !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  vertical-align: middle !important;
+  padding: 6px 0 6px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 80px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.table-cell2 {
+  text-align: left !important;
+  color: inherit !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  vertical-align: middle !important;
+  padding: 6px 0 6px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 200px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.table-cell3 {
+  text-align: left !important;
+  color: inherit !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  vertical-align: middle !important;
+  padding: 6px 0 6px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 140px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.table-cell-id {
+  text-align: left !important;
+  color: inherit !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  vertical-align: middle !important;
+  padding: 6px 0 6px 50px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 60px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.table-cell-status {
+  text-align: center !important;
+  color: inherit !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  vertical-align: middle !important;
+  padding: 6px 20px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 100px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ==================== LEGACY EMPLOYEES TABLE STYLES ==================== */
+
+.table-header {
+  width: 30% !important;
+  height: 80px !important;
+  padding-left: 50px !important;
+}
+
+.table-id {
+  height: 80px !important;
+  width: 15% !important;
+  padding-left: 50px !important;
+}
+
+.table-status {
+  height: 80px !important;
+  width: 23% !important;
+  padding-left: 50px !important;
+}
+
+.table-cell2 {
+  padding-left: 50px !important;
+  width: 23% !important;
+}
+
+.table-action {
+  height: 80px !important;
+  width: 11% !important;
+  padding-left: 60px !important;
+}
+
 .table-cell {
   padding-left: 50px !important;
-  height: 70px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  text-align: left;
-  max-width: 250px; /* Limits width */
-  white-space: normal; /* Allows text to wrap */
-  word-break: break-word; /* Prevents long words from overflowing */
-  overflow: hidden; /* Hide overflowing content */
-  text-overflow: ellipsis;
-}
-
-/* Scrollable Cell for Long Text */
-.scrollable-text {
-  max-width: 250px; /* Adjust width as needed */
-  max-height: 50px; /* Set height limit */
-  overflow-y: auto; /* Enable vertical scrolling */
-  display: block;
-  white-space: normal; /* Allow text to wrap */
-  word-break: break-word; /* Prevent long words from overflowing */
-  padding: 5px; /* Add some padding */
-  border: 1px solid #ddd; /* Optional: Adds a subtle border */
-}
-
-/* Table Data */
-.table_data {
-  display: block;
-  margin-left: 16px;
+  height: 8vh !important;
+  max-width: 250px;
+  white-space: normal;
   word-break: break-word;
 }
 
-/* Ensures Table Layout is Proper */
-.table {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Pagination Styling */
-.table-pagination {
-  background-color: rgb(246, 246, 246) !important;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-}
-
-/* Add Button */
-.add-button {
-  background-color: #1976d2 !important;
+/* ==================== BUTTONS ==================== */
+.MuiButton-root.add-button {
+  background-color: rgb(33, 61, 112) !important;
   color: white !important;
-  padding: 10px 20px;
-  min-height: 38px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  text-transform: uppercase;
+  height: 32px !important;
+  width: 105px;
+  padding: 10px 20px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
   font-family: "Roboto", sans-serif !important;
   font-weight: normal !important;
-  cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease !important;
+  line-height: 1 !important;
+
+  &:hover {
+    background-color: rgb(17, 32, 59) !important;
+  }
 }
 
-.add-button:hover {
-  background-color: #1565c0 !important;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+button.cancel_button.MuiButton-contained {
+  box-sizing: border-box;
+  background-color: rgb(224, 12, 12) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 3px 3px 6px rgba(1, 1, 1, 0.2) !important;
+  outline: none !important;
+
+  &:hover {
+    background-color: #cc0000 !important;
+    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  &.Mui-disabled {
+    background-color: #f5f5f5 !important;
+    color: gray !important;
+    opacity: 0.5 !important;
+    box-shadow: none !important;
+  }
+
+  &:focus,
+  &:focus-visible,
+  &:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .icon {
+    color: white !important;
+    margin-right: 5px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+button.add_button.MuiButton-contained {
+  background-color: green !important;
+  color: white !important;
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background-color: #006400 !important;
+  }
+
+  &.Mui-disabled {
+    background-color: #a5d6a7 !important;
+    color: #eeeeee !important;
+    opacity: 0.5;
+  }
+}
+
+/* ==================== DIALOG STYLES ==================== */
+.dialog_title {
+  font-family: "Helvetica", "Arial", sans-serif !important;
+  color: rgb(33, 61, 112) !important;
+  font-weight: bold !important;
+  font-size: 2rem;
+  padding: 12px 16px;
+  background-color: #e3f2fd;
+  display: flex;
+  align-items: center;
+
+  .dialog_title_text {
+    margin-left: 8px;
+    color: black;
+    font-size: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+  }
+}
+
+.font-helvetica {
+  font-family: "Helvetica", "Arial", sans-serif !important;
+  color: rgb(33, 61, 112) !important;
+  font-size: 2rem;
+}
+
+/* ==================== MUI OVERRIDES ==================== */
+.table-container .MuiTableCell-root {
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  padding: 6px 16px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  border-bottom: 3.1px solid rgba(231, 241, 255, 0.6);
+  border-left: none;
+  border-right: none;
+}
+
+.table-container .MuiTableHead-root .MuiTableCell-root {
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+}
+
+.table-container .MuiTableRow-root {
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+}
+
+.table-container .MuiTableHead-root .MuiTableRow-root {
+  height: 45px !important;
+  min-height: 45px !important;
+  max-height: 45px !important;
+}
+
+.table-container .MuiTableCell-stickyHeader {
+  z-index: 3 !important;
+}
+
+.table-container .MuiIconButton-root {
+  padding: 4px !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.table-container .MuiChip-root {
+  height: 24px !important;
+  font-size: 12px !important;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+  .table-container table {
+    min-width: 800px !important;
+  }
 }

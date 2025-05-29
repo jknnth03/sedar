@@ -35,6 +35,7 @@ import {
   useGetShowPrefixesQuery,
 } from "../../features/api/extras/prefixesApi";
 import { Chip } from "@mui/material";
+import useDebounce from "../../hooks/useDebounce";
 
 const Prefixes = () => {
   const [page, setPage] = useState(1);
@@ -46,6 +47,7 @@ const Prefixes = () => {
   const [selectedPrefix, setSelectedPrefix] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: prefixes,
@@ -53,7 +55,7 @@ const Prefixes = () => {
     isFetching,
     refetch,
   } = useGetShowPrefixesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -113,7 +115,7 @@ const Prefixes = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Prefixes</Typography>
+        <Typography className="header">PREFIXES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -133,39 +135,15 @@ const Prefixes = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Prefix Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">PREFIX</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -179,15 +157,17 @@ const Prefixes = () => {
                 prefixList.map((prefix) => (
                   <TableRow key={prefix.id}>
                     <TableCell className="table-cell">{prefix.id}</TableCell>
-                    <TableCell className="table-cell">{prefix.code}</TableCell>
+                    <TableCell className="table-cell2">{prefix.code}</TableCell>
                     <TableCell className="table-cell">{prefix.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status2">
                       <Chip
-                        label={prefix.deleted_at ? "Inactive" : "Active"}
-                        color={prefix.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status2">
                       <IconButton onClick={(e) => handleMenuOpen(e, prefix.id)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -195,11 +175,11 @@ const Prefixes = () => {
                         anchorEl={menuAnchor[prefix.id]}
                         open={Boolean(menuAnchor[prefix.id])}
                         onClose={() => handleMenuClose(prefix.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(prefix)}
-                          disabled={prefix.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!prefix.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(prefix)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(prefix)}>
                           {prefix.deleted_at ? (

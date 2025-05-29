@@ -35,6 +35,7 @@ import {
   useGetShowTeamsQuery,
 } from "../../features/api/extras/teamsApi";
 import { Chip } from "@mui/material";
+import useDebounce from "../../hooks/useDebounce";
 
 const Teams = () => {
   const [page, setPage] = useState(1);
@@ -46,6 +47,7 @@ const Teams = () => {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: teams,
@@ -53,14 +55,13 @@ const Teams = () => {
     isFetching,
     refetch,
   } = useGetShowTeamsQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
   });
 
   const [deleteTeam] = useDeleteTeamsMutation();
-  const teamList = useMemo(() => teams?.result?.data || [], [teams]);
 
   const handleMenuOpen = (event, teamId) => {
     setMenuAnchor({ [teamId]: event.currentTarget });
@@ -112,7 +113,7 @@ const Teams = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Teams</Typography>
+        <Typography className="header">TEAMS</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -132,55 +133,39 @@ const Teams = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Team Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">TEAM</TableCell>
+                <TableCell className="table-status2">STATUS</TableCell>
+                <TableCell className="table-status2">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading || isFetching ? (
+              {isFetching ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : teamList.length > 0 ? (
-                teamList.map((team) => (
+              ) : teams?.result?.data.length > 0 ? (
+                teams?.result?.data.map((team) => (
                   <TableRow key={team.id}>
                     <TableCell className="table-cell">{team.id}</TableCell>
-                    <TableCell className="table-cell">{team.code}</TableCell>
+                    <TableCell className="table-cell2">{team.code}</TableCell>
                     <TableCell className="table-cell">{team.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status2">
                       <Chip
-                        label={team.deleted_at ? "Inactive" : "Active"}
-                        color={team.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-status2">
                       <IconButton onClick={(e) => handleMenuOpen(e, team.id)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -188,11 +173,11 @@ const Teams = () => {
                         anchorEl={menuAnchor[team.id]}
                         open={Boolean(menuAnchor[team.id])}
                         onClose={() => handleMenuClose(team.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(team)}
-                          disabled={team.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!team.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(team)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(team)}>
                           {team.deleted_at ? (
@@ -234,7 +219,7 @@ const Teams = () => {
           page={page - 1}
           onPageChange={(event, newPage) => setPage(newPage + 1)}
           onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
+            setRowsPerPage(parseInt(event.target.value, 5));
             setPage(1);
           }}
         />
@@ -243,7 +228,7 @@ const Teams = () => {
       <TeamsModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}
-        refetch={refetch}
+        refetch={() => {}}
         selectedTeam={selectedTeam}
       />
 

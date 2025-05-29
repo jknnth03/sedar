@@ -35,6 +35,7 @@ import {
   useGetShowProgramsQuery,
 } from "../../features/api/extras/programsApi";
 import { Chip } from "@mui/material";
+import useDebounce from "../../hooks/useDebounce";
 
 const Programs = () => {
   const [page, setPage] = useState(1);
@@ -46,6 +47,7 @@ const Programs = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: programs,
@@ -53,7 +55,7 @@ const Programs = () => {
     isFetching,
     refetch,
   } = useGetShowProgramsQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -115,7 +117,7 @@ const Programs = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Programs</Typography>
+        <Typography className="header">PROGRAMS</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -135,39 +137,15 @@ const Programs = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Program Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">PROGRAM</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -181,15 +159,19 @@ const Programs = () => {
                 programList.map((program) => (
                   <TableRow key={program.id}>
                     <TableCell className="table-cell">{program.id}</TableCell>
-                    <TableCell className="table-cell">{program.code}</TableCell>
+                    <TableCell className="table-cell2">
+                      {program.code}
+                    </TableCell>
                     <TableCell className="table-cell">{program.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={program.deleted_at ? "Inactive" : "Active"}
-                        color={program.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, program.id)}>
                         <MoreVertIcon />
@@ -198,11 +180,11 @@ const Programs = () => {
                         anchorEl={menuAnchor[program.id]}
                         open={Boolean(menuAnchor[program.id])}
                         onClose={() => handleMenuClose(program.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(program)}
-                          disabled={program.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!program.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(program)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(program)}>
                           {program.deleted_at ? (

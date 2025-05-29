@@ -9,15 +9,15 @@ import {
   Box,
   Alert,
 } from "@mui/material";
-import { useSnackbar } from "notistack";
 import {
   usePostDegreesMutation,
   useUpdateDegreesMutation,
 } from "../../../features/api/extras/degreesApi";
+import { CONSTANT } from "../../../config";
 
 export default function DegreesModal({
   open,
-  handleClose,
+  onClose,
   refetch,
   showArchived,
   selectedDegree,
@@ -25,24 +25,46 @@ export default function DegreesModal({
   const [degreeName, setDegreeName] = useState("");
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
+  const [errors, setErrors] = useState({
+    degreeName: false,
+    code: false,
+  });
 
   const [postDegree, { isLoading: adding }] = usePostDegreesMutation();
   const [updateDegree, { isLoading: updating }] = useUpdateDegreesMutation();
-  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    if (open) {
+    if (open && selectedDegree) {
       setDegreeName(selectedDegree?.name || "");
       setCode(selectedDegree?.code || "");
       setErrorMessage(null);
+      setErrors({ degreeName: false, code: false });
+    } else if (!selectedDegree) {
+      setDegreeName("");
+      setCode("");
+      setErrorMessage(null);
+      setErrors({ degreeName: false, code: false });
     }
   }, [open, selectedDegree]);
 
+  const handleClose = () => {
+    if (typeof onClose === "function") onClose();
+  };
+
   const handleSubmit = async () => {
     setErrorMessage(null);
+    let newErrors = {
+      degreeName: false,
+      code: false,
+    };
 
-    if (!degreeName.trim() || !code.trim()) {
-      setErrorMessage("Both Degree Name and Code cannot be empty.");
+    if (!degreeName.trim()) newErrors.degreeName = true;
+    if (!code.trim()) newErrors.code = true;
+
+    setErrors(newErrors);
+
+    if (newErrors.degreeName || newErrors.code) {
+      setErrorMessage("Please fill out all required fields.");
       return;
     }
 
@@ -55,10 +77,8 @@ export default function DegreesModal({
     try {
       if (selectedDegree) {
         await updateDegree({ id: selectedDegree.id, ...payload }).unwrap();
-        enqueueSnackbar("Degree updated successfully!", { variant: "success" });
       } else {
         await postDegree(payload).unwrap();
-        enqueueSnackbar("Degree added successfully!", { variant: "success" });
       }
 
       if (typeof refetch === "function") refetch();
@@ -73,16 +93,14 @@ export default function DegreesModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedDegree ? "Edit Degree" : "Add Degree"}
+    <Dialog
+      open={open}
+      onClose={(event, reason) => {
+        if (reason !== "backdropClick") handleClose();
+      }}>
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedDegree ? "EDIT DEGREE" : "ADD DEGREE"}
         </Box>
       </DialogTitle>
 
@@ -102,6 +120,8 @@ export default function DegreesModal({
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={adding || updating}
+            error={errors.code}
+            helperText={errors.code ? "Code is required" : ""}
             sx={{ marginTop: 3 }}
           />
 
@@ -113,19 +133,44 @@ export default function DegreesModal({
             value={degreeName}
             onChange={(e) => setDegreeName(e.target.value)}
             disabled={adding || updating}
+            error={errors.degreeName}
+            helperText={errors.degreeName ? "Degree Name is required" : ""}
+            sx={{ marginTop: 2 }}
           />
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating ? "Saving..." : selectedDegree ? "Update" : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedDegree
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedDegree
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

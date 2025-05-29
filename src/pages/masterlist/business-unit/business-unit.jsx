@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
@@ -18,19 +18,31 @@ import {
 import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
 import "../../GeneralStyle.scss";
+import useDebounce from "../../../hooks/useDebounce";
 
 const BusinessUnit = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceValue = useDebounce(searchQuery, 500);
   const [showArchived, setShowArchived] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [isSearching, setIsSearching] = useState(false);
 
   const status = showArchived ? "inactive" : "active";
 
+  useEffect(() => {
+    setIsSearching(true);
+    const handler = setTimeout(() => {
+      setIsSearching(false);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const { data: ymirData, isFetching: ymirFetching } =
     useGetBusinessunitsQuery();
+
   const {
     data: backendData,
     refetch: refetchBackend,
@@ -39,13 +51,11 @@ const BusinessUnit = () => {
     {
       page,
       per_page: rowsPerPage,
-      search: searchQuery,
+      search: debounceValue,
       status,
     },
     {
       refetchOnMountOrArgChange: true,
-      onQueryStarted: () => setIsSearching(true),
-      onSettled: () => setIsSearching(false),
     }
   );
 
@@ -77,8 +87,12 @@ const BusinessUnit = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Business Units</Typography>
-        <SyncButton onSync={onSync} isFetching={syncing} />
+        <Typography className="header">BUSINESS UNITS</Typography>
+        <SyncButton
+          className="sync-button"
+          onSync={onSync}
+          isFetching={syncing}
+        />
       </div>
 
       <Paper className="container">
@@ -95,15 +109,9 @@ const BusinessUnit = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Business Unit
-                </TableCell>
+                <TableCell className="table-header">ID</TableCell>
+                <TableCell className="table-header">CODE</TableCell>
+                <TableCell className="table-header">BUSINESS UNIT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

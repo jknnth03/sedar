@@ -9,11 +9,11 @@ import {
   Box,
   Alert,
 } from "@mui/material";
-import { useSnackbar } from "notistack";
 import {
   usePostFileTypesMutation,
   useUpdateFileTypesMutation,
 } from "../../../features/api/extras/filetypesApi";
+import { CONSTANT } from "../../../config";
 
 export default function FileTypeModal({
   open,
@@ -25,25 +25,43 @@ export default function FileTypeModal({
   const [fileTypeName, setFileTypeName] = useState("");
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
+  const [errors, setErrors] = useState({
+    fileTypeName: false,
+    code: false,
+  });
 
   const [postFileType, { isLoading: adding }] = usePostFileTypesMutation();
   const [updateFileType, { isLoading: updating }] =
     useUpdateFileTypesMutation();
-  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    if (open) {
+    if (open && selectedFileType) {
       setFileTypeName(selectedFileType?.name || "");
       setCode(selectedFileType?.code || "");
       setErrorMessage(null);
+      setErrors({ fileTypeName: false, code: false });
+    } else if (!selectedFileType) {
+      setFileTypeName("");
+      setCode("");
+      setErrorMessage(null);
+      setErrors({ fileTypeName: false, code: false });
     }
   }, [open, selectedFileType]);
 
   const handleSubmit = async () => {
     setErrorMessage(null);
+    const newErrors = {
+      fileTypeName: false,
+      code: false,
+    };
 
-    if (!fileTypeName.trim() || !code.trim()) {
-      setErrorMessage("Both File Type Name and Code cannot be empty.");
+    if (!fileTypeName.trim()) newErrors.fileTypeName = true;
+    if (!code.trim()) newErrors.code = true;
+
+    setErrors(newErrors);
+
+    if (newErrors.fileTypeName || newErrors.code) {
+      setErrorMessage("Please fill out all required fields.");
       return;
     }
 
@@ -56,14 +74,8 @@ export default function FileTypeModal({
     try {
       if (selectedFileType) {
         await updateFileType({ id: selectedFileType.id, ...payload }).unwrap();
-        enqueueSnackbar("File type updated successfully!", {
-          variant: "success",
-        });
       } else {
         await postFileType(payload).unwrap();
-        enqueueSnackbar("File type added successfully!", {
-          variant: "success",
-        });
       }
 
       if (typeof refetch === "function") refetch();
@@ -79,15 +91,9 @@ export default function FileTypeModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedFileType ? "Edit File Type" : "Add File Type"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedFileType ? "EDIT FILE TYPE" : "ADD FILE TYPE"}
         </Box>
       </DialogTitle>
 
@@ -107,6 +113,8 @@ export default function FileTypeModal({
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={adding || updating}
+            error={errors.code}
+            helperText={errors.code ? "Code is required" : ""}
             sx={{ marginTop: 3 }}
           />
 
@@ -118,23 +126,43 @@ export default function FileTypeModal({
             value={fileTypeName}
             onChange={(e) => setFileTypeName(e.target.value)}
             disabled={adding || updating}
+            error={errors.fileTypeName}
+            helperText={errors.fileTypeName ? "File Type Name is required" : ""}
           />
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating
-            ? "Saving..."
-            : selectedFileType
-            ? "Update"
-            : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedFileType
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedFileType
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

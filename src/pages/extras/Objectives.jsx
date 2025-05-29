@@ -34,6 +34,7 @@ import {
 import Box from "@mui/material/Box";
 import HelpIcon from "@mui/icons-material/Help";
 import { Chip } from "@mui/material";
+import useDebounce from "../../hooks/useDebounce";
 
 const Objectives = () => {
   const [page, setPage] = useState(1);
@@ -45,6 +46,7 @@ const Objectives = () => {
   const [selectedObjective, setSelectedObjective] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: objectives,
@@ -52,7 +54,7 @@ const Objectives = () => {
     isFetching,
     refetch,
   } = useGetShowObjectivesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -75,6 +77,7 @@ const Objectives = () => {
   const handleArchiveRestoreClick = (objective) => {
     setSelectedObjective(objective);
     setConfirmOpen(true);
+    handleMenuClose(objective.id);
   };
 
   const handleArchiveRestoreConfirm = async () => {
@@ -113,7 +116,7 @@ const Objectives = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Objectives</Typography>
+        <Typography className="header">OBJECTIVES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -133,39 +136,15 @@ const Objectives = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Objective Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-ID2">CODE</TableCell>
+                <TableCell className="table-header">OBJECTIVE</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -179,19 +158,21 @@ const Objectives = () => {
                 objectivesList.map((objective) => (
                   <TableRow key={objective.id}>
                     <TableCell className="table-cell">{objective.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {objective.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {objective.name}
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={objectives.deleted_at ? "Inactive" : "Active"}
-                        color={objectives.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, objective.id)}>
                         <MoreVertIcon />
@@ -200,11 +181,11 @@ const Objectives = () => {
                         anchorEl={menuAnchor[objective.id]}
                         open={Boolean(menuAnchor[objective.id])}
                         onClose={() => handleMenuClose(objective.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(objective)}
-                          disabled={objective.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!objective.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(objective)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(objective)}>
                           {objective.deleted_at ? (

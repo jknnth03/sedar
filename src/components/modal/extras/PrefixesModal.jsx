@@ -9,11 +9,11 @@ import {
   Box,
   Alert,
 } from "@mui/material";
-import { useSnackbar } from "notistack";
 import {
   usePostPrefixesMutation,
   useUpdatePrefixesMutation,
 } from "../../../features/api/extras/prefixesApi";
+import { CONSTANT } from "../../../config";
 
 export default function PrefixesModal({
   open,
@@ -29,24 +29,26 @@ export default function PrefixesModal({
 
   const [postPrefix, { isLoading: adding }] = usePostPrefixesMutation();
   const [updatePrefix, { isLoading: updating }] = useUpdatePrefixesMutation();
-  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    if (open) {
+    if (open && selectedPrefix) {
       setPrefixName(selectedPrefix?.name || "");
       setCode(selectedPrefix?.code || "");
-      setErrorMessage(null);
-      setErrors({ prefixName: false, code: false });
+    } else if (!selectedPrefix) {
+      setPrefixName("");
+      setCode("");
     }
+
+    setErrorMessage(null);
+    setErrors({ prefixName: false, code: false });
   }, [open, selectedPrefix]);
 
   const handleSubmit = async () => {
     setErrorMessage(null);
-    let newErrors = { prefixName: false, code: false };
-
-    if (!prefixName.trim()) newErrors.prefixName = true;
-    if (!code.trim()) newErrors.code = true;
-
+    const newErrors = {
+      prefixName: !prefixName.trim(),
+      code: !code.trim(),
+    };
     setErrors(newErrors);
 
     if (newErrors.prefixName || newErrors.code) {
@@ -63,16 +65,8 @@ export default function PrefixesModal({
     try {
       if (selectedPrefix) {
         await updatePrefix({ id: selectedPrefix.id, ...payload }).unwrap();
-        enqueueSnackbar("Prefix updated successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
       } else {
         await postPrefix(payload).unwrap();
-        enqueueSnackbar("Prefix added successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
       }
 
       if (typeof refetch === "function") refetch();
@@ -88,15 +82,9 @@ export default function PrefixesModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedPrefix ? "Edit Prefix" : "Add Prefix"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedPrefix ? "EDIT PREFIX" : "ADD PREFIX"}
         </Box>
       </DialogTitle>
 
@@ -135,15 +123,37 @@ export default function PrefixesModal({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating ? "Saving..." : selectedPrefix ? "Update" : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedPrefix
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedPrefix
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

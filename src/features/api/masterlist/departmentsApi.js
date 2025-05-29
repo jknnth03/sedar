@@ -19,8 +19,18 @@ const departmentsApi = sedarApi
         }),
         providesTags: ["showDepartments"],
       }),
+
+      getAllShowDepartments: build.query({
+        query: () => ({
+          url: "departments?pagination=none&status=active",
+        }),
+        providesTags: ["showDepartments"],
+      }),
     }),
   });
 
-export const { usePostDepartmentsMutation, useGetShowDepartmentsQuery } =
-  departmentsApi;
+export const {
+  usePostDepartmentsMutation,
+  useGetShowDepartmentsQuery,
+  useGetAllShowDepartmentsQuery,
+} = departmentsApi;

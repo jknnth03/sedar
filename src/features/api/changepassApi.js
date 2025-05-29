@@ -5,7 +5,7 @@ const extendedApi = sedarApi.injectEndpoints({
     changePassword: build.mutation({
       query: ({ currentPassword, newPassword, newPasswordConfirmation }) => ({
         url: "/update-password",
-        method: "POST",
+        method: "PATCH",
         body: {
           current_password: currentPassword,
           new_password: newPassword,
@@ -13,7 +13,15 @@ const extendedApi = sedarApi.injectEndpoints({
         },
       }),
     }),
+
+    resetPassword: build.mutation({
+      query: ({ userId }) => ({
+        url: `/users/${userId}/reset-password`,
+        method: "PATCH",
+      }),
+    }),
   }),
 });
 
-export const { useChangePasswordMutation } = extendedApi;
+export const { useChangePasswordMutation, useResetPasswordMutation } =
+  extendedApi;

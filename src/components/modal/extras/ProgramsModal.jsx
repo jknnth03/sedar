@@ -14,6 +14,7 @@ import {
   usePostProgramsMutation,
   useUpdateProgramsMutation,
 } from "../../../features/api/extras/programsApi";
+import { CONSTANT } from "../../../config";
 
 export default function ProgramsModal({
   open,
@@ -33,8 +34,14 @@ export default function ProgramsModal({
 
   useEffect(() => {
     if (open) {
-      setProgramName(selectedProgram?.name || "");
-      setCode(selectedProgram?.code || "");
+      if (selectedProgram) {
+        setProgramName(selectedProgram?.name || "");
+        setCode(selectedProgram?.code || "");
+      } else {
+        setProgramName("");
+        setCode("");
+      }
+
       setErrorMessage(null);
       setErrors({ programName: false, code: false });
     }
@@ -42,11 +49,11 @@ export default function ProgramsModal({
 
   const handleSubmit = async () => {
     setErrorMessage(null);
-    let newErrors = { programName: false, code: false };
 
-    if (!programName.trim()) newErrors.programName = true;
-    if (!code.trim()) newErrors.code = true;
-
+    const newErrors = {
+      programName: !programName.trim(),
+      code: !code.trim(),
+    };
     setErrors(newErrors);
 
     if (newErrors.programName || newErrors.code) {
@@ -65,13 +72,11 @@ export default function ProgramsModal({
         await updateProgram({ id: selectedProgram.id, ...payload }).unwrap();
         enqueueSnackbar("Program updated successfully!", {
           variant: "success",
-          autoHideDuration: 2000,
         });
       } else {
         await postProgram(payload).unwrap();
-        enqueueSnackbar("Program added successfully!", {
+        enqueueSnackbar("Program created successfully!", {
           variant: "success",
-          autoHideDuration: 2000,
         });
       }
 
@@ -88,15 +93,9 @@ export default function ProgramsModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedProgram ? "Edit Program" : "Add Program"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedProgram ? "EDIT PROGRAM" : "ADD PROGRAM"}
         </Box>
       </DialogTitle>
 
@@ -135,19 +134,37 @@ export default function ProgramsModal({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating
-            ? "Saving..."
-            : selectedProgram
-            ? "Update"
-            : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedProgram
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedProgram
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

@@ -7,7 +7,6 @@ import EmojiTransportationIcon from "@mui/icons-material/EmojiTransportation";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
-import AddToPhotosIcon from "@mui/icons-material/AddToPhotos";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import SyncIcon from "@mui/icons-material/Sync";
 import MoreIcon from "@mui/icons-material/More";
@@ -31,21 +30,34 @@ import ChurchIcon from "@mui/icons-material/Church";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CategoryIcon from "@mui/icons-material/Category";
+import BadgeIcon from "@mui/icons-material/Badge";
+import SaveIcon from "@mui/icons-material/Save";
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import StarIcon from "@mui/icons-material/Star";
+import EditIcon from "@mui/icons-material/Edit";
+import NoDataGIF from "../assets/no-data.gif";
+import CancelIcon from "@mui/icons-material/Cancel";
+import InfoIcon from "@mui/icons-material/Info";
+import HomeIcon from "@mui/icons-material/Home";
+import ControlCameraIcon from "@mui/icons-material/ControlCamera";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import FolderZipIcon from "@mui/icons-material/FolderZip";
 
 export const MODULES = {
   DASHBOARD: {
     name: "Dashboard",
     path: "/",
-    icon: <DashboardIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+    icon: <DashboardIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
     icon_on: null,
     children: null,
   },
+
   USERMANAGEMENT: {
     name: "User Management",
     path: "/usermanagement",
-    icon: (
-      <ManageAccountsIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />
-    ),
+    icon: <ManageAccountsIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
     icon_on: null,
     children: {
       USER: {
@@ -71,10 +83,129 @@ export const MODULES = {
     },
   },
 
+  EMPLOYEES: {
+    name: "Employees",
+    path: "/employees",
+    icon: <FolderSharedIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
+    icon_on: null,
+    children: {
+      EMPLOYEEINFORMATION: {
+        name: "Employee Information",
+        path: "employeeinformation",
+        icon: (
+          <InfoIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      GENERAL_INFORMATION: {
+        name: "General Information",
+        path: "generalinformation",
+        icon: (
+          <InfoIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+
+      ADDRESS: {
+        name: "Address",
+        path: "address",
+        icon: (
+          <HomeIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      POSITIONS: {
+        name: "Employee Positions",
+        path: "positionsemp",
+        icon: (
+          <ControlCameraIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      EMPLOYMENT_TYPES: {
+        name: "Employment Types",
+        path: "employmentypes",
+        icon: (
+          <WorkIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      STATUSES: {
+        name: "Statuses",
+        path: "statuses",
+        icon: (
+          <CheckCircleOutlineIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      CONTACTS: {
+        name: "Contacts",
+        path: "contacts",
+        icon: (
+          <ContactPhoneIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      ATTAINMENTSEMP: {
+        name: "Employee Attainments",
+        path: "Attainmentsemp",
+        icon: (
+          <SchoolIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      ACCOUNTS: {
+        name: "Accounts",
+        path: "accounts",
+        icon: (
+          <AccountCircleIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      FILES: {
+        name: "Files",
+        path: "files",
+        icon: (
+          <FolderZipIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+    },
+  },
+
   MASTERLIST: {
     name: "Masterlist",
     path: "/masterlist",
-    icon: <SummarizeIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+    icon: (
+      <SummarizeIcon
+        sx={{
+          marginRight: "5px",
+          marginLeft: "6px",
+          width: "23px",
+          height: "23px",
+        }}
+      />
+    ),
     icon_on: null,
     children: {
       COMPANIES: {
@@ -141,7 +272,37 @@ export const MODULES = {
         name: "Position",
         path: "positions",
         icon: (
+          <BadgeIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      JOBBANDS: {
+        name: "Job Bands",
+        path: "jobbands",
+        icon: (
           <WorkHistoryIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      JOBLEVELS: {
+        name: "Job Levels",
+        path: "joblevels",
+        icon: (
+          <MilitaryTechIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      JOBRATES: {
+        name: "Job Rates",
+        path: "jobrates",
+        icon: (
+          <StarIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
           />
         ),
@@ -149,21 +310,70 @@ export const MODULES = {
       },
     },
   },
-  EMPLOYEES: {
-    name: "Employee",
-    path: "/employees",
-    icon: <FolderSharedIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+
+  ADMINISTRATIVEDIVISION: {
+    name: "Administrative Divisions",
+    path: "/administrative-divisions",
+    icon: <ExploreIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
     icon_on: null,
-    children: null,
+    children: {
+      REGIONS: {
+        name: "Regions",
+        path: "regions",
+        icon: (
+          <ExploreIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      PROVINCES: {
+        name: "Provinces",
+        path: "provinces",
+        icon: (
+          <LocationOnIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      MUNICIPALITIES: {
+        name: "Municipalities",
+        path: "municipalities",
+        icon: (
+          <GavelIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      SUBMUNICIPALITIES: {
+        name: "Sub Municipalities",
+        path: "submunicipalities",
+        icon: (
+          <CategoryIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+      BARANGAYS: {
+        name: "Barangays",
+        path: "barangays",
+        icon: (
+          <AccountBalanceIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
+    },
   },
+
   EXTRAS: {
     name: "Extras",
     path: "/extras",
-    icon: (
-      <MoreIcon
-        sx={{ marginRight: "10px", marginLeft: "6px", width: "19px" }}
-      />
-    ),
+    icon: <MoreIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
     icon_on: null,
     children: {
       TITLES: {
@@ -218,7 +428,7 @@ export const MODULES = {
       },
       PROGRAMS: {
         name: "Programs",
-        path: "programss",
+        path: "programs",
         icon: (
           <FeaturedPlayListIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
@@ -231,56 +441,6 @@ export const MODULES = {
         path: "attainments",
         icon: (
           <WorkIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      REGIONS: {
-        name: "Regions",
-        path: "regions",
-        icon: (
-          <ExploreIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      PROVINCES: {
-        name: "Provinces",
-        path: "provinces",
-        icon: (
-          <LocationOnIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      MUNICIPALITIES: {
-        name: "Municipalities",
-        path: "municipalities",
-        icon: (
-          <GavelIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      SUBMUNICIPALITIES: {
-        name: "Sub Municipalities",
-        path: "submunicipalities",
-        icon: (
-          <CategoryIcon
-            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-          />
-        ),
-        icon_on: null,
-      },
-      BARANGAYS: {
-        name: "Barangays",
-        path: "barangays",
-        icon: (
-          <AccountBalanceIcon
             sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
           />
         ),
@@ -356,6 +516,16 @@ export const MODULES = {
         ),
         icon_on: null,
       },
+      REQUISITION: {
+        name: "Requisition Types",
+        path: "requisition",
+        icon: (
+          <TextSnippetIcon
+            sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+          />
+        ),
+        icon_on: null,
+      },
     },
   },
 };
@@ -377,6 +547,13 @@ export const CONSTANT = {
       icon_on: null,
       children: null,
     },
+    CHANGEPASS: {
+      name: "Changepass",
+      path: "/changepass",
+      icon: null,
+      icon_on: null,
+      children: null,
+    },
   },
 
   FIELDS: {
@@ -393,11 +570,58 @@ export const CONSTANT = {
     LOGIN: {
       label: "Log In",
     },
+    NODATA: {
+      icon: (
+        <img
+          src={NoDataGIF}
+          alt="No Data"
+          style={{
+            width: "365px",
+            height: "auto",
+            display: "block",
+            margin: "0 auto",
+          }}
+        />
+      ),
+    },
     ADD: {
-      label: "Add",
-      icon: <AddToPhotosIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+      label1: "Save",
+      label2: "Update",
+      icon1: (
+        <SaveIcon
+          sx={{
+            marginRight: "5px",
+            width: 16,
+            height: 16,
+          }}
+        />
+      ),
+      icon2: (
+        <EditIcon
+          sx={{
+            marginRight: "5px",
+            width: 16,
+            height: 16,
+          }}
+        />
+      ),
       icon_on: null,
     },
+
+    CANCEL: {
+      label: "Cancel",
+      icon: (
+        <CancelIcon
+          sx={{
+            marginRight: "5px",
+            width: 16,
+            height: 16,
+          }}
+        />
+      ),
+      icon_on: null,
+    },
+
     SYNC: {
       label: "Sync",
       icon: <SyncIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,

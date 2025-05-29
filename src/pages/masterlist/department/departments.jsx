@@ -10,9 +10,10 @@ import TablePagination from "@mui/material/TablePagination";
 import CircularProgress from "@mui/material/CircularProgress";
 import TableRow from "@mui/material/TableRow";
 import { useSnackbar } from "notistack";
-import { SearchBar, SyncButton } from "../../masterlist/masterlistComponents";
+import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
 import "../../GeneralStyle.scss";
+import useDebounce from "../../../hooks/useDebounce";
 import { useGetDepartmentsQuery } from "../../../features/api/masterlist/ymirApi";
 import {
   useGetShowDepartmentsQuery,
@@ -24,12 +25,13 @@ const Departments = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
-  const [isSearching, setIsSearching] = useState(false);
 
+  const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
   const status = showArchived ? "inactive" : "active";
 
   const { data: ymirData, isFetching: ymirFetching } = useGetDepartmentsQuery();
+
   const {
     data: backendData,
     refetch: refetchBackend,
@@ -38,13 +40,11 @@ const Departments = () => {
     {
       page,
       per_page: rowsPerPage,
-      search: searchQuery,
+      search: debounceValue,
       status,
     },
     {
       refetchOnMountOrArgChange: true,
-      onQueryStarted: () => setIsSearching(true),
-      onSettled: () => setIsSearching(false),
     }
   );
 
@@ -76,7 +76,7 @@ const Departments = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Departments</Typography>
+        <Typography className="header">DEPARTMENTS</Typography>
         <SyncButton onSync={onSync} isFetching={syncing} />
       </div>
 
@@ -94,25 +94,17 @@ const Departments = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Department
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Sub-Unit
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-header">CODE</TableCell>
+                <TableCell className="table-header">DEPARTMENT</TableCell>
+                <TableCell className="table-header">BUSINESS UNIT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {ymirFetching || backendFetching || isSearching ? (
+              {ymirFetching || backendFetching ? (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
                     <CircularProgress size={24} />
@@ -132,7 +124,7 @@ const Departments = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
                     <img

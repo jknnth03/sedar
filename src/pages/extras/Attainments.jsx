@@ -33,11 +33,13 @@ import {
   useDeleteAttainmentsMutation,
   useGetShowAttainmentsQuery,
 } from "../../features/api/extras/attainmentsApi";
+import useDebounce from "../../hooks/useDebounce";
 
 const Attainments = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceValue = useDebounce(searchQuery, 500);
   const [showArchived, setShowArchived] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedAttainment, setSelectedAttainment] = useState(null);
@@ -51,7 +53,7 @@ const Attainments = () => {
     isFetching,
     refetch,
   } = useGetShowAttainmentsQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -110,11 +112,14 @@ const Attainments = () => {
     <>
       {/* Header */}
       <div className="header-container">
-        <Typography className="header">Attainments</Typography>
+        <Typography className="header">ATTAINMENTS</Typography>
         <Button
           className="add-button"
           variant="contained"
-          onClick={() => setModalOpen(true)}
+          onClick={() => {
+            setSelectedAttainment(null);
+            setModalOpen(true);
+          }}
           startIcon={<AddIcon />}>
           CREATE
         </Button>
@@ -131,39 +136,15 @@ const Attainments = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Attainment Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">ATTAINMENT</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -179,19 +160,21 @@ const Attainments = () => {
                     <TableCell className="table-cell">
                       {attainment.id}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {attainment.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {attainment.name}
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={attainment.deleted_at ? "Inactive" : "Active"}
-                        color={attainment.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, attainment)}>
                         <MoreVertIcon />
@@ -206,13 +189,11 @@ const Attainments = () => {
                             borderRadius: "8px",
                           },
                         }}>
-                        <MenuItem onClick={handleEditClick}>
-                          <EditIcon
-                            fontSize="small"
-                            style={{ marginRight: 8 }}
-                          />
-                          Edit
-                        </MenuItem>
+                        {!attainment.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(attainment)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem onClick={handleArchiveRestoreClick}>
                           {attainment.deleted_at ? (
                             <>

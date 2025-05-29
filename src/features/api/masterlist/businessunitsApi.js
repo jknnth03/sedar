@@ -19,8 +19,18 @@ const businessunitsApi = sedarApi
         }),
         providesTags: ["showbusinessunits"],
       }),
+
+      getAllShowBusinessunits: build.query({
+        query: () => ({
+          url: `business-units?pagination=none&status=active`,
+        }),
+        providesTags: ["showbusinessunits"],
+      }),
     }),
   });
 
-export const { usePostBusinessUnitMutation, useGetShowBusinessunitsQuery } =
-  businessunitsApi;
+export const {
+  usePostBusinessUnitMutation,
+  useGetShowBusinessunitsQuery,
+  useGetAllShowBusinessunitsQuery,
+} = businessunitsApi;

@@ -14,24 +14,16 @@ const schedulesApi = sedarApi
       }),
 
       getShowSchedules: build.query({
-        query: ({
-          page = 1,
-          per_page = 10,
-          status,
-          search = "",
-          pagination = true,
-        }) => {
-          const queryParams = new URLSearchParams();
+        query: (params) => ({
+          url: `schedules?page=${params.page}&per_page=${params.per_page}&status=${params.status}&search=${params.search}`,
+        }),
+        providesTags: ["schedules"],
+      }),
 
-          queryParams.append("page", page);
-          queryParams.append("per_page", per_page);
-          queryParams.append("pagination", pagination);
-
-          if (status) queryParams.append("status", status);
-          if (search) queryParams.append("search", search);
-
-          return { url: `schedules?${queryParams.toString()}` };
-        },
+      getAllShowSchedules: build.query({
+        query: () => ({
+          url: "schedules?pagination=none&status=active",
+        }),
         providesTags: ["schedules"],
       }),
 
@@ -57,6 +49,7 @@ const schedulesApi = sedarApi
 export const {
   usePostSchedulesMutation,
   useGetShowSchedulesQuery,
+  useGetAllShowSchedulesQuery,
   useUpdateSchedulesMutation,
   useDeleteSchedulesMutation,
 } = schedulesApi;

@@ -14,12 +14,11 @@ import {
   usePostSchedulesMutation,
   useUpdateSchedulesMutation,
 } from "../../../features/api/extras/schedulesApi";
+import { CONSTANT } from "../../../config";
 
 export default function SchedulesModal({
   open,
   handleClose,
-  refetch,
-  showArchived,
   selectedSchedule,
 }) {
   const [scheduleName, setScheduleName] = useState("");
@@ -45,7 +44,6 @@ export default function SchedulesModal({
     setErrorMessage(null);
     let newErrors = { scheduleName: false, code: false };
 
-    if (!scheduleName.trim()) newErrors.scheduleName = true;
     if (!code.trim()) newErrors.code = true;
 
     setErrors(newErrors);
@@ -58,11 +56,7 @@ export default function SchedulesModal({
     const payload = {
       name: scheduleName.trim(),
       code: code.trim(),
-      status: selectedSchedule
-        ? selectedSchedule.status
-        : showArchived
-        ? "inactive"
-        : "active",
+      status: selectedSchedule ? selectedSchedule.status : "active",
     };
 
     try {
@@ -80,7 +74,6 @@ export default function SchedulesModal({
         });
       }
 
-      if (typeof refetch === "function") refetch();
       handleClose();
     } catch (error) {
       const errorMsg = error?.data?.errors?.code
@@ -94,15 +87,9 @@ export default function SchedulesModal({
     <Dialog
       open={open}
       onClose={!adding && !updating ? handleClose : undefined}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedSchedule ? "Edit Schedule" : "Add Schedule"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedSchedule ? "EDIT SCHEDULE" : "ADD SCHEDULE"}
         </Box>
       </DialogTitle>
 
@@ -141,19 +128,37 @@ export default function SchedulesModal({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating
-            ? "Saving..."
-            : selectedSchedule
-            ? "Update"
-            : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedSchedule
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedSchedule
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

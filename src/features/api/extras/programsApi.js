@@ -51,6 +51,12 @@ const programsApi = sedarApi
         }),
         invalidatesTags: ["programs"],
       }),
+      getAllShowPrograms: build.query({
+        query: () => ({
+          url: "programs?pagination=none&status=active",
+        }),
+        providesTags: ["programs"],
+      }),
     }),
   });
 
@@ -59,4 +65,5 @@ export const {
   useGetShowProgramsQuery,
   useUpdateProgramsMutation,
   useDeleteProgramsMutation,
+  useGetAllShowProgramsQuery,
 } = programsApi;

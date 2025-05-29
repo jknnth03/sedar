@@ -28,12 +28,13 @@ import TitleModal from "../../components/modal/extras/TitleModal";
 import NoDataGIF from "../../assets/no-data.gif";
 import "../GeneralStyle.scss";
 import {
-  useDeleteTitleMutation,
+  useDeleteTitlesMutation,
   useGetShowTitlesQuery,
 } from "../../features/api/extras/titleApi";
 import Box from "@mui/material/Box";
 import HelpIcon from "@mui/icons-material/Help";
 import { Chip } from "@mui/material";
+import useDebounce from "../../hooks/useDebounce";
 
 const Titles = () => {
   const [page, setPage] = useState(1);
@@ -44,6 +45,7 @@ const Titles = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const debounceValue = useDebounce(searchQuery, 500);
   const { enqueueSnackbar } = useSnackbar();
 
   const {
@@ -52,13 +54,13 @@ const Titles = () => {
     isFetching,
     refetch,
   } = useGetShowTitlesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
   });
 
-  const [deleteTitle] = useDeleteTitleMutation();
+  const [deleteTitle] = useDeleteTitlesMutation();
   const businessUnits = useMemo(() => titles?.result?.data || [], [titles]);
 
   const handleMenuOpen = (event, titleId) => {
@@ -111,7 +113,7 @@ const Titles = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Titles</Typography>
+        <Typography className="header">TITLES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -131,39 +133,15 @@ const Titles = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Title Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">TITLE</TableCell>
+                <TableCell className="table-status2">STATUS</TableCell>
+                <TableCell className="table-status2">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -177,16 +155,18 @@ const Titles = () => {
                 businessUnits.map((title) => (
                   <TableRow key={title.id}>
                     <TableCell className="table-cell">{title.id}</TableCell>
-                    <TableCell className="table-cell">{title.code}</TableCell>
+                    <TableCell className="table-cell2">{title.code}</TableCell>
                     <TableCell className="table-cell">{title.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status2">
                       <Chip
-                        label={title.deleted_at ? "Inactive" : "Active"}
-                        color={title.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
 
-                    <TableCell align="center">
+                    <TableCell className="table-status2">
                       <IconButton onClick={(e) => handleMenuOpen(e, title.id)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -194,11 +174,11 @@ const Titles = () => {
                         anchorEl={menuAnchor[title.id]}
                         open={Boolean(menuAnchor[title.id])}
                         onClose={() => handleMenuClose(title.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(title)}
-                          disabled={title.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!title.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(title)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(title)}>
                           {title.deleted_at ? (

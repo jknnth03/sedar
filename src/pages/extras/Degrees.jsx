@@ -38,6 +38,7 @@ import {
   useGetShowDegreesQuery,
   useDeleteDegreesMutation,
 } from "../../features/api/extras/degreesApi";
+import useDebounce from "../../hooks/useDebounce";
 
 const Degrees = () => {
   const [page, setPage] = useState(1);
@@ -49,6 +50,7 @@ const Degrees = () => {
   const [selectedDegree, setSelectedDegree] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: degrees,
@@ -56,7 +58,7 @@ const Degrees = () => {
     isFetching,
     refetch,
   } = useGetShowDegreesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -130,7 +132,7 @@ const Degrees = () => {
     <>
       {/* Header */}
       <div className="header-container">
-        <Typography className="header">Degrees</Typography>
+        <Typography className="header">DEGREES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -151,39 +153,15 @@ const Degrees = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Degree Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">DEGREE</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -197,15 +175,17 @@ const Degrees = () => {
                 degreeList.map((degree) => (
                   <TableRow key={degree.id}>
                     <TableCell className="table-cell">{degree.id}</TableCell>
-                    <TableCell className="table-cell">{degree.code}</TableCell>
+                    <TableCell className="table-cell2">{degree.code}</TableCell>
                     <TableCell className="table-cell">{degree.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={degrees.deleted_at ? "Inactive" : "Active"}
-                        color={degrees.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton onClick={(e) => handleMenuOpen(e, degree)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -247,11 +227,11 @@ const Degrees = () => {
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}>
-        <MenuItem
-          onClick={handleEditClick}
-          disabled={selectedDegree?.deleted_at !== null}>
-          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-        </MenuItem>
+        {!selectedDegree?.deleted_at && (
+          <MenuItem onClick={handleEditClick}>
+            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+          </MenuItem>
+        )}
         <MenuItem onClick={handleArchiveRestoreClick}>
           {selectedDegree?.deleted_at ? (
             <>
@@ -303,6 +283,12 @@ const Degrees = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <DegreesModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        selectedDegree={selectedDegree}
+        refetch={refetch}
+      />
     </>
   );
 };

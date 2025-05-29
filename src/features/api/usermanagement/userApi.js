@@ -45,15 +45,26 @@ const userApi = sedarApi
         query: (params = {}) => ({
           url: `users?pagination=${params.pagination || 1}&page=${
             params.page || 1
-          }&per_page=${params.rowsPerPage || 10}&search=${
+          }&per_page=${params.per_page || 10}&search=${
             params.searchQuery || ""
           }&status=${params.status || "active"}`,
           method: "GET",
         }),
         transformResponse: (response) => {
-          return response.result ? response.result.data : [];
+          console.log("Raw API Response:", response);
+
+          if (response.result) {
+            return {
+              data: response.result.data || [],
+              totalCount:
+                response.result.total_count || response.result.total || 0,
+              currentPage: response.result.current_page,
+              lastPage: response.result.last_page,
+            };
+          }
+          return { data: [], totalCount: 0 };
         },
-        providesTags: ["roles"],
+        providesTags: ["users"],
       }),
     }),
   });

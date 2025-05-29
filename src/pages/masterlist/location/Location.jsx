@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
@@ -25,17 +25,21 @@ import {
   ListItem,
   ListItemText,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import { useGetLocationsQuery } from "../../../features/api/masterlist/ymirApi";
 import {
   useGetShowLocationsQuery,
   usePostLocationsMutation,
 } from "../../../features/api/masterlist/locationsApi";
+import { CONSTANT } from "../../../config";
+import useDebounce from "../../../hooks/useDebounce";
 
 const Locations = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceValue = useDebounce(searchQuery, 500);
   const [showArchived, setShowArchived] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [isSearching, setIsSearching] = useState(false);
@@ -46,6 +50,7 @@ const Locations = () => {
   const status = showArchived ? "inactive" : "active";
 
   const { data: ymirData, isFetching: ymirFetching } = useGetLocationsQuery();
+
   const {
     data: backendData,
     refetch: refetchBackend,
@@ -54,7 +59,7 @@ const Locations = () => {
     {
       page,
       per_page: rowsPerPage,
-      search: searchQuery,
+      search: debounceValue,
       status,
     },
     {
@@ -84,7 +89,9 @@ const Locations = () => {
         refetchBackend();
       }
     } catch (error) {
-      enqueueSnackbar("An error occurred while syncing!", { variant: "error" });
+      enqueueSnackbar("An error occurred while syncing!", {
+        variant: "error",
+      });
     }
   };
 
@@ -100,7 +107,7 @@ const Locations = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Locations</Typography>
+        <Typography className="header">LOCATIONS</Typography>
         <SyncButton onSync={onSync} isFetching={syncing} />
       </div>
 
@@ -118,24 +125,10 @@ const Locations = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Location
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Sub-units
-                </TableCell>
+                <TableCell className="table-header">ID</TableCell>
+                <TableCell className="table-header">CODE</TableCell>
+                <TableCell className="table-header">LOCATION</TableCell>
+                <TableCell className="table-status3">SUB UNITS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -158,14 +151,22 @@ const Locations = () => {
                     <TableCell className="table-cell">
                       {location.name}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <Tooltip title="View Sub-units">
-                        <VisibilityIcon
-                          className="EyeIcon"
+                        <IconButton
                           onClick={() =>
                             handleOpenDialog(location.sub_units || [])
                           }
-                        />
+                          sx={{
+                            backgroundColor: "transparent",
+                            padding: "8px",
+                            "&:hover": {
+                              backgroundColor: "#e0e0e0",
+                              borderRadius: "50%",
+                            },
+                          }}>
+                          <VisibilityIcon sx={{ color: "rgb(33, 61, 112)" }} />
+                        </IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
@@ -173,14 +174,11 @@ const Locations = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
-                    className="table-cell"
-                    style={{ textAlign: "center" }}>
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                    colSpan={7}
+                    align="center"
+                    borderBottom="none"
+                    className="table-cell">
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
               )}
@@ -201,6 +199,7 @@ const Locations = () => {
           }}
         />
       </Paper>
+
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -211,9 +210,9 @@ const Locations = () => {
             variant="h6"
             style={{
               fontWeight: "bold",
-              fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+              fontFamily: "'Helvetica Neue', Arial, sans-serif",
             }}>
-            Sub-units
+            SUB UNITS
           </Typography>
         </DialogTitle>
         <DialogContent style={{ backgroundColor: "white" }}>
@@ -223,13 +222,13 @@ const Locations = () => {
                 key={subUnit.id || index}
                 style={{
                   borderBottom: "1px solid #ccc",
-                  fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                  fontFamily: "'Helvetica Neue', Arial, sans-serif",
                 }}>
                 <ListItemText
                   primary={subUnit.name}
                   primaryTypographyProps={{
                     style: {
-                      fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
+                      fontFamily: "'Helvetica Neue', Arial, sans-serif",
                     },
                   }}
                 />
@@ -241,10 +240,7 @@ const Locations = () => {
           <Button
             variant="contained"
             onClick={handleCloseDialog}
-            color="primary"
-            style={{
-              fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
-            }}>
+            color="primary">
             Close
           </Button>
         </DialogActions>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Paper,
   Typography,
@@ -22,7 +22,6 @@ import AddIcon from "@mui/icons-material/Add";
 import { useSnackbar } from "notistack";
 import { SearchBar } from "../masterlist/masterlistComponents";
 import UserModal from "../../components/modal/usermanagement/UserModal";
-import NoDataGIF from "../../assets/no-data.gif";
 import "../GeneralStyle.scss";
 import { useDispatch } from "react-redux";
 import { setUserModal } from "../../features/slice/modalSlice";
@@ -33,72 +32,107 @@ import {
   useDeleteUserMutation,
   useGetShowUserQuery,
 } from "../../features/api/usermanagement/userApi";
+import { useResetPasswordMutation } from "../../features/api/changepassApi";
+import { CONSTANT } from "../../config";
+import "../../pages/GeneralStyle.scss";
 
 const User = () => {
   const { enqueueSnackbar } = useSnackbar();
   const dispatch = useDispatch();
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const debounceValue = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data, isLoading, isFetching, refetch } = useGetShowUserQuery({
-    searchQuery: debounceValue,
-    page,
-    rowsPerPage,
-    status: showArchived ? "inactive" : "active",
-    pagination: 1,
-  });
+  // Query parameters memo - match API expectations
+  const queryParams = useMemo(
+    () => ({
+      pagination: 1, // API expects this parameter
+      page: page + 1, // Convert to 1-based for API
+      per_page: rowsPerPage, // API expects per_page, not rowsPerPage
+      searchQuery: debouncedSearchQuery,
+      status: showArchived ? "inactive" : "",
+    }),
+    [page, rowsPerPage, debouncedSearchQuery, showArchived]
+  );
 
-  const userList = useMemo(() => data || [], [data]);
+  const {
+    data: userData = { data: [], totalCount: 0 },
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetShowUserQuery(queryParams);
 
-  const handleSearchChange = (query) => {
+  const userList = useMemo(() => {
+    if (!userData) return [];
+    if (Array.isArray(userData)) return userData;
+    if (userData.data && Array.isArray(userData.data)) return userData.data;
+    return [];
+  }, [userData]);
+
+  // Get total count - since transformResponse only returns data array,
+  // we need to get totalCount from the original response
+  const totalCount = useMemo(() => {
+    // The API transformResponse is only returning the data array
+    // You might need to modify the API to return the full response
+    // or get totalCount from a different source
+    if (userData?.totalCount !== undefined) return userData.totalCount;
+    if (userData?.total !== undefined) return userData.total;
+    // Fallback - this won't be accurate for pagination
+    return userList?.length || 0;
+  }, [userData, userList]);
+
+  const handleSearchChange = useCallback((query) => {
     setSearchQuery(query);
-  };
+    setPage(0); // Reset to first page (0-based) on new search
+  }, []);
 
-  const handleEditUser = (user) => {
+  const handleEditUser = useCallback(
+    (user) => {
+      dispatch(setUserModal(true));
+      setSelectedUser(user);
+      setModalOpen(true);
+    },
+    [dispatch]
+  );
+
+  const handleCreateUser = useCallback(() => {
+    setSelectedUser(null);
     dispatch(setUserModal(true));
-    setSelectedUser(user);
-    setMenuAnchor(null);
     setModalOpen(true);
-  };
+  }, [dispatch]);
 
-  const handleMenuOpen = (event, user) => {
-    setMenuAnchor(event.currentTarget);
-    setSelectedUser(user);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-  };
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
+  }, []);
 
   const [deleteUser] = useDeleteUserMutation();
+  const [resetPassword] = useResetPasswordMutation();
 
-  const handleArchiveRestoreClick = () => {
-    if (!selectedUser) return;
+  const handleArchiveRestoreClick = useCallback((user) => {
+    setSelectedUser(user);
     setConfirmOpen(true);
-    handleMenuClose();
-  };
+  }, []);
 
-  const handleArchiveRestoreConfirm = async () => {
+  const handleArchiveRestoreConfirm = useCallback(async () => {
     if (!selectedUser) return;
     try {
       await deleteUser(selectedUser.id).unwrap();
       enqueueSnackbar(
         selectedUser.deleted_at
-          ? "User  restored successfully!"
-          : "User  archived successfully!",
+          ? "User restored successfully!"
+          : "User archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
       refetch();
     } catch (error) {
+      console.error("Archive/Restore error:", error);
       enqueueSnackbar("Action failed. Please try again.", {
         variant: "error",
         autoHideDuration: 2000,
@@ -107,20 +141,100 @@ const User = () => {
       setConfirmOpen(false);
       setSelectedUser(null);
     }
+  }, [deleteUser, enqueueSnackbar, refetch, selectedUser]);
+
+  const handleResetPassword = useCallback(
+    async (user) => {
+      try {
+        await resetPassword({ userId: user.id }).unwrap();
+        enqueueSnackbar("Password reset successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } catch (error) {
+        enqueueSnackbar("Password reset failed. Please try again.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [enqueueSnackbar, resetPassword]
+  );
+
+  // Page change handler
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Reset to first page when changing rows per page
+  }, []);
+
+  const handleConfirmClose = useCallback(() => {
+    setConfirmOpen(false);
+  }, []);
+
+  const renderTableBody = () => {
+    if (isLoading || isFetching) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} align="center">
+            <CircularProgress size={24} />
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (userList.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} align="center">
+            {CONSTANT.BUTTONS.NODATA.icon}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return userList.map((user) => (
+      <TableRow key={user.id}>
+        <TableCell className="table-cell">{user.id}</TableCell>
+        <TableCell className="table-cell">{user.username || "N/A"}</TableCell>
+        <TableCell className="table-cell">{user.full_name || "N/A"}</TableCell>
+        <TableCell className="table-cell">
+          {user.role?.role_name || "N/A"}
+        </TableCell>
+        <TableCell className="table-status">
+          <Chip
+            label={showArchived ? "INACTIVE" : "ACTIVE"}
+            color={showArchived ? "error" : "success"}
+            size="medium"
+            sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
+          />
+        </TableCell>
+        <TableCell className="table-status">
+          <UserActions
+            user={user}
+            showArchived={showArchived}
+            handleEditUser={showArchived ? null : () => handleEditUser(user)}
+            handleArchiveRestoreClick={() => handleArchiveRestoreClick(user)}
+            handleResetPasswordClick={
+              showArchived ? null : () => handleResetPassword(user)
+            }
+          />
+        </TableCell>
+      </TableRow>
+    ));
   };
 
   return (
     <>
       <div className="header-container">
-        <Typography className="header">User Management</Typography>
+        <Typography className="header">USERS</Typography>
         <Button
           className="add-button"
           variant="contained"
-          onClick={() => {
-            setSelectedUser(null);
-            dispatch(setUserModal(true));
-            setModalOpen(true);
-          }}
+          onClick={handleCreateUser}
           startIcon={<AddIcon />}>
           CREATE
         </Button>
@@ -137,125 +251,44 @@ const User = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Username
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Full Name
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Position
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Role
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Actions
-                </TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">USERNAME</TableCell>
+                <TableCell className="table-header">FULL NAME</TableCell>
+                <TableCell className="table-id">ROLE</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {isLoading || isFetching ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : userList.length > 0 ? (
-                userList.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="table-cell">{user.id}</TableCell>
-                    <TableCell className="table-cell">
-                      {user.username || "N/A"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {user.full_name || "N/A"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {user.position?.position_name || "N/A"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {user.role?.role_name || "N/A"}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={showArchived ? "Inactive" : "Active"}
-                        color={showArchived ? "error" : "success"}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <UserActions
-                        user={user}
-                        showArchived={showArchived}
-                        handleEditUser={handleEditUser}
-                        handleArchiveRestoreClick={handleArchiveRestoreClick}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
+            <TableBody>{renderTableBody()}</TableBody>
           </Table>
         </TableContainer>
 
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={data?.result?.total || userList.length}
+          count={totalCount}
           rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
+          page={page}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Paper>
+
+      {/* User Modal */}
       <UserModal
         key={selectedUser?.id || "new-user"}
         open={modalOpen}
-        handleClose={() => setModalOpen(false)}
+        handleClose={handleModalClose}
         refetch={refetch}
         selectedUser={selectedUser}
       />
-      <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        maxWidth="xs">
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={handleConfirmClose} maxWidth="xs">
         <DialogTitle>
           <Box
             display="flex"
@@ -271,14 +304,12 @@ const User = () => {
         <DialogContent>
           <Typography variant="body1" gutterBottom>
             Are you sure you want to{" "}
-            <strong>{showArchived ? "restore" : "archive"}</strong> this user?
+            <strong>{selectedUser?.deleted_at ? "restore" : "archive"}</strong>{" "}
+            this user?
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setConfirmOpen(false)}
-            variant="outlined"
-            color="error">
+          <Button onClick={handleConfirmClose} variant="outlined" color="error">
             No
           </Button>
           <Button

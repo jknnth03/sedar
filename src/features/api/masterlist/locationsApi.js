@@ -19,8 +19,18 @@ const locationsApi = sedarApi
         }),
         providesTags: ["showLocations"],
       }),
+
+      getAllShowLocations: build.query({
+        query: () => ({
+          url: "locations?pagination=none&status=active",
+        }),
+        providesTags: ["showLocations"],
+      }),
     }),
   });
 
-export const { usePostLocationsMutation, useGetShowLocationsQuery } =
-  locationsApi;
+export const {
+  usePostLocationsMutation,
+  useGetShowLocationsQuery,
+  useGetAllShowLocationsQuery,
+} = locationsApi;

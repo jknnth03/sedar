@@ -20,7 +20,7 @@ const Layout = ({ children }) => {
           <Appbar setOpen={setOpen} />
         </Box>
 
-        <Box flexGrow={1}>{children}</Box>
+        <Box sx={{ width: "100%" }}>{children}</Box>
       </Box>
     </Box>
   );

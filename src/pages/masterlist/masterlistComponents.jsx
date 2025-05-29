@@ -7,25 +7,27 @@ import CircularProgress from "@mui/material/CircularProgress";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
-import { styled, alpha } from "@mui/material/styles";
+import { styled } from "@mui/material/styles";
 import { TablePagination } from "@mui/material";
 import "../../pages/GeneralStyle.scss";
 
-// Styled components for SearchBar
+// Search Container - expands when input is focused
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
   borderRadius: theme.shape.borderRadius,
-  backgroundColor: alpha(theme.palette.common.black, 0.05),
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.common.black, 0.1),
-  },
+  backgroundColor: "rgb(233, 246, 255)", // ✅ Light blue background
+  transition: "width 0.3s ease",
   marginLeft: "auto",
-  width: "100%",
-  [theme.breakpoints.up("sm")]: {
-    width: "auto",
+  width: "250px",
+  height: "42px",
+  display: "flex",
+  alignItems: "center",
+  "&:focus-within": {
+    width: "300px",
   },
 }));
 
+// Icon inside the Search
 const SearchIconWrapper = styled("div")(({ theme }) => ({
   padding: theme.spacing(0, 2),
   height: "100%",
@@ -34,32 +36,32 @@ const SearchIconWrapper = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  color: "rgb(33, 61, 112)", // Icon color
 }));
 
+// Input inside the Search
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
+  color: "black",
   width: "100%",
   fontFamily: "'Helvetica Neue', Arial, sans-serif",
   "& .MuiInputBase-input": {
-    padding: theme.spacing(1, 1, 1, 0),
+    padding: theme.spacing(1.5, 1, 1.5, 0),
     paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create("width"),
-    [theme.breakpoints.up("sm")]: {
-      width: "12ch",
-      "&:focus": {
-        width: "20ch",
-      },
+    height: "52px",
+    boxSizing: "border-box",
+    "&::placeholder": {
+      color: "rgb(33, 61, 112)", // ✅ Placeholder text color
+      opacity: 1, // Make sure it's not faded
     },
   },
 }));
 
-// Style for the Archive Checkbox Container
 const ArchiveContainer = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   padding: "6px 12px",
-  marginLeft: "10px",
-  border: "2px solid transparent", // Invisible border
+  marginLeft: "-14px",
+  border: "2px solid transparent",
   borderRadius: "6px",
   backgroundColor: "white",
   cursor: "pointer",
@@ -79,24 +81,23 @@ export const SearchBar = ({
 }) => (
   <AppBar
     position="static"
-    className="headbar"
     elevation={0}
-    style={{
+    sx={{
+      height: 60,
       boxShadow: "none",
       borderBottom: "none",
       backgroundColor: "transparent",
     }}>
     <Toolbar className="toolbar" style={{ borderBottom: "none", gap: "12px" }}>
-      {/* Archive Checkbox inside a Button-like Container */}
       <ArchiveContainer onClick={() => setShowArchived(!showArchived)}>
         <Checkbox
           checked={showArchived}
           onChange={(e) => setShowArchived(e.target.checked)}
           sx={{
             padding: "0px",
-            color: "rgb(135, 135, 135)",
+            color: "rgb(33, 61, 112)",
             "&.Mui-checked": {
-              color: "rgb(33, 61, 112)",
+              color: "#FF4500",
             },
           }}
         />
@@ -107,19 +108,17 @@ export const SearchBar = ({
             fontWeight: 450,
             fontFamily: "'Helvetica Neue', Arial, sans-serif",
           }}>
-          Archived
+          ARCHIVED
         </span>
       </ArchiveContainer>
 
-      {/* Search Box */}
-      <Search className="search">
+      <Search>
         <SearchIconWrapper>
-          <SearchIcon className="search-icon" />
+          <SearchIcon />
         </SearchIconWrapper>
         <StyledInputBase
-          placeholder="Search…"
+          placeholder="Type here to search..."
           inputProps={{ "aria-label": "search" }}
-          sx={{ color: "black" }}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />

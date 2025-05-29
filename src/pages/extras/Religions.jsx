@@ -35,6 +35,7 @@ import {
   useDeleteReligionsMutation,
   useGetShowReligionsQuery,
 } from "../../features/api/extras/religionsApi";
+import useDebounce from "../../hooks/useDebounce";
 
 const Religions = () => {
   const [page, setPage] = useState(1);
@@ -46,6 +47,7 @@ const Religions = () => {
   const [selectedReligion, setSelectedReligion] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: religions,
@@ -53,7 +55,7 @@ const Religions = () => {
     isFetching,
     refetch,
   } = useGetShowReligionsQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -121,7 +123,7 @@ const Religions = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Religions</Typography>
+        <Typography className="header">RELIGIONS</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -141,39 +143,15 @@ const Religions = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>{" "}
-                <TableCell align="center" className="table-header">
-                  Religion Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>{" "}
+                <TableCell className="table-header">RELIGION</TableCell>
+                <TableCell className="table-status2">STATUS</TableCell>
+                <TableCell className="table-status2">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -187,20 +165,22 @@ const Religions = () => {
                 religionList.map((religion) => (
                   <TableRow key={religion.id}>
                     <TableCell className="table-cell">{religion.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {religion.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {religion.name}
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status2">
                       <Chip
-                        label={religion.deleted_at ? "Inactive" : "Active"}
-                        color={religion.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
 
-                    <TableCell align="center">
+                    <TableCell className="table-status2">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, religion.id)}>
                         <MoreVertIcon />
@@ -209,11 +189,11 @@ const Religions = () => {
                         anchorEl={menuAnchor[religion.id]}
                         open={Boolean(menuAnchor[religion.id])}
                         onClose={() => handleMenuClose(religion.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(religion)}
-                          disabled={religion.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!religion.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(religion)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(religion)}>
                           {religion.deleted_at ? (

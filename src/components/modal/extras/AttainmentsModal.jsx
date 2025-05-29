@@ -14,6 +14,8 @@ import {
   usePostAttainmentsMutation,
   useUpdateAttainmentsMutation,
 } from "../../../features/api/extras/attainmentsApi";
+import { CONSTANT } from "../../../config";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function AttainmentsModal({
   open,
@@ -31,10 +33,17 @@ export default function AttainmentsModal({
     useUpdateAttainmentsMutation();
   const { enqueueSnackbar } = useSnackbar();
 
+  const isEditing = Boolean(selectedAttainment);
+
   useEffect(() => {
     if (open) {
-      setAttainmentName(selectedAttainment?.name || "");
-      setCode(selectedAttainment?.code || "");
+      if (selectedAttainment) {
+        setAttainmentName(selectedAttainment.name || "");
+        setCode(selectedAttainment.code || "");
+      } else {
+        setAttainmentName("");
+        setCode("");
+      }
       setErrorMessage(null);
     }
   }, [open, selectedAttainment]);
@@ -54,7 +63,7 @@ export default function AttainmentsModal({
     };
 
     try {
-      if (selectedAttainment) {
+      if (isEditing) {
         await updateAttainment({
           id: selectedAttainment.id,
           ...payload,
@@ -69,7 +78,7 @@ export default function AttainmentsModal({
         });
       }
 
-      if (typeof refetch === "function") refetch();
+      refetch?.();
       handleClose();
     } catch (error) {
       setErrorMessage(
@@ -82,15 +91,9 @@ export default function AttainmentsModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedAttainment ? "Edit Attainment" : "Add Attainment"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {isEditing ? "EDIT ATTAINMENT" : "ADD ATTAINMENT"}
         </Box>
       </DialogTitle>
 
@@ -125,19 +128,37 @@ export default function AttainmentsModal({
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating
-            ? "Saving..."
-            : selectedAttainment
-            ? "Update"
-            : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedAttainment
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedAttainment
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

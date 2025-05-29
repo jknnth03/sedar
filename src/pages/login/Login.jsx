@@ -1,9 +1,16 @@
-import React, { useEffect } from "react";
-import { Box, TextField, Typography, Button } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Box,
+  TextField,
+  Typography,
+  Button,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { schema } from "../../schema/ValidationSchema";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { useSnackbar } from "notistack";
 import logo from "../../assets/sedar.png";
 import img from "../../assets/business.png";
@@ -13,11 +20,17 @@ import "./Login.scss";
 import { useDispatch } from "react-redux";
 import { setToken } from "../../features/slice/authSlice";
 import { useLoginMutation } from "../../features/api/authApi";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
-const LoginForm = () => {
-  const dispatch = useDispatch();
+const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { enqueueSnackbar } = useSnackbar();
+  const dispatch = useDispatch();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [login] = useLoginMutation();
+  const logoutSnackbarShown = useRef(false); // ⬅️ useRef persists across renders
 
   const {
     register,
@@ -28,24 +41,45 @@ const LoginForm = () => {
     defaultValues: { username: "", password: "" },
   });
 
-  const [login] = useLoginMutation();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+      return;
+    }
 
-  const submitHandler = async (data) => {
+    // ✅ Show logout snackbar only once
+    if (location.state?.loggedOut && !logoutSnackbarShown.current) {
+      enqueueSnackbar("You have successfully logged out.", {
+        variant: "info",
+        autoHideDuration: 3000,
+      });
+      logoutSnackbarShown.current = true;
+
+      // Clear location state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate, enqueueSnackbar]);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
+  };
+
+  const onSubmit = async (data) => {
     try {
       const res = await login(data).unwrap();
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res.user));
       dispatch(setToken(res.token));
 
-      // Check if the user needs to update their password
       if (res.user.force_password_reset) {
-        navigate("/changepass"); // Redirect to password change page
+        navigate("/changepass");
       } else {
         enqueueSnackbar("Login successful!", {
           variant: "success",
           autoHideDuration: 3000,
         });
-        navigate("/"); // Redirect to home page
+        navigate("/");
       }
     } catch (error) {
       enqueueSnackbar(error?.data?.message || "Invalid Credentials", {
@@ -56,77 +90,74 @@ const LoginForm = () => {
   };
 
   return (
-    <Box className="login__container2">
-      <Box className="login__footer">
-        <img src={logo} alt="logo" width={120} className="login__logo1" />
-        <Typography className="login__textupper" align="center">
-          Welcome to Sedar 2.0
-        </Typography>
-      </Box>
-
-      <form
-        onSubmit={handleSubmit(submitHandler)}
-        className="login__textbox-container">
-        <TextField
-          {...register("username")}
-          className="login__textbox"
-          label={CONSTANT.FIELDS.USERNAME.label}
-          placeholder={CONSTANT.FIELDS.USERNAME.placeholder}
-          error={!!errors.username}
-          helperText={errors.username?.message}
-        />
-        <TextField
-          {...register("password")}
-          className="login__textbox"
-          label={CONSTANT.FIELDS.PASSWORD.label}
-          placeholder={CONSTANT.FIELDS.PASSWORD.placeholder}
-          type="password"
-          error={!!errors.password}
-          helperText={errors.password?.message}
-        />
-        <Button className="login__button" variant="contained" type="submit">
-          {CONSTANT.BUTTONS.LOGIN.label}
-        </Button>
-      </form>
-
-      <Box className="login__footer">
-        <img src={img} alt="business" width={50} />
-        <Typography className="login__textbottom" align="center">
-          Powered By MIS
-        </Typography>
-        <Typography className="login__textbottom" align="center">
-          All rights reserved Copyrights © 2021
-        </Typography>
-      </Box>
-    </Box>
-  );
-};
-
-const ImageBox = () => (
-  <Box
-    className="login__container1"
-    display="flex"
-    justifyContent="center"
-    alignItems="center">
-    <img src={login_logo} alt="Login Illustration" style={{ width: "90%" }} />
-  </Box>
-);
-
-const LoginPage = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/");
-    }
-  }, [navigate]);
-
-  return (
     <Box className="login">
       <Box display="flex" boxShadow={3}>
-        <ImageBox />
-        <LoginForm />
+        <Box
+          className="login__container1"
+          display="flex"
+          justifyContent="center"
+          alignItems="center">
+          <img
+            src={login_logo}
+            alt="Login Illustration"
+            style={{ width: "90%" }}
+          />
+        </Box>
+
+        <Box className="login__container2">
+          <Box className="login__footer">
+            <img src={logo} alt="logo" width={120} className="login__logo1" />
+            <Typography className="login__textupper" align="center">
+              Welcome to Sedar 2.0
+            </Typography>
+          </Box>
+
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="login__textbox-container">
+            <TextField
+              {...register("username")}
+              className="login__textbox"
+              label={CONSTANT.FIELDS.USERNAME.label}
+              placeholder={CONSTANT.FIELDS.USERNAME.placeholder}
+              error={!!errors.username}
+              helperText={errors.username?.message}
+            />
+
+            <TextField
+              {...register("password")}
+              className="login__textbox"
+              label={CONSTANT.FIELDS.PASSWORD.label}
+              placeholder={CONSTANT.FIELDS.PASSWORD.placeholder}
+              type={showPassword ? "text" : "password"}
+              error={!!errors.password}
+              helperText={errors.password?.message}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={togglePasswordVisibility} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <Button className="login__button" variant="contained" type="submit">
+              {CONSTANT.BUTTONS.LOGIN.label}
+            </Button>
+          </form>
+
+          <Box className="login__footer">
+            <img src={img} alt="business" width={50} />
+            <Typography className="login__textbottom" align="center">
+              Powered By MIS
+            </Typography>
+            <Typography className="login__textbottom" align="center">
+              All rights reserved Copyrights © 2021
+            </Typography>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

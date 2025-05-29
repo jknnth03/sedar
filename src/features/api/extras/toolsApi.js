@@ -14,24 +14,16 @@ const toolsApi = sedarApi
       }),
 
       getShowTools: build.query({
-        query: ({
-          page = 1,
-          per_page = 10,
-          status,
-          search = "",
-          pagination = true,
-        }) => {
-          const queryParams = new URLSearchParams();
+        query: (params) => ({
+          url: `tools?page=${params.page}&per_page=${params.per_page}&status=${params.status}&search=${params.search}`,
+        }),
+        providesTags: ["tools"],
+      }),
 
-          queryParams.append("page", page);
-          queryParams.append("per_page", per_page);
-          queryParams.append("pagination", pagination);
-
-          if (status) queryParams.append("status", status);
-          if (search) queryParams.append("search", search);
-
-          return { url: `tools?${queryParams.toString()}` };
-        },
+      getAllShowTools: build.query({
+        query: () => ({
+          url: `tools?pagination=none&status=active`,
+        }),
         providesTags: ["tools"],
       }),
 
@@ -57,6 +49,7 @@ const toolsApi = sedarApi
 export const {
   usePostToolsMutation,
   useGetShowToolsQuery,
+  useGetAllShowToolsQuery,
   useUpdateToolsMutation,
   useDeleteToolsMutation,
 } = toolsApi;

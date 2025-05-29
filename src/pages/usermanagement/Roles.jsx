@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Paper,
   Typography,
@@ -22,6 +22,7 @@ import {
   Chip,
   Checkbox,
   FormControlLabel,
+  Tooltip,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
@@ -39,6 +40,7 @@ import {
   useGetShowRolesQuery,
 } from "../../features/api/usermanagement/rolesApi";
 import "../GeneralStyle.scss";
+import { CONSTANT } from "../../config";
 
 const Roles = () => {
   const [page, setPage] = useState(1);
@@ -51,20 +53,31 @@ const Roles = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [viewPermissionsOpen, setViewPermissionsOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const {
-    data: roles = [],
+    data: rolesResponse = {},
     isLoading,
     isFetching,
     refetch,
   } = useGetShowRolesQuery({
     page: page,
     rowsPerPage,
-    searchQuery,
+    searchQuery: debouncedSearchQuery,
     status: showArchived === false ? "active" : "inactive",
   });
 
-  console.log("Fetched Roles:", roles);
+  // Extract roles data from the response structure
+  const roles = rolesResponse?.data || [];
+  const totalCount = rolesResponse?.total || 0;
 
   const [deleteRole] = useDeleteRoleMutation();
 
@@ -107,18 +120,25 @@ const Roles = () => {
     handleMenuClose();
   };
 
+  const handleAddClick = () => {
+    setSelectedRole(null);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedRole(null);
+  };
+
   return (
     <>
       {/* Header */}
       <div className="header-container">
-        <Typography className="header">Roles</Typography>
+        <Typography className="header">ROLES</Typography>
         <Button
           className="add-button"
           variant="contained"
-          onClick={() => {
-            setSelectedRole(null);
-            setModalOpen(true);
-          }}
+          onClick={handleAddClick}
           startIcon={<AddIcon />}>
           CREATE
         </Button>
@@ -133,52 +153,19 @@ const Roles = () => {
             showArchived={showArchived}
             setShowArchived={setShowArchived}
           />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-              />
-            }
-            label="Show Archived Roles"
-          />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">ID</TableCell>
-                <TableCell className="table-header">Role Name</TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Access Permission
+                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header3">ROLE</TableCell>
+                <TableCell className="table-status2">
+                  ACCESS PERMISSION
                 </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-status2">STATUS</TableCell>
+                <TableCell className="table-status2">ACTION</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -191,26 +178,40 @@ const Roles = () => {
               ) : roles.length > 0 ? (
                 roles.map((role) => (
                   <TableRow key={role.id}>
-                    <TableCell className="table-cell">{role.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell3">{role.id}</TableCell>
+                    <TableCell className="table-cell3">
                       {role.role_name}
                     </TableCell>
-                    <TableCell align="center">
-                      <IconButton
-                        onClick={() => {
-                          setSelectedRole(role);
-                          setViewPermissionsOpen(true);
-                        }}>
-                        <VisibilityIcon style={{ color: "black" }} />
-                      </IconButton>
+                    <TableCell className="table-status2">
+                      <Tooltip title="View Permissions">
+                        <IconButton
+                          sx={{
+                            backgroundColor: "transparent",
+                            padding: "8px",
+                            borderRadius: "50%",
+                            transition: "background-color 150ms ease",
+                            "&:hover": {
+                              backgroundColor: "#e0e0e0",
+                            },
+                          }}
+                          onClick={() => {
+                            setSelectedRole(role);
+                            setViewPermissionsOpen(true);
+                          }}>
+                          <VisibilityIcon sx={{ color: "rgb(33, 61, 112)" }} />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
-                    <TableCell align="center">
+
+                    <TableCell className="table-status2">
                       <Chip
-                        label={role.deleted_at ? "Inactive" : "Active"}
-                        color={role.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status2">
                       <IconButton onClick={(e) => handleMenuOpen(e, role)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -219,12 +220,12 @@ const Roles = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                  <TableCell
+                    colSpan={5}
+                    align="center"
+                    borderBottom="none"
+                    className="table-cell">
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
               )}
@@ -235,7 +236,7 @@ const Roles = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={length}
+          count={totalCount}
           rowsPerPage={rowsPerPage}
           page={page - 1}
           onPageChange={(e, newPage) => setPage(newPage + 1)}
@@ -250,9 +251,11 @@ const Roles = () => {
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}>
-        <MenuItem onClick={handleEditClick}>
-          <EditIcon sx={{ mr: 1 }} /> Edit
-        </MenuItem>
+        {!selectedRole?.deleted_at && (
+          <MenuItem onClick={handleEditClick}>
+            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+          </MenuItem>
+        )}
         <MenuItem onClick={handleArchiveRestoreClick}>
           {selectedRole?.deleted_at ? (
             <>
@@ -333,43 +336,32 @@ const Roles = () => {
                   style={{
                     borderBottom: "1px solid #ccc",
                     padding: "0.5rem 0",
-                    fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
-                    fontSize: "1rem", // Change font size
-                    color: "#333", // Change font color
                   }}>
-                  {perm}
+                  <Typography variant="body1">{perm}</Typography>
                 </div>
               ))}
             </div>
           ) : (
-            <Typography
-              style={{
-                marginTop: "0.5rem",
-                marginBottom: "0.5rem",
-                padding: "0.5rem",
-                fontFamily: "'Helvetica Neue', Arial, sans-serif", // Apply Helvetica Neue font
-              }}>
-              No permissions assigned.
-            </Typography>
+            <Typography>No permissions assigned to this role.</Typography>
           )}
         </DialogContent>
-        <DialogActions style={{ backgroundColor: "white" }}>
+        <DialogActions sx={{ justifyContent: "right", pb: 2, pr: 2 }}>
           <Button
             onClick={() => setViewPermissionsOpen(false)}
-            variant="contained"
-            color="primary">
+            variant="contained">
             Close
           </Button>
         </DialogActions>
       </Dialog>
 
-      <RolesModal
-        open={modalOpen}
-        handleClose={() => setModalOpen(false)}
-        refetch={refetch}
-        selectedRole={selectedRole}
-        showArchived={showArchived}
-      />
+      {modalOpen && (
+        <RolesModal
+          open={modalOpen}
+          handleClose={handleModalClose}
+          selectedRole={selectedRole}
+          refetch={refetch}
+        />
+      )}
     </>
   );
 };

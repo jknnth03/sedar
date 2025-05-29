@@ -9,11 +9,11 @@ import {
   Box,
   Alert,
 } from "@mui/material";
-import { useSnackbar } from "notistack";
 import {
   usePostHonorTitlesMutation,
   useUpdateHonorTitlesMutation,
 } from "../../../features/api/extras/honortitlesApi";
+import { CONSTANT } from "../../../config";
 
 export default function HonorTitleModal({
   open,
@@ -25,25 +25,43 @@ export default function HonorTitleModal({
   const [honorTitleName, setHonorTitleName] = useState("");
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
+  const [errors, setErrors] = useState({
+    honorTitleName: false,
+    code: false,
+  });
 
   const [postHonorTitle, { isLoading: adding }] = usePostHonorTitlesMutation();
   const [updateHonorTitle, { isLoading: updating }] =
     useUpdateHonorTitlesMutation();
-  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    if (open) {
+    if (open && selectedHonorTitle) {
       setHonorTitleName(selectedHonorTitle?.name || "");
       setCode(selectedHonorTitle?.code || "");
       setErrorMessage(null);
+      setErrors({ honorTitleName: false, code: false });
+    } else if (!selectedHonorTitle) {
+      setHonorTitleName("");
+      setCode("");
+      setErrorMessage(null);
+      setErrors({ honorTitleName: false, code: false });
     }
   }, [open, selectedHonorTitle]);
 
   const handleSubmit = async () => {
     setErrorMessage(null);
+    const newErrors = {
+      honorTitleName: false,
+      code: false,
+    };
 
-    if (!honorTitleName.trim() || !code.trim()) {
-      setErrorMessage("Both Honor Title Name and Code cannot be empty.");
+    if (!honorTitleName.trim()) newErrors.honorTitleName = true;
+    if (!code.trim()) newErrors.code = true;
+
+    setErrors(newErrors);
+
+    if (newErrors.honorTitleName || newErrors.code) {
+      setErrorMessage("Please fill out all required fields.");
       return;
     }
 
@@ -59,14 +77,8 @@ export default function HonorTitleModal({
           id: selectedHonorTitle.id,
           ...payload,
         }).unwrap();
-        enqueueSnackbar("Honor Title updated successfully!", {
-          variant: "success",
-        });
       } else {
         await postHonorTitle(payload).unwrap();
-        enqueueSnackbar("Honor Title added successfully!", {
-          variant: "success",
-        });
       }
 
       if (typeof refetch === "function") refetch();
@@ -82,15 +94,9 @@ export default function HonorTitleModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{
-          backgroundColor: "#E3F2FD",
-          fontWeight: "bold",
-          fontSize: "1.2rem",
-          padding: "12px 16px",
-        }}>
-        <Box sx={{ marginLeft: "4px", display: "inline-block" }}>
-          {selectedHonorTitle ? "Edit Honor Title" : "Add Honor Title"}
+      <DialogTitle className="dialog_title">
+        <Box className="dialog_title_text">
+          {selectedHonorTitle ? "EDIT HONOR TITLE" : "ADD HONOR TITLE"}
         </Box>
       </DialogTitle>
 
@@ -110,6 +116,8 @@ export default function HonorTitleModal({
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={adding || updating}
+            error={errors.code}
+            helperText={errors.code ? "Code is required" : ""}
             sx={{ marginTop: 3 }}
           />
 
@@ -121,23 +129,46 @@ export default function HonorTitleModal({
             value={honorTitleName}
             onChange={(e) => setHonorTitleName(e.target.value)}
             disabled={adding || updating}
+            error={errors.honorTitleName}
+            helperText={
+              errors.honorTitleName ? "Honor Title Name is required" : ""
+            }
+            sx={{ marginTop: 2 }}
           />
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={adding || updating}>
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          variant="contained"
+          color="inherit"
+          className="cancel_button"
+          onClick={handleClose}
+          size="medium"
+          disabled={adding || updating}>
+          <>
+            {CONSTANT.BUTTONS.CANCEL.icon}
+            {CONSTANT.BUTTONS.CANCEL.label}
+          </>
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          size="medium"
+          className="add_button"
           disabled={adding || updating}>
-          {adding || updating
-            ? "Saving..."
-            : selectedHonorTitle
-            ? "Update"
-            : "Add"}
+          {adding || updating ? (
+            "Saving..."
+          ) : (
+            <>
+              {selectedHonorTitle
+                ? CONSTANT.BUTTONS.ADD.icon2
+                : CONSTANT.BUTTONS.ADD.icon1}
+              {selectedHonorTitle
+                ? CONSTANT.BUTTONS.ADD.label2
+                : CONSTANT.BUTTONS.ADD.label1}
+            </>
+          )}
         </Button>
       </DialogActions>
     </Dialog>

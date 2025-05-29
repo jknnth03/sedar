@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
@@ -18,17 +18,18 @@ import {
 import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
 import "../../GeneralStyle.scss";
+import useDebounce from "../../../hooks/useDebounce";
 
 const Units = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceValue = useDebounce(searchQuery, 500);
   const [showArchived, setShowArchived] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [isSearching, setIsSearching] = useState(false);
 
   const status = showArchived ? "inactive" : "active";
-  console.log("Archived:", showArchived, "Status:", status);
 
   const { data: ymirData, isFetching: ymirFetching } = useGetUnitsQuery();
   const {
@@ -39,7 +40,7 @@ const Units = () => {
     {
       page,
       per_page: rowsPerPage,
-      search: searchQuery,
+      search: debounceValue,
       status,
     },
     {
@@ -48,8 +49,6 @@ const Units = () => {
       onSettled: () => setIsSearching(false),
     }
   );
-
-  console.log("YmirData:", ymirData);
 
   const [postUnits, { isLoading: syncing }] = usePostUnitsMutation();
 
@@ -75,7 +74,7 @@ const Units = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Units</Typography>
+        <Typography className="header">UNITS</Typography>
         <SyncButton onSync={onSync} isFetching={syncing} />
       </div>
 
@@ -93,25 +92,17 @@ const Units = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Unit
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Department
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">UNIT</TableCell>
+                <TableCell className="table-header">DEPARTMENT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {ymirFetching || backendFetching || isSearching ? (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
                     <CircularProgress size={24} />
@@ -131,7 +122,7 @@ const Units = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
                     <img

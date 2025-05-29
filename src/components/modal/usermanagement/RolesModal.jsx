@@ -31,7 +31,6 @@ export default function RolesModal({
   const [errorMessage, setErrorMessage] = useState(null);
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  console.log("selectedpermissions", selectedPermissions);
   const [postRole, { isLoading: adding }] = usePostRoleMutation();
   const [updateRole, { isLoading: updating }] = useUpdateRoleMutation();
   const { enqueueSnackbar } = useSnackbar();
@@ -51,10 +50,8 @@ export default function RolesModal({
   useEffect(() => {
     if (open) {
       if (selectedRole) {
-        console.log("Selected Role:", selectedRole);
         setRoleName(selectedRole.role_name || "");
         setSelectedPermissions(selectedRole.access_permissions || []);
-        console.log("Selected Permissions:", selectedRole.access_permissions);
         const permissionsLength = Array.isArray(selectedRole.access_permissions)
           ? selectedRole.access_permissions.length
           : 0;
@@ -105,6 +102,7 @@ export default function RolesModal({
       if (selectedRole) {
         await updateRole({ id: selectedRole.id, ...payload }).unwrap();
         enqueueSnackbar("Role updated successfully!", { variant: "success" });
+        enqueueSnackbar("Logout to take effect", { variant: "info" }); // 👈 Additional Snackbar
       } else {
         await postRole(payload).unwrap();
         enqueueSnackbar("Role added successfully!", { variant: "success" });
@@ -117,13 +115,13 @@ export default function RolesModal({
         error?.data?.message || "An error occurred. Please try again."
       );
     }
-  };
+  }; // ✅ Fixed: properly closed function
 
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogTitle
         sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
-        {selectedRole ? <strong>Edit Role</strong> : <strong>Add Role</strong>}
+        {selectedRole ? <strong>Edit Role</strong> : <strong>ADD ROLE</strong>}
       </DialogTitle>
 
       <DialogContent>
@@ -167,7 +165,7 @@ export default function RolesModal({
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={isPermissionSelected(permission.value)} // Use the helper function to check if permission is included
+                        checked={isPermissionSelected(permission.value)}
                         onChange={() =>
                           handlePermissionChange(permission.value)
                         }

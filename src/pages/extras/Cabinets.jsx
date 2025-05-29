@@ -35,6 +35,7 @@ import {
   useDeleteCabinetsMutation,
   useGetShowCabinetsQuery,
 } from "../../features/api/extras/cabinets";
+import useDebounce from "../../hooks/useDebounce";
 
 const Cabinets = () => {
   const [page, setPage] = useState(1);
@@ -46,6 +47,7 @@ const Cabinets = () => {
   const [selectedCabinet, setSelectedCabinet] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
   const {
     data: cabinets,
@@ -53,7 +55,7 @@ const Cabinets = () => {
     isFetching,
     refetch,
   } = useGetShowCabinetsQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -100,19 +102,19 @@ const Cabinets = () => {
   const handleEditClick = (cabinet) => {
     setSelectedCabinet(cabinet);
     setModalOpen(true);
-    handleMenuClose(); // Close the menu properly
+    handleMenuClose();
   };
 
   const handleArchiveRestoreClick = (cabinet) => {
     setSelectedCabinet(cabinet);
     setConfirmOpen(true);
-    handleMenuClose(); // Close the menu properly
+    handleMenuClose();
   };
 
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Cabinets</Typography>
+        <Typography className="header">CABINETS</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -132,39 +134,15 @@ const Cabinets = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">NAME</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -178,15 +156,19 @@ const Cabinets = () => {
                 cabinetList.map((cabinet) => (
                   <TableRow key={cabinet.id}>
                     <TableCell className="table-cell">{cabinet.id}</TableCell>
-                    <TableCell className="table-cell">{cabinet.code}</TableCell>
+                    <TableCell className="table-cell2">
+                      {cabinet.code}
+                    </TableCell>
                     <TableCell className="table-cell">{cabinet.name}</TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={cabinet.deleted_at ? "Inactive" : "Active"}
-                        color={cabinet.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, cabinet.id)}>
                         <MoreVertIcon />
@@ -195,11 +177,11 @@ const Cabinets = () => {
                         anchorEl={menuAnchor[cabinet.id]}
                         open={Boolean(menuAnchor[cabinet.id])}
                         onClose={() => handleMenuClose(cabinet.id)}>
-                        <MenuItem
-                          onClick={() => handleEditClick(cabinet)}
-                          disabled={cabinet.deleted_at !== null}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                        {!cabinet.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(cabinet)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
+                        )}
                         <MenuItem
                           onClick={() => handleArchiveRestoreClick(cabinet)}>
                           {cabinet.deleted_at ? (

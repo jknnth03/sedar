@@ -19,8 +19,18 @@ const companiesApi = sedarApi
         }),
         providesTags: ["showCompanies"],
       }),
+
+      getAllShowCompanies: build.query({
+        query: () => ({
+          url: `companies?pagination=none&status=active`,
+        }),
+        providesTags: ["showCompanies"],
+      }),
     }),
   });
 
-export const { usePostCompaniesMutation, useGetShowCompaniesQuery } =
-  companiesApi;
+export const {
+  usePostCompaniesMutation,
+  useGetShowCompaniesQuery,
+  useGetAllShowCompaniesQuery,
+} = companiesApi;

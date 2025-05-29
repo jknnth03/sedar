@@ -31,7 +31,6 @@ import {
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import { SearchBar } from "../masterlist/masterlistComponents";
-import FileTypesModal from "../../components/modal/extras/FileTypesModal";
 import NoDataGIF from "../../assets/no-data.gif";
 import "../GeneralStyle.scss";
 import {
@@ -39,6 +38,7 @@ import {
   useGetShowFileTypesQuery,
 } from "../../features/api/extras/filetypesApi";
 import FileTypeModal from "../../components/modal/extras/FileTypesModal";
+import useDebounce from "../../hooks/useDebounce";
 
 const FileTypes = () => {
   const [page, setPage] = useState(1);
@@ -50,15 +50,15 @@ const FileTypes = () => {
   const [selectedFileType, setSelectedFileType] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const debounceValue = useDebounce(searchQuery, 500);
 
-  // Fetch file types
   const {
     data: fileTypes,
     isLoading,
     isFetching,
     refetch,
   } = useGetShowFileTypesQuery({
-    search: searchQuery,
+    search: debounceValue,
     page,
     per_page: rowsPerPage,
     status: showArchived ? "inactive" : "active",
@@ -71,7 +71,6 @@ const FileTypes = () => {
     [fileTypes]
   );
 
-  // Open menu for selected file type
   const handleMenuOpen = (event, fileType) => {
     setMenuAnchor(event.currentTarget);
     setSelectedFileType(fileType);
@@ -81,7 +80,6 @@ const FileTypes = () => {
     setMenuAnchor(null);
   };
 
-  // Archive or restore confirmation
   const handleArchiveRestoreClick = () => {
     if (selectedFileType) {
       setConfirmOpen(true);
@@ -111,22 +109,21 @@ const FileTypes = () => {
     }
   };
 
-  // Open modal for adding file type
   const handleAddFileType = () => {
     setSelectedFileType(null);
     setModalOpen(true);
   };
 
   const handleEditClick = (fileType) => {
-    setSelectedFileType(fileType); // Set the selected file type
-    setModalOpen(true); // Open the modal
-    handleMenuClose(); // Close the menu
+    setSelectedFileType(fileType);
+    setModalOpen(true);
+    handleMenuClose();
   };
 
   return (
     <>
       <div className="header-container">
-        <Typography className="header">File Types</Typography>
+        <Typography className="header">FILE TYPES</Typography>
         <Button
           className="add-button"
           variant="contained"
@@ -146,39 +143,15 @@ const FileTypes = () => {
           />
         </div>
 
-        <TableContainer
-          className="table-container"
-          style={{ maxHeight: "60vh" }}>
+        <TableContainer className="table-container">
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" className="table-header">
-                  ID
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  Code
-                </TableCell>
-                <TableCell align="center" className="table-header">
-                  File Type Name
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Status
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    verticalAlign: "middle",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}>
-                  Action
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">FILE TYPE</TableCell>
+                <TableCell className="table-status3">STATUS</TableCell>
+                <TableCell className="table-status3">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -192,19 +165,21 @@ const FileTypes = () => {
                 fileTypeList.map((fileType) => (
                   <TableRow key={fileType.id}>
                     <TableCell className="table-cell">{fileType.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {fileType.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {fileType.name}
                     </TableCell>
-                    <TableCell align="center" sx={{ verticalAlign: "middle" }}>
+                    <TableCell className="table-status3">
                       <Chip
-                        label={fileType.deleted_at ? "Inactive" : "Active"}
-                        color={fileType.deleted_at ? "error" : "success"}
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status3">
                       <IconButton onClick={(e) => handleMenuOpen(e, fileType)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -240,37 +215,42 @@ const FileTypes = () => {
         />
       </Paper>
 
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}>
-        <MenuItem
-          onClick={() => handleEditClick(selectedFileType)}
-          disabled={selectedFileType?.deleted_at}>
-          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-        </MenuItem>
-        <MenuItem onClick={handleArchiveRestoreClick}>
-          {selectedFileType?.deleted_at ? (
-            <>
-              <RestoreIcon fontSize="small" sx={{ mr: 1 }} /> Restore
-            </>
-          ) : (
-            <>
-              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} /> Archive
-            </>
+      {/* ✅ Fixed null crash */}
+      {selectedFileType && (
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={handleMenuClose}>
+          {!selectedFileType.deleted_at && (
+            <MenuItem onClick={() => handleEditClick(selectedFileType)}>
+              <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+            </MenuItem>
           )}
-        </MenuItem>
-      </Menu>
+          <MenuItem onClick={handleArchiveRestoreClick}>
+            {selectedFileType.deleted_at ? (
+              <>
+                <RestoreIcon fontSize="small" sx={{ mr: 1 }} /> Restore
+              </>
+            ) : (
+              <>
+                <ArchiveIcon fontSize="small" sx={{ mr: 1 }} /> Archive
+              </>
+            )}
+          </MenuItem>
+        </Menu>
+      )}
+
       <FileTypeModal
         open={modalOpen}
         handleClose={() => {
           setModalOpen(false);
-          setSelectedFileType(null); // Reset selected file type after closing
+          setSelectedFileType(null);
         }}
         refetch={refetch}
         showArchived={showArchived}
-        selectedFileType={selectedFileType} // Pass the selected file type
+        selectedFileType={selectedFileType}
       />
+
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -284,9 +264,13 @@ const FileTypes = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

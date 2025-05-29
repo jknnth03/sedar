@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
@@ -18,11 +18,13 @@ import {
   useGetShowSubunitsQuery,
   usePostSubunitsMutation,
 } from "../../../features/api/masterlist/subunitsApi";
+import useDebounce from "../../../hooks/useDebounce";
 
 const Subunits = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const debounceValue = useDebounce(searchInput, 500);
   const [showArchived, setShowArchived] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [isSearching, setIsSearching] = useState(false);
@@ -38,7 +40,7 @@ const Subunits = () => {
     {
       page,
       per_page: rowsPerPage,
-      search: searchQuery,
+      search: debounceValue,
       status,
     },
     {
@@ -75,15 +77,15 @@ const Subunits = () => {
   return (
     <>
       <div className="header-container">
-        <Typography className="header">Subunits</Typography>
+        <Typography className="header">SUB UNITS</Typography>
         <SyncButton onSync={onSync} isFetching={syncing} />
       </div>
 
       <Paper className="container">
         <div className="table-controls">
           <SearchBar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
+            searchQuery={searchInput}
+            setSearchQuery={setSearchInput}
             showArchived={showArchived}
             setShowArchived={setShowArchived}
           />
@@ -93,18 +95,10 @@ const Subunits = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header" align="center">
-                  ID
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Code
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Subunit
-                </TableCell>
-                <TableCell className="table-header" align="center">
-                  Unit
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">SUB UNIT</TableCell>
+                <TableCell className="table-header">UNIT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
