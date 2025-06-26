@@ -28,6 +28,7 @@ import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams.js";
 import useDebounce from "../../hooks/useDebounce";
+import EmployeeModal from "./components/EmployeeModal.jsx";
 
 // Custom SearchBar Component
 const CustomSearchBar = ({
@@ -215,7 +216,8 @@ function EmployeeInformation() {
         </Box>
       </Box>
 
-      <MultiFormModal open={openModal} onClose={handleCloseModal} />
+      {/* <MultiFormModal open={openModal} onClose={handleCloseModal} /> */}
+      <EmployeeModal isOpen={openModal} onClose={handleCloseModal} />
 
       <TabContext value={value}>
         <Box

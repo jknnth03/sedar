@@ -152,7 +152,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     setEditEmployeeData(employeeData);
     setInitialStep(editStep);
     setMultiFormModalOpen(true);
-    console.log("employeeData", employeeData);
   };
 
   // New function to handle multi-form modal close

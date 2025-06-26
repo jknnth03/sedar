@@ -28,9 +28,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import HelpIcon from "@mui/icons-material/Help";
 import ErrorIcon from "@mui/icons-material/Error";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import UpdateIcon from "@mui/icons-material/Update";
-import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import "./MultiForm.scss";
 import { useMultiFormLogic } from "./useMultiFormLogic";
 import { useSelector } from "react-redux";
@@ -224,37 +221,30 @@ const MultiFormModal = ({
           </Box>
         </DialogContent>
 
-        <DialogActions
-          className="multiform-modal__actions"
-          sx={{ justifyContent: "space-between" }}>
+        <DialogActions className="multiform-modal__actions">
+          <Button
+            variant="outlined"
+            onClick={handleBack}
+            disabled={currentStep === 0 || isFormLoading}>
+            Back
+          </Button>
           <Button
             sx={{ backgroundColor: "green" }}
             variant="contained"
-            onClick={handleUpdateEmployee}
-            disabled={isFormLoading}
-            startIcon={<UpdateIcon />}>
-            UPDATE
+            onClick={handleSubmitConfirm}
+            disabled={isFormLoading}>
+            Update
           </Button>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={handleBack}
-              disabled={currentStep === 0 || isFormLoading}
-              startIcon={<KeyboardDoubleArrowLeftIcon />}>
-              BACK
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              disabled={isFormLoading}
-              endIcon={<KeyboardDoubleArrowRightIcon />}>
-              {currentStep === steps.length - 1
-                ? isEditMode
-                  ? "UPDATE EMPLOYEE"
-                  : "ADD EMPLOYEE"
-                : "NEXT"}
-            </Button>
-          </Box>
+          <Button
+            variant="contained"
+            onClick={handleNext}
+            disabled={isFormLoading}>
+            {currentStep === steps.length - 1
+              ? isEditMode
+                ? "UPDATE EMPLOYEE"
+                : "ADD EMPLOYEE"
+              : "NEXT"}
+          </Button>
         </DialogActions>
       </Dialog>
 

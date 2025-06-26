@@ -1094,6 +1094,9 @@ const AddressForm = forwardRef(
 
           <Grid item xs={12} className="general-form__grid-item">
             <TextField
+              sx={{
+                width: "736px",
+              }}
               fullWidth
               label="Address Remarks"
               name="address_remarks"
