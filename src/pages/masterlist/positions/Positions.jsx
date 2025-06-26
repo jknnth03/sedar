@@ -24,6 +24,7 @@ import {
   ListItem,
   List,
   Box,
+  Link,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
@@ -38,11 +39,12 @@ import {
   useGetPositionsQuery,
 } from "../../../features/api/masterlist/positionsApi";
 import PositionsModal from "../../../components/modal/masterlist/PositionsModal";
-import "./positions.scss";
+import "../../../pages/GeneralStyle.scss";
+import "../../../pages/GeneralTable.scss";
 import { useSnackbar } from "notistack";
 import HomeRepairServiceIcon from "@mui/icons-material/HomeRepairService";
-import FolderCopyIcon from "@mui/icons-material/FolderCopy";
 import useDebounce from "../../../hooks/useDebounce";
+import { CONSTANT } from "../../../config";
 
 const Positions = () => {
   const [page, setPage] = useState(1);
@@ -80,6 +82,19 @@ const Positions = () => {
   );
 
   console.log("positionList", positionList);
+
+  // Function to extract filename from URL
+  const getFileNameFromUrl = (url) => {
+    if (!url) return null;
+    try {
+      const urlParts = url.split("/");
+      const filename = urlParts[urlParts.length - 1];
+      // Decode URL encoding if present
+      return decodeURIComponent(filename);
+    } catch (error) {
+      return url; // Return original URL if parsing fails
+    }
+  };
 
   const handleMenuOpen = (event, positionId) => {
     setMenuAnchor({ [positionId]: event.currentTarget });
@@ -242,165 +257,158 @@ const Positions = () => {
           />
         </div>
 
-        <TableContainer
-          sx={{
-            flexGrow: 1,
-            display: "flex",
-            flexDirection: "column",
-            height: "calc(100vh - 18rem)",
-            width: "calc(100vw - 20rem)",
-            overflow: "auto",
-            zIndex: 0,
-            margin: "0 auto",
-          }}>
-          <Table stickyHeader>
+        <TableContainer>
+          <Table>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header table-header-id">
-                  ID
-                </TableCell>
-                <TableCell className="table-header table-header-code">
-                  CODE
-                </TableCell>
-                <TableCell className="table-header table-header-name">
-                  NAME
-                </TableCell>
-                <TableCell className="table-header table-header-coa">
-                  COA
-                </TableCell>
-                <TableCell className="table-header table-header-pay-frequency">
-                  PAY FREQUENCY
-                </TableCell>
-                <TableCell className="table-header table-header-schedule">
-                  SCHEDULE
-                </TableCell>
-                <TableCell className="table-header table-header-team">
-                  TEAM
-                </TableCell>
-                <TableCell className="table-header table-header-tools">
-                  TOOLS
-                </TableCell>
-                <TableCell className="table-header table-header-attachments">
-                  ATTACHMENTS
-                </TableCell>
-                <TableCell className="table-header table-header-status">
-                  STATUS
-                </TableCell>
-                <TableCell className="table-header table-header-action">
-                  ACTION
-                </TableCell>
+                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header2">NAME</TableCell>
+                <TableCell className="table-status">COA</TableCell>
+                <TableCell className="table-header2">PAY FREQUENCY</TableCell>
+                <TableCell className="table-header2">SCHEDULE</TableCell>
+                <TableCell className="table-header">TEAM</TableCell>
+                <TableCell className="table-status">TOOLS</TableCell>
+                <TableCell className="table-header2">ATTACHMENTS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTION</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {positionList.map((position) => (
-                <TableRow key={position.id}>
-                  <TableCell className="table-cell table-cell-id">
-                    {position.id}
-                  </TableCell>
-                  <TableCell className="table-cell table-cell-code">
-                    {position.code}
-                  </TableCell>
-                  <TableCell className="table-cell table-cell-name">
-                    {position.title?.name || "—"}
-                  </TableCell>
+              {positionList.length > 0 ? (
+                positionList.map((position) => (
+                  <TableRow key={position.id}>
+                    <TableCell className="table-cell-id">
+                      {position.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id2">
+                      {position.code}
+                    </TableCell>
+                    <TableCell className="table-cell2">
+                      {position.title?.name || "—"}
+                    </TableCell>
 
-                  <TableCell className="table-cell table-cell-coa">
-                    <Tooltip title="View COA">
-                      <IconButton onClick={() => handleOpenCoaDialog(position)}>
-                        <ShareLocationIcon sx={{ color: "black" }} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
+                    <TableCell className="table-status">
+                      <Tooltip title="View COA">
+                        <IconButton
+                          onClick={() => handleOpenCoaDialog(position)}>
+                          <ShareLocationIcon sx={{ color: "black" }} />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
 
-                  <TableCell className="table-cell table-cell-pay-frequency">
-                    {position.pay_frequency || "—"}
-                  </TableCell>
+                    <TableCell className="table-cell2">
+                      {position.pay_frequency || "—"}
+                    </TableCell>
 
-                  <TableCell className="table-cell table-cell-schedule">
-                    {position.schedule?.name || "—"}
-                  </TableCell>
+                    <TableCell className="table-cell3">
+                      {position.schedule?.name || "—"}
+                    </TableCell>
 
-                  <TableCell className="table-cell table-cell-team">
-                    {position.team?.name || "—"}
-                  </TableCell>
+                    <TableCell className="table-cell2">
+                      {position.team?.name || "—"}
+                    </TableCell>
 
-                  <TableCell className="table-cell table-cell-tools">
-                    <Tooltip title="View Tools">
-                      <IconButton
-                        onClick={() => handleOpenToolsDialog(position)}>
-                        <HomeRepairServiceIcon sx={{ color: "black" }} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
+                    <TableCell className="table-status">
+                      <Tooltip title="View Tools">
+                        <IconButton
+                          onClick={() => handleOpenToolsDialog(position)}>
+                          <HomeRepairServiceIcon sx={{ color: "black" }} />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
 
-                  <TableCell className="table-cell table-cell-attachments">
-                    {position.position_attachment ? (
-                      <a
-                        href={position.position_attachment}
-                        target="_blank"
-                        rel="noopener noreferrer">
-                        <FolderCopyIcon />
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-
-                  <TableCell className="table-cell table-cell-status">
-                    <Chip
-                      label={position.deleted_at ? "Inactive" : "Active"}
-                      color={position.deleted_at ? "error" : "success"}
-                    />
-                  </TableCell>
-
-                  <TableCell className="table-cell table-cell-action">
-                    <IconButton onClick={(e) => handleMenuOpen(e, position.id)}>
-                      <MoreVertIcon />
-                    </IconButton>
-                    <Menu
-                      anchorEl={menuAnchor[position.id]}
-                      open={Boolean(menuAnchor[position.id])}
-                      onClose={() => handleMenuClose(position.id)}>
-                      {!position.deleted_at && (
-                        <MenuItem onClick={() => handleEditClick(position)}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
+                    <TableCell className="table-cell2">
+                      {position.position_attachment ? (
+                        <Link
+                          href={position.position_attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          underline="hover"
+                          sx={{
+                            color: "primary.main",
+                            fontWeight: 500,
+                            display: "block",
+                            maxWidth: "150px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                          {getFileNameFromUrl(position.position_attachment)}
+                        </Link>
+                      ) : (
+                        "—"
                       )}
-                      <MenuItem
-                        onClick={() => handleArchiveRestoreClick(position)}>
-                        {position.deleted_at ? (
-                          <>
-                            <RestoreIcon fontSize="small" sx={{ mr: 1 }} />{" "}
-                            Restore
-                          </>
-                        ) : (
-                          <>
-                            <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />{" "}
-                            Archive
-                          </>
+                    </TableCell>
+
+                    <TableCell className="table-status">
+                      <Chip
+                        label={position.deleted_at ? "Inactive" : "Active"}
+                        color={position.deleted_at ? "error" : "success"}
+                      />
+                    </TableCell>
+
+                    <TableCell className="table-status">
+                      <IconButton
+                        onClick={(e) => handleMenuOpen(e, position.id)}>
+                        <MoreVertIcon />
+                      </IconButton>
+                      <Menu
+                        anchorEl={menuAnchor[position.id]}
+                        open={Boolean(menuAnchor[position.id])}
+                        onClose={() => handleMenuClose(position.id)}>
+                        {!position.deleted_at && (
+                          <MenuItem onClick={() => handleEditClick(position)}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          </MenuItem>
                         )}
-                      </MenuItem>
-                    </Menu>
+                        <MenuItem
+                          onClick={() => handleArchiveRestoreClick(position)}>
+                          {position.deleted_at ? (
+                            <>
+                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              Restore
+                            </>
+                          ) : (
+                            <>
+                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              Archive
+                            </>
+                          )}
+                        </MenuItem>
+                      </Menu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={11}
+                    align="center"
+                    sx={{ borderBottom: "none" }}
+                    className="table-cell">
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={positions?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={positions?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
 
       <PositionsModal

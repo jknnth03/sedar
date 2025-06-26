@@ -1,10 +1,9 @@
-import { sedarApi } from "..";
+import { sedarApi } from "../index";
 
-const positionsApi = sedarApi
+export const positionsempApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["Position"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // Fetch a paginated list of positions
       getPosition: build.query({
         query: ({
           page = 1,
@@ -15,46 +14,69 @@ const positionsApi = sedarApi
           url: `employees/positions?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
         }),
         providesTags: (result) =>
-          result && result.data
+          result?.result?.data
             ? [
                 { type: "Position", id: "LIST" },
-                ...result.data.map(({ id }) => ({ type: "Position", id })),
+                ...result.result.data.map(({ id }) => ({
+                  type: "Position",
+                  id,
+                })),
               ]
             : [{ type: "Position", id: "LIST" }],
       }),
 
-      // Create a new position
-      createPosition: build.mutation({
-        query: (newPosition) => ({
-          url: "employees/positions",
-          method: "POST",
-          body: newPosition,
+      getAllPosition: build.query({
+        query: () => ({
+          url: `employees/positions`,
         }),
-        invalidatesTags: [{ type: "Position", id: "LIST" }],
+        providesTags: (result) =>
+          result?.result?.data
+            ? [
+                { type: "Position", id: "ALL" },
+                ...result.result.data.map(({ id }) => ({
+                  type: "Position",
+                  id,
+                })),
+              ]
+            : [{ type: "Position", id: "ALL" }],
       }),
 
-      // Update an existing position
-      updatePosition: build.mutation({
-        query: ({ id, ...patch }) => ({
-          url: `employees/positions/${id}`,
-          method: "PUT", // or "PATCH" depending on your API
-          body: patch,
+      getPositionById: build.query({
+        query: (employeeId) => ({
+          url: `employees/${employeeId}/position`,
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "Position", id },
-          { type: "Position", id: "LIST" },
+        providesTags: (result, error, employeeId) => [
+          { type: "Position", id: employeeId },
         ],
       }),
 
-      // Delete a position by ID
-      deletePosition: build.mutation({
-        query: (id) => ({
-          url: `employees/positions/${id}`,
-          method: "DELETE",
+      updatePositionsEmp: build.mutation({
+        query: ({ employeeId, ...data }) => ({
+          url: `employees/${employeeId}/position`,
+          method: "PATCH",
+          body: data,
         }),
-        invalidatesTags: (result, error, id) => [
-          { type: "Position", id },
+        invalidatesTags: (result, error, { employeeId }) => [
+          { type: "Position", id: employeeId },
           { type: "Position", id: "LIST" },
+          { type: "Position", id: "ALL" },
+        ],
+      }),
+
+      deletePosition: build.mutation({
+        query: (employeeId) => {
+          if (!employeeId) {
+            throw new Error("Employee ID is required for position deletion");
+          }
+          return {
+            url: `employees/${employeeId}/position`,
+            method: "DELETE",
+          };
+        },
+        invalidatesTags: (result, error, employeeId) => [
+          { type: "Position", id: employeeId },
+          { type: "Position", id: "LIST" },
+          { type: "Position", id: "ALL" },
         ],
       }),
     }),
@@ -62,7 +84,10 @@ const positionsApi = sedarApi
 
 export const {
   useGetPositionQuery,
-  useCreatePositionMutation,
-  useUpdatePositionMutation,
+  useGetAllPositionQuery,
+  useUpdatePositionsEmpMutation,
   useDeletePositionMutation,
-} = positionsApi;
+  useGetPositionByIdQuery,
+} = positionsempApi;
+
+export default positionsempApi;

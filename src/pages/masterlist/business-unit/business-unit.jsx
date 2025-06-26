@@ -19,6 +19,7 @@ import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
 import "../../GeneralStyle.scss";
 import useDebounce from "../../../hooks/useDebounce";
+import { CONSTANT } from "../../../config";
 
 const BusinessUnit = () => {
   const [page, setPage] = useState(1);
@@ -109,9 +110,9 @@ const BusinessUnit = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">ID</TableCell>
-                <TableCell className="table-header">CODE</TableCell>
-                <TableCell className="table-header">BUSINESS UNIT</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
+                <TableCell className="table-id2">BUSINESS UNIT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -127,13 +128,13 @@ const BusinessUnit = () => {
               ) : businessUnits.length > 0 ? (
                 businessUnits.map((businessUnit) => (
                   <TableRow key={businessUnit.id}>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {businessUnit.id}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {businessUnit.code}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {businessUnit.name}
                     </TableCell>
                   </TableRow>
@@ -144,30 +145,27 @@ const BusinessUnit = () => {
                     colSpan={3}
                     className="table-cell"
                     style={{ textAlign: "center" }}>
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={backendData?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={backendData?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
     </>
   );

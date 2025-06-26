@@ -34,5 +34,9 @@ const subMunicipalitiesApi = sedarApi
 export const {
   usePostSubMunicipalitiesMutation,
   useGetShowSubMunicipalitiesQuery,
+  useLazyGetShowSubMunicipalitiesQuery, // Lazy version
   useGetAllShowSubMunicipalitiesQuery,
+  useLazyGetAllShowSubMunicipalitiesQuery, // Lazy version
 } = subMunicipalitiesApi;
+
+export default subMunicipalitiesApi;

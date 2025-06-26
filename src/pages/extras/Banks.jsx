@@ -141,11 +141,11 @@ const Banks = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
                 <TableCell className="table-header">BANK</TableCell>
-                <TableCell className="table-status3">STATUS</TableCell>
-                <TableCell className="table-status3">ACTIONS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -158,10 +158,12 @@ const Banks = () => {
               ) : bankList.length > 0 ? (
                 bankList.map((bank) => (
                   <TableRow key={bank.id}>
-                    <TableCell className="table-cell">{bank.id}</TableCell>
-                    <TableCell className="table-cell2">{bank.code}</TableCell>
+                    <TableCell className="table-cell-id">{bank.id}</TableCell>
+                    <TableCell className="table-cell-id2">
+                      {bank.code}
+                    </TableCell>
                     <TableCell className="table-cell">{bank.name}</TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -169,7 +171,7 @@ const Banks = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <IconButton onClick={(e) => handleMenuOpen(e, bank)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -248,9 +250,13 @@ const Banks = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

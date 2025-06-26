@@ -120,10 +120,10 @@ const Regions = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-header">PSGC CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id2">PSGC CODE</TableCell>
                 <TableCell className="table-header">REGION</TableCell>
-                <TableCell className="table-status3">PROVINCES</TableCell>
+                <TableCell className="table-status">PROVINCES</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -139,12 +139,12 @@ const Regions = () => {
               ) : regions.length > 0 ? (
                 regions.map((region) => (
                   <TableRow key={region.id}>
-                    <TableCell className="table-cell">{region.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">{region.id}</TableCell>
+                    <TableCell className="table-cell-id">
                       {region.psgc_id}
                     </TableCell>
-                    <TableCell className="table-cell">{region.name}</TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-cell2">{region.name}</TableCell>
+                    <TableCell className="table-status2">
                       <Tooltip title="View Provinces">
                         <IconButton
                           onClick={() =>

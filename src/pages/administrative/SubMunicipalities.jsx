@@ -103,8 +103,8 @@ const SubMunicipalities = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-header">PSGC CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id2">PSGC CODE</TableCell>
                 <TableCell className="table-header">SUB MUNICIPALITY</TableCell>
                 <TableCell className="table-header">MUNICIPALITY</TableCell>
               </TableRow>
@@ -119,10 +119,10 @@ const SubMunicipalities = () => {
               ) : subMunicipalities.length > 0 ? (
                 subMunicipalities.map((subMunicipality) => (
                   <TableRow key={subMunicipality.id}>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {subMunicipality.id}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {subMunicipality.psgc_id}
                     </TableCell>
                     <TableCell className="table-cell">

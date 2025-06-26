@@ -26,11 +26,22 @@ const provincesApi = sedarApi
         }),
         providesTags: ["showProvinces"],
       }),
+
+      getProvinceById: build.query({
+        query: (id) => ({
+          url: `provinces/${id}`,
+        }),
+        providesTags: ["showProvinces"],
+      }),
     }),
   });
 
 export const {
   usePostProvincesMutation,
   useGetShowProvincesQuery,
+  useLazyGetShowProvincesQuery,
   useGetAllShowProvincesQuery,
+  useLazyGetAllShowProvincesQuery,
+  useGetProvinceByIdQuery,
+  useLazyGetProvinceByIdQuery,
 } = provincesApi;

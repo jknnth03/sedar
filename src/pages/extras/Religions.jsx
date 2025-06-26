@@ -147,11 +147,11 @@ const Religions = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>{" "}
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>{" "}
                 <TableCell className="table-header">RELIGION</TableCell>
-                <TableCell className="table-status2">STATUS</TableCell>
-                <TableCell className="table-status2">ACTIONS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -164,14 +164,16 @@ const Religions = () => {
               ) : religionList.length > 0 ? (
                 religionList.map((religion) => (
                   <TableRow key={religion.id}>
-                    <TableCell className="table-cell">{religion.id}</TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell-id">
+                      {religion.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id2">
                       {religion.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {religion.name}
                     </TableCell>
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -180,7 +182,7 @@ const Religions = () => {
                       />
                     </TableCell>
 
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, religion.id)}>
                         <MoreVertIcon />
@@ -260,9 +262,13 @@ const Religions = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

@@ -19,6 +19,7 @@ import {
   useGetShowDepartmentsQuery,
   usePostDepartmentsMutation,
 } from "../../../features/api/masterlist/departmentsApi";
+import { CONSTANT } from "../../../config";
 
 const Departments = () => {
   const [page, setPage] = useState(1);
@@ -94,8 +95,8 @@ const Departments = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-header">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id3">CODE</TableCell>
                 <TableCell className="table-header">DEPARTMENT</TableCell>
                 <TableCell className="table-header">BUSINESS UNIT</TableCell>
               </TableRow>
@@ -113,8 +114,8 @@ const Departments = () => {
               ) : departments.length > 0 ? (
                 departments.map((dept) => (
                   <TableRow key={dept.id}>
-                    <TableCell className="table-cell">{dept.id}</TableCell>
-                    <TableCell className="table-cell">{dept.code}</TableCell>
+                    <TableCell className="table-cell-id">{dept.id}</TableCell>
+                    <TableCell className="table-cell-id">{dept.code}</TableCell>
                     <TableCell className="table-cell">{dept.name}</TableCell>
                     <TableCell className="table-cell">
                       {dept.business_unit.name}
@@ -124,33 +125,31 @@ const Departments = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
-                    className="table-cell"
-                    style={{ textAlign: "center" }}>
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                    colSpan={7}
+                    align="center"
+                    borderBottom="none"
+                    className="table-cell">
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={backendData?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={backendData?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
     </>
   );

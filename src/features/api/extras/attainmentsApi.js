@@ -51,6 +51,19 @@ const attainmentsApi = sedarApi
         }),
         invalidatesTags: ["attainments"],
       }),
+
+      getAllShowAttainments: build.query({
+        query: ({ page = 1, per_page = 1000, status = "active" } = {}) => {
+          const queryParams = new URLSearchParams();
+          queryParams.append("page", page);
+          queryParams.append("per_page", per_page);
+          queryParams.append("status", status);
+          queryParams.append("pagination", "true");
+
+          return { url: `attainments?${queryParams.toString()}` };
+        },
+        providesTags: ["attainments"],
+      }),
     }),
   });
 
@@ -59,4 +72,6 @@ export const {
   useGetShowAttainmentsQuery,
   useUpdateAttainmentsMutation,
   useDeleteAttainmentsMutation,
+  useGetAllShowAttainmentsQuery, // Added this export
+  useLazyGetAllShowAttainmentsQuery, // This was already there
 } = attainmentsApi;

@@ -32,5 +32,9 @@ const municipalitiesApi = sedarApi
 export const {
   usePostMunicipalitiesMutation,
   useGetShowMunicipalitiesQuery,
+  useLazyGetShowMunicipalitiesQuery,
   useGetAllShowMunicipalitiesQuery,
+  useLazyGetAllShowMunicipalitiesQuery,
 } = municipalitiesApi;
+
+export default municipalitiesApi;

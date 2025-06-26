@@ -140,11 +140,11 @@ const Schedule = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
                 <TableCell className="table-header">SCHEDULE</TableCell>
-                <TableCell className="table-status2">STATUS</TableCell>
-                <TableCell className="table-status2">ACTIONS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -157,14 +157,16 @@ const Schedule = () => {
               ) : scheduleList.length > 0 ? (
                 scheduleList.map((schedule) => (
                   <TableRow key={schedule.id}>
-                    <TableCell className="table-cell">{schedule.id}</TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell-id">
+                      {schedule.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id2">
                       {schedule.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {schedule.name}
                     </TableCell>
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -251,9 +253,13 @@ const Schedule = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

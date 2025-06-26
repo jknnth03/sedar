@@ -95,8 +95,8 @@ const Subunits = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id3">CODE</TableCell>
                 <TableCell className="table-header">SUB UNIT</TableCell>
                 <TableCell className="table-header">UNIT</TableCell>
               </TableRow>
@@ -114,8 +114,12 @@ const Subunits = () => {
               ) : subunits.length > 0 ? (
                 subunits.map((subunit) => (
                   <TableRow key={subunit.id}>
-                    <TableCell className="table-cell">{subunit.id}</TableCell>
-                    <TableCell className="table-cell">{subunit.code}</TableCell>
+                    <TableCell className="table-cell-id">
+                      {subunit.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id">
+                      {subunit.code}
+                    </TableCell>
                     <TableCell className="table-cell">{subunit.name}</TableCell>
                     <TableCell className="table-cell">
                       {subunit.unit?.name}

@@ -37,6 +37,7 @@ import {
   useGetJobratesQuery,
 } from "../../../features/api/masterlist/jobratesApi";
 import "../../../pages/GeneralStyle.scss";
+import "../../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../../config/index";
 import useDebounce from "../../../hooks/useDebounce";
 
@@ -151,7 +152,14 @@ const JobRates = () => {
         </Button>
       </div>
 
-      <Paper className="container">
+      <Paper
+        className="container"
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "calc(100vh - 180px)", // adjust as needed depending on tab + header height
+          overflow: "hidden",
+        }}>
         <Box className="table-controls">
           <SearchBar
             searchQuery={searchQuery}
@@ -168,8 +176,8 @@ const JobRates = () => {
                 <TableCell className="table-id">ID</TableCell>
                 <TableCell className="table-header">POSITION</TableCell>
                 <TableCell className="table-header">JOB LEVEL</TableCell>
-                <TableCell className="table-id2">JOB RATE</TableCell>
-                <TableCell className="table-id2">ALLOWANCE</TableCell>
+                <TableCell className="table-header2">JOB RATE</TableCell>
+                <TableCell className="table-header2">ALLOWANCE</TableCell>
                 <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
@@ -184,22 +192,22 @@ const JobRates = () => {
               ) : jobRateList.length > 0 ? (
                 jobRateList.map((jobRate) => (
                   <TableRow key={jobRate.id}>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {safelyDisplayValue(jobRate.id)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell3">
                       {getPositionTitle(jobRate)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell3">
                       {getJobLevelName(jobRate)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {safelyDisplayValue(jobRate.code)}
                     </TableCell>
                     <TableCell className="table-cell">
                       {safelyDisplayValue(jobRate.allowance)}
                     </TableCell>
-                    <TableCell className="table-status">
+                    <TableCell className="table-2">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -207,7 +215,7 @@ const JobRates = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status">
+                    <TableCell className="table-status2">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, jobRate.id)}>
                         <MoreVertIcon />
@@ -288,9 +296,13 @@ const JobRates = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

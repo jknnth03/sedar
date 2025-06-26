@@ -162,9 +162,9 @@ const JobLevels = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">JOB LEVEL</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">LEVEL</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
                 <TableCell className="table-header">SALARY STRUCTURE</TableCell>
                 <TableCell className="table-header">PAY FREQUENCY</TableCell>
                 <TableCell className="table-status">STATUS</TableCell>
@@ -181,20 +181,22 @@ const JobLevels = () => {
               ) : joblevelList.length > 0 ? (
                 joblevelList.map((joblevel) => (
                   <TableRow key={joblevel.id}>
-                    <TableCell className="table-cell">{joblevel.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
+                      {joblevel.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id2">
                       {joblevel.name}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id2">
                       {joblevel.code}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {joblevel.salary_structure || "-"}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {joblevel.pay_frequency || "-"}
                     </TableCell>
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -202,7 +204,7 @@ const JobLevels = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, joblevel.id)}>
                         <MoreVertIcon />
@@ -249,19 +251,20 @@ const JobLevels = () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={joblevels?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={Math.max(0, page - 1)}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={joblevels?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={Math.max(0, page - 1)}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
 
       <JoblevelsModal
@@ -282,9 +285,13 @@ const JobLevels = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

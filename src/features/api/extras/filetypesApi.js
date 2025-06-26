@@ -35,6 +35,13 @@ const fileTypesApi = sedarApi
         providesTags: ["file-types"],
       }),
 
+      getAllFileTypes: build.query({
+        query: () => ({
+          url: "file-types?pagination=none&status=active",
+        }),
+        providesTags: ["file-types"],
+      }),
+
       updateFileTypes: build.mutation({
         query: ({ id, ...body }) => ({
           url: `file-types/${id}`,
@@ -57,6 +64,7 @@ const fileTypesApi = sedarApi
 export const {
   usePostFileTypesMutation,
   useGetShowFileTypesQuery,
+  useGetAllFileTypesQuery,
   useUpdateFileTypesMutation,
   useDeleteFileTypesMutation,
 } = fileTypesApi;

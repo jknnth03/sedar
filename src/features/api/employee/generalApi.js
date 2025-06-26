@@ -4,15 +4,27 @@ const generalApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["general"] })
   .injectEndpoints({
     endpoints: (build) => ({
+      // POST - Create Employee General Info (for new records only)
       postGeneral: build.mutation({
         query: (body) => ({
-          url: "employees",
+          url: "employees/general-info",
           method: "POST",
           body,
         }),
         invalidatesTags: ["general"],
       }),
 
+      // PATCH - Update Employee General Info (Fixed endpoint structure)
+      updateGeneral: build.mutation({
+        query: ({ id, ...body }) => ({
+          url: `employees/${id}/general-info`, // Correct endpoint: employees/{id}/general-info
+          method: "PATCH", // Correct method as confirmed by your error message
+          body,
+        }),
+        invalidatesTags: ["general"],
+      }),
+
+      // GET - Show All Employees General Info
       getGenerals: build.query({
         query: ({
           page = 1,
@@ -25,32 +37,26 @@ const generalApi = sedarApi
         providesTags: ["general"],
       }),
 
+      // GET - Show All (No Pagination)
       getAllGenerals: build.query({
         query: () => ({
-          url: `employees?pagination=none&status=active`,
+          url: `employees/general-info?pagination=none&status=active`,
         }),
         providesTags: ["general"],
       }),
 
+      // GET - Show an Employee General Info
       getSingleGeneral: build.query({
         query: (id) => ({
-          url: `employees/${id}`,
+          url: `employees/${id}/general-info`, // Updated to match backend expectation
         }),
         providesTags: ["general"],
       }),
 
-      updateGeneral: build.mutation({
-        query: ({ id, ...body }) => ({
-          url: `employees/${id}`,
-          method: "PATCH",
-          body,
-        }),
-        invalidatesTags: ["general"],
-      }),
-
+      // DELETE - Delete Employee General Info (Updated endpoint)
       deleteGeneral: build.mutation({
         query: (id) => ({
-          url: `employees/${id}`,
+          url: `employees/${id}/general-info`, // Changed from employees/general-info/${id}
           method: "DELETE",
         }),
         invalidatesTags: ["general"],
@@ -62,9 +68,8 @@ export const {
   usePostGeneralMutation,
   useGetGeneralsQuery,
   useGetAllGeneralsQuery,
+  useLazyGetAllGeneralsQuery, // Added the lazy query hook
   useGetSingleGeneralQuery,
   useUpdateGeneralMutation,
   useDeleteGeneralMutation,
-  useDeletePositionMutation,
-  useGetPositionQuery,
 } = generalApi;

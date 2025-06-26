@@ -51,10 +51,17 @@ const degreesApi = sedarApi
         }),
         invalidatesTags: ["degrees"],
       }),
+
       getAllShowDegrees: build.query({
-        query: () => ({
-          url: "degrees?pagination=none&status=active",
-        }),
+        query: ({ page = 1, per_page = 1000, status = "active" } = {}) => {
+          const queryParams = new URLSearchParams();
+          queryParams.append("page", page);
+          queryParams.append("per_page", per_page);
+          queryParams.append("status", status);
+          queryParams.append("pagination", "true");
+
+          return { url: `degrees?${queryParams.toString()}` };
+        },
         providesTags: ["degrees"],
       }),
     }),
@@ -65,5 +72,6 @@ export const {
   useGetShowDegreesQuery,
   useUpdateDegreesMutation,
   useDeleteDegreesMutation,
-  useGetAllShowDegreesQuery,
+  useGetAllShowDegreesQuery, // Added this export
+  useLazyGetAllShowDegreesQuery, // This was already there
 } = degreesApi;

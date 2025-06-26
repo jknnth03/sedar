@@ -140,11 +140,11 @@ const Attainments = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
                 <TableCell className="table-header">ATTAINMENT</TableCell>
-                <TableCell className="table-status3">STATUS</TableCell>
-                <TableCell className="table-status3">ACTIONS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -157,16 +157,16 @@ const Attainments = () => {
               ) : attainmentList.length > 0 ? (
                 attainmentList.map((attainment) => (
                   <TableRow key={attainment.id}>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {attainment.id}
                     </TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell-id2">
                       {attainment.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {attainment.name}
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -174,7 +174,7 @@ const Attainments = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, attainment)}>
                         <MoreVertIcon />
@@ -258,9 +258,13 @@ const Attainments = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

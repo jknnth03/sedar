@@ -8,6 +8,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
 import { useNavigate } from "react-router";
 import { useSnackbar } from "notistack";
@@ -16,6 +18,7 @@ import logo from "../../assets/sedar.png";
 import img from "../../assets/business.png";
 import login_logo from "../../assets/login_logo.png";
 import { CONSTANT } from "../../config";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import "./Login.scss";
 
 const Changepass = () => {
@@ -28,6 +31,16 @@ const Changepass = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const toggleShowCurrentPassword = () =>
+    setShowCurrentPassword((prev) => !prev);
+  const toggleShowNewPassword = () => setShowNewPassword((prev) => !prev);
+  const toggleShowConfirmPassword = () =>
+    setShowConfirmPassword((prev) => !prev);
+
   const handleSubmit = async () => {
     setErrorMessage("");
 
@@ -38,11 +51,6 @@ const Changepass = () => {
 
     if (newPassword !== confirmPassword) {
       setErrorMessage("New passwords do not match.");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setErrorMessage("New password must be at least 8 characters long.");
       return;
     }
 
@@ -138,33 +146,60 @@ const Changepass = () => {
       <Dialog open={true}>
         <DialogTitle
           sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
-          Change Password
+          CHANGE PASSWORD
         </DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
             label="Current Password"
-            type="password"
+            type={showCurrentPassword ? "text" : "password"}
             fullWidth
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             sx={{ marginTop: "20px" }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={toggleShowCurrentPassword} edge="end">
+                    {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             margin="dense"
             label="New Password"
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             fullWidth
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={toggleShowNewPassword} edge="end">
+                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             margin="dense"
             label="Confirm New Password"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             fullWidth
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={toggleShowConfirmPassword} edge="end">
+                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           {errorMessage && (
             <Typography

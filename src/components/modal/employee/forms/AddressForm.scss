@@ -1,0 +1,39 @@
+.addressremarks-fields {
+  width: 1096px !important;
+
+  .MuiOutlinedInput-root {
+    border-radius: 0.5rem; // equivalent to `borderRadius: 2` in MUI (theme spacing = 8 * 2 = 16px)
+  }
+
+  .MuiInputLabel-root,
+  .MuiFormLabel-root {
+    color: rgb(33, 61, 112);
+
+    &.Mui-focused {
+      color: rgb(33, 61, 112);
+    }
+  }
+}
+.addressfull-fields {
+  width: 724px !important;
+
+  .MuiOutlinedInput-root {
+    border-radius: 0.5rem; // same as borderRadius: 2 in MUI theme
+  }
+
+  .MuiInputLabel-root,
+  .MuiFormLabel-root {
+    color: rgb(33, 61, 112);
+
+    &.Mui-focused {
+      color: rgb(33, 61, 112);
+    }
+  }
+}
+
+.form-error {
+  color: #d32f2f;
+  font-size: 0.75rem;
+  margin-top: 3px;
+  margin-left: 14px;
+}

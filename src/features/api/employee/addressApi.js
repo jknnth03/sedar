@@ -4,7 +4,6 @@ const addressApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["Address"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // Fetch a paginated list of addresses
       getAddress: build.query({
         query: ({
           page = 1,
@@ -24,25 +23,34 @@ const addressApi = sedarApi
       }),
 
       updateAddress: build.mutation({
-        query: ({ id, ...data }) => ({
-          url: `employees/addresses/${id}`,
-          method: "PUT",
+        query: ({ employeeId, addressId, ...data }) => ({
+          url: `employees/${employeeId}/addresses/${addressId}`,
+          method: "PATCH",
           body: data,
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "Address", id },
+        invalidatesTags: (result, error, { addressId }) => [
+          { type: "Address", id: addressId },
           { type: "Address", id: "LIST" },
         ],
       }),
 
       deleteAddress: build.mutation({
-        query: (id) => ({
-          url: `employees/addresses/${id}`,
+        query: ({ employeeId, addressId }) => ({
+          url: `employees/${employeeId}/addresses/${addressId}`,
           method: "DELETE",
         }),
-        invalidatesTags: (result, error, id) => [
-          { type: "Address", id },
+        invalidatesTags: (result, error, { addressId }) => [
+          { type: "Address", id: addressId },
           { type: "Address", id: "LIST" },
+        ],
+      }),
+
+      getAddressById: build.query({
+        query: ({ employeeId, addressId }) => ({
+          url: `employees/${employeeId}/addresses/${addressId}`,
+        }),
+        providesTags: (result, error, { addressId }) => [
+          { type: "Address", id: addressId },
         ],
       }),
     }),
@@ -50,6 +58,11 @@ const addressApi = sedarApi
 
 export const {
   useGetAddressQuery,
+  useLazyGetAddressQuery,
   useUpdateAddressMutation,
   useDeleteAddressMutation,
+  useGetAddressByIdQuery,
+  useLazyGetAddressByIdQuery,
 } = addressApi;
+
+export default addressApi;

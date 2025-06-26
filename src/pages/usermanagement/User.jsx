@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useSnackbar } from "notistack";
-import { SearchBar } from "../masterlist/masterlistComponents";
+import { SearchBar, SyncButton } from "../masterlist/masterlistComponents";
 import UserModal from "../../components/modal/usermanagement/UserModal";
 import "../GeneralStyle.scss";
 import { useDispatch } from "react-redux";
@@ -35,6 +35,7 @@ import {
 import { useResetPasswordMutation } from "../../features/api/changepassApi";
 import { CONSTANT } from "../../config";
 import "../../pages/GeneralStyle.scss";
+import "../../pages/GeneralTable.scss";
 
 const User = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -50,12 +51,11 @@ const User = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Query parameters memo - match API expectations
   const queryParams = useMemo(
     () => ({
-      pagination: 1, // API expects this parameter
-      page: page + 1, // Convert to 1-based for API
-      per_page: rowsPerPage, // API expects per_page, not rowsPerPage
+      pagination: 1,
+      page: page + 1,
+      per_page: rowsPerPage,
       searchQuery: debouncedSearchQuery,
       status: showArchived ? "inactive" : "",
     }),
@@ -76,21 +76,15 @@ const User = () => {
     return [];
   }, [userData]);
 
-  // Get total count - since transformResponse only returns data array,
-  // we need to get totalCount from the original response
   const totalCount = useMemo(() => {
-    // The API transformResponse is only returning the data array
-    // You might need to modify the API to return the full response
-    // or get totalCount from a different source
     if (userData?.totalCount !== undefined) return userData.totalCount;
     if (userData?.total !== undefined) return userData.total;
-    // Fallback - this won't be accurate for pagination
     return userList?.length || 0;
   }, [userData, userList]);
 
   const handleSearchChange = useCallback((query) => {
     setSearchQuery(query);
-    setPage(0); // Reset to first page (0-based) on new search
+    setPage(0);
   }, []);
 
   const handleEditUser = useCallback(
@@ -161,14 +155,13 @@ const User = () => {
     [enqueueSnackbar, resetPassword]
   );
 
-  // Page change handler
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
   }, []);
 
   const handleRowsPerPageChange = useCallback((event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Reset to first page when changing rows per page
+    setPage(0);
   }, []);
 
   const handleConfirmClose = useCallback(() => {
@@ -179,7 +172,7 @@ const User = () => {
     if (isLoading || isFetching) {
       return (
         <TableRow>
-          <TableCell colSpan={7} align="center">
+          <TableCell colSpan={6} align="center">
             <CircularProgress size={24} />
           </TableCell>
         </TableRow>
@@ -189,7 +182,7 @@ const User = () => {
     if (userList.length === 0) {
       return (
         <TableRow>
-          <TableCell colSpan={7} align="center">
+          <TableCell colSpan={6} align="center">
             {CONSTANT.BUTTONS.NODATA.icon}
           </TableCell>
         </TableRow>
@@ -204,7 +197,7 @@ const User = () => {
         <TableCell className="table-cell">
           {user.role?.role_name || "N/A"}
         </TableCell>
-        <TableCell className="table-status">
+        <TableCell className="table-cell">
           <Chip
             label={showArchived ? "INACTIVE" : "ACTIVE"}
             color={showArchived ? "error" : "success"}
@@ -212,7 +205,7 @@ const User = () => {
             sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
           />
         </TableCell>
-        <TableCell className="table-status">
+        <TableCell className="table-cell">
           <UserActions
             user={user}
             showArchived={showArchived}
@@ -231,18 +224,13 @@ const User = () => {
     <>
       <div className="header-container">
         <Typography className="header">USERS</Typography>
-        <Button
-          className="add-button"
-          variant="contained"
-          onClick={handleCreateUser}
-          startIcon={<AddIcon />}>
-          CREATE
-        </Button>
+        <SyncButton />
       </div>
 
       {/* Table */}
+
       <Paper className="container">
-        <div className="table-controls">
+        <div>
           <SearchBar
             searchQuery={searchQuery}
             setSearchQuery={handleSearchChange}
@@ -250,32 +238,84 @@ const User = () => {
             setShowArchived={setShowArchived}
           />
         </div>
-
-        <TableContainer className="table-container">
-          <Table stickyHeader>
+        <TableContainer>
+          <Table>
             <TableHead>
               <TableRow>
                 <TableCell className="table-id">ID</TableCell>
-                <TableCell className="table-id">USERNAME</TableCell>
+                <TableCell className="table-header">USERNAME</TableCell>
                 <TableCell className="table-header">FULL NAME</TableCell>
-                <TableCell className="table-id">ROLE</TableCell>
+                <TableCell className="table-header">ROLE</TableCell>
                 <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>{renderTableBody()}</TableBody>
+            <TableBody>
+              {isLoading || isFetching ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    <CircularProgress size={24} />
+                  </TableCell>
+                </TableRow>
+              ) : userList.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    {CONSTANT.BUTTONS.NODATA.icon}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                userList.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="table-cell-id">{user.id}</TableCell>
+                    <TableCell className="table-cell">
+                      {user.username || "N/A"}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {user.full_name || "N/A"}
+                    </TableCell>
+
+                    <TableCell className="table-cell">
+                      {user.role?.role_name || "N/A"}
+                    </TableCell>
+                    <TableCell className="table-status">
+                      <Chip
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="medium"
+                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
+                      />
+                    </TableCell>
+                    <TableCell className="table-status">
+                      <UserActions
+                        user={user}
+                        showArchived={showArchived}
+                        handleEditUser={
+                          showArchived ? null : () => handleEditUser(user)
+                        }
+                        handleArchiveRestoreClick={() =>
+                          handleArchiveRestoreClick(user)
+                        }
+                        handleResetPasswordClick={
+                          showArchived ? null : () => handleResetPassword(user)
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={totalCount}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            count={totalCount}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
+        </div>
       </Paper>
 
       {/* User Modal */}
@@ -288,36 +328,54 @@ const User = () => {
       />
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmOpen} onClose={handleConfirmClose} maxWidth="xs">
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
             <strong>{selectedUser?.deleted_at ? "restore" : "archive"}</strong>{" "}
-            this user?
+            this joblevel?
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleConfirmClose} variant="outlined" color="error">
-            No
-          </Button>
-          <Button
-            onClick={handleArchiveRestoreConfirm}
-            variant="contained"
-            color="success">
-            Yes
-          </Button>
+          <Box
+            display="flex"
+            justifyContent="center"
+            width="100%"
+            gap={2}
+            mb={2}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              variant="outlined"
+              color="error">
+              No
+            </Button>
+            <Button
+              onClick={handleArchiveRestoreConfirm}
+              variant="contained"
+              color="success">
+              Yes
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </>

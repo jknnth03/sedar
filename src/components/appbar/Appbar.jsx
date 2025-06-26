@@ -56,7 +56,7 @@ export default function Appbar({ setOpen = () => {} }) {
           paddingRight: "10px",
         }}>
         {`Fresh morning, `}
-        <span style={{ color: "#FF4500" }}>{firstName} ❤</span>
+        <span style={{ color: "#FF4500" }}>{firstName}!</span>
       </Typography>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

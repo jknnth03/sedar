@@ -51,6 +51,7 @@ const banksApi = sedarApi
         }),
         invalidatesTags: ["banks"],
       }),
+
       getAllShowBanks: build.query({
         query: () => ({
           url: "banks?pagination=none&status=active",
@@ -66,4 +67,5 @@ export const {
   useUpdateBanksMutation,
   useDeleteBanksMutation,
   useGetAllShowBanksQuery,
+  useLazyGetAllShowBanksQuery,
 } = banksApi;

@@ -67,4 +67,5 @@ export const {
   useUpdateReligionsMutation,
   useDeleteReligionsMutation,
   useGetAllShowReligionsQuery,
+  useLazyGetAllShowReligionsQuery,
 } = religionsApi;

@@ -140,13 +140,13 @@ const Municipalities = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-header">PSGC CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id2">PSGC CODE</TableCell>
                 <TableCell className="table-header">MUNICIPALITIES</TableCell>
-                <TableCell className="table-status3">
-                  SUB MUNICIPALITIES
+                <TableCell className="table-status">
+                  SUB-MUNICIPALITIES
                 </TableCell>
-                <TableCell className="table-status3">BARANGAY</TableCell>
+                <TableCell className="table-status">BARANGAY</TableCell>
               </TableRow>
             </TableHead>
 
@@ -160,16 +160,16 @@ const Municipalities = () => {
               ) : municipalities.length > 0 ? (
                 municipalities.map((municipality) => (
                   <TableRow key={municipality.id}>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {municipality.id}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {municipality.psgc_id}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell2">
                       {municipality.name}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status2">
                       <Tooltip title="View Sub-municipalities">
                         <IconButton
                           onClick={() => handleOpenDialog1(municipality)}
@@ -185,7 +185,7 @@ const Municipalities = () => {
                         </IconButton>
                       </Tooltip>
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="table-status2">
                       <Tooltip title="View Barangays">
                         <IconButton
                           onClick={() => handleOpenDialog(municipality)}

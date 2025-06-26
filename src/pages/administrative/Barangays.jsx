@@ -155,7 +155,7 @@ const Barangays = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
+                <TableCell className="table-id">ID</TableCell>
                 <TableCell className="table-header">PSGC CODE</TableCell>
                 <TableCell className="table-header">BARANGAY</TableCell>
                 <TableCell className="table-header">MUNICIPALITY</TableCell>
@@ -171,7 +171,9 @@ const Barangays = () => {
               ) : barangays.length > 0 ? (
                 barangays.map((barangay) => (
                   <TableRow key={barangay.id}>
-                    <TableCell className="table-cell">{barangay.id}</TableCell>
+                    <TableCell className="table-cell-id">
+                      {barangay.id}
+                    </TableCell>
                     <TableCell className="table-cell">
                       {barangay.psgc_id}
                     </TableCell>

@@ -144,24 +144,3 @@ export const SyncButton = ({ onSync, isFetching }) => (
     {isFetching ? "Syncing..." : "Sync"}
   </Button>
 );
-
-export const PaginationComponent = ({
-  count,
-  rowsPerPage,
-  page,
-  onPageChange,
-  onRowsPerPageChange,
-}) => (
-  <div className="footer">
-    <TablePagination
-      rowsPerPageOptions={[10, 25, 50]}
-      component="div"
-      count={count}
-      rowsPerPage={rowsPerPage}
-      page={page}
-      onPageChange={onPageChange}
-      onRowsPerPageChange={onRowsPerPageChange}
-      className="table-pagination"
-    />
-  </div>
-);

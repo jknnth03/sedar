@@ -1,0 +1,186 @@
+// MultiForm.scss - Styles for MultiFormModal component
+
+.multiform-modal {
+  // Dialog Paper styles
+  .MuiDialog-paper {
+    min-height: 80vh;
+    max-height: 90vh;
+    border-radius: 8px;
+  }
+
+  // Header section
+  &__header {
+    background: white;
+    padding: 28px;
+    padding-bottom: 0;
+    text-align: center;
+    // REMOVED: border: 1px solid #e0e0e0;
+    h5 {
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+  }
+
+  // Content section
+  &__content {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-bottom: 8px;
+  }
+
+  // Step content container
+  &__step-content {
+    width: 100%;
+
+    // Stepper styles
+    .MuiStepper-root {
+      margin-bottom: 32px;
+      margin-top: 16px;
+
+      .MuiStepLabel-label {
+        font-size: 12px;
+
+        &.MuiStepLabel-active {
+          font-weight: 600;
+          color: #1976d2;
+        }
+
+        &:not(.MuiStepLabel-active) {
+          font-weight: 400;
+        }
+      }
+
+      .MuiStepIcon-root {
+        color: #e0e0e0;
+
+        &.Mui-active {
+          color: #ff4500;
+        }
+
+        &.Mui-completed {
+          color: #4caf50;
+        }
+      }
+    }
+
+    // Individual step content
+    .step-content {
+      min-height: 400px;
+    }
+  }
+
+  // Form step containers
+  &__form-step {
+    margin-top: 16px;
+
+    .MuiAlert-root {
+      margin-bottom: 24px;
+    }
+  }
+
+  // Info steps (non-form steps)
+  &__info-step {
+    text-align: center;
+
+    .MuiTypography-body1 {
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  // Summary section (final step)
+  &__summary {
+    margin-top: 24px;
+
+    h6 {
+      margin-bottom: 16px;
+    }
+
+    &-content {
+      text-align: left;
+      max-width: 600px;
+      margin: 0 auto;
+
+      .MuiAlert-root {
+        margin-bottom: 16px;
+      }
+    }
+  }
+
+  // Action buttons section
+  &__actions {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    padding-bottom: 24px;
+    padding-top: 16px;
+    height: 66px;
+    width: 100%;
+
+    // Left button group (Cancel)
+    .left-button-group {
+      display: flex;
+      align-items: center;
+      margin-left: 16px; // Add space to the left of Cancel button
+    }
+
+    // Right button group (Back & Next)
+    .right-button-group {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-right: 16px; // Add space to the right of Next button
+    }
+
+    // Individual buttons
+    .cancel-button,
+    .back-button,
+    .next-button {
+      min-width: 100px;
+    }
+  }
+}
+
+// Employee info alert styles
+.employee-info-alert {
+  margin-bottom: 24px;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+// Position info alert styles
+.position-info-alert {
+  margin-bottom: 24px;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+// Summary alerts
+.summary-alert {
+  margin-bottom: 16px;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+// Error alert styles
+.error-alert {
+  margin-bottom: 24px;
+}
+
+// Info alert styles
+.info-alert {
+  margin-bottom: 24px;
+}
+
+// Success alert styles
+.success-alert {
+  margin-bottom: 16px;
+}

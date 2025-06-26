@@ -120,10 +120,10 @@ const Provinces = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-header">PSGC CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id2">PSGC CODE</TableCell>
                 <TableCell className="table-header">PROVINCE</TableCell>
-                <TableCell className="table-status3">MUNICIPALITIES</TableCell>
+                <TableCell className="table-status">MUNICIPALITIES</TableCell>
               </TableRow>
             </TableHead>
 
@@ -137,14 +137,16 @@ const Provinces = () => {
               ) : provinces.length > 0 ? (
                 provinces.map((province) => (
                   <TableRow key={province.id}>
-                    <TableCell className="table-cell">{province.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
+                      {province.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id">
                       {province.psgc_id}
                     </TableCell>
                     <TableCell className="table-cell">
                       {province.name}
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status2">
                       <Tooltip title="View Municipalities">
                         <IconButton
                           onClick={() =>

@@ -119,9 +119,8 @@ export default function RolesModal({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle
-        sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
-        {selectedRole ? <strong>Edit Role</strong> : <strong>ADD ROLE</strong>}
+      <DialogTitle className="dialog_title">
+        {selectedRole ? <strong>EDIT ROLE</strong> : <strong>ADD ROLE</strong>}
       </DialogTitle>
 
       <DialogContent>
@@ -161,7 +160,7 @@ export default function RolesModal({
 
             <Grid container spacing={1}>
               {permissionList.map((permission) => (
-                <Grid item xs={6} key={permission.value}>
+                <Grid size={6} key={permission.value}>
                   <FormControlLabel
                     control={
                       <Checkbox

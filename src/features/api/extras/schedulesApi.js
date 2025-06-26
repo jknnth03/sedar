@@ -49,7 +49,9 @@ const schedulesApi = sedarApi
 export const {
   usePostSchedulesMutation,
   useGetShowSchedulesQuery,
+  useLazyGetShowSchedulesQuery,
   useGetAllShowSchedulesQuery,
+  useLazyGetAllShowSchedulesQuery,
   useUpdateSchedulesMutation,
   useDeleteSchedulesMutation,
 } = schedulesApi;

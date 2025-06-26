@@ -125,10 +125,10 @@ const Locations = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">ID</TableCell>
-                <TableCell className="table-header">CODE</TableCell>
-                <TableCell className="table-header">LOCATION</TableCell>
-                <TableCell className="table-status3">SUB UNITS</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
+                <TableCell className="table-id2">LOCATION</TableCell>
+                <TableCell className="table-status">SUB UNITS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -144,14 +144,16 @@ const Locations = () => {
               ) : locations.length > 0 ? (
                 locations.map((location) => (
                   <TableRow key={location.id}>
-                    <TableCell className="table-cell">{location.id}</TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
+                      {location.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id">
                       {location.code}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {location.name}
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <Tooltip title="View Sub-units">
                         <IconButton
                           onClick={() =>
@@ -185,19 +187,20 @@ const Locations = () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={backendData?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={backendData?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
 
       <Dialog

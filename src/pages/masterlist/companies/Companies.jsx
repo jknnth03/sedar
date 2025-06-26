@@ -103,7 +103,7 @@ const Companies = () => {
             <TableHead>
               <TableRow>
                 <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-header">CODE</TableCell>
                 <TableCell className="table-header">COMPANY</TableCell>
               </TableRow>
             </TableHead>
@@ -117,7 +117,9 @@ const Companies = () => {
               ) : companies.length > 0 ? (
                 companies.map((company) => (
                   <TableRow key={company.id}>
-                    <TableCell className="table-cell">{company.id}</TableCell>
+                    <TableCell className="table-cell-id">
+                      {company.id}
+                    </TableCell>
                     <TableCell className="table-cell">{company.code}</TableCell>
                     <TableCell className="table-cell">{company.name}</TableCell>
                   </TableRow>
@@ -125,9 +127,9 @@ const Companies = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={11}
                     align="center"
-                    borderBottom="none"
+                    sx={{ borderBottom: "none" }}
                     className="table-cell">
                     {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
@@ -136,19 +138,20 @@ const Companies = () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={backendData?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(e, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={backendData?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
     </>
   );

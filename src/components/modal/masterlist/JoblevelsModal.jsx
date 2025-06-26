@@ -16,6 +16,7 @@ import {
   usePostJoblevelMutation,
   useUpdateJoblevelMutation,
 } from "../../../features/api/masterlist/joblevelsApi";
+import "../../../pages/GeneralStyle.scss";
 
 export default function JoblevelsModal({
   open,
@@ -131,9 +132,7 @@ export default function JoblevelsModal({
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogTitle className="dialog_title">
-        <Box className="dialog_title_text">
-          {selectedJoblevel ? "EDIT JOB LEVEL" : "ADD JOB-LEVEL"}
-        </Box>
+        {selectedJoblevel ? "EDIT JOB LEVEL" : "ADD JOB-LEVEL"}
       </DialogTitle>
 
       <DialogContent>

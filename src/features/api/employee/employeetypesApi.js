@@ -1,10 +1,10 @@
-import { sedarApi } from "..";
+import { sedarApi } from "../index";
 
-const employeeTypesApi = sedarApi
-  .enhanceEndpoints({ addTagTypes: ["EmployeeType"] })
+export const employeeTypesApi = sedarApi
+  .enhanceEndpoints({ addTagTypes: ["EmploymentType", "EmploymentTypeMaster"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // Fetch a paginated list of employee employment types
+      // Fetch a paginated list of employment types
       getEmploymentTypes: build.query({
         query: ({
           page = 1,
@@ -17,28 +17,59 @@ const employeeTypesApi = sedarApi
         providesTags: (result) =>
           result && result.result && result.result.data
             ? [
-                { type: "EmployeeType", id: "LIST" },
+                { type: "EmploymentType", id: "LIST" },
                 ...result.result.data.map(({ id }) => ({
-                  type: "EmployeeType",
+                  type: "EmploymentType",
                   id,
                 })),
               ]
-            : [{ type: "EmployeeType", id: "LIST" }],
+            : [{ type: "EmploymentType", id: "LIST" }],
       }),
 
-      // Delete an employment type by ID
-      deleteEmploymentType: build.mutation({
-        query: (id) => ({
-          url: `employees/employment-types/${id}`,
-          method: "DELETE",
+      // Get all employment types (for dropdowns)
+      getAllEmploymentTypes: build.query({
+        query: ({
+          page = 1,
+          per_page = 100,
+          status = "active",
+          search = "",
+        } = {}) => ({
+          url: `employees/employment-types?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
         }),
-        invalidatesTags: (result, error, id) => [
-          { type: "EmployeeType", id },
-          { type: "EmployeeType", id: "LIST" },
+        providesTags: (result) =>
+          result?.result?.data || result?.data || result
+            ? [
+                { type: "EmploymentTypeMaster", id: "ALL" },
+                ...(result?.result?.data || result?.data || result || []).map(
+                  ({ id }) => ({
+                    type: "EmploymentTypeMaster",
+                    id,
+                  })
+                ),
+              ]
+            : [{ type: "EmploymentTypeMaster", id: "ALL" }],
+      }),
+
+      // Update employment type
+      updateEmploymentType: build.mutation({
+        query: ({ id, ...data }) => ({
+          url: `employees/employment-types/${id}`,
+          method: "PATCH",
+          body: data,
+        }),
+        invalidatesTags: (result, error, { id }) => [
+          { type: "EmploymentType", id },
+          { type: "EmploymentType", id: "LIST" },
+          { type: "EmploymentTypeMaster", id: "ALL" },
         ],
       }),
     }),
   });
 
-export const { useGetEmploymentTypesQuery, useDeleteEmploymentTypeMutation } =
-  employeeTypesApi;
+export const {
+  useGetEmploymentTypesQuery,
+  useGetAllEmploymentTypesQuery,
+  useUpdateEmploymentTypeMutation,
+} = employeeTypesApi;
+
+export default employeeTypesApi;

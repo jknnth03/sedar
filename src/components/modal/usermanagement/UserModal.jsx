@@ -43,6 +43,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [autoGenerateUsername, setAutoGenerateUsername] = useState(true);
 
   const { data: employeeData, isLoading: employeeLoading } =
     useGetEmployeeIdNumbersQuery();
@@ -77,6 +78,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
       subUnit: "",
       location: "",
     });
+    setAutoGenerateUsername(true); // Reset auto-generation flag
   };
 
   const handleEmployeeIdChange = (_, newValue) => {
@@ -100,28 +102,48 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
     }));
   };
 
-  const generateUsername = () => {
-    const f = formData.firstName?.[0]?.toLowerCase() || "";
-    const m = formData.middleName?.[0]?.toLowerCase() || "";
-    const l = formData.lastName?.toLowerCase().replace(/\s+/g, "") || "";
+  const handleUsernameChange = (e) => {
+    setAutoGenerateUsername(false); // Disable auto-generation when user starts typing
+    setFormData((prev) => ({
+      ...prev,
+      username: e.target.value,
+    }));
+  };
+
+  const generateUsername = (firstName, middleName, lastName) => {
+    const f = firstName?.[0]?.toLowerCase() || "";
+    const m = middleName?.[0]?.toLowerCase() || "";
+    const l = lastName?.toLowerCase().replace(/\s+/g, "") || "";
     return `${f}${m}${l}`.trim();
   };
 
+  // Only auto-generate username when auto-generation is enabled and names are available
   useEffect(() => {
-    if (formData.firstName && formData.lastName) {
+    if (autoGenerateUsername && formData.firstName && formData.lastName) {
+      const generatedUsername = generateUsername(
+        formData.firstName,
+        formData.middleName,
+        formData.lastName
+      );
       setFormData((prev) => ({
         ...prev,
-        username: generateUsername(),
+        username: generatedUsername,
       }));
     }
-  }, [formData.firstName, formData.middleName, formData.lastName]);
+  }, [
+    formData.firstName,
+    formData.middleName,
+    formData.lastName,
+    autoGenerateUsername,
+  ]);
 
+  // Populate form data when user details are fetched
   useEffect(() => {
     if (userDetails?.result) {
       const g = userDetails.result.general_info;
       const u = userDetails.result.unit_info;
-      setFormData((prev) => ({
-        ...prev,
+
+      const newFormData = {
         firstName: g?.first_name || "",
         lastName: g?.last_name || "",
         middleName: g?.middle_name || "",
@@ -132,10 +154,24 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
         unit: u?.unit?.unit_name || "",
         subUnit: u?.sub_unit?.sub_unit_name || "",
         location: u?.location?.location_name || "",
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        ...newFormData,
+        // Only generate username if auto-generation is enabled
+        username: autoGenerateUsername
+          ? generateUsername(
+              newFormData.firstName,
+              newFormData.middleName,
+              newFormData.lastName
+            )
+          : prev.username,
       }));
     }
-  }, [userDetails]);
+  }, [userDetails, autoGenerateUsername]);
 
+  // Handle selected user for editing
   useEffect(() => {
     if (selectedUser) {
       setFormData((prev) => ({
@@ -154,6 +190,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
         role: selectedUser.role || null,
       }));
       setIsEditing(false);
+      setAutoGenerateUsername(false); // Don't auto-generate for existing users
     } else {
       setFormData({
         employeeId: "",
@@ -171,6 +208,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
         location: "",
       });
       setIsEditing(true);
+      setAutoGenerateUsername(true); // Enable auto-generation for new users
     }
   }, [selectedUser]);
 
@@ -214,8 +252,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
 
   return (
     <Dialog open={userModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
-      <DialogTitle
-        sx={{ background: "#E3F2FD", fontWeight: 600, fontSize: 18 }}>
+      <DialogTitle className="dialog_title">
         {selectedUser ? "EDIT USER" : "ADD NEW USER"}
       </DialogTitle>
 
@@ -267,7 +304,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
             label="Username"
             name="username"
             value={formData.username}
-            onChange={handleTextFieldChange}
+            onChange={handleUsernameChange}
           />
         </SingleRow>
 

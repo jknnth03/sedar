@@ -1,55 +1,86 @@
+// src/features/api/employee/filesempApi.js
+
 import { sedarApi } from "..";
 
-const filesEmpApi = sedarApi
-  .enhanceEndpoints({ addTagTypes: ["File"] })
+const filesempApi = sedarApi
+  .enhanceEndpoints({ addTagTypes: ["FileEmp", "FileEmpMaster"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // Fetch a paginated list of files
-      getFiles: build.query({
+      // Get files with proper query structure
+      getShowFileTypesEmp: build.query({
         query: ({
           page = 1,
           per_page = 10,
           status = "active",
           search = "",
-        }) => ({
-          url: `employees/files?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
-        }),
+        }) => {
+          let url = `employees/files?pagination=1&page=${page}&per_page=${per_page}&status=${status}`;
+
+          // Only add search parameter if it has a value
+          if (search && search.trim() !== "") {
+            url += `&search=${encodeURIComponent(search.trim())}`;
+          }
+
+          return { url };
+        },
         providesTags: (result) =>
-          result && result.data
+          result && result.result && result.result.data
             ? [
-                { type: "File", id: "LIST" },
-                ...result.data.map(({ id }) => ({ type: "File", id })),
+                { type: "FileEmp", id: "LIST" },
+                ...result.result.data.map(({ id }) => ({
+                  type: "FileEmp",
+                  id,
+                })),
               ]
-            : [{ type: "File", id: "LIST" }],
+            : [{ type: "FileEmp", id: "LIST" }],
       }),
 
-      updateFile: build.mutation({
-        query: ({ id, ...data }) => ({
-          url: `employees/files/${id}`,
-          method: "PUT",
-          body: data,
+      // Delete/Archive file
+      deleteFileTypesEmp: build.mutation({
+        query: ({ employeeId, fileId }) => ({
+          url: `employees/${employeeId}/files/${fileId}`,
+          method: "DELETE",
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "File", id },
-          { type: "File", id: "LIST" },
+        invalidatesTags: (result, error, { fileId }) => [
+          { type: "FileEmp", id: fileId },
+          { type: "FileEmp", id: "LIST" },
+          { type: "FileEmpMaster", id: "ALL" },
         ],
       }),
 
-      deleteFile: build.mutation({
-        query: (id) => ({
-          url: `employees/files/${id}`,
-          method: "DELETE",
+      // Add other file-related endpoints as needed
+      createFileTypesEmp: build.mutation({
+        query: ({ employeeId, ...data }) => ({
+          url: `employees/${employeeId}/files`,
+          method: "POST",
+          body: data,
         }),
-        invalidatesTags: (result, error, id) => [
-          { type: "File", id },
-          { type: "File", id: "LIST" },
+        invalidatesTags: [
+          { type: "FileEmp", id: "LIST" },
+          { type: "FileEmpMaster", id: "ALL" },
+        ],
+      }),
+
+      updateFileTypesEmp: build.mutation({
+        query: ({ employeeId, fileId, ...data }) => ({
+          url: `employees/${employeeId}/files/${fileId}`,
+          method: "PATCH",
+          body: data,
+        }),
+        invalidatesTags: (result, error, { fileId }) => [
+          { type: "FileEmp", id: fileId },
+          { type: "FileEmp", id: "LIST" },
+          { type: "FileEmpMaster", id: "ALL" },
         ],
       }),
     }),
   });
 
 export const {
-  useGetFilesQuery,
-  useUpdateFileMutation,
-  useDeleteFileMutation,
-} = filesEmpApi;
+  useGetShowFileTypesEmpQuery,
+  useDeleteFileTypesEmpMutation,
+  useCreateFileTypesEmpMutation,
+  useUpdateFileTypesEmpMutation,
+} = filesempApi;
+
+export default filesempApi;

@@ -147,11 +147,11 @@ const FileTypes = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
                 <TableCell className="table-header">FILE TYPE</TableCell>
-                <TableCell className="table-status3">STATUS</TableCell>
-                <TableCell className="table-status3">ACTIONS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -164,14 +164,16 @@ const FileTypes = () => {
               ) : fileTypeList.length > 0 ? (
                 fileTypeList.map((fileType) => (
                   <TableRow key={fileType.id}>
-                    <TableCell className="table-cell">{fileType.id}</TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell-id">
+                      {fileType.id}
+                    </TableCell>
+                    <TableCell className="table-cell-id2">
                       {fileType.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {fileType.name}
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -179,7 +181,7 @@ const FileTypes = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status2">
                       <IconButton onClick={(e) => handleMenuOpen(e, fileType)}>
                         <MoreVertIcon />
                       </IconButton>

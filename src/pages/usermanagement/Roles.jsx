@@ -20,8 +20,6 @@ import {
   Button,
   Box,
   Chip,
-  Checkbox,
-  FormControlLabel,
   Tooltip,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -34,12 +32,12 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useSnackbar } from "notistack";
 import { SearchBar } from "../masterlist/masterlistComponents";
 import RolesModal from "../../components/modal/usermanagement/RolesModal";
-import NoDataGIF from "../../assets/no-data.gif";
 import {
   useDeleteRoleMutation,
   useGetShowRolesQuery,
 } from "../../features/api/usermanagement/rolesApi";
-import "../GeneralStyle.scss";
+import "../../pages/GeneralStyle.scss";
+import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config";
 
 const Roles = () => {
@@ -159,36 +157,34 @@ const Roles = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3">ID</TableCell>
-                <TableCell className="table-header3">ROLE</TableCell>
-                <TableCell className="table-status2">
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">ROLE</TableCell>
+                <TableCell className="table-status">
                   ACCESS PERMISSION
                 </TableCell>
-                <TableCell className="table-status2">STATUS</TableCell>
-                <TableCell className="table-status2">ACTION</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTION</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading || isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : roles.length > 0 ? (
                 roles.map((role) => (
                   <TableRow key={role.id}>
-                    <TableCell className="table-cell3">{role.id}</TableCell>
-                    <TableCell className="table-cell3">
+                    <TableCell className="table-cell-id">{role.id}</TableCell>
+                    <TableCell className="table-cell-id">
                       {role.role_name}
                     </TableCell>
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <Tooltip title="View Permissions">
                         <IconButton
                           sx={{
                             backgroundColor: "transparent",
-                            padding: "8px",
-                            borderRadius: "50%",
                             transition: "background-color 150ms ease",
                             "&:hover": {
                               backgroundColor: "#e0e0e0",
@@ -203,7 +199,7 @@ const Roles = () => {
                       </Tooltip>
                     </TableCell>
 
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -211,7 +207,7 @@ const Roles = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status2">
+                    <TableCell className="table-status">
                       <IconButton onClick={(e) => handleMenuOpen(e, role)}>
                         <MoreVertIcon />
                       </IconButton>
@@ -232,19 +228,20 @@ const Roles = () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={totalCount}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(e, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={totalCount}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(e, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
 
       <Menu
@@ -282,9 +279,13 @@ const Roles = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

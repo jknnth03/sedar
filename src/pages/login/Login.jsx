@@ -14,7 +14,7 @@ import { useNavigate, useLocation } from "react-router";
 import { useSnackbar } from "notistack";
 import logo from "../../assets/sedar.png";
 import img from "../../assets/business.png";
-import login_logo from "../../assets/login_logo.png";
+import img2 from "../../assets/logo2.png";
 import { CONSTANT } from "../../config";
 import "./Login.scss";
 import { useDispatch } from "react-redux";
@@ -30,7 +30,7 @@ const LoginPage = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [login] = useLoginMutation();
-  const logoutSnackbarShown = useRef(false); // ⬅️ useRef persists across renders
+  const logoutSnackbarShown = useRef(false);
 
   const {
     register,
@@ -95,20 +95,22 @@ const LoginPage = () => {
         <Box
           className="login__container1"
           display="flex"
+          flexDirection="column"
           justifyContent="center"
           alignItems="center">
+          <img src={img2} alt="Login Illustration" style={{ width: "36%" }} />
           <img
-            src={login_logo}
-            alt="Login Illustration"
-            style={{ width: "90%" }}
+            src={logo}
+            alt="logo"
+            style={{ width: "40%" }}
+            className="login__logo1"
           />
         </Box>
 
         <Box className="login__container2">
           <Box className="login__footer">
-            <img src={logo} alt="logo" width={120} className="login__logo1" />
-            <Typography className="login__textupper" align="center">
-              Welcome to Sedar 2.0
+            <Typography className="login__title" align="center">
+              Login your account
             </Typography>
           </Box>
 

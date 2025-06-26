@@ -163,11 +163,11 @@ const RequisitionTypes = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id">CODE</TableCell>
                 <TableCell className="table-header">REQUISITION TYPE</TableCell>
-                <TableCell className="table-status3">STATUS</TableCell>
-                <TableCell className="table-status3">ACTIONS</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -180,16 +180,16 @@ const RequisitionTypes = () => {
               ) : requisitionList.length > 0 ? (
                 requisitionList.map((requisition) => (
                   <TableRow key={requisition.id}>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id">
                       {requisition.id}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell-id2">
                       {requisition.code}
                     </TableCell>
                     <TableCell className="table-cell">
                       {requisition.name}
                     </TableCell>
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -198,7 +198,7 @@ const RequisitionTypes = () => {
                       />
                     </TableCell>
 
-                    <TableCell className="table-status3">
+                    <TableCell className="table-status">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, requisition.id)}>
                         <MoreVertIcon />
@@ -282,9 +282,13 @@ const RequisitionTypes = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>

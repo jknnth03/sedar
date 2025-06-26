@@ -28,11 +28,22 @@ const barangaysApi = sedarApi
         }),
         providesTags: ["showBarangays"],
       }),
+
+      getBarangayById: build.query({
+        query: (id) => ({
+          url: `barangays/${id}`,
+        }),
+        providesTags: ["showBarangays"],
+      }),
     }),
   });
 
 export const {
   usePostBarangaysMutation,
   useGetShowBarangaysQuery,
+  useLazyGetShowBarangaysQuery,
   useGetAllShowBarangaysQuery,
+  useLazyGetAllShowBarangaysQuery,
+  useGetBarangayByIdQuery,
+  useLazyGetBarangayByIdQuery,
 } = barangaysApi;

@@ -49,7 +49,9 @@ const joblevelsApi = sedarApi
 export const {
   usePostJoblevelMutation,
   useGetJoblevelsQuery,
+  useLazyGetJoblevelsQuery,
   useGetAllJobLevelsQuery,
+  useLazyGetAllJobLevelsQuery,
   useUpdateJoblevelMutation,
   useDeleteJoblevelMutation,
 } = joblevelsApi;

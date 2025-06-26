@@ -44,6 +44,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import FolderZipIcon from "@mui/icons-material/FolderZip";
+import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 
 export const MODULES = {
   DASHBOARD: {
@@ -373,7 +374,9 @@ export const MODULES = {
   EXTRAS: {
     name: "Extras",
     path: "/extras",
-    icon: <MoreIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
+    icon: (
+      <SettingsSuggestIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />
+    ),
     icon_on: null,
     children: {
       TITLES: {

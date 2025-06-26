@@ -51,10 +51,17 @@ const programsApi = sedarApi
         }),
         invalidatesTags: ["programs"],
       }),
+
       getAllShowPrograms: build.query({
-        query: () => ({
-          url: "programs?pagination=none&status=active",
-        }),
+        query: ({ page = 1, per_page = 1000, status = "active" } = {}) => {
+          const queryParams = new URLSearchParams();
+          queryParams.append("page", page);
+          queryParams.append("per_page", per_page);
+          queryParams.append("status", status);
+          queryParams.append("pagination", "true");
+
+          return { url: `programs?${queryParams.toString()}` };
+        },
         providesTags: ["programs"],
       }),
     }),
@@ -65,5 +72,6 @@ export const {
   useGetShowProgramsQuery,
   useUpdateProgramsMutation,
   useDeleteProgramsMutation,
-  useGetAllShowProgramsQuery,
+  useGetAllShowProgramsQuery, // Added this export
+  useLazyGetAllShowProgramsQuery, // This was already there
 } = programsApi;

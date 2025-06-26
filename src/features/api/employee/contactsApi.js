@@ -1,7 +1,7 @@
 import { sedarApi } from "..";
 
 const contactsApi = sedarApi
-  .enhanceEndpoints({ addTagTypes: ["Contact"] })
+  .enhanceEndpoints({ addTagTypes: ["Contact", "ContactMaster"] })
   .injectEndpoints({
     endpoints: (build) => ({
       // Fetch a paginated list of contacts
@@ -15,34 +15,65 @@ const contactsApi = sedarApi
           url: `employees/contacts?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
         }),
         providesTags: (result) =>
-          result && result.data
+          result && result.result && result.result.data
             ? [
                 { type: "Contact", id: "LIST" },
-                ...result.data.map(({ id }) => ({ type: "Contact", id })),
+                ...result.result.data.map(({ id }) => ({
+                  type: "Contact",
+                  id,
+                })),
               ]
             : [{ type: "Contact", id: "LIST" }],
       }),
 
+      // Get all contacts (for dropdowns, unpaginated or larger sets)
+      getAllContacts: build.query({
+        query: ({
+          page = 1,
+          per_page = 100,
+          status = "active",
+          search = "",
+        } = {}) => ({
+          url: `employees/contacts?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
+        }),
+        providesTags: (result) =>
+          result?.result?.data || result?.data || result
+            ? [
+                { type: "ContactMaster", id: "ALL" },
+                ...(result?.result?.data || result?.data || result || []).map(
+                  ({ id }) => ({
+                    type: "ContactMaster",
+                    id,
+                  })
+                ),
+              ]
+            : [{ type: "ContactMaster", id: "ALL" }],
+      }),
+
+      // Update contact using PATCH method
       updateContact: build.mutation({
-        query: ({ id, ...data }) => ({
-          url: `employees/contacts/${id}`,
-          method: "PUT",
+        query: ({ employeeId, contactId, ...data }) => ({
+          url: `employees/${employeeId}/contacts/${contactId}`,
+          method: "PATCH",
           body: data,
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "Contact", id },
+        invalidatesTags: (result, error, { contactId }) => [
+          { type: "Contact", id: contactId },
           { type: "Contact", id: "LIST" },
+          { type: "ContactMaster", id: "ALL" },
         ],
       }),
 
+      // Delete a contact
       deleteContact: build.mutation({
-        query: (id) => ({
-          url: `employees/contacts/${id}`,
+        query: ({ employeeId, contactId }) => ({
+          url: `employees/${employeeId}/contacts/${contactId}`,
           method: "DELETE",
         }),
-        invalidatesTags: (result, error, id) => [
-          { type: "Contact", id },
+        invalidatesTags: (result, error, { contactId }) => [
+          { type: "Contact", id: contactId },
           { type: "Contact", id: "LIST" },
+          { type: "ContactMaster", id: "ALL" },
         ],
       }),
     }),
@@ -50,6 +81,9 @@ const contactsApi = sedarApi
 
 export const {
   useGetContactsQuery,
+  useGetAllContactsQuery,
   useUpdateContactMutation,
   useDeleteContactMutation,
 } = contactsApi;
+
+export default contactsApi;

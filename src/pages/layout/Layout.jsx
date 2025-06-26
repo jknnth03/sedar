@@ -8,19 +8,23 @@ const Layout = ({ children }) => {
   const [open, setOpen] = useState(true);
 
   return (
-    <Box
-      className="layout_color"
-      sx={{ display: "flex", flexDirection: "row" }}>
+    <Box className="layout_color">
       <Box sx={{ zIndex: 1300 }}>
         <Sidebar open={open} />
       </Box>
 
-      <Box sx={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          overflow: "hidden",
+        }}>
         <Box sx={{ zIndex: 1000, position: "relative" }}>
           <Appbar setOpen={setOpen} />
         </Box>
 
-        <Box sx={{ width: "100%" }}>{children}</Box>
+        <Box className="layout_content">{children}</Box>
       </Box>
     </Box>
   );

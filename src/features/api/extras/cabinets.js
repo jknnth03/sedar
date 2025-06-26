@@ -33,6 +33,13 @@ const cabinetsApi = sedarApi
         providesTags: ["cabinets"],
       }),
 
+      getAllCabinets: build.query({
+        query: () => ({
+          url: "cabinets?pagination=none&status=active",
+        }),
+        providesTags: ["cabinets"],
+      }),
+
       updateCabinets: build.mutation({
         query: ({ id, ...body }) => ({
           url: `cabinets/${id}`,
@@ -55,6 +62,7 @@ const cabinetsApi = sedarApi
 export const {
   usePostCabinetsMutation,
   useGetShowCabinetsQuery,
+  useGetAllCabinetsQuery,
   useUpdateCabinetsMutation,
   useDeleteCabinetsMutation,
 } = cabinetsApi;

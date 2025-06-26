@@ -26,11 +26,22 @@ const regionsApi = sedarApi
         }),
         providesTags: ["showRegions"],
       }),
+
+      getRegionById: build.query({
+        query: (id) => ({
+          url: `regions/${id}`,
+        }),
+        providesTags: ["showRegions"],
+      }),
     }),
   });
 
 export const {
   usePostRegionsMutation,
   useGetShowRegionsQuery,
+  useLazyGetShowRegionsQuery,
   useGetAllShowRegionsQuery,
+  useLazyGetAllShowRegionsQuery,
+  useGetRegionByIdQuery,
+  useLazyGetRegionByIdQuery,
 } = regionsApi;

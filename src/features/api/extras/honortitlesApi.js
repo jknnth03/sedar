@@ -54,10 +54,17 @@ const honorTitlesApi = sedarApi
         }),
         invalidatesTags: ["honor-titles"],
       }),
+
       getAllShowHonorTitles: build.query({
-        query: () => ({
-          url: "honor-titles?pagination=none&status=active",
-        }),
+        query: ({ page = 1, per_page = 1000, status = "active" } = {}) => {
+          const queryParams = new URLSearchParams();
+          queryParams.append("page", page);
+          queryParams.append("per_page", per_page);
+          queryParams.append("status", status);
+          queryParams.append("pagination", "true");
+
+          return { url: `honor-titles?${queryParams.toString()}` };
+        },
         providesTags: ["honor-titles"],
       }),
     }),
@@ -68,5 +75,6 @@ export const {
   useGetShowHonorTitlesQuery,
   useUpdateHonorTitlesMutation,
   useDeleteHonorTitlesMutation,
-  useGetAllShowHonorTitlesQuery,
+  useGetAllShowHonorTitlesQuery, // Added this export
+  useLazyGetAllShowHonorTitlesQuery, // This was already there
 } = honorTitlesApi;

@@ -11,7 +11,7 @@
   overflow: auto;
 
   &__container1 {
-    background-color: white;
+    background-color: rgb(223, 241, 253);
     width: 460px;
     height: 460px;
     display: flex;
@@ -30,7 +30,7 @@
   }
 
   &__container2 {
-    background-color: rgb(223, 241, 253);
+    background-color: white;
     width: 460px;
     height: 460px;
     display: flex;
@@ -78,5 +78,12 @@
     max-width: 320px;
     height: 50px;
     margin-top: 10px;
+  }
+
+  .login__title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    text-align: center;
   }
 }

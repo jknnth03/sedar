@@ -20,6 +20,13 @@ const jobratesApi = sedarApi
         providesTags: ["jobrates"],
       }),
 
+      getAllJobRates: build.query({
+        query: () => ({
+          url: "job-rates", // Adjust if your API uses a different endpoint
+        }),
+        providesTags: ["jobrates"],
+      }),
+
       updateJobrate: build.mutation({
         query: ({ id, ...body }) => ({
           url: `job-rates/${id}`,
@@ -42,6 +49,7 @@ const jobratesApi = sedarApi
 export const {
   usePostJobrateMutation,
   useGetJobratesQuery,
+  useGetAllJobRatesQuery,
   useUpdateJobrateMutation,
   useDeleteJobrateMutation,
 } = jobratesApi;

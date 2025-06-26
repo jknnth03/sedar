@@ -19,6 +19,7 @@ import { SearchBar, SyncButton } from "../masterlistComponents";
 import NoDataGIF from "../../../assets/no-data.gif";
 import "../../GeneralStyle.scss";
 import useDebounce from "../../../hooks/useDebounce";
+import { CONSTANT } from "../../../config";
 
 const Units = () => {
   const [page, setPage] = useState(1);
@@ -92,8 +93,8 @@ const Units = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id2">ID</TableCell>
-                <TableCell className="table-id2">CODE</TableCell>
+                <TableCell className="table-id">ID</TableCell>
+                <TableCell className="table-id3">CODE</TableCell>
                 <TableCell className="table-header">UNIT</TableCell>
                 <TableCell className="table-header">DEPARTMENT</TableCell>
               </TableRow>
@@ -111,8 +112,8 @@ const Units = () => {
               ) : units.length > 0 ? (
                 units.map((unit) => (
                   <TableRow key={unit.id}>
-                    <TableCell className="table-cell">{unit.id}</TableCell>
-                    <TableCell className="table-cell">{unit.code}</TableCell>
+                    <TableCell className="table-cell-id">{unit.id}</TableCell>
+                    <TableCell className="table-cell-id">{unit.code}</TableCell>
                     <TableCell className="table-cell">{unit.name}</TableCell>
                     <TableCell className="table-cell">
                       {unit?.department?.name}
@@ -122,33 +123,31 @@ const Units = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
-                    className="table-cell"
-                    style={{ textAlign: "center" }}>
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                    colSpan={11}
+                    align="center"
+                    sx={{ borderBottom: "none" }}
+                    className="table-cell">
+                    {CONSTANT.BUTTONS.NODATA.icon}
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={backendData?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <div>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={backendData?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page - 1}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+          />
+        </div>
       </Paper>
     </>
   );

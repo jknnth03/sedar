@@ -51,6 +51,7 @@ const prefixesApi = sedarApi
         }),
         invalidatesTags: ["prefixes"],
       }),
+
       getAllShowPrefixes: build.query({
         query: () => ({
           url: "prefixes?pagination=none&status=active",
@@ -66,4 +67,5 @@ export const {
   useUpdatePrefixesMutation,
   useDeletePrefixesMutation,
   useGetAllShowPrefixesQuery,
+  useLazyGetAllShowPrefixesQuery, // Added the lazy query hook
 } = prefixesApi;

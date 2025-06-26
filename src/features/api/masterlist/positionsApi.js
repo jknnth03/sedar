@@ -56,7 +56,9 @@ const positionsApi = sedarApi
 export const {
   usePostPositionMutation,
   useGetPositionsQuery,
+  useLazyGetPositionsQuery,
   useGetAllPositionsQuery,
+  useLazyGetAllPositionsQuery,
   useUpdatePositionMutation,
   useDeletePositionMutation,
 } = positionsApi;

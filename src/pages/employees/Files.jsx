@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Paper,
   Typography,
@@ -10,30 +10,64 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
   Chip,
-  Link,
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
-import ArchiveIcon from "@mui/icons-material/Archive";
+import {
+  Close as CloseIcon,
+  Download as DownloadIcon,
+} from "@mui/icons-material";
 import NoDataGIF from "../../assets/no-data.gif";
 import { useSnackbar } from "notistack";
 import {
-  useGetFilesQuery,
-  useDeleteFileMutation,
+  useGetShowFileTypesEmpQuery,
+  useDeleteFileTypesEmpMutation,
 } from "../../features/api/employee/filesempApi";
+import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
+import MultiFormModal from "../../components/modal/employee/MultiFormModal";
 import "../../pages/GeneralStyle.scss";
+import "../../pages/GeneralTable.scss";
+import { CONSTANT } from "../../config/index";
 
-const Files = () => {
+const Files = ({ searchQuery, showArchived, debounceValue }) => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [employeeDetails, setEmployeeDetails] = useState(null);
+
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+
+  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editEmployeeData, setEditEmployeeData] = useState(null);
+  const [initialStep, setInitialStep] = useState(0);
+
   const { enqueueSnackbar } = useSnackbar();
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [debounceValue, showArchived]);
+
+  const queryParams = useMemo(() => {
+    const params = {
+      page,
+      per_page: rowsPerPage,
+      status: showArchived ? "inactive" : "active",
+    };
+
+    if (debounceValue && debounceValue.trim() !== "") {
+      params.search = debounceValue.trim();
+    }
+
+    return params;
+  }, [page, rowsPerPage, showArchived, debounceValue]);
 
   const {
     data: apiResponse,
@@ -41,156 +75,421 @@ const Files = () => {
     isFetching,
     error,
     refetch,
-  } = useGetFilesQuery({
-    page,
-    per_page: rowsPerPage,
-    status: "active",
+  } = useGetShowFileTypesEmpQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
   });
 
-  const [archiveFile] = useDeleteFileMutation();
+  const [deleteFile] = useDeleteFileTypesEmpMutation();
 
-  const { fileList, totalCount } = useMemo(() => {
-    const result = apiResponse?.result;
-    const data = result?.data || [];
-    return {
-      fileList: data,
-      totalCount: result?.total_count || data.length,
-    };
-  }, [apiResponse]);
+  const { employeeList, totalCount } = useMemo(() => {
+    if (!apiResponse) {
+      return { employeeList: [], totalCount: 0 };
+    }
 
-  const handleMenuOpen = (event, fileId) => {
-    setMenuAnchor({ [fileId]: event.currentTarget });
-  };
+    let result;
+    if (apiResponse.result) {
+      result = apiResponse.result;
+    } else if (apiResponse.data) {
+      result = apiResponse.data;
+    } else {
+      result = apiResponse;
+    }
 
-  const handleMenuClose = (fileId) => {
-    setMenuAnchor((prev) => {
-      const { [fileId]: _, ...rest } = prev;
-      return rest;
+    const data = Array.isArray(result) ? result : result?.data || [];
+
+    const employeeMap = new Map();
+
+    data.forEach((employeeRecord) => {
+      const employee = employeeRecord.employee || employeeRecord;
+      const employeeId = employee.id;
+
+      if (!employeeMap.has(employeeId)) {
+        employeeMap.set(employeeId, {
+          employee: employee,
+          files: [],
+          file_count: 0,
+        });
+      }
+
+      const employeeEntry = employeeMap.get(employeeId);
+
+      if (employeeRecord.files && Array.isArray(employeeRecord.files)) {
+        employeeRecord.files.forEach((file) => {
+          const fileWithEmployee = {
+            ...file,
+            employee: employee,
+            employee_id: employeeId,
+          };
+          employeeEntry.files.push(fileWithEmployee);
+        });
+      } else if (employeeRecord.file_type || employeeRecord.file_cabinet) {
+        const fileWithEmployee = {
+          ...employeeRecord,
+          employee: employee,
+          employee_id: employeeId,
+        };
+        employeeEntry.files.push(fileWithEmployee);
+      }
+
+      employeeEntry.file_count = employeeEntry.files.length;
     });
+
+    const combinedEmployees = Array.from(employeeMap.values());
+    const total = result?.total || result?.count || combinedEmployees.length;
+
+    return {
+      employeeList: combinedEmployees,
+      totalCount: total,
+    };
+  }, [apiResponse, debounceValue]);
+
+  const handleRowClick = useCallback(
+    (employeeRecord) => {
+      if (employeeRecord.employee?.id) {
+        setSelectedEmployeeId(employeeRecord.employee.id);
+        setViewModalOpen(true);
+      } else {
+        enqueueSnackbar("No employee data found for this record", {
+          variant: "warning",
+          autoHideDuration: 3000,
+        });
+      }
+    },
+    [enqueueSnackbar]
+  );
+
+  const handleEditEmployee = useCallback((employeeData, editStep = 8) => {
+    setViewModalOpen(false);
+    setSelectedEmployeeId(null);
+
+    setIsEditMode(true);
+    setEditEmployeeData(employeeData);
+    setInitialStep(editStep);
+    setMultiFormModalOpen(true);
+  }, []);
+
+  const handleViewModalClose = useCallback(() => {
+    setViewModalOpen(false);
+    setSelectedEmployeeId(null);
+  }, []);
+
+  const handleMultiFormModalClose = useCallback(() => {
+    setMultiFormModalOpen(false);
+    setIsEditMode(false);
+    setEditEmployeeData(null);
+    setInitialStep(0);
+    refetch();
+  }, [refetch]);
+
+  const handleDetailsDialogClose = () => {
+    setDetailsDialogOpen(false);
+    setEmployeeDetails(null);
   };
 
-  const handleEditClick = (file) => {
-    setSelectedFile(file);
-    setModalOpen(true);
-    handleMenuClose(file.id);
-  };
+  const handleDownloadFile = async (file) => {
+    if (!file.file_attachment) {
+      enqueueSnackbar("No file attachment available for download", {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+      return;
+    }
 
-  const handleArchive = async (file) => {
     try {
-      await archiveFile(file.id).unwrap();
-      enqueueSnackbar("File archived successfully", { variant: "success" });
-      refetch();
-    } catch (err) {
-      enqueueSnackbar("Failed to archive file", { variant: "error" });
-    } finally {
-      handleMenuClose(file.id);
+      const fileUrl = getFileAttachmentUrl(file.file_attachment);
+
+      const link = document.createElement("a");
+      link.href = fileUrl;
+
+      const fileName = file.file_attachment.split("/").pop() || "download";
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      enqueueSnackbar("File download started", {
+        variant: "success",
+        autoHideDuration: 2000,
+      });
+    } catch (error) {
+      enqueueSnackbar("Failed to download file. Please try again.", {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
     }
   };
 
-  return (
-    <>
-      <Paper className="container">
-        <div className="table-controls"></div>
+  const safelyDisplayValue = (value) =>
+    value === null || value === undefined ? "—" : String(value);
 
+  const formatEmployeeName = (employee) => {
+    if (!employee) return "—";
+
+    return (
+      employee.full_name ||
+      employee.name ||
+      employee.first_name ||
+      `${employee.first_name} ${employee.last_name}`.trim() ||
+      employee.display_name ||
+      "—"
+    );
+  };
+
+  const formatFileType = (fileType) => {
+    if (!fileType) return "—";
+
+    if (typeof fileType === "string") return fileType;
+    if (typeof fileType === "object") {
+      return fileType.name || fileType.type || fileType.title || "—";
+    }
+
+    return "—";
+  };
+
+  const formatFileCabinet = (fileCabinet) => {
+    if (!fileCabinet) return "—";
+
+    if (typeof fileCabinet === "string") return fileCabinet;
+    if (typeof fileCabinet === "object") {
+      return (
+        fileCabinet.name || fileCabinet.cabinet || fileCabinet.title || "—"
+      );
+    }
+
+    return "—";
+  };
+
+  const getFileAttachmentUrl = (attachment) => {
+    if (!attachment) return null;
+    return `${import.meta.env.VITE_API_BASE_URL}/${attachment}`;
+  };
+
+  const filteredEmployeeList = useMemo(() => {
+    if (!debounceValue || debounceValue.trim() === "") {
+      return employeeList;
+    }
+
+    const searchTerm = debounceValue.toLowerCase().trim();
+    return employeeList.filter((employeeRecord) => {
+      const employeeName = formatEmployeeName(
+        employeeRecord.employee
+      ).toLowerCase();
+      const employeeCode = (
+        employeeRecord.employee?.employee_code || ""
+      ).toLowerCase();
+      const employeeId = (employeeRecord.employee?.id || "")
+        .toString()
+        .toLowerCase();
+
+      const fileMatches = employeeRecord.files.some((file) => {
+        const fileType = formatFileType(file.file_type).toLowerCase();
+        const fileCabinet = formatFileCabinet(file.file_cabinet).toLowerCase();
+        const description = (file.file_description || "").toLowerCase();
+        const fileId = (file.id || "").toString().toLowerCase();
+
+        return (
+          fileType.includes(searchTerm) ||
+          fileCabinet.includes(searchTerm) ||
+          description.includes(searchTerm) ||
+          fileId.includes(searchTerm)
+        );
+      });
+
+      return (
+        employeeName.includes(searchTerm) ||
+        employeeCode.includes(searchTerm) ||
+        employeeId.includes(searchTerm) ||
+        fileMatches
+      );
+    });
+  }, [employeeList, debounceValue]);
+
+  const displayList = filteredEmployeeList;
+  const displayCount =
+    debounceValue && debounceValue.trim() !== ""
+      ? filteredEmployeeList.length
+      : totalCount;
+
+  return (
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}>
+      <Paper
+        className="container"
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          minHeight: 0,
+        }}>
         <TableContainer
+          className="table-container"
           sx={{
-            flexGrow: 1,
-            display: "flex",
-            flexDirection: "column",
-            height: "calc(100vh - 18rem)",
-            width: "calc(100vw - 20rem)",
-            overflow: "auto",
-            zIndex: 0,
-            margin: "0 auto",
+            flex: 1,
+            overflowX: "auto",
+            overflowY: "auto",
+            width: "100%",
+            maxWidth: "100%",
+            minHeight: 0,
           }}>
-          <Table stickyHeader>
+          <Table stickyHeader sx={{ width: "100%", minWidth: "800px" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">ID</TableCell>
-                <TableCell className="table-header">EMPLOYEE NAME</TableCell>
-                <TableCell className="table-header">FILE TYPE</TableCell>
-                <TableCell className="table-header">CABINET</TableCell>
-                <TableCell className="table-header">DESCRIPTION</TableCell>
-                <TableCell className="table-header">ATTACHMENT</TableCell>
-                <TableCell className="table-header">STATUS</TableCell>
-                <TableCell className="table-header">ACTIONS</TableCell>
+                <TableCell
+                  className="table-id"
+                  sx={{ minWidth: 80, width: 80, whiteSpace: "nowrap" }}>
+                  ID
+                </TableCell>
+                <TableCell
+                  className="table-header"
+                  sx={{
+                    width: "250px",
+                    minWidth: "200px",
+                  }}>
+                  EMPLOYEE NAME
+                </TableCell>
+                <TableCell
+                  className="table-header"
+                  sx={{
+                    width: "120px",
+                    minWidth: "100px",
+                    textAlign: "center",
+                  }}>
+                  FILE COUNT
+                </TableCell>
+                <TableCell
+                  className="table-status"
+                  sx={{
+                    width: "100px",
+                    minWidth: "100px",
+                    maxWidth: "100px",
+                  }}>
+                  STATUS
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading || isFetching ? (
+              {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={4} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={4} align="center" className="table-cell">
                     <Typography color="error">
                       Error: {error?.data?.message || "Failed to load data"}
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : fileList.length > 0 ? (
-                fileList.map((file) => (
-                  <TableRow key={file.id}>
-                    <TableCell>{file.id}</TableCell>
-                    <TableCell className="table-cell">
-                      {file.employee?.full_name || "—"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {file.file_type?.name || "—"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {file.file_cabinet?.name || "—"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {file.file_description || "—"}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      {file.file_attachment ? (
-                        <Link
-                          href={`${import.meta.env.VITE_API_BASE_URL}/${
-                            file.file_attachment
-                          }`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          underline="hover">
-                          View File
-                        </Link>
-                      ) : (
-                        "No file"
-                      )}
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      <Chip label="Active" color="success" size="small" />
-                    </TableCell>
-                    <TableCell className="table-cell">
-                      <IconButton onClick={(e) => handleMenuOpen(e, file.id)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                      <Menu
-                        anchorEl={menuAnchor[file.id]}
-                        open={Boolean(menuAnchor[file.id])}
-                        onClose={() => handleMenuClose(file.id)}>
-                        <MenuItem onClick={() => handleEditClick(file)}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                        </MenuItem>
-                        <MenuItem onClick={() => handleArchive(file)}>
-                          <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />{" "}
-                          Archive
-                        </MenuItem>
-                      </Menu>
-                    </TableCell>
-                  </TableRow>
-                ))
+              ) : displayList.length > 0 ? (
+                displayList.map((employeeRecord) => {
+                  return (
+                    <TableRow
+                      key={employeeRecord.employee.id}
+                      onClick={() => handleRowClick(employeeRecord)}
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": {
+                          backgroundColor: "#f5f5f5",
+                          "& .MuiTableCell-root": {
+                            backgroundColor: "transparent",
+                          },
+                        },
+                        transition: "background-color 0.2s ease",
+                      }}>
+                      <TableCell
+                        className="table-cell-id"
+                        sx={{ whiteSpace: "nowrap" }}>
+                        {safelyDisplayValue(employeeRecord.employee.id)}
+                      </TableCell>
+                      <TableCell
+                        className="table-cell"
+                        sx={{
+                          width: "250px",
+                          minWidth: "200px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {formatEmployeeName(employeeRecord.employee)}
+                      </TableCell>
+                      <TableCell
+                        className="table-cell"
+                        sx={{
+                          width: "120px",
+                          minWidth: "100px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          textAlign: "center",
+                          fontWeight: "bold",
+                          color:
+                            employeeRecord.file_count > 0
+                              ? "primary.main"
+                              : "text.secondary",
+                        }}>
+                        {employeeRecord.file_count}
+                      </TableCell>
+                      <TableCell
+                        className="table-status"
+                        sx={{
+                          width: "100px",
+                          minWidth: "100px",
+                          maxWidth: "100px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        <Chip
+                          label={showArchived ? "ARCHIVED" : "ACTIVE"}
+                          color={showArchived ? "error" : "success"}
+                          size="small"
+                          sx={{
+                            "& .MuiChip-label": {
+                              fontSize: "0.65rem",
+                              fontWeight: "500",
+                            },
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <img src={NoDataGIF} alt="No data" style={{ width: 150 }} />
-                    <Typography variant="body2">
-                      No active files found.
-                    </Typography>
+                  <TableCell
+                    colSpan={4}
+                    align="center"
+                    sx={{ borderBottom: "none" }}
+                    className="table-cell">
+                    {CONSTANT?.BUTTONS?.NODATA?.icon || (
+                      <>
+                        <img
+                          src={NoDataGIF}
+                          alt="No data"
+                          style={{ width: 150 }}
+                        />
+                        <Typography
+                          variant="body2"
+                          color="textSecondary"
+                          sx={{ mt: 1 }}>
+                          {debounceValue && debounceValue.trim() !== ""
+                            ? `No employees found for "${debounceValue}"`
+                            : showArchived
+                            ? "No archived employees found."
+                            : "No active employees found."}
+                        </Typography>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -198,27 +497,254 @@ const Files = () => {
           </Table>
         </TableContainer>
 
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={totalCount}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(_, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(1);
-          }}
-        />
+        <Box sx={{ flexShrink: 0 }}>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={displayCount}
+            rowsPerPage={rowsPerPage}
+            page={Math.min(
+              page - 1,
+              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
+            )}
+            onPageChange={(event, newPage) => setPage(newPage + 1)}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(1);
+            }}
+            sx={{
+              borderTop: "1px solid #e0e0e0",
+              backgroundColor: "#fafafa",
+              minHeight: "52px",
+            }}
+            labelDisplayedRows={({ from, to, count }) => {
+              if (debounceValue && debounceValue.trim() !== "") {
+                return `${from}-${to} of ${count} (filtered)`;
+              }
+              return `${from}-${to} of ${count}`;
+            }}
+          />
+        </Box>
       </Paper>
 
-      {/* <FilesModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        selectedData={selectedFile}
-        refetch={refetch}
-      /> */}
-    </>
+      <ViewEmployeeModal
+        open={viewModalOpen}
+        onClose={handleViewModalClose}
+        employeeId={selectedEmployeeId}
+        defaultStep={8}
+        onEdit={handleEditEmployee}
+      />
+
+      <MultiFormModal
+        open={multiFormModalOpen}
+        onClose={handleMultiFormModalClose}
+        isEditMode={isEditMode}
+        editEmployeeData={editEmployeeData}
+        initialStep={initialStep}
+      />
+
+      <Dialog
+        open={detailsDialogOpen}
+        onClose={handleDetailsDialogClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minHeight: "400px",
+            maxHeight: "90vh",
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pb: 2,
+            color: "rgb(33, 61, 112) ",
+            fontWeight: "bold",
+          }}>
+          <Typography variant="h6" component="div">
+            EMPLOYEE FILES DETAILS
+          </Typography>
+          <IconButton
+            onClick={handleDetailsDialogClose}
+            sx={{
+              color: "grey.500",
+              "&:hover": {
+                backgroundColor: "grey.100",
+              },
+            }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ maxHeight: "70vh", overflowY: "auto" }}>
+          {employeeDetails && (
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Box sx={{ mb: 2 }}>
+                <Typography>
+                  <strong>Employee Code:</strong>{" "}
+                  {formatEmployeeName(employeeDetails.employee)} (
+                  {safelyDisplayValue(employeeDetails.employee?.employee_code)})
+                </Typography>
+              </Box>
+
+              <Box>
+                {employeeDetails.files.length > 0 ? (
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {employeeDetails.files.map((file, index) => (
+                      <Box
+                        key={file.id || index}
+                        sx={{ border: "1px solid #e0e0e0", borderRadius: 1 }}>
+                        <Box
+                          sx={{
+                            backgroundColor: "#f8f9fa",
+                            p: 2,
+                            borderBottom: "1px solid #e0e0e0",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                          }}>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            File #{file.id || index + 1}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatFileType(file.file_type)}
+                          </Typography>
+                          {file.deleted_at && (
+                            <Chip label="ARCHIVED" color="error" size="small" />
+                          )}
+                        </Box>
+                        <Box sx={{ p: 2 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                            }}>
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: 2,
+                              }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary">
+                                <strong>File Type:</strong>{" "}
+                                {formatFileType(file.file_type)}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary">
+                                <strong>File Type Code:</strong>{" "}
+                                {file.file_type?.code || "—"}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary">
+                                <strong>Cabinet:</strong>{" "}
+                                {formatFileCabinet(file.file_cabinet)}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary">
+                                <strong>Cabinet Code:</strong>{" "}
+                                {file.file_cabinet?.code || "—"}
+                              </Typography>
+                            </Box>
+
+                            <Typography variant="body2" color="text.secondary">
+                              <strong>Description:</strong>{" "}
+                              {file.file_description ||
+                                "No description available"}
+                            </Typography>
+
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                gutterBottom>
+                                <strong>File Attachment:</strong>
+                              </Typography>
+                              {file.file_attachment ? (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                    flexWrap: "wrap",
+                                  }}>
+                                  <Button
+                                    variant="contained"
+                                    color="primary"
+                                    size="small"
+                                    href={getFileAttachmentUrl(
+                                      file.file_attachment
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ textTransform: "none" }}>
+                                    View File
+                                  </Button>
+                                  <Button
+                                    variant="contained"
+                                    size="small"
+                                    onClick={() => handleDownloadFile(file)}
+                                    startIcon={<DownloadIcon />}
+                                    sx={{
+                                      textTransform: "none",
+                                      backgroundColor: "rgb(98, 141, 11)",
+                                      "&:hover": {
+                                        backgroundColor: "rgb(134, 182, 46)",
+                                      },
+                                    }}>
+                                    Download
+                                  </Button>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary">
+                                    {file.file_attachment.split("/").pop() ||
+                                      "Attached file"}
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{ fontStyle: "italic" }}>
+                                  No file attachment available
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontStyle: "italic" }}>
+                    No files available for this employee.
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleDetailsDialogClose}
+            variant="outlined"
+            sx={{ textTransform: "none" }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
