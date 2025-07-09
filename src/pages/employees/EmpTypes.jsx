@@ -202,6 +202,7 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     }
   }, []);
 
+<<<<<<< HEAD
   const getEmploymentTypeChipColor = useCallback((type) => {
     switch (type?.toLowerCase()) {
       case "probationary":
@@ -216,6 +217,49 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
         return "default";
     }
   }, []);
+=======
+  // New function to handle view modal close
+  const handleViewModalClose = () => {
+    setViewModalOpen(false);
+    setSelectedEmployeeId(null);
+  };
+
+  // New function to handle edit employee from view modal
+  const handleEditEmployee = (employeeData, editStep = 2) => {
+    // Default to step 3 (index 2)
+    setViewModalOpen(false);
+    setSelectedEmployeeId(null);
+
+    setIsEditMode(true);
+    setEditEmployeeData(employeeData);
+    setInitialStep(editStep);
+    setMultiFormModalOpen(true);
+  };
+
+  // New function to handle multi-form modal close
+  const handleMultiFormModalClose = () => {
+    setMultiFormModalOpen(false);
+    setIsEditMode(false);
+    setEditEmployeeData(null);
+    setInitialStep(0);
+    refetch();
+  };
+
+  const safelyDisplayValue = (value) =>
+    value === null || value === undefined ? "—" : String(value);
+
+  const formatEmployeeName = (employee) => {
+    if (!employee) return "—";
+    return (
+      employee?.full_name ||
+      employee?.name ||
+      employee?.first_name ||
+      `${employee.first_name} ${employee.last_name}`.trim() ||
+      employee?.display_name ||
+      "—"
+    );
+  };
+>>>>>>> master
 
   return (
     <Box

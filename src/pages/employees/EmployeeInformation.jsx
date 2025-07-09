@@ -30,8 +30,12 @@ import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams.js";
 import useDebounce from "../../hooks/useDebounce";
+<<<<<<< HEAD
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/employeeWizardForm.jsx";
 import Status from "./Statuses.jsx";
+=======
+import EmployeeModal from "./components/EmployeeModal.jsx";
+>>>>>>> master
 
 const CustomSearchBar = ({
   searchQuery,
@@ -354,6 +358,7 @@ function EmployeeInformation() {
         />
       </Box>
 
+<<<<<<< HEAD
       <EmployeeWizardForm
         open={openModal}
         onClose={handleCloseModal}
@@ -361,6 +366,10 @@ function EmployeeInformation() {
         initialData={editData}
         onSubmit={handleSubmit}
       />
+=======
+      {/* <MultiFormModal open={openModal} onClose={handleCloseModal} /> */}
+      <EmployeeModal isOpen={openModal} onClose={handleCloseModal} />
+>>>>>>> master
 
       <TabContext value={value}>
         <Box
