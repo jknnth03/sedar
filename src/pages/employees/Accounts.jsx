@@ -10,209 +10,223 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  Chip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   Box,
+  Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
-import NoDataGIF from "../../assets/no-data.gif";
+import {
+  MoreVert as MoreVertIcon,
+  Archive as ArchiveIcon,
+  Restore as RestoreIcon,
+  Help as HelpIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+} from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import {
   useGetAccountsQuery,
   useDeleteAccountMutation,
 } from "../../features/api/employee/accountsApi";
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
-const Accounts = ({ searchQuery, showArchived, debounceValue }) => {
+const Accounts = ({
+  searchQuery: parentSearchQuery,
+  showArchived: parentShowArchived,
+  debounceValue: parentDebounceValue,
+  onSearchChange,
+  onArchivedChange,
+}) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // State for ViewEmployeeModal
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const searchQuery =
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : currentParams?.q ?? "";
+  const showArchived =
+    parentShowArchived !== undefined ? parentShowArchived : false;
+  const debounceValue =
+    parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
-  // State for MultiFormModal (Edit Modal)
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
+  const [menuAnchor, setMenuAnchor] = useState({});
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
 
-  const { enqueueSnackbar } = useSnackbar();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  // Reset page to 1 when search changes
-  React.useEffect(() => {
-    setPage(1);
-  }, [debounceValue, showArchived]);
-
-  // 🔧 FIX 1: Ensure search parameter is only included when there's a valid search term
-  const queryParams = useMemo(() => {
-    const params = {
+  const queryParams = useMemo(
+    () => ({
+      search: debounceValue,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
-    };
-
-    // Only add search parameter if there's a meaningful search value
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
-    }
-
-    console.log("Accounts Query Params:", params);
-    return params;
-  }, [page, rowsPerPage, showArchived, debounceValue]);
+    }),
+    [debounceValue, page, rowsPerPage, showArchived]
+  );
 
   const {
-    data: apiResponse,
+    data: accounts,
     isLoading,
     isFetching,
-    error,
     refetch,
   } = useGetAccountsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
-    skip: false,
   });
 
   const [deleteAccount] = useDeleteAccountMutation();
 
-  // 🔧 FIX 2: Better data structure handling with more robust error checking
-  const { accountList, totalCount } = useMemo(() => {
-    console.log("API Response:", apiResponse);
+  const accountList = useMemo(() => accounts?.result?.data || [], [accounts]);
 
-    if (!apiResponse) {
-      return { accountList: [], totalCount: 0 };
+  const handleMenuOpen = useCallback((event, accountId) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({ ...prev, [accountId]: event.currentTarget }));
+  }, []);
+
+  const handleMenuClose = useCallback((accountId) => {
+    setMenuAnchor((prev) => ({ ...prev, [accountId]: null }));
+  }, []);
+
+  const handleArchiveRestoreClick = useCallback(
+    (account, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedAccount(account);
+      setConfirmOpen(true);
+      handleMenuClose(account.id);
+    },
+    [handleMenuClose]
+  );
+
+  const handleArchiveRestoreConfirm = async () => {
+    if (!selectedAccount) return;
+
+    try {
+      await deleteAccount(selectedAccount.id).unwrap();
+      enqueueSnackbar(
+        selectedAccount.deleted_at
+          ? "Account restored successfully!"
+          : "Account archived successfully!",
+        { variant: "success", autoHideDuration: 2000 }
+      );
+      refetch();
+    } catch (error) {
+      enqueueSnackbar("Action failed. Please try again.", {
+        variant: "error",
+        autoHideDuration: 2000,
+      });
+    } finally {
+      setConfirmOpen(false);
+      setSelectedAccount(null);
     }
+  };
 
-    // Handle different possible response structures
-    let result;
-    if (apiResponse.result) {
-      result = apiResponse.result;
-    } else if (apiResponse.data) {
-      result = apiResponse.data;
-    } else {
-      result = apiResponse;
-    }
+  const openWizard = useCallback(
+    async (account, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          account?.employee?.id,
+          true
+        ).unwrap();
 
-    const data = Array.isArray(result) ? result : result?.data || [];
-    const total = result?.total || result?.count || data.length;
-
-    console.log("Processed data:", {
-      data: data.length,
-      total,
-      firstItem: data[0],
-      searchTerm: debounceValue,
-    });
-
-    return {
-      accountList: data,
-      totalCount: total,
-    };
-  }, [apiResponse, debounceValue]);
-
-  // Handle row click to open ViewEmployeeModal
-  const handleRowClick = useCallback(
-    (account) => {
-      // Set the employee ID from the account data
-      if (account.employee?.id) {
-        setSelectedEmployeeId(account.employee.id);
-        setViewModalOpen(true);
-        console.log("Account clicked, opening employee:", account.employee);
-      } else {
-        console.warn("No employee data found for this account");
-        enqueueSnackbar("No employee data found for this account", {
-          variant: "warning",
-          autoHideDuration: 3000,
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
         });
       }
     },
-    [enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar]
   );
 
-  // Function to handle edit action from ViewEmployeeModal
-  const handleEditEmployee = useCallback((employeeData, editStep = 6) => {
-    console.log("Edit requested for employee:", employeeData);
-    console.log("Edit step:", editStep);
+  const handleViewEmployee = useCallback(
+    async (account, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(account.id);
+      await openWizard(account, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-    // Close the view modal first
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
+  const handleEditEmployee = useCallback(
+    async (account, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(account.id);
+      await openWizard(account, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-    // Set the employee data and initial step for editing
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep); // This will be 7 for accounts step
-    setMultiFormModalOpen(true);
+  const handleRowClick = useCallback(
+    async (account) => {
+      await openWizard(account, "view");
+    },
+    [openWizard]
+  );
+
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+    setWizardMode("create");
+    setWizardInitialData(null);
   }, []);
 
-  // Modal close handlers
-  const handleViewModalClose = useCallback(() => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  }, []);
-
-  const handleMultiFormModalClose = useCallback(() => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  }, [refetch]);
-
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "—" : String(value);
-
-  // 🔧 FIX 3: Improved employee name formatting with more fallback options
-  const formatEmployeeName = (employee) => {
-    if (!employee) return "—";
-
-    // Try different possible name fields
-    return (
-      employee.full_name ||
-      employee.name ||
-      employee.first_name ||
-      `${employee.first_name} ${employee.last_name}`.trim() ||
-      employee.display_name ||
-      "—"
-    );
-  };
-
-  const formatBankName = (bank) => {
-    return bank?.name || "—";
-  };
-
-  // 🔧 FIX 4: Add client-side filtering as a fallback (in case backend search isn't working properly)
-  const filteredAccountList = useMemo(() => {
-    if (!debounceValue || debounceValue.trim() === "") {
-      return accountList;
-    }
-
-    const searchTerm = debounceValue.toLowerCase().trim();
-    return accountList.filter((account) => {
-      const employeeName = formatEmployeeName(account.employee).toLowerCase();
-      const sssNumber = (account.sss_number || "").toLowerCase();
-      const pagIbigNumber = (account.pag_ibig_number || "").toLowerCase();
-      const philHealthNumber = (account.philhealth_number || "").toLowerCase();
-      const tinNumber = (account.tin_number || "").toLowerCase();
-      const bankName = formatBankName(account.bank).toLowerCase();
-
-      return (
-        employeeName.includes(searchTerm) ||
-        sssNumber.includes(searchTerm) ||
-        pagIbigNumber.includes(searchTerm) ||
-        philHealthNumber.includes(searchTerm) ||
-        tinNumber.includes(searchTerm) ||
-        bankName.includes(searchTerm)
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
       );
-    });
-  }, [accountList, debounceValue]);
+    },
+    [refetch, enqueueSnackbar]
+  );
 
-  // 🔧 FIX 5: Use filtered list for display
-  const displayList = filteredAccountList;
-  const displayCount =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredAccountList.length
-      : totalCount;
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
+
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee?.full_name) return employee.full_name;
+
+    const parts = [
+      employee?.last_name,
+      employee?.first_name,
+      employee?.middle_name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  }, []);
+
+  const formatBankName = useCallback((bank) => {
+    return bank?.name || "N/A";
+  }, []);
 
   return (
     <Box
@@ -220,7 +234,7 @@ const Accounts = ({ searchQuery, showArchived, debounceValue }) => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        minHeight: 0, // Important for flex containers
+        minHeight: 0,
       }}>
       <Paper
         className="container"
@@ -229,7 +243,8 @@ const Accounts = ({ searchQuery, showArchived, debounceValue }) => {
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          minHeight: 0, // Important for flex containers
+          minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -239,241 +254,115 @@ const Accounts = ({ searchQuery, showArchived, debounceValue }) => {
             overflowY: "auto",
             width: "100%",
             maxWidth: "100%",
-            minHeight: 0, // Important: allows container to shrink
+            minHeight: 0,
           }}>
-          {/* 🔧 FIXED: Updated table layout without ACTIONS column */}
-          <Table stickyHeader sx={{ width: "100%", minWidth: "1150px" }}>
+          <Table stickyHeader sx={{ minWidth: 1150, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{
-                    width: "80px",
-                    minWidth: "80px",
-                    maxWidth: "80px",
-                  }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "180px",
-                    minWidth: "150px",
-                  }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "150px",
-                    minWidth: "130px",
-                  }}>
-                  SSS
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "150px",
-                    minWidth: "130px",
-                  }}>
-                  PAG-IBIG
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "160px",
-                    minWidth: "140px",
-                  }}>
-                  PHILHEALTH
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "150px",
-                    minWidth: "130px",
-                  }}>
-                  TIN
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "220px",
-                    minWidth: "180px",
-                  }}>
-                  BANK
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{
-                    width: "100px",
-                    minWidth: "100px",
-                    maxWidth: "100px",
-                  }}>
-                  STATUS
-                </TableCell>
+                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">SSS</TableCell>
+                <TableCell className="table-header">PAG-IBIG</TableCell>
+                <TableCell className="table-header">PHILHEALTH</TableCell>
+                <TableCell className="table-header">TIN</TableCell>
+                <TableCell className="table-header">BANK</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <CircularProgress size={24} />
+                  <TableCell colSpan={9} align="center">
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading accounts...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center" className="table-cell">
-                    <Typography color="error">
-                      Error: {error?.data?.message || "Failed to load data"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : displayList.length > 0 ? (
-                displayList.map((account) => {
-                  return (
-                    <TableRow
-                      key={account.id}
-                      onClick={() => handleRowClick(account)}
-                      sx={{
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: "#f5f5f5",
-                          "& .MuiTableCell-root": {
-                            backgroundColor: "transparent",
-                          },
+              ) : accountList.length > 0 ? (
+                accountList.map((account) => (
+                  <TableRow
+                    key={account.id}
+                    onClick={() => handleRowClick(account)}
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
+                        "& .MuiTableCell-root": {
+                          backgroundColor: "transparent",
                         },
-                        transition: "background-color 0.2s ease",
+                      },
+                      transition: "background-color 0.2s ease",
+                    }}>
+                    <TableCell className="table-cell4">
+                      {safelyDisplayValue(account.id)}
+                    </TableCell>
+                    <TableCell
+                      className="table-cell"
+                      sx={{
+                        width: "220px",
+                        minWidth: "180px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
                       }}>
-                      <TableCell
-                        className="table-cell-id"
-                        sx={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          textAlign: "center",
-                        }}>
-                        {safelyDisplayValue(account.id)}
-                      </TableCell>
-                      <TableCell
-                        className="table-cell"
-                        sx={{
-                          width: "180px",
-                          minWidth: "150px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {formatEmployeeName(account.employee)}
-                      </TableCell>
-                      <TableCell
-                        className="table-cell"
-                        sx={{
-                          width: "150px",
-                          minWidth: "130px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {safelyDisplayValue(account.sss_number)}
-                      </TableCell>
-                      <TableCell
-                        className="table-cell"
-                        sx={{
-                          width: "150px",
-                          minWidth: "130px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {safelyDisplayValue(account.pag_ibig_number)}
-                      </TableCell>
-                      <TableCell
-                        className="table-cell"
-                        sx={{
-                          width: "160px",
-                          minWidth: "140px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {safelyDisplayValue(account.philhealth_number)}
-                      </TableCell>
-                      <TableCell
-                        className="table-cell"
-                        sx={{
-                          width: "150px",
-                          minWidth: "130px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {safelyDisplayValue(account.tin_number)}
-                      </TableCell>
-                      <TableCell
-                        className="table-cell"
-                        sx={{
-                          width: "220px",
-                          minWidth: "180px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {formatBankName(account.bank)}
-                      </TableCell>
-                      <TableCell
-                        className="table-status"
-                        sx={{
-                          width: "100px",
-                          minWidth: "100px",
-                          maxWidth: "100px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        <Chip
-                          label={showArchived ? "ARCHIVED" : "ACTIVE"}
-                          color={showArchived ? "error" : "success"}
-                          size="small"
-                          sx={{
-                            "& .MuiChip-label": {
-                              fontSize: "0.65rem",
-                              fontWeight: "500",
-                            },
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                      {formatEmployeeName(account.employee)}
+                    </TableCell>
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(account.sss_number)}
+                    </TableCell>
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(account.pag_ibig_number)}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {safelyDisplayValue(account.philhealth_number)}
+                    </TableCell>
+                    <TableCell className="table-cell">
+                      {safelyDisplayValue(account.tin_number)}
+                    </TableCell>
+                    <TableCell
+                      className="table-cell"
+                      sx={{
+                        width: "150px",
+                        minWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {formatBankName(account.bank)}
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     align="center"
-                    sx={{ borderBottom: "none" }}
-                    className="table-cell">
-                    {CONSTANT?.BUTTONS?.NODATA?.icon || (
-                      <>
-                        <img
-                          src={NoDataGIF}
-                          alt="No data"
-                          style={{ width: 150 }}
-                        />
-                        <Typography
-                          variant="body2"
-                          color="textSecondary"
-                          sx={{ mt: 1 }}>
-                          {debounceValue && debounceValue.trim() !== ""
-                            ? `No accounts found for "${debounceValue}"`
-                            : showArchived
-                            ? "No archived accounts found."
-                            : "No active accounts found."}
-                        </Typography>
-                      </>
-                    )}
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No accounts found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived accounts"
+                          : "No active accounts"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -481,53 +370,110 @@ const Accounts = ({ searchQuery, showArchived, debounceValue }) => {
           </Table>
         </TableContainer>
 
-        {/* 🔧 FIX 6: Updated pagination to use display count */}
         <Box sx={{ flexShrink: 0 }}>
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={displayCount}
+            count={accounts?.result?.total || 0}
             rowsPerPage={rowsPerPage}
-            page={Math.min(
-              page - 1,
-              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
-            )}
+            page={page - 1}
             onPageChange={(event, newPage) => setPage(newPage + 1)}
             onRowsPerPageChange={(event) => {
               setRowsPerPage(parseInt(event.target.value, 10));
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
-              minHeight: "52px", // Ensure minimum height
-            }}
-            labelDisplayedRows={({ from, to, count }) => {
-              if (debounceValue && debounceValue.trim() !== "") {
-                return `${from}-${to} of ${count} (filtered)`;
-              }
-              return `${from}-${to} of ${count}`;
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
+              minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
           />
         </Box>
       </Paper>
 
-      {/* ViewEmployeeModal - Modal for viewing employee details */}
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={6} // Step 7 is the "ACCOUNTS" step (0-indexed)
-        onEdit={handleEditEmployee} // This handles edit from view modal
-      />
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            mb={1}>
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+          </Box>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom textAlign="center">
+            Are you sure you want to{" "}
+            <strong>
+              {selectedAccount?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this account?
+          </Typography>
+          {selectedAccount && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {formatEmployeeName(selectedAccount.employee)}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Box
+            display="flex"
+            justifyContent="center"
+            width="100%"
+            gap={2}
+            mb={2}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              variant="outlined"
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchiveRestoreConfirm}
+              variant="contained"
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
 
-      {/* MultiFormModal - Modal for editing employee */}
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={6}
       />
     </Box>
   );

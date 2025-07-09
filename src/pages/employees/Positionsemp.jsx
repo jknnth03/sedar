@@ -20,17 +20,18 @@ import {
   Button,
   Box,
   Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
-  Edit as EditIcon,
   Archive as ArchiveIcon,
   Restore as RestoreIcon,
   Help as HelpIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal"; // Added MultiFormModal import
 import {
   useGetPositionQuery,
   useDeletePositionMutation,
@@ -38,6 +39,9 @@ import {
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
 const Positions = ({
   searchQuery: parentSearchQuery,
@@ -46,47 +50,46 @@ const Positions = ({
   onSearchChange,
   onArchivedChange,
 }) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Use parent props or fallback to defaults
-  const searchQuery = parentSearchQuery !== undefined ? parentSearchQuery : "";
+  const searchQuery =
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : currentParams?.q ?? "";
   const showArchived =
     parentShowArchived !== undefined ? parentShowArchived : false;
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState(null);
 
-  // State for ViewEmployeeModal
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-
-  // State for MultiFormModal (Edit Modal) - following Address pattern
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
-
-  const { enqueueSnackbar } = useSnackbar();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
 
   const queryParams = useMemo(
     () => ({
+      search: debounceValue,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
-      search: debounceValue || "",
     }),
-    [page, rowsPerPage, showArchived, debounceValue]
+    [debounceValue, page, rowsPerPage, showArchived]
   );
 
   const {
-    data: apiResponse,
+    data: positions,
     isLoading,
     isFetching,
-    error,
     refetch,
   } = useGetPositionQuery(queryParams, {
     refetchOnMountOrArgChange: true,
@@ -94,15 +97,10 @@ const Positions = ({
 
   const [deletePosition] = useDeletePositionMutation();
 
-  const { positionList, totalCount } = useMemo(() => {
-    const result = apiResponse?.result;
-    const data = result?.data || [];
-
-    return {
-      positionList: data,
-      totalCount: result?.total || data.length,
-    };
-  }, [apiResponse]);
+  const positionList = useMemo(
+    () => positions?.result?.data || [],
+    [positions]
+  );
 
   const handleMenuOpen = useCallback((event, positionId) => {
     event.stopPropagation();
@@ -112,35 +110,6 @@ const Positions = ({
   const handleMenuClose = useCallback((positionId) => {
     setMenuAnchor((prev) => ({ ...prev, [positionId]: null }));
   }, []);
-
-  // Updated edit handler to use MultiFormModal - following Address pattern
-  const handleEditClick = useCallback(
-    (position, event) => {
-      if (event) {
-        event.stopPropagation();
-      }
-
-      console.log("Edit clicked for position:", position);
-
-      if (!position.employee) {
-        enqueueSnackbar("No employee data found for this position", {
-          variant: "warning",
-          autoHideDuration: 3000,
-        });
-        handleMenuClose(position.id);
-        return;
-      }
-
-      // Use the employee data directly, just like in Address
-      setIsEditMode(true);
-      setEditEmployeeData(position.employee); // Pass the employee data directly
-      setInitialStep(2); // Step 2 is positions (0-indexed)
-      setMultiFormModalOpen(true);
-
-      handleMenuClose(position.id);
-    },
-    [handleMenuClose, enqueueSnackbar]
-  );
 
   const handleArchiveRestoreClick = useCallback(
     (position, event) => {
@@ -156,6 +125,7 @@ const Positions = ({
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedPosition) return;
+
     try {
       await deletePosition(selectedPosition.id).unwrap();
       enqueueSnackbar(
@@ -176,56 +146,90 @@ const Positions = ({
     }
   };
 
-  // Function to handle edit action from ViewEmployeeModal
-  const handleEditEmployee = (employeeData, editStep = 2) => {
-    console.log("Edit requested for employee:", employeeData);
-    console.log("Edit step:", editStep);
+  const openWizard = useCallback(
+    async (position, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          position?.employee?.id,
+          true
+        ).unwrap();
 
-    // Close the view modal first
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
 
-    // Set the employee data and initial step for editing - following Address pattern
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep); // This will be 2 for positions step
-    setMultiFormModalOpen(true);
-  };
+  const handleViewEmployee = useCallback(
+    async (position, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(position.id);
+      await openWizard(position, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  // Simplified modal close handler - following Address pattern
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  };
+  const handleEditEmployee = useCallback(
+    async (position, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(position.id);
+      await openWizard(position, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  const handleRowClick = (position) => {
-    // Set the employee ID from the position data
-    if (position.employee?.id) {
-      setSelectedEmployeeId(position.employee.id);
-      setViewModalOpen(true);
-      console.log("Position clicked, opening employee:", position.employee);
-    } else {
-      console.warn("No employee data found for this position");
-      enqueueSnackbar("No employee data found for this position", {
-        variant: "warning",
-        autoHideDuration: 3000,
-      });
-    }
-  };
+  const handleRowClick = useCallback(
+    async (position) => {
+      await openWizard(position, "view");
+    },
+    [openWizard]
+  );
 
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  };
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+    setWizardMode("create");
+    setWizardInitialData(null);
+  }, []);
 
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "N/A" : String(value);
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
+      );
+    },
+    [refetch, enqueueSnackbar]
+  );
 
-  const formatCurrency = (amount) =>
-    amount ? `₱${amount.toLocaleString()}` : "N/A";
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
+
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee?.full_name) return employee.full_name;
+
+    const parts = [
+      employee?.last_name,
+      employee?.first_name,
+      employee?.middle_name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  }, []);
+
+  const formatCurrency = useCallback((amount) => {
+    return amount ? `₱${amount.toLocaleString()}` : "N/A";
+  }, []);
 
   return (
     <Box
@@ -243,6 +247,7 @@ const Positions = ({
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -257,76 +262,28 @@ const Positions = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, whiteSpace: "nowrap" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  POSITION CODE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 180, whiteSpace: "nowrap" }}>
-                  POSITION TITLE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  SCHEDULE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  JOB LEVEL
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  JOB RATE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  ALLOWANCE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  SALARY
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  TOOLS
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{ minWidth: 110, whiteSpace: "nowrap" }}>
-                  STATUS
-                </TableCell>
+                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">POSITION CODE</TableCell>
+                <TableCell className="table-header">POSITION TITLE</TableCell>
+                <TableCell className="table-header">SCHEDULE</TableCell>
+                <TableCell className="table-header">JOB LEVEL</TableCell>
+                <TableCell className="table-header">JOB RATE</TableCell>
+                <TableCell className="table-header">ALLOWANCE</TableCell>
+                <TableCell className="table-header">SALARY</TableCell>
+                <TableCell className="table-header">TOOLS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
                   <TableCell colSpan={12} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={12} align="center" className="table-cell">
-                    <Typography color="error">
-                      Error: {error?.data?.message || "Failed to load data"}
-                    </Typography>
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading positions...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : positionList.length > 0 ? (
@@ -337,72 +294,62 @@ const Positions = ({
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
                         },
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell
-                      className="table-cell-id"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell4">
                       {safelyDisplayValue(position.id)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(position.employee?.full_name)}
+                      sx={{
+                        width: "220px",
+                        minWidth: "180px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}>
+                      {formatEmployeeName(position.employee)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2">
                       {safelyDisplayValue(position.position?.code)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2">
                       {safelyDisplayValue(position.position?.name)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {safelyDisplayValue(position.schedule?.name)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {safelyDisplayValue(position.job_level?.name)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatCurrency(position.job_rate)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatCurrency(position.allowance)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatCurrency(position.salary)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(position.additional_tools || "N/A")}
-                    </TableCell>
-                    <TableCell
-                      className="table-status"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={showArchived ? "INACTIVE" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
-                      />
+                      sx={{
+                        width: "150px",
+                        minWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {safelyDisplayValue(position.additional_tools)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -411,18 +358,26 @@ const Positions = ({
                   <TableCell
                     colSpan={12}
                     align="center"
-                    borderBottom="none"
-                    className="table-cell">
-                    {CONSTANT?.BUTTONS?.NODATA?.icon || (
-                      <Typography
-                        variant="body2"
-                        color="textSecondary"
-                        sx={{ mt: 1 }}>
-                        {debounceValue
-                          ? `No positions found for "${debounceValue}"`
-                          : "No positions available"}
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No positions found
                       </Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived positions"
+                          : "No active positions"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -434,7 +389,7 @@ const Positions = ({
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={totalCount}
+            count={positions?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={page - 1}
             onPageChange={(event, newPage) => setPage(newPage + 1)}
@@ -443,45 +398,38 @@ const Positions = ({
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
           />
         </Box>
       </Paper>
 
-      {/* ViewEmployeeModal - Modal for viewing employee details */}
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={2} // Step 2 is the "POSITIONS" step (0-indexed)
-        onEdit={handleEditEmployee} // This handles edit from view modal
-      />
-
-      {/* MultiFormModal - Modal for editing employee - following Address pattern */}
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
-      />
-
-      {/* Confirmation Dialog */}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
-        fullWidth>
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
           <Typography
             variant="h6"
@@ -499,6 +447,15 @@ const Positions = ({
             </strong>{" "}
             this position?
           </Typography>
+          {selectedPosition && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {formatEmployeeName(selectedPosition.employee)}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Box
@@ -510,18 +467,29 @@ const Positions = ({
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error">
-              No
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success">
-              Yes
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
             </Button>
           </Box>
         </DialogActions>
       </Dialog>
+
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={2}
+      />
     </Box>
   );
 };

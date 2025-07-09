@@ -62,7 +62,9 @@ const cabinetsApi = sedarApi
 export const {
   usePostCabinetsMutation,
   useGetShowCabinetsQuery,
+  useLazyGetShowCabinetsQuery, // Added lazy version
   useGetAllCabinetsQuery,
+  useLazyGetAllCabinetsQuery, // Added lazy version
   useUpdateCabinetsMutation,
   useDeleteCabinetsMutation,
 } = cabinetsApi;

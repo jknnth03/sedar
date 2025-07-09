@@ -29,8 +29,8 @@ import {
   useGetShowFileTypesEmpQuery,
   useDeleteFileTypesEmpMutation,
 } from "../../features/api/employee/filesempApi";
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
@@ -41,15 +41,20 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [employeeDetails, setEmployeeDetails] = useState(null);
 
-  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
 
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editEmployeeData, setEditEmployeeData] = useState(null);
   const [initialStep, setInitialStep] = useState(0);
 
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("view");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
+
   const { enqueueSnackbar } = useSnackbar();
+
+  // Add the lazy query hook
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
   React.useEffect(() => {
     setPage(1);
@@ -82,6 +87,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
 
   const [deleteFile] = useDeleteFileTypesEmpMutation();
 
+  // Move employeeList definition before the useEffect that uses it
   const { employeeList, totalCount } = useMemo(() => {
     if (!apiResponse) {
       return { employeeList: [], totalCount: 0 };
@@ -144,11 +150,44 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
     };
   }, [apiResponse, debounceValue]);
 
+  // Remove the old useEffect and replace with the new openWizard function
+  const openWizard = useCallback(
+    async (employeeRecord, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          employeeRecord?.employee?.id,
+          true
+        ).unwrap();
+
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
+
+  // Now this useEffect can safely access employeeList
+  React.useEffect(() => {
+    if (selectedEmployeeId && employeeList.length > 0) {
+      const selectedEmployee = employeeList.find(
+        (emp) => emp.employee?.id === selectedEmployeeId
+      );
+      if (selectedEmployee) {
+        openWizard(selectedEmployee, "view");
+      }
+    }
+  }, [selectedEmployeeId, employeeList, openWizard]);
+
   const handleRowClick = useCallback(
     (employeeRecord) => {
       if (employeeRecord.employee?.id) {
         setSelectedEmployeeId(employeeRecord.employee.id);
-        setViewModalOpen(true);
       } else {
         enqueueSnackbar("No employee data found for this record", {
           variant: "warning",
@@ -160,27 +199,38 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
   );
 
   const handleEditEmployee = useCallback((employeeData, editStep = 8) => {
-    setViewModalOpen(false);
     setSelectedEmployeeId(null);
 
     setIsEditMode(true);
     setEditEmployeeData(employeeData);
     setInitialStep(editStep);
-    setMultiFormModalOpen(true);
   }, []);
 
-  const handleViewModalClose = useCallback(() => {
-    setViewModalOpen(false);
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
     setSelectedEmployeeId(null);
+    setWizardInitialData(null);
+    setWizardMode("view");
   }, []);
 
-  const handleMultiFormModalClose = useCallback(() => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  }, [refetch]);
+  const handleWizardSubmit = useCallback(
+    async (formData) => {
+      try {
+        enqueueSnackbar("Employee updated successfully!", {
+          variant: "success",
+          autoHideDuration: 3000,
+        });
+        refetch();
+        handleWizardClose();
+      } catch (error) {
+        enqueueSnackbar("Failed to update employee. Please try again.", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      }
+    },
+    [enqueueSnackbar, refetch, handleWizardClose]
+  );
 
   const handleDetailsDialogClose = () => {
     setDetailsDialogOpen(false);
@@ -364,15 +414,6 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
                   }}>
                   FILE COUNT
                 </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{
-                    width: "100px",
-                    minWidth: "100px",
-                    maxWidth: "100px",
-                  }}>
-                  STATUS
-                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -438,28 +479,6 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
                               : "text.secondary",
                         }}>
                         {employeeRecord.file_count}
-                      </TableCell>
-                      <TableCell
-                        className="table-status"
-                        sx={{
-                          width: "100px",
-                          minWidth: "100px",
-                          maxWidth: "100px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        <Chip
-                          label={showArchived ? "ARCHIVED" : "ACTIVE"}
-                          color={showArchived ? "error" : "success"}
-                          size="small"
-                          sx={{
-                            "& .MuiChip-label": {
-                              fontSize: "0.65rem",
-                              fontWeight: "500",
-                            },
-                          }}
-                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -527,20 +546,13 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
         </Box>
       </Paper>
 
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={8}
-        onEdit={handleEditEmployee}
-      />
-
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={7}
       />
 
       <Dialog

@@ -64,7 +64,9 @@ const fileTypesApi = sedarApi
 export const {
   usePostFileTypesMutation,
   useGetShowFileTypesQuery,
+  useLazyGetShowFileTypesQuery, // Added lazy version
   useGetAllFileTypesQuery,
+  useLazyGetAllFileTypesQuery, // Added lazy version
   useUpdateFileTypesMutation,
   useDeleteFileTypesMutation,
 } = fileTypesApi;

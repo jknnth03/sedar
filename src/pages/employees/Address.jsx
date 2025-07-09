@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Paper,
   Typography,
@@ -10,179 +10,223 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   Box,
   Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
+import {
+  MoreVert as MoreVertIcon,
+  Archive as ArchiveIcon,
+  Restore as RestoreIcon,
+  Help as HelpIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+} from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
-import { useLazyGetAddressQuery } from "../../features/api/employee/addressApi";
+import {
+  useGetAddressQuery,
+  useDeleteAddressMutation,
+} from "../../features/api/employee/addressApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
-const Address = ({ searchQuery, showArchived, debounceValue }) => {
+const Address = ({
+  searchQuery: parentSearchQuery,
+  showArchived: parentShowArchived,
+  debounceValue: parentDebounceValue,
+  onSearchChange,
+  onArchivedChange,
+}) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const searchQuery =
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : currentParams?.q ?? "";
+  const showArchived =
+    parentShowArchived !== undefined ? parentShowArchived : false;
+  const debounceValue =
+    parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
+  const [menuAnchor, setMenuAnchor] = useState({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
 
-  const { enqueueSnackbar } = useSnackbar();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(() => {
-    const params = {
+  const queryParams = useMemo(
+    () => ({
+      search: debounceValue,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
-    };
+    }),
+    [debounceValue, page, rowsPerPage, showArchived]
+  );
 
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
-    }
+  const {
+    data: addresses,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAddressQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+  });
 
-    return params;
-  }, [page, rowsPerPage, showArchived, debounceValue]);
+  const [deleteAddress] = useDeleteAddressMutation();
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+  const addressList = useMemo(() => addresses?.result?.data || [], [addresses]);
 
-  // THIS IS THE KEY CHANGE - useLazyGetAddressQuery returns a trigger function
-  const [triggerGetAddress, { data: addresses, isLoading, isFetching, error }] =
-    useLazyGetAddressQuery();
+  const handleMenuOpen = useCallback((event, addressId) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({ ...prev, [addressId]: event.currentTarget }));
+  }, []);
 
-  // Auto-trigger the query when component mounts or params change
-  useEffect(() => {
-    triggerGetAddress(queryParams);
-  }, [triggerGetAddress, queryParams]);
+  const handleMenuClose = useCallback((addressId) => {
+    setMenuAnchor((prev) => ({ ...prev, [addressId]: null }));
+  }, []);
 
-  // Reset page when search or archive filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [debounceValue, showArchived]);
+  const handleArchiveRestoreClick = useCallback(
+    (address, event) => {
+      if (event) event.stopPropagation();
+      setSelectedAddress(address);
+      setConfirmOpen(true);
+      handleMenuClose(address.id);
+    },
+    [handleMenuClose]
+  );
 
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "N/A" : String(value);
-
-  const formatEmployeeName = (employee) => {
-    if (!employee) return "N/A";
-    return (
-      employee?.full_name ||
-      employee?.name ||
-      employee?.first_name ||
-      `${employee.first_name} ${employee.last_name}`.trim() ||
-      employee?.display_name ||
-      "N/A"
-    );
-  };
-
-  const formatLocation = (address, field) => {
-    const value = address[field];
-    if (typeof value === "object" && value?.name) {
-      return value.name;
-    }
-    return safelyDisplayValue(value);
-  };
-
-  const { addressList, totalCount } = useMemo(() => {
-    if (!addresses) {
-      return { addressList: [], totalCount: 0 };
-    }
-
-    let result;
-    if (addresses.result) {
-      result = addresses.result;
-    } else if (addresses.data) {
-      result = addresses.data;
-    } else {
-      result = addresses;
-    }
-
-    const data = Array.isArray(result) ? result : result?.data || [];
-    const total = result?.total || result?.count || data.length;
-
-    return {
-      addressList: data,
-      totalCount: total,
-    };
-  }, [addresses]);
-
-  const filteredAddressList = useMemo(() => {
-    if (!debounceValue || debounceValue.trim() === "") {
-      return addressList;
-    }
-
-    const searchTerm = debounceValue.toLowerCase().trim();
-    return addressList.filter((address) => {
-      const employeeName = formatEmployeeName(address.employee).toLowerCase();
-      const street = (address.street || "").toLowerCase();
-      const barangay = formatLocation(address, "barangay").toLowerCase();
-      const city = formatLocation(address, "city_municipality").toLowerCase();
-      const subMunicipality = formatLocation(
-        address,
-        "sub_municipality"
-      ).toLowerCase();
-      const province = formatLocation(address, "province").toLowerCase();
-      const region = formatLocation(address, "region").toLowerCase();
-      const zipCode = (address.zip_code || "").toString().toLowerCase();
-
-      return (
-        employeeName.includes(searchTerm) ||
-        street.includes(searchTerm) ||
-        barangay.includes(searchTerm) ||
-        city.includes(searchTerm) ||
-        subMunicipality.includes(searchTerm) ||
-        province.includes(searchTerm) ||
-        region.includes(searchTerm) ||
-        zipCode.includes(searchTerm)
+  const handleArchiveRestoreConfirm = async () => {
+    if (!selectedAddress) return;
+    try {
+      await deleteAddress(selectedAddress.id).unwrap();
+      enqueueSnackbar(
+        selectedAddress.deleted_at
+          ? "Address restored successfully!"
+          : "Address archived successfully!",
+        { variant: "success", autoHideDuration: 2000 }
       );
-    });
-  }, [addressList, debounceValue]);
-
-  const displayList = filteredAddressList;
-  const displayCount =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredAddressList.length
-      : totalCount;
-
-  const handleEditEmployee = (employeeData, editStep = 1) => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep);
-    setMultiFormModalOpen(true);
-    console.log("employeeData", employeeData);
-  };
-
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    // Refetch data by triggering the query again
-    triggerGetAddress(queryParams);
-  };
-
-  const handleRowClick = (address) => {
-    if (address.employee?.id) {
-      setSelectedEmployeeId(address.employee.id);
-      setViewModalOpen(true);
-    } else {
-      enqueueSnackbar("No employee data found for this address", {
-        variant: "warning",
-        autoHideDuration: 3000,
+      refetch();
+    } catch (error) {
+      enqueueSnackbar("Action failed. Please try again.", {
+        variant: "error",
+        autoHideDuration: 2000,
       });
+    } finally {
+      setConfirmOpen(false);
+      setSelectedAddress(null);
     }
   };
 
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  };
+  const openWizard = useCallback(
+    async (address, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          address?.employee_id,
+          true
+        ).unwrap();
+
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        console.error("ERROR", error);
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
+
+  const handleViewEmployee = useCallback(
+    async (address, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(address.id);
+      await openWizard(address, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
+
+  const handleEditEmployee = useCallback(
+    async (address, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(address.id);
+      await openWizard(address, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
+
+  const handleRowClick = useCallback(
+    async (address) => {
+      await openWizard(address, "view");
+    },
+    [openWizard]
+  );
+
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+
+    setWizardMode("create");
+    setWizardInitialData(null);
+  }, []);
+
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
+      );
+    },
+    [refetch, enqueueSnackbar]
+  );
+
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
+
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee?.full_name) return employee.full_name;
+    const parts = [
+      employee?.last_name,
+      employee?.first_name,
+      employee?.middle_name,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  }, []);
+
+  const formatLocation = useCallback((address, field) => {
+    const value = address[field];
+    if (!value) return "N/A";
+    if (typeof value === "object" && value.name) return value.name;
+    if (typeof value === "string") return value;
+    return "N/A";
+  }, []);
 
   return (
     <Box
@@ -200,6 +244,7 @@ const Address = ({ searchQuery, showArchived, debounceValue }) => {
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -214,164 +259,117 @@ const Address = ({ searchQuery, showArchived, debounceValue }) => {
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, whiteSpace: "nowrap" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  STREET
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  BARANGAY
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">STREET</TableCell>
+                <TableCell className="table-header">BARANGAY</TableCell>
+                <TableCell className="table-header">
                   CITY/MUNICIPALITY
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  SUB-MUNICIPALITY
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  PROVINCE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  REGION
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 100, whiteSpace: "nowrap" }}>
-                  ZIP CODE
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{ minWidth: 110, whiteSpace: "nowrap" }}>
-                  STATUS
-                </TableCell>
+                <TableCell className="table-header">SUB-MUNICIPALITY</TableCell>
+                <TableCell className="table-header">PROVINCE</TableCell>
+                <TableCell className="table-header">region</TableCell>
+                <TableCell className="table-header">ZIP CODE</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <CircularProgress size={24} />
+                  <TableCell colSpan={11} align="center">
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading addresses...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center" className="table-cell">
-                    <Typography color="error">
-                      Error: {error?.data?.message || "Failed to load data"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : displayList.length > 0 ? (
-                displayList.map((address) => (
+              ) : addressList.length > 0 ? (
+                addressList.map((address) => (
                   <TableRow
                     key={address.id}
                     onClick={() => handleRowClick(address)}
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
-                        "& .MuiTableCell-root": {
-                          backgroundColor: "transparent",
-                        },
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell
-                      className="table-cell-id"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell4">
                       {safelyDisplayValue(address.id)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                      sx={{
+                        width: "220px",
+                        minWidth: "180px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}>
                       {formatEmployeeName(address.employee)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2">
                       {safelyDisplayValue(address.street)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2">
                       {formatLocation(address, "barangay")}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2">
                       {formatLocation(address, "city_municipality")}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatLocation(address, "sub_municipality")}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatLocation(address, "province")}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                      sx={{
+                        width: "150px",
+                        minWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
                       {formatLocation(address, "region")}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {safelyDisplayValue(address.zip_code)}
-                    </TableCell>
-                    <TableCell
-                      className="table-status"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={showArchived ? "ARCHIVED" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
-                      />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
+                    colSpan={11}
                     align="center"
-                    borderBottom="none"
-                    className="table-cell">
-                    {CONSTANT?.BUTTONS?.NODATA?.icon || (
-                      <Typography
-                        variant="body2"
-                        color="textSecondary"
-                        sx={{ mt: 1 }}>
-                        {debounceValue && debounceValue.trim() !== ""
-                          ? `No addresses found for "${debounceValue}"`
-                          : showArchived
-                          ? "No archived addresses found."
-                          : "No active addresses found."}
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No addresses found
                       </Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived addresses"
+                          : "No active addresses"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -383,46 +381,101 @@ const Address = ({ searchQuery, showArchived, debounceValue }) => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={displayCount}
+            count={addresses?.result?.total || 0}
             rowsPerPage={rowsPerPage}
-            page={Math.min(
-              page - 1,
-              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
-            )}
+            page={page - 1}
             onPageChange={(event, newPage) => setPage(newPage + 1)}
             onRowsPerPageChange={(event) => {
               setRowsPerPage(parseInt(event.target.value, 10));
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
-            }}
-            labelDisplayedRows={({ from, to, count }) => {
-              if (debounceValue && debounceValue.trim() !== "") {
-                return `${from}-${to} of ${count} (filtered)`;
-              }
-              return `${from}-${to} of ${count}`;
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                { margin: 0, fontSize: "0.875rem" },
             }}
           />
         </Box>
       </Paper>
 
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={1}
-        onEdit={handleEditEmployee}
-      />
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            mb={1}>
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+          </Box>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom textAlign="center">
+            Are you sure you want to{" "}
+            <strong>
+              {selectedAddress?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this address?
+          </Typography>
+          {selectedAddress && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {formatEmployeeName(selectedAddress.employee)}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Box
+            display="flex"
+            justifyContent="center"
+            width="100%"
+            gap={2}
+            mb={2}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              variant="outlined"
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchiveRestoreConfirm}
+              variant="contained"
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
 
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={1}
       />
     </Box>
   );

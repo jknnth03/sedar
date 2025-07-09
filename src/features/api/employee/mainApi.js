@@ -4,11 +4,9 @@ const mainApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["employees"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // GET - Fetch Employees with pagination and filtering
       getEmployees: build.query({
         query: (params = {}) => {
           const {
-            id,
             pagination = 1,
             page = 1,
             per_page = 10,
@@ -17,7 +15,6 @@ const mainApi = sedarApi
             ...otherParams
           } = params;
 
-          // Build query string from parameters
           const queryParams = new URLSearchParams();
 
           if (pagination) queryParams.append("pagination", pagination);
@@ -26,7 +23,6 @@ const mainApi = sedarApi
           if (status) queryParams.append("status", status);
           if (search) queryParams.append("search", search);
 
-          // Add any other parameters
           Object.entries(otherParams).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
               queryParams.append(key, value);
@@ -34,10 +30,7 @@ const mainApi = sedarApi
           });
 
           const queryString = queryParams.toString();
-          const baseUrl = id ? `employees/${id}` : "employees";
-          const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-
-          console.log(`📊 Fetching employees from: ${url}`);
+          const url = queryString ? `employees?${queryString}` : "employees";
 
           return {
             url,
@@ -47,81 +40,108 @@ const mainApi = sedarApi
         providesTags: ["employees"],
       }),
 
-      // POST - Create Employee (supports both JSON and FormData)
+      getSingleEmployee: build.query({
+        query: (employeeId) => ({
+          url: `employees/${employeeId}`,
+          method: "GET",
+        }),
+        providesTags: (result, error, employeeId) => [
+          { type: "employees", id: employeeId },
+          "employees",
+        ],
+      }),
+
       createEmployee: build.mutation({
         query: (body) => {
-          // Debug logging to track file uploads
-          console.log("🚀 Creating employee with data:", {
-            isFormData: body instanceof FormData,
-            bodyType: typeof body,
-          });
+          const hasFiles =
+            body.files &&
+            body.files.some((file) => file.file_attachment instanceof File);
 
-          if (body instanceof FormData) {
-            console.log("📋 FormData entries being sent:");
-            let fileCount = 0;
-            for (let [key, value] of body.entries()) {
-              if (value instanceof File) {
-                console.log(
-                  `  ${key}: File(${value.name}, ${value.size} bytes)`
-                );
-                fileCount++;
-              } else {
-                console.log(`  ${key}: ${value}`);
+          if (hasFiles) {
+            const formData = new FormData();
+
+            Object.keys(body).forEach((key) => {
+              if (
+                key !== "files" &&
+                body[key] !== undefined &&
+                body[key] !== null
+              ) {
+                if (typeof body[key] === "object" && body[key] !== null) {
+                  formData.append(key, JSON.stringify(body[key]));
+                } else {
+                  formData.append(key, body[key]);
+                }
               }
-            }
-            console.log(`✅ Total files in request: ${fileCount}`);
-          }
+            });
 
-          return {
-            url: "employees",
-            method: "POST",
-            body,
-          };
+            if (body.files && Array.isArray(body.files)) {
+              body.files.forEach((file, index) => {
+                Object.keys(file).forEach((fileKey) => {
+                  if (
+                    fileKey === "file_attachment" &&
+                    file[fileKey] instanceof File
+                  ) {
+                    formData.append(
+                      `files[${index}][${fileKey}]`,
+                      file[fileKey]
+                    );
+                  } else if (
+                    file[fileKey] !== undefined &&
+                    file[fileKey] !== null
+                  ) {
+                    formData.append(
+                      `files[${index}][${fileKey}]`,
+                      file[fileKey]
+                    );
+                  }
+                });
+              });
+            }
+
+            return {
+              url: "employees",
+              method: "POST",
+              body: formData,
+            };
+          } else {
+            return {
+              url: "employees",
+              method: "POST",
+              body,
+            };
+          }
         },
         invalidatesTags: ["employees"],
       }),
 
       updateEmployee: build.mutation({
-        query: ({ id, ...rest }) => {
-          // Extract the body from the rest of the parameters
-          const body = rest.data || rest;
+        query: (body) => ({
+          url: `employees/${body?.id}`,
+          method: "POST",
+          body: body?.data,
+        }),
+      }),
 
-          // Debug logging to track file uploads
-          console.log(`🔄 Updating employee ${id} with data:`, {
-            isFormData: body instanceof FormData,
-            bodyType: typeof body,
-            actualBody: body,
-          });
-
-          if (body instanceof FormData) {
-            console.log("📋 FormData entries being sent:");
-            let fileCount = 0;
-            for (let [key, value] of body.entries()) {
-              if (value instanceof File) {
-                console.log(
-                  `  ${key}: File(${value.name}, ${value.size} bytes)`
-                );
-                fileCount++;
-              } else {
-                console.log(`  ${key}: ${value}`);
-              }
-            }
-            console.log(`✅ Total files in request: ${fileCount}`);
-          }
-
-          return {
-            url: `employees/${id}`,
-            method: "PATCH",
-            body,
-          };
-        },
-        invalidatesTags: ["employees"],
+      deleteEmployee: build.mutation({
+        query: (employeeId) => ({
+          url: `employees/${employeeId}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: (result, error, employeeId) => [
+          { type: "employees", id: employeeId },
+          "employees",
+        ],
       }),
     }),
   });
 
 export const {
   useGetEmployeesQuery,
+  useGetSingleEmployeeQuery,
+  useLazyGetSingleEmployeeQuery,
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
+  useDeleteEmployeeMutation,
 } = mainApi;
+
+export default mainApi;

@@ -38,14 +38,7 @@ import Joblevels from "../../pages/masterlist/job-levels/JobLevels.jsx";
 import Jobrates from "../../pages/masterlist/job-rates/JobRates.jsx";
 import RequisitionTypes from "../../pages/extras/RequisitionTypes.jsx";
 import GeneralInformation from "../../pages/employees/Generalinformation.jsx";
-import Address from "../../pages/employees/Address.jsx";
-import PositionsEmp from "../../pages/employees/Positionsemp.jsx";
-import EMPLOYMENT_TYPES from "../../pages/employees/EmpTypes.jsx";
-import STATUSES from "../../pages/employees/Statuses.jsx";
-import CONTACTS from "../../pages/employees/Contacts.jsx";
-import ATTAINMENTSEMP from "../../pages/employees/Attainmentsemp.jsx";
-import ACCOUNTS from "../../pages/employees/Accounts.jsx";
-import FILES from "../../pages/employees/Files.jsx";
+
 import EMPLOYEEINFORMATION from "../../pages/employees/EmployeeInformation.jsx";
 
 export const ROUTES = [
@@ -349,51 +342,6 @@ export const ROUTES = [
           permission:
             CONSTANT.PAGES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
         },
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.GENERAL_INFORMATION.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.GENERAL_INFORMATION.path,
-        element: <GeneralInformation />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.ADDRESS.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.ADDRESS.path,
-        element: <Address />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.POSITIONS.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.POSITIONS.path,
-        element: <PositionsEmp />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.EMPLOYMENT_TYPES.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.EMPLOYMENT_TYPES.path,
-        element: <EMPLOYMENT_TYPES />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.STATUSES.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.STATUSES.path,
-        element: <STATUSES />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.CONTACTS.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.CONTACTS.path,
-        element: <CONTACTS />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.ATTAINMENTSEMP.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.ATTAINMENTSEMP.path,
-        element: <ATTAINMENTSEMP />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.ACCOUNTS.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.ACCOUNTS.path,
-        element: <ACCOUNTS />,
-      },
-      {
-        id: CONSTANT.PAGES.EMPLOYEES.children.FILES.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.FILES.path,
-        element: <FILES />,
       },
     ],
   },

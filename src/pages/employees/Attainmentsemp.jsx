@@ -21,6 +21,8 @@ import {
   DialogActions,
   Button,
   Link,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
@@ -29,10 +31,11 @@ import {
   Download as DownloadIcon,
   Close as CloseIcon,
   Help as HelpIcon,
+  Archive as ArchiveIcon,
+  Restore as RestoreIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
 import {
   useGetAttainmentsQuery,
   useDeleteAttainmentMutation,
@@ -41,24 +44,43 @@ import { useGetAllShowAttainmentsQuery } from "../../features/api/extras/attainm
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
-const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
+const Attainmentsemp = ({
+  searchQuery: parentSearchQuery,
+  showArchived: parentShowArchived,
+  debounceValue: parentDebounceValue,
+  onSearchChange,
+  onArchivedChange,
+}) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const searchQuery =
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : currentParams?.q ?? "";
+  const showArchived =
+    parentShowArchived !== undefined ? parentShowArchived : false;
+  const debounceValue =
+    parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
+
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedAttainment, setSelectedAttainment] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
-
-  const { enqueueSnackbar } = useSnackbar();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
 
   React.useEffect(() => {
     setPage(1);
@@ -153,11 +175,17 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
     setMenuAnchor((prev) => ({ ...prev, [attainmentId]: null }));
   }, []);
 
-  const handleArchiveRestoreClick = (attainment) => {
-    setSelectedAttainment(attainment);
-    setConfirmOpen(true);
-    handleMenuClose(attainment.id);
-  };
+  const handleArchiveRestoreClick = useCallback(
+    (attainment, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedAttainment(attainment);
+      setConfirmOpen(true);
+      handleMenuClose(attainment.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedAttainment) return;
@@ -184,35 +212,73 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
     }
   };
 
+  const openWizard = useCallback(
+    async (attainment, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          attainment?.employee?.id,
+          true
+        ).unwrap();
+
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
+
+  const handleViewEmployee = useCallback(
+    async (attainment, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(attainment.id);
+      await openWizard(attainment, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
+
+  const handleEditEmployee = useCallback(
+    async (attainment, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(attainment.id);
+      await openWizard(attainment, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
+
+  const handleRowClick = useCallback(
+    async (attainment) => {
+      await openWizard(attainment, "view");
+    },
+    [openWizard]
+  );
+
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+    setWizardMode("create");
+    setWizardInitialData(null);
+  }, []);
+
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
+      );
+    },
+    [refetch, enqueueSnackbar]
+  );
+
   const handleAddAttainment = () => {
     setSelectedAttainment(null);
     setModalOpen(true);
   };
-
-  const handleEditClick = useCallback(
-    (attainment, event) => {
-      if (event) {
-        event.stopPropagation();
-      }
-
-      if (!attainment.employee) {
-        enqueueSnackbar("No employee data found for this attainment", {
-          variant: "warning",
-          autoHideDuration: 3000,
-        });
-        handleMenuClose(attainment.id);
-        return;
-      }
-
-      setIsEditMode(true);
-      setEditEmployeeData(attainment.employee);
-      setInitialStep(5);
-      setMultiFormModalOpen(true);
-
-      handleMenuClose(attainment.id);
-    },
-    [handleMenuClose, enqueueSnackbar]
-  );
 
   const handleModalClose = () => {
     setModalOpen(false);
@@ -222,41 +288,6 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
   const handleModalSuccess = () => {
     refetch();
     handleModalClose();
-  };
-
-  const handleEditEmployee = (employeeData, editStep = 5) => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep);
-    setMultiFormModalOpen(true);
-  };
-
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  };
-
-  const handleRowClick = (attainment) => {
-    if (attainment.employee?.id) {
-      setSelectedEmployeeId(attainment.employee.id);
-      setViewModalOpen(true);
-    } else {
-      enqueueSnackbar("No employee data found for this attainment", {
-        variant: "warning",
-        autoHideDuration: 3000,
-      });
-    }
-  };
-
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
   };
 
   const getAttachmentUrl = (attachmentPath) => {
@@ -429,26 +460,28 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
     }
   };
 
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "—" : String(value);
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
 
-  const formatEmployeeName = (employee) => {
-    if (!employee) return "—";
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee?.full_name) return employee.full_name;
 
-    return (
-      employee.full_name ||
-      employee.name ||
-      employee.first_name ||
-      `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-      employee.display_name ||
-      "—"
-    );
-  };
+    const parts = [
+      employee?.last_name,
+      employee?.first_name,
+      employee?.middle_name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  }, []);
 
   const formatAcademicYears = (yearFrom, yearTo) => {
     const from = safelyDisplayValue(yearFrom);
     const to = safelyDisplayValue(yearTo);
-    if (from === "—" && to === "—") return "—";
+    if (from === "N/A" && to === "N/A") return "N/A";
     return `${from} - ${to}`;
   };
 
@@ -492,7 +525,7 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
       }
     }
 
-    return attainmentId ? `Attainment ${attainmentId}` : "—";
+    return attainmentId ? `Attainment ${attainmentId}` : "N/A";
   };
 
   const filteredAttainmentList = useMemo(() => {
@@ -553,6 +586,7 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -567,73 +601,33 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, whiteSpace: "nowrap" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  ATTAINMENT
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  PROGRAM
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  DEGREE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
-                  HONOR TITLE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 140, whiteSpace: "nowrap" }}>
-                  ACADEMIC YEARS
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 80, whiteSpace: "nowrap" }}>
-                  GPA
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  INSTITUTION
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  ATTACHMENT
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{ minWidth: 110, whiteSpace: "nowrap" }}>
-                  STATUS
-                </TableCell>
+                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">ATTAINMENT</TableCell>
+                <TableCell className="table-header">PROGRAM</TableCell>
+                <TableCell className="table-header">DEGREE</TableCell>
+                <TableCell className="table-header">HONOR TITLE</TableCell>
+                <TableCell className="table-header">ACADEMIC YEARS</TableCell>
+                <TableCell className="table-header">GPA</TableCell>
+                <TableCell className="table-header">INSTITUTION</TableCell>
+                <TableCell className="table-header">ATTACHMENT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={11} align="center">
-                    <CircularProgress size={24} />
+                  <TableCell colSpan={12} align="center">
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading attainments...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={11} align="center" className="table-cell">
+                  <TableCell colSpan={12} align="center" className="table-cell">
                     <Typography color="error">
                       Error: {error?.data?.message || "Failed to load data"}
                     </Typography>
@@ -647,62 +641,56 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
                         },
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell
-                      className="table-cell-id"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell4">
                       {safelyDisplayValue(attainment.id)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                      sx={{
+                        width: "220px",
+                        minWidth: "180px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}>
                       {formatEmployeeName(attainment.employee)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2">
                       {formatAttainmentName(
                         attainment.attainment,
                         attainment.attainment_id
                       )}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatNestedValue(attainment.program)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatNestedValue(attainment.degree)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatNestedValue(attainment.honor_title)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {formatAcademicYears(
                         attainment.academic_year_from,
                         attainment.academic_year_to
                       )}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {safelyDisplayValue(attainment.gpa)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell">
                       {safelyDisplayValue(attainment.institution)}
                     </TableCell>
 
@@ -736,38 +724,36 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
                           {getFileNameFromUrl(attainment.attainment_attachment)}
                         </Link>
                       ) : (
-                        "—"
+                        "N/A"
                       )}
-                    </TableCell>
-
-                    <TableCell
-                      className="table-status"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={showArchived ? "ARCHIVED" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
-                      />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={11}
+                    colSpan={12}
                     align="center"
-                    sx={{ borderBottom: "none" }}
-                    className="table-cell">
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography
-                      variant="body2"
-                      color="textSecondary"
-                      sx={{ mt: 1 }}>
-                      {debounceValue && debounceValue.trim() !== ""
-                        ? `No attainments found for "${debounceValue}"`
-                        : "No attainments available"}
-                    </Typography>
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No attainments found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {debounceValue && debounceValue.trim() !== ""
+                          ? `No results for "${debounceValue}"`
+                          : showArchived
+                          ? "No archived attainments"
+                          : "No active attainments"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -791,9 +777,18 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
             labelDisplayedRows={({ from, to, count }) => {
               if (debounceValue && debounceValue.trim() !== "") {
@@ -805,96 +800,64 @@ const Attainmentsemp = ({ searchQuery, showArchived, debounceValue }) => {
         </Box>
       </Paper>
 
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={5}
-        onEdit={handleEditEmployee}
-      />
-
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
-      />
-
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
-        fullWidth>
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            textAlign="center"
-            color="rgb(33, 61, 112)">
-            Confirmation
+          <Typography variant="h6" align="center" gutterBottom>
+            Confirm Action
+          </Typography>
+          <Typography variant="body2" align="center" color="text.secondary">
+            Are you sure you want to{" "}
+            {selectedAttainment?.deleted_at ? "restore" : "archive"} this
+            attainment?
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom textAlign="center">
-            Are you sure you want to{" "}
-            <strong>
-              {selectedAttainment?.deleted_at ? "restore" : "archive"}
-            </strong>{" "}
-            this attainment?
+          <Typography variant="body2" color="text.secondary" align="center">
+            {selectedAttainment?.deleted_at
+              ? "This will restore the attainment and make it active again."
+              : "This will archive the attainment and remove it from the active list."}
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Box
-            display="flex"
-            justifyContent="center"
-            width="100%"
-            gap={2}
-            mb={2}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              color="error">
-              No
-            </Button>
-            <Button
-              onClick={handleArchiveRestoreConfirm}
-              variant="contained"
-              color="success">
-              Yes
-            </Button>
-          </Box>
+        <DialogActions sx={{ justifyContent: "center", pb: 3, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmOpen(false)}
+            variant="outlined"
+            color="inherit"
+            sx={{ minWidth: 100 }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleArchiveRestoreConfirm}
+            variant="contained"
+            color={selectedAttainment?.deleted_at ? "success" : "warning"}
+            sx={{ minWidth: 100 }}>
+            {selectedAttainment?.deleted_at ? "Restore" : "Archive"}
+          </Button>
         </DialogActions>
       </Dialog>
 
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: 16,
-          right: 16,
-          zIndex: 1000,
-        }}>
-        <IconButton
-          color="primary"
-          onClick={handleAddAttainment}
-          aria-label="add attainment"
-          sx={{
-            backgroundColor: "#1976d2",
-            color: "#fff",
-            "&:hover": {
-              backgroundColor: "#115293",
-            },
-          }}>
-          <AttachFileIcon />
-        </IconButton>
-      </Box>
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={4}
+      />
     </Box>
   );
 };

@@ -20,35 +20,44 @@ import {
   Button,
   Box,
   Chip,
+  TextField,
+  InputAdornment,
+  Switch,
+  FormControlLabel,
+  Toolbar,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import {
-  Add as AddIcon,
   MoreVert as MoreVertIcon,
-  Edit as EditIcon,
   Archive as ArchiveIcon,
   Restore as RestoreIcon,
   Help as HelpIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
 import {
   useGetGeneralsQuery,
   useDeleteGeneralMutation,
 } from "../../features/api/employee/generalApi";
-import "../../pages/GeneralStyle.scss";
-import { CONSTANT } from "../../config/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import { CONSTANT } from "../../config/index";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import "../../pages/GeneralStyle.scss";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
-const GeneralInformation = ({
+const General = ({
   searchQuery: parentSearchQuery,
   showArchived: parentShowArchived,
   debounceValue: parentDebounceValue,
   onSearchChange,
   onArchivedChange,
 }) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
   const [currentParams, setQueryParams, removeQueryParams] =
     useRememberQueryParams();
+
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -62,18 +71,13 @@ const GeneralInformation = ({
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
-
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-
-  const { enqueueSnackbar } = useSnackbar();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
 
   const queryParams = useMemo(
     () => ({
@@ -101,26 +105,62 @@ const GeneralInformation = ({
     [employees]
   );
 
-  const handleMenuOpen = (event, employeeId) => {
+  const handleSearchChange = useCallback(
+    (event) => {
+      const value = event.target.value;
+
+      if (onSearchChange) {
+        onSearchChange(value);
+      } else {
+        if (value.trim()) {
+          setQueryParams({ q: value });
+        } else {
+          removeQueryParams(["q"]);
+        }
+      }
+
+      setPage(1);
+    },
+    [onSearchChange, setQueryParams, removeQueryParams]
+  );
+
+  const handleArchivedToggle = useCallback(
+    (event) => {
+      const checked = event.target.checked;
+
+      if (onArchivedChange) {
+        onArchivedChange(checked);
+      }
+
+      setPage(1);
+    },
+    [onArchivedChange]
+  );
+
+  const handleMenuOpen = useCallback((event, employeeId) => {
     event.stopPropagation();
     setMenuAnchor((prev) => ({ ...prev, [employeeId]: event.currentTarget }));
-  };
+  }, []);
 
-  const handleMenuClose = (employeeId) => {
+  const handleMenuClose = useCallback((employeeId) => {
     setMenuAnchor((prev) => ({ ...prev, [employeeId]: null }));
-  };
+  }, []);
 
-  const handleArchiveRestoreClick = (employee, event) => {
-    if (event) {
-      event.stopPropagation();
-    }
-    setSelectedEmployee(employee);
-    setConfirmOpen(true);
-    handleMenuClose(employee.id);
-  };
+  const handleArchiveRestoreClick = useCallback(
+    (employee, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedEmployee(employee);
+      setConfirmOpen(true);
+      handleMenuClose(employee.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedEmployee) return;
+
     try {
       await deleteEmployee(selectedEmployee.id).unwrap();
       enqueueSnackbar(
@@ -141,60 +181,86 @@ const GeneralInformation = ({
     }
   };
 
-  const handleAddEmployee = () => {
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    setMultiFormModalOpen(true);
-  };
+  const openWizard = useCallback(
+    async (general, mode) => {
+      try {
+        const response = await getSingleEmployee(general?.id, true).unwrap();
 
-  const handleEditClick = (employee, event) => {
-    if (event) {
-      event.stopPropagation();
-    }
-    setIsEditMode(true);
-    setEditEmployeeData(employee);
-    setInitialStep(0);
-    setMultiFormModalOpen(true);
-    handleMenuClose(employee.id);
-  };
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        console.error("Error loading employee details:", error);
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
 
-  const handleRowClick = (employee) => {
-    setSelectedEmployeeId(employee.id);
-    setViewModalOpen(true);
-  };
+  const handleViewEmployee = useCallback(
+    async (general, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(general.id);
+      await openWizard(general, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  };
+  const handleEditEmployee = useCallback(
+    async (general, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(general.id);
+      await openWizard(general, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  const handleEditEmployee = (employeeData, editStep = 0) => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
+  const handleRowClick = useCallback(
+    async (general) => {
+      await openWizard(general, "view");
+    },
+    [openWizard]
+  );
 
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep);
-    setMultiFormModalOpen(true);
-  };
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+    setWizardMode("create");
+    setWizardInitialData(null);
+  }, []);
 
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  };
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
+      );
+    },
+    [refetch, enqueueSnackbar]
+  );
 
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "N/A" : String(value);
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
 
-  const formatEmployeeId = (id) => {
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
+
+  const formatEmployeeId = useCallback((id) => {
     return id ? `RDFFLFI-${String(id).padStart(5, "0")}` : "N/A";
-  };
+  }, []);
 
-  const formatFullName = (employee) => {
+  const formatFullName = useCallback((employee) => {
     if (employee?.full_name) return employee.full_name;
 
     const parts = [
@@ -204,18 +270,18 @@ const GeneralInformation = ({
     ].filter(Boolean);
 
     return parts.length > 0 ? parts.join(", ") : "N/A";
-  };
+  }, []);
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     if (!dateString) return "N/A";
     try {
       return new Date(dateString).toLocaleDateString();
     } catch {
       return dateString;
     }
-  };
+  }, []);
 
-  const formatReligion = (religion) => {
+  const formatReligion = useCallback((religion) => {
     if (!religion) return "N/A";
     if (typeof religion === "object" && religion.name) {
       return religion.name;
@@ -224,9 +290,9 @@ const GeneralInformation = ({
       return religion;
     }
     return "N/A";
-  };
+  }, []);
 
-  const formatReferredBy = (referredBy) => {
+  const formatReferredBy = useCallback((referredBy) => {
     if (!referredBy) return "N/A";
     if (typeof referredBy === "object" && referredBy.full_name) {
       return referredBy.full_name;
@@ -235,7 +301,7 @@ const GeneralInformation = ({
       return referredBy;
     }
     return "N/A";
-  };
+  }, []);
 
   return (
     <Box
@@ -253,6 +319,7 @@ const GeneralInformation = ({
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -268,8 +335,8 @@ const GeneralInformation = ({
             <TableHead>
               <TableRow>
                 <TableCell className="table-header3">ID</TableCell>
-                <TableCell className="table-header">ID NUMBER</TableCell>
                 <TableCell className="table-header">FULL NAME</TableCell>
+                <TableCell className="table-header">ID NUMBER</TableCell>
                 <TableCell className="table-header">BIRTH DATE</TableCell>
                 <TableCell className="table-header">CIVIL STATUS</TableCell>
                 <TableCell className="table-header">RELIGION</TableCell>
@@ -284,7 +351,12 @@ const GeneralInformation = ({
               {isFetching ? (
                 <TableRow>
                   <TableCell colSpan={11} align="center">
-                    <CircularProgress size={24} />
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading employees...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : employeeList.length > 0 ? (
@@ -295,7 +367,10 @@ const GeneralInformation = ({
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
                         },
@@ -305,9 +380,6 @@ const GeneralInformation = ({
                     <TableCell className="table-cell4">
                       {safelyDisplayValue(employee.id)}
                     </TableCell>
-                    <TableCell className="table-cell2">
-                      {formatEmployeeId(employee.id)}
-                    </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
@@ -316,9 +388,14 @@ const GeneralInformation = ({
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        fontWeight: 500,
                       }}>
                       {formatFullName(employee)}
                     </TableCell>
+                    <TableCell className="table-cell2">
+                      {formatEmployeeId(employee.id)}
+                    </TableCell>
+
                     <TableCell className="table-cell2">
                       {formatDate(employee.birth_date)}
                     </TableCell>
@@ -340,7 +417,7 @@ const GeneralInformation = ({
                       {safelyDisplayValue(employee.gender)}
                     </TableCell>
                     <TableCell
-                      className="table-cell"
+                      className="table-cell2"
                       sx={{ width: 100, minWidth: 90, whiteSpace: "nowrap" }}>
                       {formatReferredBy(employee.referred_by)}
                     </TableCell>
@@ -351,30 +428,52 @@ const GeneralInformation = ({
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          "& .MuiChip-label": {
+                            fontSize: "0.68rem",
+                            fontWeight: 600,
+                          },
+                        }}
                       />
                     </TableCell>
                     <TableCell className="table-status">
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, employee.id)}>
+                        onClick={(e) => handleMenuOpen(e, employee.id)}
+                        size="small"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: alpha(
+                              theme.palette.action.hover,
+                              0.1
+                            ),
+                          },
+                        }}>
                         <MoreVertIcon />
                       </IconButton>
                       <Menu
                         anchorEl={menuAnchor[employee.id]}
                         open={Boolean(menuAnchor[employee.id])}
-                        onClose={() => handleMenuClose(employee.id)}>
-                        {!employee.deleted_at && (
-                          <MenuItem
-                            onClick={(e) => handleEditClick(employee, e)}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                            Edit
-                          </MenuItem>
-                        )}
+                        onClose={() => handleMenuClose(employee.id)}
+                        transformOrigin={{
+                          horizontal: "right",
+                          vertical: "top",
+                        }}
+                        anchorOrigin={{
+                          horizontal: "right",
+                          vertical: "bottom",
+                        }}>
                         <MenuItem
                           onClick={(e) =>
                             handleArchiveRestoreClick(employee, e)
-                          }>
+                          }
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: employee.deleted_at
+                              ? theme.palette.success.main
+                              : theme.palette.warning.main,
+                          }}>
                           {employee.deleted_at ? (
                             <>
                               <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
@@ -396,9 +495,26 @@ const GeneralInformation = ({
                   <TableCell
                     colSpan={11}
                     align="center"
-                    borderBottom="none"
-                    className="table-cell">
-                    {CONSTANT.BUTTONS.NODATA.icon}
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No employees found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived employees"
+                          : "No active employees"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -413,47 +529,41 @@ const GeneralInformation = ({
             count={employees?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
           />
         </Box>
       </Paper>
 
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
-      />
-
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        onEdit={handleEditEmployee}
-      />
-
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
-        fullWidth>
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
           <Typography
             variant="h6"
@@ -471,6 +581,15 @@ const GeneralInformation = ({
             </strong>{" "}
             this employee?
           </Typography>
+          {selectedEmployee && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {formatFullName(selectedEmployee)}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Box
@@ -482,20 +601,31 @@ const GeneralInformation = ({
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error">
-              No
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success">
-              Yes
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
             </Button>
           </Box>
         </DialogActions>
       </Dialog>
+
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={0}
+      />
     </Box>
   );
 };
 
-export default GeneralInformation;
+export default General;

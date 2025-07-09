@@ -13,13 +13,25 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   Box,
   Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
+import {
+  MoreVert as MoreVertIcon,
+  Archive as ArchiveIcon,
+  Restore as RestoreIcon,
+  Help as HelpIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+} from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
 import {
   useGetContactsQuery,
   useDeleteContactMutation,
@@ -27,140 +39,90 @@ import {
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
-const Contacts = ({ searchQuery, showArchived, debounceValue }) => {
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [menuAnchor, setMenuAnchor] = useState({});
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // New state for view modal functionality
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-
-  // New state for multi-form modal functionality
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
-
+const Contacts = ({
+  searchQuery: parentSearchQuery,
+  showArchived: parentShowArchived,
+  debounceValue: parentDebounceValue,
+  onSearchChange,
+  onArchivedChange,
+}) => {
+  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  // Reset page to 1 when search changes
-  React.useEffect(() => {
-    setPage(1);
-  }, [debounceValue, showArchived]);
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Build query parameters
-  const queryParams = useMemo(() => {
-    const params = {
+  const searchQuery =
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : currentParams?.q ?? "";
+  const showArchived =
+    parentShowArchived !== undefined ? parentShowArchived : false;
+  const debounceValue =
+    parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
+
+  const [menuAnchor, setMenuAnchor] = useState({});
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
+
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
+
+  const queryParams = useMemo(
+    () => ({
+      search: debounceValue,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
-    };
-
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
-    }
-
-    console.log("Contacts Query Params:", params);
-    return params;
-  }, [page, rowsPerPage, showArchived, debounceValue]);
+    }),
+    [debounceValue, page, rowsPerPage, showArchived]
+  );
 
   const {
-    data: apiResponse,
+    data: contacts,
     isLoading,
     isFetching,
-    error,
     refetch,
   } = useGetContactsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
-    skip: false,
   });
 
   const [deleteContact] = useDeleteContactMutation();
 
-  // Process API response and handle the nested contact structure
-  const { contactList, totalCount, currentPage, lastPage } = useMemo(() => {
-    console.log("API Response:", apiResponse);
+  const contactList = useMemo(() => contacts?.result?.data || [], [contacts]);
 
-    if (!apiResponse) {
-      return { contactList: [], totalCount: 0, currentPage: 1, lastPage: 1 };
-    }
-
-    // The API response structure: { message, result: { current_page, data, ... } }
-    const result = apiResponse.result || apiResponse;
-    const data = result.data || [];
-
-    // Extract pagination info
-    const total = result.total || result.count || data.length;
-    const current = result.current_page || 1;
-    const last = result.last_page || Math.ceil(total / rowsPerPage);
-
-    // Transform the nested contact structure into flat records
-    const transformedData = data.map((contact) => {
-      // Extract mobile number details
-      const mobileNumber = contact.mobile_number || {};
-      const emailAddress = contact.email_address || {};
-
-      return {
-        id: contact.id,
-        employee_id: contact.employee_id,
-        employee: contact.employee,
-        // Mobile number fields
-        mobile_id: mobileNumber.id,
-        mobile_details: mobileNumber.details,
-        mobile_remarks: mobileNumber.remarks,
-        mobile_deleted_at: mobileNumber.deleted_at,
-        mobile_updated_at: mobileNumber.updated_at,
-        // Email address fields
-        email_id: emailAddress.id,
-        email_details: emailAddress.details,
-        email_remarks: emailAddress.remarks,
-        email_deleted_at: emailAddress.deleted_at,
-        email_updated_at: emailAddress.updated_at,
-        // Main contact fields
-        deleted_at: contact.deleted_at,
-        updated_at: contact.updated_at,
-      };
-    });
-
-    console.log("Processed data:", {
-      data: transformedData.length,
-      total,
-      currentPage: current,
-      lastPage: last,
-      firstItem: transformedData[0],
-      searchTerm: debounceValue,
-    });
-
-    return {
-      contactList: transformedData,
-      totalCount: total,
-      currentPage: current,
-      lastPage: last,
-    };
-  }, [apiResponse, debounceValue, rowsPerPage]);
-
-  const handleMenuOpen = (event, contactId) => {
-    event.stopPropagation(); // Prevent row click when opening menu
+  const handleMenuOpen = useCallback((event, contactId) => {
+    event.stopPropagation();
     setMenuAnchor((prev) => ({ ...prev, [contactId]: event.currentTarget }));
-  };
+  }, []);
 
-  const handleMenuClose = (contactId) => {
+  const handleMenuClose = useCallback((contactId) => {
     setMenuAnchor((prev) => ({ ...prev, [contactId]: null }));
-  };
+  }, []);
 
-  const handleArchiveRestoreClick = (contact) => {
-    setSelectedContact(contact);
-    setConfirmOpen(true);
-    handleMenuClose(contact.id);
-  };
+  const handleArchiveRestoreClick = useCallback(
+    (contact, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedContact(contact);
+      setConfirmOpen(true);
+      handleMenuClose(contact.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedContact) return;
+
     try {
       await deleteContact(selectedContact.id).unwrap();
       enqueueSnackbar(
@@ -171,132 +133,96 @@ const Contacts = ({ searchQuery, showArchived, debounceValue }) => {
       );
       refetch();
     } catch (error) {
-      enqueueSnackbar(
-        error?.data?.message || "Action failed. Please try again.",
-        {
-          variant: "error",
-          autoHideDuration: 2000,
-        }
-      );
+      enqueueSnackbar("Action failed. Please try again.", {
+        variant: "error",
+        autoHideDuration: 2000,
+      });
     } finally {
       setConfirmOpen(false);
       setSelectedContact(null);
     }
   };
 
-  const handleAddContact = () => {
-    setSelectedContact(null);
-    setModalOpen(true);
-  };
+  const openWizard = useCallback(
+    async (contact, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          contact?.employee?.id,
+          true
+        ).unwrap();
 
-  const handleEditClick = (contact) => {
-    console.log("Edit clicked for contact:", contact);
-    setSelectedContact(contact);
-    setModalOpen(true);
-    handleMenuClose(contact.id);
-  };
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
 
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setSelectedContact(null);
-  };
+  const handleViewEmployee = useCallback(
+    async (contact, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(contact.id);
+      await openWizard(contact, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  const handleModalSuccess = () => {
-    refetch();
-    handleModalClose();
-  };
+  const handleEditEmployee = useCallback(
+    async (contact, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(contact.id);
+      await openWizard(contact, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  // New function to handle row clicks
-  const handleRowClick = (contact) => {
-    if (contact.employee?.id) {
-      setSelectedEmployeeId(contact.employee.id);
-      setViewModalOpen(true);
-    } else {
-      enqueueSnackbar("No employee data found for this contact", {
-        variant: "warning",
-        autoHideDuration: 3000,
-      });
-    }
-  };
+  const handleRowClick = useCallback(
+    async (contact) => {
+      await openWizard(contact, "view");
+    },
+    [openWizard]
+  );
 
-  // New function to handle view modal close
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  };
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+    setWizardMode("create");
+    setWizardInitialData(null);
+  }, []);
 
-  // New function to handle edit employee from view modal
-  const handleEditEmployee = (employeeData, editStep = 4) => {
-    // Default to step 5 (index 4) for contacts
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep);
-    setMultiFormModalOpen(true);
-  };
-
-  // New function to handle multi-form modal close
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  };
-
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "N/A" : String(value);
-
-  // Format employee name with fallback options
-  const formatEmployeeName = (employee) => {
-    if (!employee) return "N/A";
-
-    return (
-      employee.full_name ||
-      employee.name ||
-      `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-      employee.display_name ||
-      employee.first_name ||
-      "N/A"
-    );
-  };
-
-  // Client-side filtering as fallback
-  const filteredContactList = useMemo(() => {
-    if (!debounceValue || debounceValue.trim() === "") {
-      return contactList;
-    }
-
-    const searchTerm = debounceValue.toLowerCase().trim();
-    return contactList.filter((contact) => {
-      const employeeName = formatEmployeeName(contact.employee).toLowerCase();
-      const mobileDetails = (contact.mobile_details || "").toLowerCase();
-      const emailDetails = (contact.email_details || "").toLowerCase();
-      const mobileRemarks = (contact.mobile_remarks || "").toLowerCase();
-      const emailRemarks = (contact.email_remarks || "").toLowerCase();
-
-      return (
-        employeeName.includes(searchTerm) ||
-        mobileDetails.includes(searchTerm) ||
-        emailDetails.includes(searchTerm) ||
-        mobileRemarks.includes(searchTerm) ||
-        emailRemarks.includes(searchTerm)
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
       );
-    });
-  }, [contactList, debounceValue]);
+    },
+    [refetch, enqueueSnackbar]
+  );
 
-  // Use filtered list for display, but respect server-side pagination for non-search scenarios
-  const displayList =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredContactList
-      : contactList;
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
 
-  const displayCount =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredContactList.length
-      : totalCount;
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee?.full_name) return employee.full_name;
+
+    const parts = [
+      employee?.last_name,
+      employee?.first_name,
+      employee?.middle_name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  }, []);
 
   return (
     <Box
@@ -314,6 +240,7 @@ const Contacts = ({ searchQuery, showArchived, debounceValue }) => {
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -325,123 +252,89 @@ const Contacts = ({ searchQuery, showArchived, debounceValue }) => {
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: 1000, width: "max-content" }}>
+          <Table stickyHeader sx={{ minWidth: 1200, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, whiteSpace: "nowrap" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  MOBILE NUMBER
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  EMAIL ADDRESS
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  REMARKS (MOBILE)
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  REMARKS (EMAIL)
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{ minWidth: 110, whiteSpace: "nowrap" }}>
-                  STATUS
-                </TableCell>
+                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">MOBILE NUMBER</TableCell>
+                <TableCell className="table-header">EMAIL ADDRESS</TableCell>
+                <TableCell className="table-header">EMAIL REMARKS</TableCell>
+                <TableCell className="table-header">MOBILE REMARKS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center">
-                    <CircularProgress size={24} />
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading contacts...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center" className="table-cell">
-                    <Typography color="error">
-                      Error: {error?.data?.message || "Failed to load data"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : displayList.length > 0 ? (
-                displayList.map((contact) => (
+              ) : contactList.length > 0 ? (
+                contactList.map((contact) => (
                   <TableRow
                     key={contact.id}
                     onClick={() => handleRowClick(contact)}
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
                         },
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell
-                      className="table-cell-id"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell4">
                       {safelyDisplayValue(contact.id)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                      sx={{
+                        width: "220px",
+                        minWidth: "180px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}>
                       {formatEmployeeName(contact.employee)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(contact.mobile_details)}
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(contact.mobile_number)}
+                    </TableCell>
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(contact.email_address)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(contact.email_details)}
+                      sx={{
+                        width: "180px",
+                        minWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {safelyDisplayValue(contact.email_address_remarks)}
                     </TableCell>
                     <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(contact.mobile_remarks)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(contact.email_remarks)}
-                    </TableCell>
-                    <TableCell
-                      className="table-status"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={
-                          showArchived || contact.deleted_at
-                            ? "ARCHIVED"
-                            : "ACTIVE"
-                        }
-                        color={
-                          showArchived || contact.deleted_at
-                            ? "error"
-                            : "success"
-                        }
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
-                      />
+                      className="table-cell2"
+                      sx={{
+                        width: "180px",
+                        minWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {safelyDisplayValue(contact.mobile_number_remarks)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -450,17 +343,26 @@ const Contacts = ({ searchQuery, showArchived, debounceValue }) => {
                   <TableCell
                     colSpan={8}
                     align="center"
-                    sx={{ borderBottom: "none" }}
-                    className="table-cell">
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography
-                      variant="body2"
-                      color="textSecondary"
-                      sx={{ mt: 1 }}>
-                      {debounceValue && debounceValue.trim() !== ""
-                        ? `No contacts found for "${debounceValue}"`
-                        : "No contacts available"}
-                    </Typography>
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No contacts found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived contacts"
+                          : "No active contacts"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -472,50 +374,106 @@ const Contacts = ({ searchQuery, showArchived, debounceValue }) => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={displayCount}
+            count={contacts?.result?.total || 0}
             rowsPerPage={rowsPerPage}
-            page={Math.min(
-              page - 1,
-              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
-            )}
+            page={page - 1}
             onPageChange={(event, newPage) => setPage(newPage + 1)}
             onRowsPerPageChange={(event) => {
               setRowsPerPage(parseInt(event.target.value, 10));
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
-            labelDisplayedRows={({ from, to, count }) => {
-              if (debounceValue && debounceValue.trim() !== "") {
-                return `${from}-${to} of ${count} (filtered)`;
-              }
-              return `${from}-${to} of ${count}`;
-            }}
-            showFirstButton
-            showLastButton
           />
         </Box>
       </Paper>
 
-      {/* View Employee Modal */}
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={7} // Step 5 (index 4) for contacts
-        onEdit={handleEditEmployee}
-      />
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            mb={1}>
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+          </Box>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom textAlign="center">
+            Are you sure you want to{" "}
+            <strong>
+              {selectedContact?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this contact?
+          </Typography>
+          {selectedContact && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {formatEmployeeName(selectedContact.employee)}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Box
+            display="flex"
+            justifyContent="center"
+            width="100%"
+            gap={2}
+            mb={2}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              variant="outlined"
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchiveRestoreConfirm}
+              variant="contained"
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
 
-      {/* Multi-Form Modal for Employee Editing */}
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={6}
       />
     </Box>
   );

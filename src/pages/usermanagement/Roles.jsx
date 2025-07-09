@@ -157,13 +157,46 @@ const Roles = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id">ID</TableCell>
-                <TableCell className="table-id">ROLE</TableCell>
-                <TableCell className="table-status">
+                <TableCell
+                  className="table-id"
+                  sx={{ width: "80px", minWidth: "80px", maxWidth: "80px" }}>
+                  ID
+                </TableCell>
+                <TableCell
+                  className="table-id"
+                  sx={{ width: "120px", minWidth: "120px", maxWidth: "120px" }}>
+                  ROLE
+                </TableCell>
+                <TableCell
+                  className="table-status"
+                  sx={{
+                    width: "180px",
+                    minWidth: "180px",
+                    maxWidth: "180px",
+                    textAlign: "center",
+                  }}>
                   ACCESS PERMISSION
                 </TableCell>
-                <TableCell className="table-status">STATUS</TableCell>
-                <TableCell className="table-status">ACTION</TableCell>
+                <TableCell
+                  className="table-status"
+                  sx={{
+                    width: "120px",
+                    minWidth: "120px",
+                    maxWidth: "120px",
+                    textAlign: "center",
+                  }}>
+                  STATUS
+                </TableCell>
+                <TableCell
+                  className="table-status"
+                  sx={{
+                    width: "100px",
+                    minWidth: "100px",
+                    maxWidth: "100px",
+                    textAlign: "center",
+                  }}>
+                  ACTION
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -176,11 +209,35 @@ const Roles = () => {
               ) : roles.length > 0 ? (
                 roles.map((role) => (
                   <TableRow key={role.id}>
-                    <TableCell className="table-cell-id">{role.id}</TableCell>
-                    <TableCell className="table-cell-id">
+                    <TableCell
+                      className="table-cell-id"
+                      sx={{
+                        width: "80px",
+                        minWidth: "80px",
+                        maxWidth: "80px",
+                      }}>
+                      {role.id}
+                    </TableCell>
+                    <TableCell
+                      className="table-cell-id"
+                      sx={{
+                        width: "120px",
+                        minWidth: "120px",
+                        maxWidth: "120px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}>
                       {role.role_name}
                     </TableCell>
-                    <TableCell className="table-status">
+                    <TableCell
+                      className="table-status"
+                      sx={{
+                        width: "180px",
+                        minWidth: "180px",
+                        maxWidth: "180px",
+                        textAlign: "center",
+                      }}>
                       <Tooltip title="View Permissions">
                         <IconButton
                           sx={{
@@ -199,7 +256,14 @@ const Roles = () => {
                       </Tooltip>
                     </TableCell>
 
-                    <TableCell className="table-status">
+                    <TableCell
+                      className="table-status"
+                      sx={{
+                        width: "120px",
+                        minWidth: "120px",
+                        maxWidth: "120px",
+                        textAlign: "center",
+                      }}>
                       <Chip
                         label={showArchived ? "INACTIVE" : "ACTIVE"}
                         color={showArchived ? "error" : "success"}
@@ -207,7 +271,14 @@ const Roles = () => {
                         sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
                       />
                     </TableCell>
-                    <TableCell className="table-status">
+                    <TableCell
+                      className="table-status"
+                      sx={{
+                        width: "100px",
+                        minWidth: "100px",
+                        maxWidth: "100px",
+                        textAlign: "center",
+                      }}>
                       <IconButton onClick={(e) => handleMenuOpen(e, role)}>
                         <MoreVertIcon />
                       </IconButton>

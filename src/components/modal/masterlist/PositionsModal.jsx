@@ -54,8 +54,6 @@ export default function PositionsModal({
     position_attachment: null,
   });
 
-  console.log(formData);
-
   const [errors, setErrors] = useState({});
   const [errorMessage, setErrorMessage] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
@@ -210,8 +208,6 @@ export default function PositionsModal({
     }
   };
 
-  console.log("handleFileChange", formData.position_attachment);
-
   const validateForm = () => {
     const newErrors = {
       titles: !formData.titles,
@@ -276,8 +272,6 @@ export default function PositionsModal({
       status: showArchived ? "inactive" : "active",
       position_attachment: formData.position_attachment,
     };
-
-    console.log("handleSubmit", payload);
 
     const formDataToSend = new FormData();
 

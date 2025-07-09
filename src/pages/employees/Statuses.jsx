@@ -10,59 +10,52 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
+  IconButton,
+  Menu,
+  MenuItem,
   Box,
   Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
-import { useSnackbar } from "notistack";
 import {
-  useGetStatusQuery,
-  useDeleteStatusMutation,
-} from "../../features/api/employee/statusApi";
-
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-// import MultiFormModal from "../../components/modal/employee/MultiFormModal";
+  MoreVert as MoreVertIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Download as DownloadIcon,
+} from "@mui/icons-material";
+import { useSnackbar } from "notistack";
+import { useGetStatusQuery } from "../../features/api/employee/statusApi";
+import StatusModal from "../../components/modal/employee/StatusModal";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
 
-const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
+const Status = ({ searchQuery, showArchived, debounceValue }) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [statusToEdit, setStatusToEdit] = useState(null);
+  const [menuAnchor, setMenuAnchor] = useState({});
 
-  // New state for view modal functionality
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-
-  // New state for multi-form modal functionality
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
-
-  const { enqueueSnackbar } = useSnackbar();
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusModalMode, setStatusModalMode] = useState("view");
+  const [selectedEmployeeStatus, setSelectedEmployeeStatus] = useState(null);
 
   React.useEffect(() => {
     setPage(1);
   }, [debounceValue, showArchived]);
 
-  const queryParams = useMemo(() => {
-    const params = {
+  const queryParams = useMemo(
+    () => ({
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
-    };
-
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
-    }
-
-    console.log("Statuses Query Params:", params);
-    return params;
-  }, [page, rowsPerPage, showArchived, debounceValue]);
+      search: debounceValue || "",
+    }),
+    [page, rowsPerPage, showArchived, debounceValue]
+  );
 
   const {
     data: apiResponse,
@@ -72,167 +65,334 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
     refetch,
   } = useGetStatusQuery(queryParams, {
     refetchOnMountOrArgChange: true,
-    skip: false,
   });
 
-  const [deleteEmployeeStatus] = useDeleteStatusMutation();
-
-  const { statusList, totalCount } = useMemo(() => {
-    console.log("API Response:", apiResponse);
-
-    if (!apiResponse) {
-      return { statusList: [], totalCount: 0 };
+  const validateDate = useCallback((dateString) => {
+    if (
+      !dateString ||
+      dateString === "" ||
+      dateString === "0000-00-00" ||
+      dateString === "1900-01-01" ||
+      dateString === "null" ||
+      dateString === "undefined"
+    ) {
+      return null;
     }
 
-    let result;
-    if (apiResponse.result) {
-      result = apiResponse.result;
-    } else if (apiResponse.data) {
-      result = apiResponse.data;
-    } else {
-      result = apiResponse;
-    }
-
-    const data = Array.isArray(result) ? result : result?.data || [];
-    const total = result?.total || result?.count || data.length;
-
-    console.log("Processed data:", {
-      data: data.length,
-      total,
-      firstItem: data[0],
-      searchTerm: debounceValue,
-    });
-
-    return {
-      statusList: data,
-      totalCount: total,
-    };
-  }, [apiResponse, debounceValue]);
-
-  // New handlers for row click functionality
-  const handleRowClick = (status) => {
-    if (status.employee?.id) {
-      setSelectedEmployeeId(status.employee.id);
-      setViewModalOpen(true);
-    } else {
-      enqueueSnackbar("No employee data found for this status", {
-        variant: "warning",
-        autoHideDuration: 3000,
-      });
-    }
-  };
-
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  };
-
-  const handleEditEmployee = (employeeData, editStep = 4) => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep);
-    setMultiFormModalOpen(true);
-  };
-
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  };
-
-  // Missing handler functions for StatusModal - COMMENTED OUT FOR NOW
-  // const handleEditModalClose = () => {
-  //   setEditModalOpen(false);
-  //   setStatusToEdit(null);
-  // };
-
-  // const handleStatusUpdateSuccess = () => {
-  //   enqueueSnackbar("Status updated successfully", {
-  //     variant: "success",
-  //     autoHideDuration: 3000,
-  //   });
-  //   setEditModalOpen(false);
-  //   setStatusToEdit(null);
-  //   refetch(); // Refresh the data
-  // };
-
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "—" : String(value);
-
-  const formatEmployeeName = (employee) => {
-    if (!employee) return "—";
-
-    return (
-      employee.full_name ||
-      employee.name ||
-      employee.first_name ||
-      `${employee.first_name} ${employee.last_name}`.trim() ||
-      employee.display_name ||
-      "—"
-    );
-  };
-
-  const formatDateForDisplay = (dateString) => {
-    if (!dateString || dateString === "N/A") return "N/A";
     try {
       const date = new Date(dateString);
+      if (
+        isNaN(date.getTime()) ||
+        date.getFullYear() < 1900 ||
+        date.getFullYear() > 2100
+      ) {
+        return null;
+      }
+      return dateString;
+    } catch (error) {
+      return null;
+    }
+  }, []);
+
+  const shouldShowDate = useCallback(
+    (statusLabel, dateType, dateValue) => {
+      if (!statusLabel) return false;
+
+      if (!validateDate(dateValue)) return false;
+
+      const status = statusLabel.toLowerCase();
+
+      switch (dateType) {
+        case "start_date":
+          return [
+            "extended",
+            "probationary",
+            "suspended",
+            "maternity",
+            "terminated",
+            "resigned",
+          ].includes(status);
+
+        case "end_date":
+          return [
+            "extended",
+            "probationary",
+            "suspended",
+            "maternity",
+          ].includes(status);
+
+        case "effectivity_date":
+          return [
+            "extended",
+            "probationary",
+            "suspended",
+            "maternity",
+            "terminated",
+            "resigned",
+          ].includes(status);
+
+        default:
+          return false;
+      }
+    },
+    [validateDate]
+  );
+
+  const { employeeStatusList, totalCount } = useMemo(() => {
+    const result = apiResponse?.result;
+    const data = result?.data || [];
+
+    const transformedData = data.map((item) => ({
+      id: item.id,
+      employee_id: item.employee?.id,
+      employee: {
+        id: item.employee?.id,
+        employee_code: item.employee?.employee_code,
+        full_name: item.employee?.full_name || formatFullName(item.employee),
+        first_name: item.employee?.first_name,
+        middle_name: item.employee?.middle_name,
+        last_name: item.employee?.last_name,
+        email: item.employee?.email,
+        current_status: item.employee?.current_status,
+      },
+      employee_status_label: item.employee_status_label || "N/A",
+      employee_status: item.employee_status || "active",
+      employee_status_start_date: validateDate(item.employee_status_start_date),
+      employee_status_end_date: validateDate(item.employee_status_end_date),
+      employee_status_effectivity_date: validateDate(
+        item.employee_status_effectivity_date
+      ),
+      employee_status_attachment: item.employee_status_attachment,
+      employee_status_remarks: item.employee_status_remarks,
+      is_current: item.is_current || false,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    }));
+
+    return {
+      employeeStatusList: transformedData,
+      totalCount: result?.total || data.length,
+    };
+  }, [apiResponse, validateDate]);
+
+  const formatFullName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee.full_name) return employee.full_name;
+
+    const parts = [
+      employee.first_name,
+      employee.middle_name,
+      employee.last_name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(" ") : "N/A";
+  }, []);
+
+  const handleMenuOpen = useCallback((event, statusId) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({
+      ...prev,
+      [statusId]: event.currentTarget,
+    }));
+  }, []);
+
+  const handleMenuClose = useCallback((statusId) => {
+    setMenuAnchor((prev) => ({ ...prev, [statusId]: null }));
+  }, []);
+
+  const openStatusModal = useCallback((employeeStatus, mode) => {
+    setSelectedEmployeeStatus(employeeStatus);
+    setStatusModalMode(mode);
+    setStatusModalOpen(true);
+  }, []);
+
+  const handleViewStatus = useCallback(
+    (employeeStatus, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(employeeStatus.id);
+      openStatusModal(employeeStatus, "view");
+    },
+    [handleMenuClose, openStatusModal]
+  );
+
+  const handleEditStatus = useCallback(
+    (employeeStatus, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(employeeStatus.id);
+      openStatusModal(employeeStatus, "edit");
+    },
+    [handleMenuClose, openStatusModal]
+  );
+
+  const handleDownloadAttachment = useCallback(
+    (employeeStatus, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(employeeStatus.id);
+
+      if (employeeStatus.employee_status_attachment) {
+        const link = document.createElement("a");
+        link.href = employeeStatus.employee_status_attachment;
+        link.download = `employee_${employeeStatus.employee_id}_status_attachment`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        enqueueSnackbar("Attachment downloaded successfully!", {
+          variant: "success",
+          autoHideDuration: 3000,
+        });
+      } else {
+        enqueueSnackbar("No attachment available", {
+          variant: "warning",
+          autoHideDuration: 3000,
+        });
+      }
+    },
+    [handleMenuClose, enqueueSnackbar]
+  );
+
+  const handleRowClick = useCallback(
+    (employeeStatus) => {
+      openStatusModal(employeeStatus, "view");
+    },
+    [openStatusModal]
+  );
+
+  const handleStatusModalClose = useCallback(() => {
+    setStatusModalOpen(false);
+    setStatusModalMode("view");
+    setSelectedEmployeeStatus(null);
+  }, []);
+
+  const handleStatusModalSubmit = useCallback(
+    async (data) => {
+      try {
+        await refetch();
+        enqueueSnackbar("Employee status updated successfully!", {
+          variant: "success",
+          autoHideDuration: 3000,
+        });
+      } catch (error) {
+        enqueueSnackbar("Failed to update employee status", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        throw error;
+      }
+    },
+    [refetch, enqueueSnackbar]
+  );
+
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
+
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+
+    if (employee.full_name && employee.full_name !== "N/A") {
+      return employee.full_name;
+    }
+
+    const parts = [
+      employee.last_name,
+      employee.first_name,
+      employee.middle_name,
+    ].filter(Boolean);
+
+    return parts.length > 0
+      ? parts.join(", ")
+      : employee.employee_code || "N/A";
+  }, []);
+
+  const formatDate = useCallback((dateString) => {
+    if (
+      !dateString ||
+      dateString === "" ||
+      dateString === "0000-00-00" ||
+      dateString === "1900-01-01" ||
+      dateString === "null" ||
+      dateString === "undefined"
+    ) {
+      return "N/A";
+    }
+
+    try {
+      const date = new Date(dateString);
+
+      if (
+        isNaN(date.getTime()) ||
+        date.getFullYear() < 1900 ||
+        date.getFullYear() > 2100
+      ) {
+        return "N/A";
+      }
+
       return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
-        day: "2-digit",
+        day: "numeric",
       });
     } catch (error) {
-      return dateString;
+      return "N/A";
     }
-  };
+  }, []);
 
-  const getStatusChipColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "regular":
-        return "success";
+  const formatDateWithStatus = useCallback(
+    (dateString, statusLabel, dateType) => {
+      if (!shouldShowDate(statusLabel, dateType, dateString)) {
+        return "N/A";
+      }
+
+      return formatDate(dateString);
+    },
+    [shouldShowDate, formatDate]
+  );
+
+  const getEmployeeStatusChipColor = useCallback((status) => {
+    if (!status) return "default";
+
+    switch (status.toLowerCase()) {
       case "probationary":
         return "warning";
-      case "contractual":
-        return "info";
-      case "terminated":
-      case "resigned":
+      case "regular":
+        return "success";
+      case "active":
+        return "success";
+      case "inactive":
         return "error";
+      case "suspended":
+        return "warning";
+      case "terminated":
+        return "error";
+      case "extended":
+        return "primary";
+      case "maternity":
+        return "info";
+      case "resigned":
+        return "default";
+      case "end of contract":
+        return "default";
+      case "blacklisted":
+        return "error";
+      case "dismissed":
+        return "error";
+      case "deceased":
+        return "secondary";
       default:
         return "default";
     }
-  };
+  }, []);
 
-  const filteredStatusList = useMemo(() => {
-    if (!debounceValue || debounceValue.trim() === "") {
-      return statusList;
+  const getNoDataMessage = useCallback(() => {
+    if (debounceValue) {
+      return `No results found for "${debounceValue}"`;
     }
-
-    const searchTerm = debounceValue.toLowerCase().trim();
-    return statusList.filter((status) => {
-      const employeeName = formatEmployeeName(status.employee).toLowerCase();
-      const statusLabel = (status.employee_status_label || "").toLowerCase();
-      const employeeStatus = (status.employee_status || "").toLowerCase();
-      const remarks = (status.employee_status_remarks || "").toLowerCase();
-
-      return (
-        employeeName.includes(searchTerm) ||
-        statusLabel.includes(searchTerm) ||
-        employeeStatus.includes(searchTerm) ||
-        remarks.includes(searchTerm)
-      );
-    });
-  }, [statusList, debounceValue]);
-
-  const displayList = filteredStatusList;
-  const displayCount =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredStatusList.length
-      : totalCount;
+    return showArchived
+      ? "No archived employee statuses found"
+      : "No active employee statuses found";
+  }, [debounceValue, showArchived]);
 
   return (
     <Box
@@ -250,6 +410,7 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -261,53 +422,32 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: 1300, width: "max-content" }}>
+          <Table stickyHeader sx={{ width: "100%", tableLayout: "fixed" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header3" sx={{ width: "80px" }}>
                   ID
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, whiteSpace: "nowrap" }}>
-                  EMPLOYEE
+                <TableCell className="table-header" sx={{ width: "120px" }}>
+                  EMPLOYEE CODE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  STATUS LABEL
+                <TableCell className="table-header" sx={{ width: "250px" }}>
+                  EMPLOYEE NAME
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 130, whiteSpace: "nowrap" }}>
-                  EMPLOYEE STATUS
+                <TableCell className="table-header" sx={{ width: "140px" }}>
+                  STATUS
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 130, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "120px" }}>
                   START DATE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "120px" }}>
                   END DATE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 140, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "140px" }}>
                   EFFECTIVITY DATE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, whiteSpace: "nowrap" }}>
-                  REMARKS
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{ minWidth: 110, whiteSpace: "nowrap" }}>
-                  STATUS
+                <TableCell className="table-header" sx={{ width: "120px" }}>
+                  ATTACHMENT
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -315,7 +455,12 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
               {isFetching ? (
                 <TableRow>
                   <TableCell colSpan={9} align="center">
-                    <CircularProgress size={24} />
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading employee statuses...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : error ? (
@@ -326,95 +471,113 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : displayList.length > 0 ? (
-                displayList.map((status) => (
+              ) : employeeStatusList.length > 0 ? (
+                employeeStatusList.map((employeeStatus) => (
                   <TableRow
-                    key={status.id}
-                    onClick={() => handleRowClick(status)}
+                    key={employeeStatus.id}
+                    onClick={() => handleRowClick(employeeStatus)}
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
                         },
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell
-                      className="table-cell-id"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(status.id)}
+                    <TableCell className="table-cell4" sx={{ width: "80px" }}>
+                      {safelyDisplayValue(employeeStatus.id)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {formatEmployeeName(status.employee)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={safelyDisplayValue(status.employee_status_label)}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": { fontSize: "0.75rem" },
-                          fontWeight: "medium",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={safelyDisplayValue(
-                          status.employee_status
-                        ).toUpperCase()}
-                        size="small"
-                        color={getStatusChipColor(status.employee_status)}
-                        sx={{
-                          "& .MuiChip-label": { fontSize: "0.75rem" },
-                          fontWeight: "medium",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {formatDateForDisplay(status.employee_status_start_date)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {formatDateForDisplay(status.employee_status_end_date)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {formatDateForDisplay(
-                        status.employee_status_effectivity_date
+                      sx={{
+                        width: "120px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {safelyDisplayValue(
+                        employeeStatus.employee?.employee_code
                       )}
                     </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
-                        whiteSpace: "nowrap",
-                        maxWidth: 150,
+                        width: "250px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                      }}>
-                      {safelyDisplayValue(status.employee_status_remarks)}
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}
+                      title={formatEmployeeName(employeeStatus.employee)}>
+                      {formatEmployeeName(employeeStatus.employee)}
+                    </TableCell>
+                    <TableCell className="table-cell2" sx={{ width: "140px" }}>
+                      <Chip
+                        label={safelyDisplayValue(
+                          employeeStatus.employee_status_label
+                        )}
+                        color={getEmployeeStatusChipColor(
+                          employeeStatus.employee_status_label
+                        )}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          fontWeight: 500,
+                          textTransform: "uppercase",
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="table-cell" sx={{ width: "120px" }}>
+                      {formatDateWithStatus(
+                        employeeStatus.employee_status_start_date,
+                        employeeStatus.employee_status_label,
+                        "start_date"
+                      )}
+                    </TableCell>
+                    <TableCell className="table-cell" sx={{ width: "120px" }}>
+                      {formatDateWithStatus(
+                        employeeStatus.employee_status_end_date,
+                        employeeStatus.employee_status_label,
+                        "end_date"
+                      )}
+                    </TableCell>
+                    <TableCell className="table-cell" sx={{ width: "140px" }}>
+                      {formatDateWithStatus(
+                        employeeStatus.employee_status_effectivity_date,
+                        employeeStatus.employee_status_label,
+                        "effectivity_date"
+                      )}
                     </TableCell>
                     <TableCell
-                      className="table-status"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      <Chip
-                        label={showArchived ? "ARCHIVED" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="small"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
-                      />
+                      className="table-cell"
+                      sx={{
+                        width: "120px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {employeeStatus.employee_status_attachment ? (
+                        <Chip
+                          label="Available"
+                          color="info"
+                          variant="outlined"
+                          size="small"
+                          sx={{ fontWeight: 500, cursor: "pointer" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadAttachment(employeeStatus, e);
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          N/A
+                        </Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -423,19 +586,22 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
                   <TableCell
                     colSpan={9}
                     align="center"
-                    sx={{ borderBottom: "none" }}
-                    className="table-cell">
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography
-                      variant="body2"
-                      color="textSecondary"
-                      sx={{ mt: 1 }}>
-                      {debounceValue && debounceValue.trim() !== ""
-                        ? `No statuses found for "${debounceValue}"`
-                        : showArchived
-                        ? "No archived statuses found"
-                        : "No active statuses found"}
-                    </Typography>
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No employee statuses found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {getNoDataMessage()}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -447,59 +613,42 @@ const Statuses = ({ searchQuery, showArchived, debounceValue }) => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={displayCount}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
-            page={Math.min(
-              page - 1,
-              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
-            )}
+            page={page - 1}
             onPageChange={(event, newPage) => setPage(newPage + 1)}
             onRowsPerPageChange={(event) => {
               setRowsPerPage(parseInt(event.target.value, 10));
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
-              minHeight: "52px", // Ensure minimum height
-            }}
-            labelDisplayedRows={({ from, to, count }) => {
-              if (debounceValue && debounceValue.trim() !== "") {
-                return `${from}-${to} of ${count} (filtered)`;
-              }
-              return `${from}-${to} of ${count}`;
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
+              minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
           />
         </Box>
       </Paper>
 
-      {/* Status Edit Modal - COMMENTED OUT FOR NOW */}
-      {/* <StatusModal
-        open={editModalOpen}
-        onClose={handleEditModalClose}
-        employeeStatus={statusToEdit}
-        onSuccess={handleStatusUpdateSuccess}
-      /> */}
-
-      {/* View Employee Modal */}
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={4} // Status step
-        onEdit={handleEditEmployee}
+      <StatusModal
+        open={statusModalOpen}
+        onClose={handleStatusModalClose}
+        employeeData={selectedEmployeeStatus}
+        onSubmit={handleStatusModalSubmit}
+        mode={statusModalMode}
+        allowEdit={true}
       />
-
-      {/* Multi-Form Modal for editing employee */}
-      {/* <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
-      /> */}
     </Box>
   );
 };
 
-export default Statuses;
+export default Status;

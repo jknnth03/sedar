@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Paper,
   Typography,
@@ -13,47 +13,45 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   Box,
   Chip,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import {
-  Edit as EditIcon,
   MoreVert as MoreVertIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import {
   useGetEmploymentTypesQuery,
   useUpdateEmploymentTypeMutation,
 } from "../../features/api/employee/employeetypesApi";
-
-import ViewEmployeeModal from "../../components/modal/employee/ViewEmployeeModal";
-import MultiFormModal from "../../components/modal/employee/MultiFormModal";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
 const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedEmploymentType, setSelectedEmploymentType] = useState(null);
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingEmploymentType, setEditingEmploymentType] = useState(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState("create");
+  const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  // New state for view modal functionality
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-
-  // New state for multi-form modal functionality
-  const [multiFormModalOpen, setMultiFormModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editEmployeeData, setEditEmployeeData] = useState(null);
-  const [initialStep, setInitialStep] = useState(0);
-
-  const { enqueueSnackbar } = useSnackbar();
-
-  // Reset page when search changes
   React.useEffect(() => {
     setPage(1);
   }, [debounceValue, showArchived]);
@@ -84,100 +82,140 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     const result = apiResponse?.result;
     const data = result?.data || [];
 
+    // Debug: Log the data structure
+    console.log("Employment Types Data:", data);
+    if (data.length > 0) {
+      console.log("First item structure:", data[0]);
+      console.log("Available keys:", Object.keys(data[0]));
+    }
+
     return {
       employmentTypeList: data,
       totalCount: result?.total || data.length,
     };
   }, [apiResponse]);
 
-  const handleMenuOpen = (event, employmentTypeId) => {
-    event.stopPropagation(); // Prevent row click when opening menu
+  const handleMenuOpen = useCallback((event, employmentTypeId) => {
+    event.stopPropagation();
     setMenuAnchor((prev) => ({
       ...prev,
       [employmentTypeId]: event.currentTarget,
     }));
-  };
+  }, []);
 
-  const handleMenuClose = (employmentTypeId) => {
+  const handleMenuClose = useCallback((employmentTypeId) => {
     setMenuAnchor((prev) => ({ ...prev, [employmentTypeId]: null }));
-  };
+  }, []);
 
-  const handleEditClick = (employmentType) => {
-    setEditingEmploymentType(employmentType);
-    setModalOpen(true);
-    handleMenuClose(employmentType.id);
-  };
+  const openWizard = useCallback(
+    async (employmentType, mode) => {
+      try {
+        const response = await getSingleEmployee(
+          employmentType?.employee?.id,
+          true
+        ).unwrap();
 
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setEditingEmploymentType(null);
-  };
+        setWizardInitialData(response?.result);
+        setWizardMode(mode);
+        setWizardOpen(true);
+      } catch (error) {
+        enqueueSnackbar("Failed to load employee details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [getSingleEmployee, enqueueSnackbar]
+  );
 
-  const handleModalSuccess = () => {
-    setModalOpen(false);
-    setEditingEmploymentType(null);
-    refetch();
-    enqueueSnackbar("Employment type updated successfully!", {
-      variant: "success",
-      autoHideDuration: 2000,
-    });
-  };
+  const handleViewEmployee = useCallback(
+    async (employmentType, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(employmentType.id);
+      await openWizard(employmentType, "view");
+    },
+    [handleMenuClose, openWizard]
+  );
 
-  // New function to handle row clicks
-  const handleRowClick = (employmentType) => {
-    if (employmentType.employee?.id) {
-      setSelectedEmployeeId(employmentType.employee.id);
-      setViewModalOpen(true);
-    } else {
-      enqueueSnackbar("No employee data found for this employment type", {
-        variant: "warning",
-        autoHideDuration: 3000,
+  const handleEditEmployee = useCallback(
+    async (employmentType, event) => {
+      if (event) event.stopPropagation();
+      handleMenuClose(employmentType.id);
+      await openWizard(employmentType, "edit");
+    },
+    [handleMenuClose, openWizard]
+  );
+
+  const handleRowClick = useCallback(
+    async (employmentType) => {
+      await openWizard(employmentType, "view");
+    },
+    [openWizard]
+  );
+
+  const handleWizardClose = useCallback(() => {
+    setWizardOpen(false);
+    setWizardMode("create");
+    setWizardInitialData(null);
+  }, []);
+
+  const handleWizardSubmit = useCallback(
+    async (data, mode, result) => {
+      await refetch();
+      enqueueSnackbar(
+        `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
+        { variant: "success", autoHideDuration: 3000 }
+      );
+    },
+    [refetch, enqueueSnackbar]
+  );
+
+  const safelyDisplayValue = useCallback(
+    (value) => (value === null || value === undefined ? "N/A" : String(value)),
+    []
+  );
+
+  const formatEmployeeName = useCallback((employee) => {
+    if (!employee) return "N/A";
+    if (employee?.full_name) return employee.full_name;
+
+    const parts = [
+      employee?.last_name,
+      employee?.first_name,
+      employee?.middle_name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(", ") : "N/A";
+  }, []);
+
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
+    } catch (error) {
+      return dateString;
     }
-  };
+  }, []);
 
-  // New function to handle view modal close
-  const handleViewModalClose = () => {
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-  };
-
-  // New function to handle edit employee from view modal
-  const handleEditEmployee = (employeeData, editStep = 2) => {
-    // Default to step 3 (index 2)
-    setViewModalOpen(false);
-    setSelectedEmployeeId(null);
-
-    setIsEditMode(true);
-    setEditEmployeeData(employeeData);
-    setInitialStep(editStep);
-    setMultiFormModalOpen(true);
-    console.log("employeeData", employeeData);
-  };
-
-  // New function to handle multi-form modal close
-  const handleMultiFormModalClose = () => {
-    setMultiFormModalOpen(false);
-    setIsEditMode(false);
-    setEditEmployeeData(null);
-    setInitialStep(0);
-    refetch();
-  };
-
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "—" : String(value);
-
-  const formatEmployeeName = (employee) => {
-    if (!employee) return "—";
-    return (
-      employee?.full_name ||
-      employee?.name ||
-      employee?.first_name ||
-      `${employee.first_name} ${employee.last_name}`.trim() ||
-      employee?.display_name ||
-      "—"
-    );
-  };
+  const getEmploymentTypeChipColor = useCallback((type) => {
+    switch (type?.toLowerCase()) {
+      case "probationary":
+        return "warning";
+      case "regular":
+        return "success";
+      case "contractual":
+        return "info";
+      case "temporary":
+        return "secondary";
+      default:
+        return "default";
+    }
+  }, []);
 
   return (
     <Box
@@ -195,6 +233,7 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -206,61 +245,44 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: "fit-content", width: "100%" }}>
+          <Table stickyHeader sx={{ width: "100%", tableLayout: "fixed" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, width: 80, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header3" sx={{ width: "60px" }}>
                   ID
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 200, width: 200, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "280px" }}>
                   EMPLOYEE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 180, width: 180, whiteSpace: "nowrap" }}>
-                  EMPLOYMENT TYPE LABEL
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, width: 150, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "160px" }}>
                   EMPLOYMENT TYPE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, width: 120, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "140px" }}>
                   START DATE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 120, width: 120, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "140px" }}>
                   END DATE
                 </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ minWidth: 150, width: 150, whiteSpace: "nowrap" }}>
+                <TableCell className="table-header" sx={{ width: "180px" }}>
                   REGULARIZATION DATE
-                </TableCell>
-                <TableCell
-                  className="table-status"
-                  sx={{ minWidth: 110, width: 110, whiteSpace: "nowrap" }}>
-                  STATUS
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    <CircularProgress size={24} />
+                  <TableCell colSpan={6} align="center">
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading employment types...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" className="table-cell">
+                  <TableCell colSpan={6} align="center" className="table-cell">
                     <Typography color="error">
                       Error: {error?.data?.message || "Failed to load data"}
                     </Typography>
@@ -274,79 +296,85 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
-                        backgroundColor: "#f5f5f5",
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
                         },
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell
-                      className="table-cell-id"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell4" sx={{ width: "60px" }}>
                       {safelyDisplayValue(employmentType.id)}
                     </TableCell>
                     <TableCell
                       className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
+                      sx={{
+                        width: "280px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}>
                       {formatEmployeeName(employmentType.employee)}
                     </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(employmentType.employment_type_label)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(employmentType.employment_type)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(employmentType.start_date)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(employmentType.end_date)}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{ whiteSpace: "nowrap" }}>
-                      {safelyDisplayValue(employmentType.regularization_date)}
-                    </TableCell>
-                    <TableCell
-                      className="table-status"
-                      sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell className="table-cell2" sx={{ width: "160px" }}>
                       <Chip
-                        label={showArchived ? "ARCHIVED" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
+                        label={safelyDisplayValue(
+                          employmentType.employment_type_label
+                        )}
+                        color={getEmploymentTypeChipColor(
+                          employmentType.employment_type_label
+                        )}
+                        variant="outlined"
+                        size="small"
+                        sx={{ fontWeight: 500 }}
                       />
+                    </TableCell>
+                    <TableCell className="table-cell" sx={{ width: "140px" }}>
+                      {formatDate(
+                        employmentType.employment_start_date ||
+                          employmentType.start_date
+                      )}
+                    </TableCell>
+                    <TableCell className="table-cell" sx={{ width: "140px" }}>
+                      {formatDate(
+                        employmentType.employment_end_date ||
+                          employmentType.end_date
+                      )}
+                    </TableCell>
+                    <TableCell className="table-cell" sx={{ width: "180px" }}>
+                      {formatDate(employmentType.regularization_date)}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={6}
                     align="center"
-                    borderBottom="none"
-                    className="table-cell">
-                    {CONSTANT?.BUTTONS?.NODATA?.icon || (
-                      <Typography
-                        variant="body2"
-                        color="textSecondary"
-                        sx={{ mt: 1 }}>
-                        {debounceValue
-                          ? `No employment types found for "${debounceValue}"`
-                          : showArchived
-                          ? "No archived employment types found."
-                          : "No employment types available"}
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT.BUTTONS.NODATA.icon}
+                      <Typography variant="h6" color="text.secondary">
+                        No employment types found
                       </Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {debounceValue
+                          ? `No results for "${debounceValue}"`
+                          : showArchived
+                          ? "No archived employment types"
+                          : "No active employment types"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -354,7 +382,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
           </Table>
         </TableContainer>
 
-        {/* Fixed pagination */}
         <Box sx={{ flexShrink: 0 }}>
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
@@ -368,30 +395,30 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
           />
         </Box>
       </Paper>
 
-      {/* View Employee Modal */}
-      <ViewEmployeeModal
-        open={viewModalOpen}
-        onClose={handleViewModalClose}
-        employeeId={selectedEmployeeId}
-        defaultStep={3} // Step 3 (index 2) for employment types
-        onEdit={handleEditEmployee}
-      />
-
-      {/* Multi-Form Modal for Employee Editing */}
-      <MultiFormModal
-        open={multiFormModalOpen}
-        onClose={handleMultiFormModalClose}
-        isEditMode={isEditMode}
-        editEmployeeData={editEmployeeData}
-        initialStep={initialStep}
+      <EmployeeWizardForm
+        open={wizardOpen}
+        onClose={handleWizardClose}
+        initialData={wizardInitialData}
+        mode={wizardMode}
+        onSubmit={handleWizardSubmit}
+        initialStep={3}
       />
     </Box>
   );
