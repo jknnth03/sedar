@@ -1,5 +1,8 @@
 // Employee.scss - Fixed Row Spacing with Black Stepper
 
+// Import Sass color module for modern color functions
+@use "sass:color";
+
 // Color variables
 $primary-color: rgb(33, 61, 112);
 $primary-hover: rgb(25, 45, 84);
@@ -353,7 +356,11 @@ $black: #000000;
     min-width: 100px !important;
 
     &:hover {
-      background-color: darken($success-color, 10%) !important;
+      // FIXED: Use modern color.adjust() instead of deprecated darken()
+      background-color: color.adjust(
+        $success-color,
+        $lightness: -10%
+      ) !important;
     }
 
     &:disabled {

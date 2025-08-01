@@ -16,7 +16,6 @@ import {
   alpha,
   Dialog,
   DialogContent,
-  Button,
   Paper,
   TablePagination,
 } from "@mui/material";
@@ -43,7 +42,6 @@ const PendingRegistrationTable = ({
   handleRowClick,
   handleEditSubmission,
   handleActionClick,
-  // Pagination props
   paginationData,
   onPageChange,
   onRowsPerPageChange,
@@ -66,41 +64,21 @@ const PendingRegistrationTable = ({
 
   const renderStatusChip = useCallback((registration) => {
     const statusConfig = {
-      pending: {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
-      },
+      pending: { color: "#f57c00", bgColor: "#fff8e1", label: "PENDING" },
       "awaiting resubmission": {
         color: "#4c00ffff",
         bgColor: "#f0f1ffff",
         label: "AWAITING RESUBMISSION",
       },
-      submitted: {
-        color: "#1976d2",
-        bgColor: "#e3f2fd",
-        label: "SUBMITTED",
-      },
+      submitted: { color: "#1976d2", bgColor: "#e3f2fd", label: "SUBMITTED" },
       resubmitted: {
         color: "#ed6c02",
         bgColor: "#fff3e0",
         label: "RESUBMITTED",
       },
-      rejected: {
-        color: "#d32f2f",
-        bgColor: "#ffebee",
-        label: "REJECTED",
-      },
-      returned: {
-        color: "#d32f2f",
-        bgColor: "#ffebee",
-        label: "RETURNED",
-      },
-      approved: {
-        color: "#2e7d32",
-        bgColor: "#e8f5e8",
-        label: "APPROVED",
-      },
+      rejected: { color: "#d32f2f", bgColor: "#ffebee", label: "REJECTED" },
+      returned: { color: "#d32f2f", bgColor: "#ffebee", label: "RETURNED" },
+      approved: { color: "#2e7d32", bgColor: "#e8f5e8", label: "APPROVED" },
     };
 
     const status = registration?.status?.toLowerCase();
@@ -122,148 +100,64 @@ const PendingRegistrationTable = ({
           fontSize: "11px",
           height: "24px",
           borderRadius: "12px",
-          "& .MuiChip-label": {
-            padding: "0 8px",
-          },
+          "& .MuiChip-label": { padding: "0 8px" },
         }}
       />
     );
   }, []);
 
-  const renderEmploymentTypeChip = useCallback((employmentTypes) => {
-    if (
-      !employmentTypes ||
-      !Array.isArray(employmentTypes) ||
-      employmentTypes.length === 0
-    ) {
-      return (
-        <Chip
-          label="N/A"
-          size="small"
-          sx={{
-            backgroundColor: "#f5f5f5",
-            color: "#666",
-            fontWeight: 500,
-            fontSize: "11px",
-            height: "24px",
-            borderRadius: "12px",
-          }}
-        />
-      );
+  const getFullName = (registration) => {
+    if (registration?.submittable?.employee_name) {
+      return registration.submittable.employee_name;
     }
 
-    const employmentType = employmentTypes[0]?.employment_type_label;
-    const label = employmentType?.toUpperCase() || "N/A";
+    if (registration?.submittable?.general_info?.full_name) {
+      const fullName = registration.submittable.general_info.full_name;
+      const statusWords = [
+        "REJECTED",
+        "APPROVED",
+        "PENDING",
+        "AWAITING",
+        "RESUBMISSION",
+        "SUBMITTED",
+        "RETURNED",
+      ];
+      let cleanName = fullName;
 
-    // Color coding for different employment types
-    const getTypeConfig = (type) => {
-      const typeConfigs = {
-        "FULL-TIME": { color: "#2e7d32", bgColor: "#e8f5e8" },
-        "PART-TIME": { color: "#1976d2", bgColor: "#e3f2fd" },
-        CONTRACT: { color: "#f57c00", bgColor: "#fff8e1" },
-        TEMPORARY: { color: "#9c27b0", bgColor: "#f3e5f5" },
-        INTERN: { color: "#ff9800", bgColor: "#fff3e0" },
-      };
+      statusWords.forEach((status) => {
+        const regex = new RegExp(`\\s+${status}\\s*$`, "i");
+        cleanName = cleanName.replace(regex, "");
+      });
 
-      return typeConfigs[type] || { color: "#666", bgColor: "#f5f5f5" };
-    };
+      return cleanName.trim();
+    }
 
-    const config = getTypeConfig(label);
+    const user = registration?.requested_by;
+    if (user?.full_name) return user.full_name;
+    const firstName = user?.first_name || "";
+    const lastName = user?.last_name || "";
+    if (firstName || lastName) return `${firstName} ${lastName}`.trim();
+    return user?.username || "N/A";
+  };
 
+  const getEmployeeCode = (registration) => {
     return (
-      <Chip
-        label={label}
-        size="small"
-        sx={{
-          backgroundColor: config.bgColor,
-          color: config.color,
-          border: `1px solid ${config.color}`,
-          fontWeight: 500,
-          fontSize: "11px",
-          height: "24px",
-          borderRadius: "12px",
-          "& .MuiChip-label": {
-            padding: "0 8px",
-          },
-        }}
-      />
+      registration?.submittable?.general_info?.employee_code ||
+      registration?.submittable?.employee_code ||
+      registration?.charging?.code ||
+      (registration?.id ? `EMP-${registration.id}` : "N/A")
     );
-  }, []);
+  };
 
-  const renderEmploymentType = useCallback((employmentTypes) => {
-    if (
-      !employmentTypes ||
-      !Array.isArray(employmentTypes) ||
-      employmentTypes.length === 0
-    ) {
-      return "N/A";
-    }
-
-    const employmentType = employmentTypes[0]?.employment_type_label;
-    return employmentType?.toUpperCase() || "N/A";
-  }, []);
-
-  const getActionMenuItems = useCallback(
-    (registration) => {
-      const items = [];
-      const status = registration?.status?.toLowerCase();
-
-      if (
-        status === "rejected" ||
-        status === "returned" ||
-        status === "awaiting resubmission"
-      ) {
-        items.push({
-          label: "Edit",
-          icon: <EditIcon fontSize="small" />,
-          onClick: () => handleEditSubmission?.(registration),
-          color: "primary",
-        });
-      }
-
-      if (
-        status === "rejected" ||
-        status === "returned" ||
-        status === "awaiting resubmission"
-      ) {
-        items.push({
-          label: "Resubmit",
-          icon: <RefreshIcon fontSize="small" />,
-          onClick: (e) => handleActionClick?.(registration, "resubmit", e),
-          color: "success",
-        });
-      }
-
-      if (status === "pending" || status === "submitted") {
-        items.push({
-          label: "Cancel",
-          icon: <CancelIcon fontSize="small" />,
-          onClick: (e) => handleActionClick?.(registration, "cancel", e),
-          color: "warning",
-        });
-      }
-
-      return items;
-    },
-    [handleEditSubmission, handleActionClick]
-  );
-
-  // Updated table container styles with better header handling
   const tableContainerStyles = {
     flex: 1,
     overflow: "auto",
     backgroundColor: "#fafafa",
-    maxHeight: "calc(100vh - 300px)", // Account for pagination
-    "& .MuiTable-root": {
-      minWidth: 950,
-    },
-    "& .MuiTableHead-root": {
-      position: "sticky",
-      top: 0,
-      zIndex: 10,
-    },
+    maxHeight: "calc(100vh - 300px)",
+    "& .MuiTable-root": { minWidth: 950 },
+    "& .MuiTableHead-root": { position: "sticky", top: 0, zIndex: 10 },
     "& .MuiTableCell-head": {
-      backgroundColor: "#f8f9fa !important", // Force background color
+      backgroundColor: "#f8f9fa !important",
       fontWeight: 700,
       fontSize: "18px",
       color: "rgb(33, 61, 112)",
@@ -289,9 +183,7 @@ const PendingRegistrationTable = ({
       "&:hover": {
         backgroundColor: "#f8f9fa",
         cursor: "pointer",
-        "& .MuiTableCell-root": {
-          backgroundColor: "transparent",
-        },
+        "& .MuiTableCell-root": { backgroundColor: "transparent" },
       },
     },
   };
@@ -309,45 +201,6 @@ const PendingRegistrationTable = ({
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-  };
-
-  const formatDescription = (activity) => {
-    const eventType = (
-      activity?.event_type ||
-      activity?.status ||
-      activity?.action ||
-      ""
-    ).toLowerCase();
-    const description = activity?.description;
-
-    if ((eventType === "rejected" || eventType === "returned") && description) {
-      return (
-        <Box>
-          <span style={{ color: "#d32f2f" }}>Reason: {description}</span>
-        </Box>
-      );
-    }
-
-    return description;
-  };
-
-  // Helper function to get proper full name
-  const getFullName = (user) => {
-    // First priority: use full_name if it exists and is not null/empty
-    if (user?.full_name && user.full_name.trim() !== "") {
-      return user.full_name;
-    }
-
-    // Second priority: construct from first_name and last_name
-    const firstName = user?.first_name || "";
-    const lastName = user?.last_name || "";
-
-    if (firstName || lastName) {
-      return `${firstName} ${lastName}`.trim();
-    }
-
-    // Fallback: use username or return N/A
-    return user?.username || "N/A";
   };
 
   const HistoryDialog = () => {
@@ -388,7 +241,6 @@ const PendingRegistrationTable = ({
         activity?.action ||
         "PENDING"
       ).toLowerCase();
-
       let IconComponent;
       switch (eventType) {
         case "rejected":
@@ -426,7 +278,6 @@ const PendingRegistrationTable = ({
           IconComponent = AssignmentIcon;
           break;
       }
-
       return IconComponent;
     };
 
@@ -515,9 +366,7 @@ const PendingRegistrationTable = ({
               borderRadius: 2,
               border: "1px solid #f0f0f0",
               transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              },
+              "&:hover": { boxShadow: "0 4px 12px rgba(0,0,0,0.1)" },
             }}>
             <Box
               sx={{
@@ -557,7 +406,7 @@ const PendingRegistrationTable = ({
 
                 {activity?.description && (
                   <Typography variant="body2" sx={{ color: "#666", mb: 1 }}>
-                    {formatDescription(activity)}
+                    {activity.description}
                   </Typography>
                 )}
 
@@ -573,11 +422,7 @@ const PendingRegistrationTable = ({
               <Box sx={{ textAlign: "right" }}>
                 <Typography
                   variant="body1"
-                  sx={{
-                    color: "#333",
-                    fontWeight: 600,
-                    fontSize: "14px",
-                  }}>
+                  sx={{ color: "#333", fontWeight: 600, fontSize: "14px" }}>
                   {getFullName(activity?.actor) || "System"}
                 </Typography>
 
@@ -608,11 +453,7 @@ const PendingRegistrationTable = ({
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: {
-            borderRadius: 3,
-            minHeight: "600px",
-            maxHeight: "90vh",
-          },
+          sx: { borderRadius: 3, minHeight: "600px", maxHeight: "90vh" },
         }}>
         <DialogContent
           sx={{ px: 4, py: 4, backgroundColor: "white", position: "relative" }}>
@@ -624,9 +465,7 @@ const PendingRegistrationTable = ({
                 right: 16,
                 top: 16,
                 color: "rgb(33, 61, 112)",
-                "&:hover": {
-                  backgroundColor: "#f5f5f5",
-                },
+                "&:hover": { backgroundColor: "#f5f5f5" },
               }}>
               <CloseIcon />
             </IconButton>
@@ -655,13 +494,7 @@ const PendingRegistrationTable = ({
                 }}
               />
               ACTIVITY LOGS
-              <TimelineIcon
-                sx={{
-                  color: "#FF4500",
-                  fontSize: 24,
-                  ml: 0.5,
-                }}
-              />
+              <TimelineIcon sx={{ color: "#FF4500", fontSize: 24, ml: 0.5 }} />
             </Typography>
 
             <Box
@@ -687,10 +520,7 @@ const PendingRegistrationTable = ({
                 </Typography>
                 <Typography
                   variant="body1"
-                  sx={{
-                    color: "#666",
-                    fontSize: "16px",
-                  }}>
+                  sx={{ color: "#666", fontSize: "16px" }}>
                   {getFullName(selectedRegistrationHistory?.requested_by)}
                 </Typography>
               </Box>
@@ -710,13 +540,8 @@ const PendingRegistrationTable = ({
                 </Typography>
                 <Typography
                   variant="body1"
-                  sx={{
-                    color: "#666",
-                    fontSize: "16px",
-                  }}>
-                  {selectedRegistrationHistory?.charging?.code ||
-                    selectedRegistrationHistory?.charging?.unit_name ||
-                    "N/A"}
+                  sx={{ color: "#666", fontSize: "16px" }}>
+                  {getEmployeeCode(selectedRegistrationHistory)}
                 </Typography>
               </Box>
 
@@ -735,10 +560,7 @@ const PendingRegistrationTable = ({
                 </Typography>
                 <Typography
                   variant="body1"
-                  sx={{
-                    color: "#666",
-                    fontSize: "16px",
-                  }}>
+                  sx={{ color: "#666", fontSize: "16px" }}>
                   {selectedRegistrationHistory?.created_at
                     ? dayjs(selectedRegistrationHistory.created_at).format(
                         "MMM D, YYYY"
@@ -857,13 +679,11 @@ const PendingRegistrationTable = ({
                       ...cellContentStyles,
                       fontWeight: 600,
                     }}>
-                    {getFullName(registration?.requested_by)}
+                    {getFullName(registration)}
                   </TableCell>
                   <TableCell
                     sx={{ ...columnStyles.position, ...cellContentStyles }}>
-                    {registration?.charging?.code || registration?.id
-                      ? `EMP-${registration.id}`
-                      : "N/A"}
+                    {getEmployeeCode(registration)}
                   </TableCell>
                   <TableCell sx={columnStyles.status}>
                     {renderStatusChip(registration)}
@@ -929,13 +749,12 @@ const PendingRegistrationTable = ({
         </Table>
       </TableContainer>
 
-      {/* Pagination Component */}
       {paginationData && (
         <TablePagination
           component="div"
           count={paginationData.total || 0}
-          page={(paginationData.current_page || 1) - 1} // MUI uses 0-based indexing
-          onPageChange={(event, newPage) => onPageChange?.(newPage + 1)} // Convert back to 1-based
+          page={(paginationData.current_page || 1) - 1}
+          onPageChange={(event, newPage) => onPageChange?.(newPage + 1)}
           rowsPerPage={paginationData.per_page || 10}
           onRowsPerPageChange={(event) =>
             onRowsPerPageChange?.(parseInt(event.target.value, 10))
@@ -944,9 +763,7 @@ const PendingRegistrationTable = ({
           sx={{
             backgroundColor: "#f8f9fa",
             borderTop: "1px solid #e0e0e0",
-            "& .MuiTablePagination-toolbar": {
-              minHeight: "52px",
-            },
+            "& .MuiTablePagination-toolbar": { minHeight: "52px" },
             "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
               {
                 fontSize: "14px",

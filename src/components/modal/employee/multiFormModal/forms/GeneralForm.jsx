@@ -84,41 +84,29 @@ const GeneralForm = ({
   }, [mode, isViewMode, triggerReligions, triggerPrefixes, triggerGenerals]);
 
   const handleDropdownFocus = async (dropdownName) => {
-    console.log("=== DROPDOWN FOCUS DEBUG ===");
-    console.log("Dropdown name:", dropdownName);
-    console.log("Already loaded:", dropdownsLoaded[dropdownName]);
-    console.log("Is read only:", isReadOnly);
-
     if (dropdownsLoaded[dropdownName] || isReadOnly) {
-      console.log("Skipping focus load - already loaded or read only");
       return;
     }
 
     const fetchParams = { page: 1, per_page: 1000, status: "active" };
-    console.log("Focus fetch params:", fetchParams);
 
     try {
       switch (dropdownName) {
         case "religions":
-          console.log("Triggering religions...");
           await triggerReligions(fetchParams, true);
           break;
         case "prefixes":
-          console.log("Triggering prefixes...");
           await triggerPrefixes(fetchParams);
           break;
         case "referrers":
-          console.log("Triggering referrers...");
           await triggerGenerals(fetchParams);
           break;
         default:
-          console.log("Unknown dropdown name, returning");
           return;
       }
 
       setDropdownsLoaded((prev) => {
         const newState = { ...prev, [dropdownName]: true };
-        console.log("Updated dropdowns loaded state:", newState);
         return newState;
       });
     } catch (error) {
@@ -146,11 +134,6 @@ const GeneralForm = ({
   const referrers = useMemo(() => {
     const generals = normalizeApiData(generalsData);
 
-    console.log("=== REFERRERS DEBUG ===");
-    console.log("Raw generalsData:", generalsData);
-    console.log("Normalized generals:", generals);
-    console.log("SelectedGeneral for filtering:", selectedGeneral);
-
     const filtered = generals.filter((general) => {
       if (selectedGeneral?.id) {
         return general.id !== selectedGeneral.id;
@@ -158,7 +141,6 @@ const GeneralForm = ({
       return true;
     });
 
-    console.log("Filtered referrers:", filtered);
     return filtered;
   }, [generalsData, selectedGeneral]);
 
@@ -183,10 +165,6 @@ const GeneralForm = ({
   };
 
   const renderReferrerItems = (items, loading) => {
-    console.log("=== RENDER REFERRER ITEMS DEBUG ===");
-    console.log("Items to render:", items);
-    console.log("Loading state:", loading);
-
     if (loading && items.length === 0) {
       return (
         <MenuItem disabled>
@@ -197,16 +175,12 @@ const GeneralForm = ({
     }
 
     return items.map((item, index) => {
-      // Updated to handle different possible name formats
       const display =
         item.full_name ||
         item.name ||
         `${item.first_name || ""} ${item.last_name || ""}`.trim() ||
         item.title ||
         "";
-
-      console.log(`Item ${index}:`, item);
-      console.log(`Display for item ${index}:`, display);
 
       return (
         <MenuItem key={item.id || index} value={item.id}>
@@ -397,9 +371,7 @@ const GeneralForm = ({
                       handleDropdownFocus("prefixes");
                     }
                   }}
-                  // Add onBlur to trigger validation
                   onBlur={() => {
-                    // This will trigger validation when user leaves the field
                     if (!value || !value.id) {
                       onChange(null);
                     }
@@ -673,12 +645,6 @@ const GeneralForm = ({
             name="referred_by"
             control={control}
             render={({ field: { onChange, value } }) => {
-              console.log("=== REFERRED BY AUTOCOMPLETE DEBUG ===");
-              console.log("Field value:", value);
-              console.log("Available referrers for matching:", referrers);
-              console.log("Referrers loading:", generalsLoading);
-              console.log("Field disabled:", isFieldDisabled);
-
               return (
                 <FormControl
                   fullWidth
@@ -687,7 +653,6 @@ const GeneralForm = ({
                   sx={{ width: "100%" }}>
                   <Autocomplete
                     onChange={(event, item) => {
-                      console.log("Referred By Autocomplete changed to:", item);
                       if (!isReadOnly) {
                         onChange(item || null);
                       }
@@ -706,29 +671,14 @@ const GeneralForm = ({
                         }`.trim() ||
                         item?.title ||
                         "";
-                      console.log(
-                        "Option label for item:",
-                        item,
-                        "Label:",
-                        label
-                      );
                       return label;
                     }}
                     isOptionEqualToValue={(option, value) => {
                       if (!option || !value) return false;
                       const isEqual = option.id === value.id;
-                      console.log(
-                        "Comparing option:",
-                        option,
-                        "with value:",
-                        value,
-                        "Equal:",
-                        isEqual
-                      );
                       return isEqual;
                     }}
                     onFocus={() => {
-                      console.log("Referred By Autocomplete focused!");
                       if (!isReadOnly) {
                         handleDropdownFocus("referrers");
                       }

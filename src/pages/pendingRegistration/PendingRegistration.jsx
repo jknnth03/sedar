@@ -27,7 +27,7 @@ import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import { useGetPendingEmployeesQuery } from "../../features/api/employee/pendingApi";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
-import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
+import EmployeeWizardForm from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../../pages/approver/FormSubmissionStyles";
 
