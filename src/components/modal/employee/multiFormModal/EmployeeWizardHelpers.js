@@ -420,6 +420,110 @@ export const getDialogTitle = (currentMode) => {
   return "UPDATE EMPLOYEE";
 };
 
+export const getDialogTitleStyles = () => ({
+  color: "rgb(33, 61, 112) !important",
+});
+
+export const getDialogTitleSx = () => ({
+  color: "rgb(33, 61, 112)",
+});
+
+export const createDialogConfig = (
+  open,
+  handleClose,
+  currentMode,
+  maxWidth = "lg",
+  fullWidth = true,
+  height = "90vh"
+) => ({
+  open,
+  onClose: handleClose,
+  maxWidth,
+  fullWidth,
+  PaperProps: {
+    sx: {
+      height,
+      maxHeight: height,
+      display: "flex",
+      flexDirection: "column",
+    },
+  },
+  title: {
+    text: getDialogTitle(currentMode),
+    sx: getDialogTitleSx(),
+  },
+});
+
+export const createLoadingDialog = (
+  open,
+  message = "Loading employee data..."
+) => ({
+  open,
+  maxWidth: "lg",
+  fullWidth: true,
+  PaperProps: {
+    sx: {
+      height: "90vh",
+      maxHeight: "90vh",
+      display: "flex",
+      flexDirection: "column",
+    },
+  },
+  content: {
+    sx: { p: 3, textAlign: "center" },
+    message,
+  },
+});
+
+export const createErrorDialog = (
+  open,
+  handleClose,
+  error = "Failed to load employee data. Please try again."
+) => ({
+  open,
+  maxWidth: "lg",
+  fullWidth: true,
+  PaperProps: {
+    sx: {
+      height: "90vh",
+      maxHeight: "90vh",
+      display: "flex",
+      flexDirection: "column",
+    },
+  },
+  content: {
+    sx: { p: 3, textAlign: "center" },
+    title: "Error Loading Data",
+    message: error,
+    onClose: handleClose,
+  },
+});
+
+export const createNotificationConfig = (submissionResult) => {
+  if (!submissionResult) return null;
+
+  const isError = submissionResult.type === "error";
+
+  return {
+    show: true,
+    type: submissionResult.type,
+    message: submissionResult.message,
+    sx: {
+      mb: 2,
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      px: 2,
+      py: 1,
+      backgroundColor: isError ? "#ffebee" : "#e8f5e8",
+      borderRadius: 1,
+      border: `1px solid ${isError ? "#ffcdd2" : "#c8e6c9"}`,
+    },
+    iconColor: isError ? "#d32f2f" : "#2e7d32",
+    textColor: isError ? "#d32f2f" : "#2e7d32",
+  };
+};
+
 export const triggerRefetch = async (onRefetch, refetchQueries) => {
   try {
     if (onRefetch && typeof onRefetch === "function") {

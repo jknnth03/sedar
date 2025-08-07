@@ -41,6 +41,7 @@ import PendingForms from "../../pages/receiving/PendingForms.jsx";
 import Receiver from "../../pages/approver/Receiver.jsx";
 import Approver from "../../pages/approver/Approver.jsx";
 import PendingRegistration from "../../pages/pendingRegistration/PendingRegistration.jsx";
+import RegistrationApproval from "../../pages/approver/registrationApproval/RegistrationApproval.jsx";
 
 export const ROUTES = [
   {
@@ -133,6 +134,15 @@ export const ROUTES = [
         element: <SubmissionApproval />,
         handle: {
           permission: CONSTANT.PAGES.APPROVING.children.SUBMISSIONAPPROVAL.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.name,
+        path: CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.path,
+        element: <RegistrationApproval />,
+        handle: {
+          permission:
+            CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.name,
         },
       },
       {

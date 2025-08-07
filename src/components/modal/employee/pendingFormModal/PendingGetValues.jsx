@@ -2,7 +2,6 @@ export const getPendingValues = ({ mode, initialData }) => {
   const formatDateForInput = (dateValue) => {
     if (!dateValue) return "";
 
-    // If already in YYYY-MM-DD format, return as is
     if (
       typeof dateValue === "string" &&
       /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
@@ -12,7 +11,6 @@ export const getPendingValues = ({ mode, initialData }) => {
 
     let date;
     if (typeof dateValue === "string") {
-      // Handle API date format like "Jun 17, 2007"
       if (dateValue.includes(",")) {
         date = new Date(dateValue);
       } else if (!dateValue.includes("T") && !dateValue.includes(" ")) {
@@ -42,27 +40,60 @@ export const getPendingValues = ({ mode, initialData }) => {
     return `${year}-${month}-${day}`;
   };
 
-  // Handle case where initialData is just an ID or null/undefined
+  const processEmploymentTypes = (employmentData) => {
+    let employmentTypes = [];
+    if (
+      employmentData &&
+      Array.isArray(employmentData) &&
+      employmentData.length > 0
+    ) {
+      employmentTypes = employmentData.map((emp, index) => ({
+        id: emp.id || null,
+        index: emp.index !== undefined ? emp.index : index,
+        employment_type_label: emp.employment_type_label || "",
+        employment_start_date: formatDateForInput(emp.employment_start_date),
+        employment_end_date: formatDateForInput(emp.employment_end_date),
+        regularization_date: formatDateForInput(emp.regularization_date),
+      }));
+    }
+    if (employmentTypes.length === 0) {
+      employmentTypes = [
+        {
+          id: null,
+          index: 0,
+          employment_type_label: "REGULAR",
+          employment_start_date: "",
+          employment_end_date: "",
+          regularization_date: "",
+        },
+      ];
+    }
+    return employmentTypes;
+  };
+
   if (
     !initialData ||
     typeof initialData === "number" ||
     typeof initialData === "string"
   ) {
-    console.log(
-      "getPendingValues: No data or only ID provided, returning defaults"
-    );
-    return getDefaultPendingValues();
+    const defaults = getDefaultPendingValues();
+    defaults.employment_types = processEmploymentTypes([]);
+    return defaults;
   }
 
   if ((mode === "edit" || mode === "view") && initialData) {
     const result = initialData.result || initialData;
 
-    // Check if we have the expected nested structure
-    if (!result.general_info && !result.first_name) {
-      console.log(
-        "getPendingValues: Data structure not as expected, returning defaults"
-      );
-      return getDefaultPendingValues();
+    if (!result) {
+      const defaults = getDefaultPendingValues();
+      defaults.employment_types = processEmploymentTypes([]);
+      return defaults;
+    }
+
+    if (!result.general_info && !result.first_name && !result.id) {
+      const defaults = getDefaultPendingValues();
+      defaults.employment_types = processEmploymentTypes([]);
+      return defaults;
     }
 
     const generalInfo = result.general_info || result;
@@ -74,8 +105,14 @@ export const getPendingValues = ({ mode, initialData }) => {
     const contactInfo = result.contacts || {};
     const filesArray = result.files || [];
 
-    // ... rest of your existing logic for processing the data ...
-    // (keeping all the existing processing code)
+    let employmentTypesSource =
+      result.employment_types ||
+      result.employment ||
+      statusesArray.filter((s) => s.employment_type_label) ||
+      [];
+    const processedEmploymentTypes = processEmploymentTypes(
+      employmentTypesSource
+    );
 
     const getLatestStatus = (statuses) => {
       if (!statuses || statuses.length === 0) return {};
@@ -95,11 +132,6 @@ export const getPendingValues = ({ mode, initialData }) => {
     const attainmentInfo =
       attainmentsArray.length > 0 ? attainmentsArray[0] : {};
 
-    // Add debugging logs
-    console.log("DEBUG getPendingValues - initialData:", initialData);
-    console.log("DEBUG getPendingValues - result:", result);
-    console.log("DEBUG getPendingValues - generalInfo:", generalInfo);
-
     const extractId = (value) => {
       if (!value) return "";
       if (typeof value === "object" && value.id) return value.id;
@@ -109,7 +141,13 @@ export const getPendingValues = ({ mode, initialData }) => {
 
     const extractObject = (value) => {
       if (!value) return null;
-      if (typeof value === "object") return value;
+      if (typeof value === "object" && value.id) {
+        return {
+          id: value.id,
+          name: value.name || value.label || `Item ${value.id}`,
+          ...value,
+        };
+      }
       return null;
     };
 
@@ -163,13 +201,138 @@ export const getPendingValues = ({ mode, initialData }) => {
     const bankObject = extractBankObject(bankValue);
     const bankIdValue = extractBankId(bankValue);
 
+    const attainmentObject =
+      result.attainment || extractObject(attainmentInfo.attainment);
+    const programObject =
+      result.program || extractObject(attainmentInfo.program);
+    const degreeObject = result.degree || extractObject(attainmentInfo.degree);
+    const honorTitleObject =
+      result.honor_title || extractObject(attainmentInfo.honor_title);
+
+    const processedFiles =
+      Array.isArray(filesArray) && filesArray.length > 0
+        ? filesArray.map((file, index) => {
+            let fileTypeObj = null;
+            let fileTypeId = null;
+
+            if (file.file_type) {
+              if (typeof file.file_type === "object" && file.file_type.id) {
+                fileTypeObj = file.file_type;
+                fileTypeId = file.file_type.id;
+              } else if (
+                typeof file.file_type === "number" ||
+                typeof file.file_type === "string"
+              ) {
+                fileTypeId = file.file_type;
+                fileTypeObj = {
+                  id: fileTypeId,
+                  name: `File Type ${fileTypeId}`,
+                };
+              }
+            }
+
+            let fileCabinetObj = null;
+            let fileCabinetId = null;
+
+            if (file.file_cabinet) {
+              if (
+                typeof file.file_cabinet === "object" &&
+                file.file_cabinet.id
+              ) {
+                fileCabinetObj = file.file_cabinet;
+                fileCabinetId = file.file_cabinet.id;
+              } else if (
+                typeof file.file_cabinet === "number" ||
+                typeof file.file_cabinet === "string"
+              ) {
+                fileCabinetId = file.file_cabinet;
+                fileCabinetObj = {
+                  id: fileCabinetId,
+                  name: `File Cabinet ${fileCabinetId}`,
+                };
+              }
+            }
+
+            return {
+              id:
+                file.id ||
+                `pending_file_${Date.now()}_${index}_${Math.random()
+                  .toString(36)
+                  .substr(2, 9)}`,
+              original_file_id: file.id || null,
+              employee_id: file.employee_id || "",
+              file_description: file.file_description || file.description || "",
+              file_attachment: null,
+              file_name: file.file_name || file.filename || "",
+              existing_file_name: file.file_name || file.filename || null,
+              existing_file_url: file.file_attachment || file.file_url || null,
+              file_url: file.file_attachment || file.file_url || null,
+
+              file_type_id: fileTypeObj,
+              file_cabinet_id: fileCabinetObj,
+
+              file_type: fileTypeObj,
+              file_cabinet: fileCabinetObj,
+              file_type_raw_id: fileTypeId,
+              file_cabinet_raw_id: fileCabinetId,
+
+              is_new_file: false,
+              index: index,
+            };
+          })
+        : [
+            {
+              id: `pending_file_${Date.now()}_0_${Math.random()
+                .toString(36)
+                .substr(2, 9)}`,
+              original_file_id: null,
+              employee_id: "",
+              file_description: "",
+              file_attachment: null,
+              file_name: "",
+              existing_file_name: null,
+              existing_file_url: null,
+              file_url: null,
+              file_type: null,
+              file_type_id: null,
+              file_cabinet: null,
+              file_cabinet_id: null,
+              is_new_file: true,
+              index: 0,
+            },
+          ];
+
+    const createSubmissionTitleFromLinked = (linkedMrfTitle) => {
+      if (!linkedMrfTitle) return null;
+
+      const parts = linkedMrfTitle.split(" | ");
+      const idPart = parts[0] || "";
+
+      return {
+        id: idPart,
+        submission_title: linkedMrfTitle,
+        name: linkedMrfTitle,
+        title: linkedMrfTitle,
+        ...generalInfo.submission_title,
+      };
+    };
+
     const pendingResult = {
-      // Employee ID and basic info
       id: result.id || "",
       employee_name: result.employee_name || "",
       current_status: result.current_status || "",
 
-      // General Information
+      manpower_form_id:
+        result.manpower_form_id ||
+        generalInfo.manpower_form_id ||
+        result.manpower_form?.id ||
+        "",
+
+      submission_title:
+        createSubmissionTitleFromLinked(generalInfo.linked_mrf_title) ||
+        extractObject(generalInfo.submission_title) ||
+        null,
+
       employee_code: generalInfo.employee_code || "",
       full_name: generalInfo.full_name || "",
       first_name: generalInfo.first_name || "",
@@ -183,10 +346,9 @@ export const getPendingValues = ({ mode, initialData }) => {
       civil_status: generalInfo.civil_status || "",
       religion: extractObject(generalInfo.religion) || null,
       image_url: generalInfo.image_url || "",
-      referred_by: generalInfo.referred_by || "",
+      referred_by: extractObject(generalInfo.referred_by) || null,
       remarks: generalInfo.remarks || "",
 
-      // Address Information
       region: extractObject(addressInfo.region) || null,
       region_id: extractId(addressInfo.region) || "",
       province: extractObject(addressInfo.province) || null,
@@ -202,7 +364,6 @@ export const getPendingValues = ({ mode, initialData }) => {
       foreign_address: addressInfo.foreign_address || "",
       address_remarks: addressInfo.remarks || "",
 
-      // Position Details
       job_rate: positionInfo.job_rate || 0,
       allowance: positionInfo.allowance || 0,
       salary: positionInfo.salary || 0,
@@ -216,10 +377,8 @@ export const getPendingValues = ({ mode, initialData }) => {
       job_level: extractObject(positionInfo.job_level) || null,
       job_level_id: extractId(positionInfo.job_level) || "",
 
-      // Employment Types (empty array based on your data)
-      employment_types: [],
+      employment_types: processedEmploymentTypes,
 
-      // Status Information
       statuses: processedStatuses,
       employee_status_label: statusInfo.employee_status_label || "",
       employee_status: statusInfo.employee_status || "",
@@ -231,26 +390,35 @@ export const getPendingValues = ({ mode, initialData }) => {
         formatDateForInput(statusInfo.employee_status_effectivity_date) || "",
       employee_status_attachment: statusInfo.employee_status_attachment || null,
 
-      // Educational Attainment
-      attainment: extractObject(attainmentInfo.attainment) || null,
+      attainment: attainmentObject,
       attainment_id: extractId(attainmentInfo.attainment) || "",
-      program: extractObject(attainmentInfo.program) || null,
+      program: programObject,
       program_id: extractId(attainmentInfo.program) || "",
-      degree: extractObject(attainmentInfo.degree) || null,
+      degree: degreeObject,
       degree_id: extractId(attainmentInfo.degree) || "",
-      honor_title: extractObject(attainmentInfo.honor_title) || null,
+      honor_title: honorTitleObject,
       honor_title_id: extractId(attainmentInfo.honor_title) || "",
-      academic_year_from: attainmentInfo.academic_year_from || "",
-      academic_year_to: attainmentInfo.academic_year_to || "",
-      gpa: attainmentInfo.gpa || "",
-      institution: attainmentInfo.institution || "",
-      attainment_attachment: attainmentInfo.attainment_attachment || null,
+      academic_year_from:
+        attainmentInfo.academic_year_from || result.academic_year_from || "",
+      academic_year_to:
+        attainmentInfo.academic_year_to || result.academic_year_to || "",
+      gpa: attainmentInfo.gpa || result.gpa || "",
+      institution: attainmentInfo.institution || result.institution || "",
+      attainment_attachment:
+        attainmentInfo.attainment_attachment ||
+        result.attainment_attachment ||
+        null,
       existing_attachment_filename:
-        attainmentInfo.attainment_attachment_filename || "",
-      existing_attachment_url: attainmentInfo.attainment_attachment || "",
-      attainment_remarks: attainmentInfo.attainment_remarks || "",
+        attainmentInfo.attainment_attachment_filename ||
+        result.existing_attachment_filename ||
+        "",
+      existing_attachment_url:
+        attainmentInfo.attainment_attachment ||
+        result.existing_attachment_url ||
+        "",
+      attainment_remarks:
+        attainmentInfo.attainment_remarks || result.attainment_remarks || "",
 
-      // Account Information
       sss_number: accountInfo.sss_number || "",
       pag_ibig_number: accountInfo.pag_ibig_number || "",
       philhealth_number: accountInfo.philhealth_number || "",
@@ -259,63 +427,41 @@ export const getPendingValues = ({ mode, initialData }) => {
       bank_id: bankIdValue,
       bank_account_number: accountInfo.bank_account_number || "",
 
-      // Contact Information
       email_address: contactInfo.email_address || "",
       mobile_number: contactInfo.mobile_number || "",
       email_address_remarks: contactInfo.email_address_remarks || "",
       mobile_number_remarks: contactInfo.mobile_number_remarks || "",
       contact_remarks: contactInfo.contact_remarks || "",
 
-      // Files
-      files: Array.isArray(filesArray)
-        ? filesArray.map((file, index) => ({
-            id: file.id || null,
-            original_file_id: file.id || null,
-            employee_id: file.employee_id || "",
-            file_description: file.file_description || "",
-            file_attachment: file.file_attachment || null,
-            file_name: file.file_name || "",
-            file_type: file.file_type || null,
-            file_type_id: file.file_type?.id || "",
-            file_cabinet: file.file_cabinet || null,
-            file_cabinet_id: file.file_cabinet?.id || "",
-            file_url: file.file_attachment || null,
-            index: index,
-          }))
-        : [],
+      files: processedFiles,
 
-      // Single file fields (for backward compatibility)
       file_description:
         filesArray.length > 0 ? filesArray[0].file_description || "" : "",
       file_attachment:
         filesArray.length > 0 ? filesArray[0].file_attachment || null : null,
       file_name: filesArray.length > 0 ? filesArray[0].file_name || "" : "",
-      file_type_id:
-        filesArray.length > 0 ? filesArray[0].file_type?.id || "" : "",
-      file_cabinet_id:
-        filesArray.length > 0 ? filesArray[0].file_cabinet?.id || "" : "",
       file_type: filesArray.length > 0 ? filesArray[0].file_type || null : null,
       file_cabinet:
         filesArray.length > 0 ? filesArray[0].file_cabinet || null : null,
     };
 
-    console.log("DEBUG getPendingValues - final pendingResult:", pendingResult);
     return pendingResult;
   }
 
-  // Default values for create mode or when no data is available
-  return getDefaultPendingValues();
+  const defaults = getDefaultPendingValues();
+  defaults.employment_types = processEmploymentTypes([]);
+  return defaults;
 };
 
-// Helper function for default values
 const getDefaultPendingValues = () => {
   return {
-    // Employee ID and basic info
     id: "",
     employee_name: "",
     current_status: "",
 
-    // General Information
+    manpower_form_id: "",
+
+    submission_title: null,
     employee_code: "",
     full_name: "",
     first_name: "",
@@ -329,10 +475,9 @@ const getDefaultPendingValues = () => {
     civil_status: "",
     religion: null,
     image_url: "",
-    referred_by: "",
+    referred_by: null,
     remarks: "",
 
-    // Address Information
     region: null,
     region_id: "",
     province: null,
@@ -348,7 +493,6 @@ const getDefaultPendingValues = () => {
     foreign_address: "",
     address_remarks: "",
 
-    // Position Details
     job_rate: 0,
     allowance: 0,
     salary: 0,
@@ -362,10 +506,17 @@ const getDefaultPendingValues = () => {
     job_level: null,
     job_level_id: "",
 
-    // Employment Types
-    employment_types: [],
+    employment_types: [
+      {
+        id: null,
+        index: 0,
+        employment_type_label: "REGULAR",
+        employment_start_date: "",
+        employment_end_date: "",
+        regularization_date: "",
+      },
+    ],
 
-    // Status Information
     statuses: [
       {
         id: null,
@@ -385,7 +536,6 @@ const getDefaultPendingValues = () => {
     employee_status_effectivity_date: "",
     employee_status_attachment: null,
 
-    // Educational Attainment
     attainment: null,
     attainment_id: "",
     program: null,
@@ -403,7 +553,6 @@ const getDefaultPendingValues = () => {
     existing_attachment_url: "",
     attainment_remarks: "",
 
-    // Account Information
     sss_number: "",
     pag_ibig_number: "",
     philhealth_number: "",
@@ -412,23 +561,40 @@ const getDefaultPendingValues = () => {
     bank_id: "",
     bank_account_number: "",
 
-    // Contact Information
     email_address: "",
     mobile_number: "",
     email_address_remarks: "",
     mobile_number_remarks: "",
     contact_remarks: "",
 
-    // Files
-    files: [],
+    files: [
+      {
+        id: null,
+        original_file_id: null,
+        employee_id: "",
+        file_description: "",
+        file_attachment: null,
+        file_name: "",
+        existing_file_name: null,
+        existing_file_url: null,
+        file_url: null,
+        file_type: null,
+        file_type_id: null,
+        file_cabinet: null,
+        file_cabinet_id: null,
+        is_new_file: true,
+        index: 0,
+      },
+    ],
 
-    // Single file fields
     file_description: "",
     file_attachment: null,
     file_name: "",
-    file_type_id: "",
-    file_cabinet_id: "",
     file_type: null,
     file_cabinet: null,
   };
+};
+
+export const getDefaultValues = ({ mode, initialData }) => {
+  return getPendingValues({ mode, initialData });
 };

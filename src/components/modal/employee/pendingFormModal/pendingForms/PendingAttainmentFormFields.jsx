@@ -24,9 +24,9 @@ import {
   Close,
 } from "@mui/icons-material";
 
-import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsEmpApi";
+import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsempApi";
 
-const AttainmentFormFields = ({
+const PendingAttainmentFormFields = ({
   programs,
   degrees,
   honors,
@@ -42,7 +42,7 @@ const AttainmentFormFields = ({
   handleFileChange,
   handleFileRemove,
   getOptionLabel,
-  selectedAttainment,
+  selectedPendingAttainment,
 }) => {
   const {
     control,
@@ -77,30 +77,20 @@ const AttainmentFormFields = ({
     const attachmentUrl = watchedValues?.existing_attachment_url;
     const attachmentFilename =
       watchedValues?.existing_attachment_filename ||
-      watchedValues?.attainment_attachment?.name;
+      watchedValues?.attainment_attachment?.name ||
+      "attachment.pdf";
 
     let attachmentId = null;
 
-    if (watchedValues?.id && typeof watchedValues.id === "number") {
-      attachmentId = watchedValues.id;
-    } else if (
-      watchedValues?.attainment_id &&
-      typeof watchedValues.attainment_id === "number"
+    if (
+      selectedPendingAttainment?.id &&
+      typeof selectedPendingAttainment.id === "number"
     ) {
-      attachmentId = watchedValues.attainment_id;
-    } else if (watchedValues) {
-      const possibleIdSources = [
-        watchedValues.program_id?.id,
-        watchedValues.degree_id?.id,
-        watchedValues.honor_title_id?.id,
-        watchedValues.attainment_id?.id,
-      ];
-
-      for (const id of possibleIdSources) {
-        if (id && typeof id === "number") {
-          attachmentId = id;
-          break;
-        }
+      attachmentId = selectedPendingAttainment.id;
+    } else if (attachmentUrl) {
+      const urlMatch = attachmentUrl.match(/\/attainments\/(\d+)\/attachment/);
+      if (urlMatch && urlMatch[1]) {
+        attachmentId = parseInt(urlMatch[1], 10);
       }
     }
 
@@ -134,7 +124,7 @@ const AttainmentFormFields = ({
       console.error("Invalid attachment ID:", attachmentData.id);
       alert("No valid attachment ID found. Check console for debug info.");
     }
-  }, [watchedValues, selectedAttainment]);
+  }, [watchedValues, selectedPendingAttainment]);
 
   const handleFileViewerClose = useCallback(() => {
     setFileViewerOpen(false);
@@ -172,18 +162,25 @@ const AttainmentFormFields = ({
 
   const currentYear = new Date().getFullYear();
 
+  // Fixed getEnhancedOptionLabel function
   const getEnhancedOptionLabel = (item, type) => {
     if (!item) return "";
-    if (getOptionLabel && typeof getOptionLabel === "function")
+
+    // Use custom getOptionLabel function if provided
+    if (getOptionLabel && typeof getOptionLabel === "function") {
       return getOptionLabel(item, type);
-    return item.name || item.label || `${type} ${item.id}` || "";
+    }
+
+    // Default fallback logic
+    if (item.name) return item.name;
+    if (item.label) return item.label;
+    if (item.id) return `${type} ${item.id}`;
+
+    return "";
   };
 
   const getDisplayFilename = () => {
-    if (
-      watchedValues?.existing_attachment_filename &&
-      watchedValues.existing_attachment_filename.toLowerCase() !== "dummy.pdf"
-    ) {
+    if (watchedValues?.existing_attachment_filename) {
       return watchedValues.existing_attachment_filename;
     }
 
@@ -195,33 +192,18 @@ const AttainmentFormFields = ({
       return watchedValues.attainment_attachment.name;
     }
 
-    return null;
+    return "dummy.pdf";
   };
 
   const hasExistingFile = () => {
     if (watchedValues?.attainment_attachment) return true;
-
-    if (
-      watchedValues?.existing_attachment_filename &&
-      watchedValues.existing_attachment_filename.toLowerCase() !== "dummy.pdf"
-    ) {
-      return true;
-    }
-
     const attachmentData = getAttachmentData();
-    return !!(
-      attachmentData.id &&
-      attachmentData.filename &&
-      attachmentData.filename.toLowerCase() !== "dummy.pdf"
-    );
+    return !!attachmentData.id;
   };
 
   const getFileName = (filename) => {
     if (!filename) {
-      if (
-        watchedValues?.existing_attachment_filename &&
-        watchedValues.existing_attachment_filename.toLowerCase() !== "dummy.pdf"
-      ) {
+      if (watchedValues?.existing_attachment_filename) {
         return watchedValues.existing_attachment_filename;
       }
       if (watchedValues?.attainment_attachment?.name) {
@@ -230,7 +212,7 @@ const AttainmentFormFields = ({
       if (watchedValues?.attainment_attachment instanceof File) {
         return watchedValues.attainment_attachment.name;
       }
-      return null;
+      return "dummy.pdf";
     }
     return filename.split("/").pop() || filename;
   };
@@ -272,7 +254,7 @@ const AttainmentFormFields = ({
           backgroundColor: "#f8f9fa",
         }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Attachment - {currentFileName}
+          Pending Attachment - {currentFileName}
         </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           {fileUrl && (
@@ -319,7 +301,7 @@ const AttainmentFormFields = ({
             flexDirection="column">
             <CircularProgress size={48} />
             <Typography variant="body1" sx={{ mt: 2, color: "text.secondary" }}>
-              Loading attachment...
+              Loading pending attachment...
             </Typography>
           </Box>
         ) : attachmentError ? (
@@ -330,10 +312,10 @@ const AttainmentFormFields = ({
             height="100%"
             flexDirection="column">
             <Typography variant="h6" color="error" gutterBottom>
-              Error loading attachment
+              Error loading pending attachment
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Unable to load the attachment. Please try again.
+              Unable to load the pending attachment. Please try again.
             </Typography>
           </Box>
         ) : (
@@ -355,7 +337,7 @@ const AttainmentFormFields = ({
                   border: "none",
                   borderRadius: "0 0 8px 8px",
                 }}
-                title="File Attachment"
+                title="Pending File Attachment"
               />
             ) : (
               <Box textAlign="center">
@@ -369,7 +351,7 @@ const AttainmentFormFields = ({
                   variant="body2"
                   color="text.secondary"
                   sx={{ mt: 1 }}>
-                  File preview not available
+                  Pending file preview not available
                 </Typography>
               </Box>
             )}
@@ -382,7 +364,7 @@ const AttainmentFormFields = ({
   return (
     <>
       <Grid container spacing={1} className="general-form__grid">
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="program_id"
             control={control}
@@ -412,6 +394,8 @@ const AttainmentFormFields = ({
                     if (!isReadOnly) handleDropdownFocus("programs");
                   }}
                   readOnly={isReadOnly}
+                  // Add noOptionsText to handle empty options
+                  noOptionsText="No programs available"
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -435,7 +419,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="degree_id"
             control={control}
@@ -465,6 +449,7 @@ const AttainmentFormFields = ({
                     if (!isReadOnly) handleDropdownFocus("degrees");
                   }}
                   readOnly={isReadOnly}
+                  noOptionsText="No degrees available"
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -488,7 +473,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="honor_title_id"
             control={control}
@@ -518,6 +503,7 @@ const AttainmentFormFields = ({
                     if (!isReadOnly) handleDropdownFocus("honors");
                   }}
                   readOnly={isReadOnly}
+                  noOptionsText="No honors available"
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -541,7 +527,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="attainment_id"
             control={control}
@@ -571,6 +557,7 @@ const AttainmentFormFields = ({
                     if (!isReadOnly) handleDropdownFocus("attainments");
                   }}
                   readOnly={isReadOnly}
+                  noOptionsText="No attainments available"
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -594,7 +581,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="academic_year_from"
             control={control}
@@ -619,7 +606,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="academic_year_to"
             control={control}
@@ -644,7 +631,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "366px", maxWidth: "366px" }}>
+        <Grid item xs={12} sm={6} sx={{ minWidth: "360px", maxWidth: "360px" }}>
           <Controller
             name="gpa"
             control={control}
@@ -670,7 +657,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "740px", maxWidth: "740px" }}>
+        <Grid item xs={12} sx={{ minWidth: "730px", maxWidth: "730px" }}>
           <Controller
             name="institution"
             control={control}
@@ -692,11 +679,7 @@ const AttainmentFormFields = ({
           />
         </Grid>
 
-        <Grid
-          item
-          xs={12}
-          sm={3}
-          sx={{ minWidth: "1114px", maxWidth: "1114px" }}>
+        <Grid item xs={12} sx={{ minWidth: "1100px", maxWidth: "1100px" }}>
           <Controller
             name="attainment_remarks"
             control={control}
@@ -707,7 +690,7 @@ const AttainmentFormFields = ({
                 variant="outlined"
                 fullWidth
                 disabled={isLoading || isReadOnly}
-                placeholder="Optional: Additional notes about this attainment"
+                placeholder="Optional: Additional notes about this pending attainment"
                 InputProps={{
                   readOnly: isReadOnly,
                 }}
@@ -724,12 +707,14 @@ const AttainmentFormFields = ({
                   <input
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                     style={{ display: "none" }}
-                    id="attainment-file-input"
+                    id="pending-attainment-file-input"
                     type="file"
                     onChange={handleFileChange}
                     disabled={isLoading}
                   />
-                  <label htmlFor="attainment-file-input" style={{ flex: 1 }}>
+                  <label
+                    htmlFor="pending-attainment-file-input"
+                    style={{ flex: 1 }}>
                     <Button
                       variant="outlined"
                       component="span"
@@ -759,9 +744,9 @@ const AttainmentFormFields = ({
                         },
                       }}>
                       {watchedValues.attainment_attachment?.name ||
-                        (hasExistingFile() && getDisplayFilename()
+                        (hasExistingFile()
                           ? `Current: ${getDisplayFilename()}`
-                          : "Upload Attachment (PDF, DOC, DOCX, JPG, PNG)")}
+                          : "Upload Pending Attachment (PDF, DOC, DOCX, JPG, PNG)")}
                     </Button>
                   </label>
 
@@ -806,7 +791,7 @@ const AttainmentFormFields = ({
                         {getFileName(getDisplayFilename())}
                       </Typography>
                       <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                        Click to view file
+                        Click to view pending file
                       </Typography>
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <IconButton
@@ -817,7 +802,7 @@ const AttainmentFormFields = ({
                               backgroundColor: "rgba(25, 118, 210, 0.04)",
                             },
                           }}
-                          title="View file">
+                          title="View pending file">
                           <Visibility />
                         </IconButton>
                         <IconButton
@@ -828,14 +813,14 @@ const AttainmentFormFields = ({
                               backgroundColor: "rgba(25, 118, 210, 0.04)",
                             },
                           }}
-                          title="Download file">
+                          title="Download pending file">
                           <Download />
                         </IconButton>
                       </Box>
                     </>
                   ) : (
                     <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                      No attachment available
+                      No pending attachment available
                     </Typography>
                   )}
                 </Box>
@@ -857,4 +842,4 @@ const AttainmentFormFields = ({
   );
 };
 
-export default AttainmentFormFields;
+export default PendingAttainmentFormFields;

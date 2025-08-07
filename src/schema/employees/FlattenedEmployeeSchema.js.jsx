@@ -360,17 +360,8 @@ export const createFlattenedEmployeeSchema = () => {
     foreign_address: yup.string().nullable(),
     address_remarks: yup.string().nullable(),
 
-    position_id: yup
-      .object()
-      .shape({ id: yup.string(), name: yup.string() })
-      .transform(transformObjectField)
-      .required("Position is required.")
-      .test("is-valid-object", "Position is required.", function (value) {
-        if (!value || typeof value !== "object" || !value.id) {
-          return false;
-        }
-        return true;
-      }),
+    position_title: yup.string().required("Position Title is required."),
+
     job_rate: yup
       .number()
       .transform(transformNumberValue)
@@ -787,17 +778,7 @@ export const getStepValidationSchema = (stepIndex) => {
     }),
 
     2: yup.object().shape({
-      position_id: yup
-        .object()
-        .shape({ id: yup.string(), name: yup.string() })
-        .transform(transformObjectField)
-        .required("Position is required.")
-        .test("is-valid-object", "Position is required.", function (value) {
-          if (!value || typeof value !== "object" || !value.id) {
-            return false;
-          }
-          return true;
-        }),
+      position_title: yup.string().required("Position Title is required."),
       job_rate: yup
         .number()
         .transform(transformNumberValue)

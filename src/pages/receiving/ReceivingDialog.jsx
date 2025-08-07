@@ -57,18 +57,28 @@ const SubmissionDialog = ({
     setConfirmationOpen(true);
   };
 
-  const handleConfirmReceive = () => {
+  const handleConfirmReceive = async () => {
     if (onReceive) {
-      onReceive(submission);
+      try {
+        await onReceive(submission);
+      } catch (error) {
+        // Error handling is done in the parent component
+      }
     }
     setConfirmationOpen(false);
+    handleClose();
   };
 
-  const handleConfirmReturn = (reason) => {
+  const handleConfirmReturn = async (reason) => {
     if (onReturn) {
-      onReturn(submission, reason);
+      try {
+        await onReturn(submission, reason);
+      } catch (error) {
+        // Error handling is done in the parent component
+      }
     }
     setConfirmationOpen(false);
+    handleClose();
   };
 
   const handleConfirmAction = (reason) => {
@@ -129,6 +139,14 @@ const SubmissionDialog = ({
       return () => clearTimeout(timeoutId);
     }
   }, [fileViewerOpen, fileUrl]);
+
+  // Reset confirmation state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setConfirmationOpen(false);
+      setConfirmationAction("");
+    }
+  }, [open]);
 
   if (!submission) return null;
 
@@ -994,9 +1012,11 @@ const ConfirmationDialog = ({
   );
 };
 
+// Create the object to export
 const ReceivingDialog = {
   SubmissionDialog,
   ConfirmationDialog,
 };
 
+// Export as default
 export default ReceivingDialog;

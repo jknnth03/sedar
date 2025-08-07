@@ -228,10 +228,21 @@ export const createEnhancedModules = (dashboardData = {}) => {
       notificationCount: counts.pendingApprovals,
       children: {
         SUBMISSIONAPPROVAL: {
-          name: "Pending Approval",
+          name: "MRF Approval",
           path: "submissionapproval",
           icon: (
             <TaskIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: counts.pendingApprovals,
+        },
+        REGISTRATIONAPPROVAL: {
+          name: "Registration Approval",
+          path: "registrationapproval",
+          icon: (
+            <HowToRegIcon
               sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
             />
           ),

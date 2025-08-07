@@ -45,6 +45,29 @@ const ContactForm = ({
     return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
   }, []);
 
+  // New function to ensure first digit is always 9
+  const formatPhoneNumberWithAutoNine = useCallback((value) => {
+    const digits = value.replace(/\D/g, "");
+
+    // If there are no digits, start with 9
+    if (!digits) return "9";
+
+    // If first digit is not 9, replace it with 9 or prepend 9
+    let processedDigits = digits;
+    if (digits.length > 0 && digits[0] !== "9") {
+      processedDigits = "9" + digits.slice(1);
+    }
+
+    // Ensure we don't exceed 10 digits
+    const limited = processedDigits.slice(0, 10);
+
+    // Format with dashes
+    if (limited.length <= 3) return limited;
+    if (limited.length <= 6)
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+  }, []);
+
   const getBackendFormat = useCallback((formattedValue) => {
     const digits = formattedValue.replace(/\D/g, "");
     if (!digits) return "";
@@ -90,7 +113,7 @@ const ContactForm = ({
     // Don't allow changes in view mode
     if (isReadOnly) return;
 
-    const formattedValue = formatPhoneNumber(value);
+    const formattedValue = formatPhoneNumberWithAutoNine(value);
     field.onChange(formattedValue);
   };
 
@@ -115,7 +138,7 @@ const ContactForm = ({
                 disabled={isLoading || isReadOnly}
                 error={!!errors.mobile_number}
                 helperText={errors.mobile_number?.message}
-                placeholder="Enter 10-digit number"
+                placeholder="9xx-xxx-xxxx"
                 inputProps={{
                   maxLength: 12,
                   readOnly: isReadOnly,

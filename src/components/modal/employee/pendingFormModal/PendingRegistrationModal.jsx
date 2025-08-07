@@ -14,200 +14,60 @@ import {
   IconButton,
   Fade,
   LinearProgress,
-  Tooltip,
-  StepIcon,
   Backdrop,
   CircularProgress,
+  StepIcon,
 } from "@mui/material";
 import {
   Close as CloseIcon,
   CheckCircle,
-  Error,
-  Edit as EditIcon,
-  Cancel as CancelIcon,
+  Error as ErrorIcon,
 } from "@mui/icons-material";
 import "../../employee/multiFormModal/Employee.scss";
 
+import { createFlattenedEmployeeSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import {
-  createFlattenedEmployeeSchema,
-  getStepValidationSchema,
-} from "../../../../schema/employees/FlattenedEmployeeSchema.js";
-import { useUpdateFormSubmissionMutation } from "../../../../features/api/employee/pendingApi.js";
-import { transformEmployeeData } from "../../employee/multiFormModal/EmployeeDataTransformer.js";
+  useUpdateFormSubmissionMutation,
+  useGetPendingEmployeesQuery,
+} from "../../../../features/api/employee/pendingApi.js";
+import { useResubmitFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi.js";
 import { CustomStepIcon } from "../../employee/multiFormModal/EmployeeWizardStyledComponents.jsx";
+import { STEPS } from "../../employee/multiFormModal/EmployeeWizardHelpers.js";
+
+import EmployeeWizardActions from "./PendingRegistrationActions.jsx";
+import { getPendingValues } from "../pendingFormModal/PendingGetValues.jsx";
+import { EditButton, CancelEditButton } from "./PendingRegistrationActions.jsx";
+
+// Import your validation utilities
 import {
-  STEPS,
-  initializeFormData,
-  validateStep,
-  getDialogTitle,
-  triggerRefetch,
-} from "../../employee/multiFormModal/EmployeeWizardHelpers.js";
+  validateCurrentStep,
+  handleStepNavigation,
+  createFormErrorHandler,
+  generateErrorMessage,
+  validateAndFixFormData,
+} from "./PendingFormStepValidation.jsx";
 
-// Import pending registration forms
-import PendingAddressForm from "./pendingForms/PendingAddressForm.jsx";
-import PendingPositionForm from "./pendingForms/PendingPositionForm.jsx";
-import PendingEmploymentTypesForm from "./pendingForms/PendingEmploymentTypeForm.jsx";
-import PendingAttainmentForm from "./pendingForms/PendingAttainmentForm.jsx";
-import PendingAccountForm from "./pendingForms/PendingAccountForm.jsx";
-import PendingContactForm from "./pendingForms/PendingContactForm.jsx";
-import PendingFileForm from "./pendingForms/PendingFileForm.jsx";
-import PendingGeneralInformationForm from "./pendingForms/PendingGeneralInformationForm.jsx";
-import PendingReviewStep from "./pendingForms/PendingReviewStep.jsx";
-
-import EmployeeWizardActions from "../multiFormModal/EmployeeWizardActions.jsx";
-import { getDefaultValues } from "../multiFormModal/EmployeeUtils.js";
-
-const transformEmploymentTypesForAPI = (employmentTypes) => {
-  if (!employmentTypes || !Array.isArray(employmentTypes)) {
-    return [];
-  }
-
-  const formatDateForAPI = (date) => {
-    if (!date) return null;
-
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return date;
-    }
-
-    let dateObj;
-    if (date instanceof Date) {
-      dateObj = date;
-    } else {
-      dateObj = new Date(date);
-    }
-
-    if (isNaN(dateObj.getTime())) {
-      return null;
-    }
-
-    return dateObj.toISOString().split("T")[0];
-  };
-
-  return employmentTypes.map((employment) => {
-    const transformedEmployment = {
-      id:
-        employment.id &&
-        typeof employment.id === "string" &&
-        employment.id.startsWith("employment_")
-          ? null
-          : employment.id && !isNaN(parseInt(employment.id))
-          ? parseInt(employment.id)
-          : null,
-      employment_type_label: employment.employment_type_label || "",
-    };
-
-    if (employment.employment_start_date) {
-      transformedEmployment.employment_start_date = formatDateForAPI(
-        employment.employment_start_date
-      );
-    }
-
-    if (employment.employment_end_date) {
-      transformedEmployment.employment_end_date = formatDateForAPI(
-        employment.employment_end_date
-      );
-    }
-
-    if (employment.regularization_date) {
-      transformedEmployment.regularization_date = formatDateForAPI(
-        employment.regularization_date
-      );
-    }
-
-    return transformedEmployment;
-  });
-};
-
-const getFieldStep = (fieldPath) => {
-  const stepFieldMap = {
-    0: [
-      "first_name",
-      "last_name",
-      "middle_name",
-      "prefix",
-      "id_number",
-      "birth_date",
-      "gender",
-      "civil_status",
-      "religion",
-      "suffix",
-      "referred_by",
-      "remarks",
-    ],
-    1: [
-      "region_id",
-      "province_id",
-      "city_municipality_id",
-      "barangay_id",
-      "street",
-      "zip_code",
-      "sub_municipality",
-      "foreign_address",
-      "address_remarks",
-    ],
-    2: [
-      "position_id",
-      "job_rate",
-      "allowance",
-      "additional_rate",
-      "additional_tools",
-      "additional_rate_remarks",
-      "schedule_id",
-      "job_level_id",
-    ],
-    3: ["employment_types"],
-    4: [
-      "attainment_id",
-      "program_id",
-      "degree_id",
-      "honor_title_id",
-      "academic_year_from",
-      "academic_year_to",
-      "gpa",
-      "institution",
-      "attainment_attachment",
-      "attainment_remarks",
-    ],
-    5: [
-      "sss_number",
-      "pag_ibig_number",
-      "philhealth_number",
-      "tin_number",
-      "bank",
-      "bank_account_number",
-    ],
-    6: ["email_address", "mobile_number", "contact_remarks"],
-    7: ["files"],
-    8: [],
-  };
-
-  for (const [step, fields] of Object.entries(stepFieldMap)) {
-    if (fields.some((field) => fieldPath.includes(field))) {
-      return parseInt(step);
-    }
-  }
-  return -1;
-};
-
-const getEmployeeFullName = (data) => {
-  if (!data) return "";
-
-  const parts = [];
-
-  const prefix = data.prefix || data.Prefix;
-  const firstName = data.first_name || data.firstName || data.FirstName;
-  const middleName = data.middle_name || data.middleName || data.MiddleName;
-  const lastName = data.last_name || data.lastName || data.LastName;
-  const suffix = data.suffix || data.Suffix;
-
-  if (prefix) parts.push(prefix);
-  if (firstName) parts.push(firstName);
-  if (middleName) parts.push(middleName);
-  if (lastName) parts.push(lastName);
-  if (suffix) parts.push(suffix);
-
-  return parts.join(" ").trim();
-};
+import {
+  stepComponents,
+  getEmployeeFullName,
+  getPendingDialogTitle,
+  shouldFetchPendingData,
+  createEmploymentTypeChangeHandler,
+  getSubmissionId,
+  getActualData,
+  createInitialState,
+  shouldInitializeForm,
+  shouldEnableEditButton,
+  shouldEnableResubmitButton,
+  resetModalState,
+  handleSuccessAndClose,
+  handleResubmitLogic,
+  handleFormSubmission,
+  handleEditModeToggle,
+  createLoadingDialog,
+  createErrorDialog,
+  createNotificationConfig,
+} from "./PendingRegistrationUtils.jsx";
 
 const PendingRegistrationModal = ({
   open,
@@ -220,30 +80,90 @@ const PendingRegistrationModal = ({
   refetchQueries,
   autoCloseAfterUpdate = true,
 }) => {
-  const [activeStep, setActiveStep] = useState(initialStep);
-  const [submissionResult, setSubmissionResult] = useState(null);
-  const [currentMode, setCurrentMode] = useState(mode);
-  const [originalMode, setOriginalMode] = useState(mode);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-  const [blockAllInteractions, setBlockAllInteractions] = useState(false);
-  const [isFormInitialized, setIsFormInitialized] = useState(false);
+  const initialState = createInitialState(initialStep, mode);
+  const [activeStep, setActiveStep] = useState(initialState.activeStep);
+  const [submissionResult, setSubmissionResult] = useState(
+    initialState.submissionResult
+  );
+  const [currentMode, setCurrentMode] = useState(initialState.currentMode);
+  const [originalMode, setOriginalMode] = useState(initialState.originalMode);
+  const [isProcessing, setIsProcessing] = useState(initialState.isProcessing);
+  const [isClosing, setIsClosing] = useState(initialState.isClosing);
+  const [blockAllInteractions, setBlockAllInteractions] = useState(
+    initialState.blockAllInteractions
+  );
+  const [isFormInitialized, setIsFormInitialized] = useState(
+    initialState.isFormInitialized
+  );
+  const [showUpdateConfirmDialog, setShowUpdateConfirmDialog] = useState(
+    initialState.showUpdateConfirmDialog
+  );
+  const [pendingUpdateData, setPendingUpdateData] = useState(
+    initialState.pendingUpdateData
+  );
 
   const isInitializedRef = useRef(false);
   const lastInitialDataRef = useRef(null);
 
-  // Using the pending registration update API
+  const submissionId = React.useMemo(
+    () => getSubmissionId(initialData),
+    [initialData]
+  );
+  const shouldFetchData = shouldFetchPendingData(submissionId, initialData);
+
+  const {
+    data: fetchedData,
+    isLoading: isFetchingData,
+    error: fetchError,
+  } = useGetPendingEmployeesQuery(submissionId, {
+    skip: !shouldFetchData || !open,
+  });
+
+  const actualData = React.useMemo(
+    () => getActualData(fetchedData, initialData),
+    [fetchedData, initialData]
+  );
+
   const [updateFormSubmission, { isLoading: isUpdating }] =
     useUpdateFormSubmissionMutation();
+  const [resubmitFormSubmission, { isLoading: isResubmitting }] =
+    useResubmitFormSubmissionMutation();
 
-  const isSubmitting = (isUpdating || isProcessing) && !isClosing;
+  const isSubmitting =
+    (isUpdating || isProcessing || isResubmitting) && !isClosing;
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
   const isViewOrEditMode = isViewMode || isEditMode;
   const isDisabled = isSubmitting || blockAllInteractions;
 
+  const initializePendingFormData = useCallback(
+    (data) => {
+      const formData = getPendingValues({
+        mode: currentMode || mode,
+        initialData: data,
+      });
+
+      // Use validation utilities to fix and validate the form data
+      const { fixedData, validationResults } = validateAndFixFormData(
+        formData,
+        "Initial Form Data"
+      );
+
+      // Log validation results for debugging
+      if (validationResults.fixes.length > 0) {
+        console.log("Applied form data fixes:", validationResults.fixes);
+      }
+      if (validationResults.warnings.length > 0) {
+        console.warn("Form data warnings:", validationResults.warnings);
+      }
+
+      return fixedData;
+    },
+    [currentMode, mode]
+  );
+
   const methods = useForm({
-    defaultValues: getDefaultValues({ mode, initialData }),
+    defaultValues: getPendingValues({ mode, initialData: null }),
     resolver: yupResolver(createFlattenedEmployeeSchema()),
     mode: "onChange",
     reValidateMode: "onChange",
@@ -257,95 +177,123 @@ const PendingRegistrationModal = ({
     setValue,
     clearErrors,
     getValues,
-    trigger,
     formState: { errors },
   } = methods;
 
-  // Step components mapping for pending registration forms
-  const stepComponents = {
-    0: PendingGeneralInformationForm,
-    1: PendingAddressForm,
-    2: PendingPositionForm,
-    3: PendingEmploymentTypesForm,
-    4: PendingAttainmentForm,
-    5: PendingAccountForm,
-    6: PendingContactForm,
-    7: PendingFileForm,
-    8: PendingReviewStep,
-  };
+  // Create form error handler using the validation utility
+  const handleFormErrors = useCallback(
+    createFormErrorHandler(setSubmissionResult),
+    []
+  );
+
+  const handleResubmit = useCallback(async () => {
+    await handleResubmitLogic(
+      () => shouldEnableResubmitButton(actualData, isSubmitting),
+      submissionId,
+      resubmitFormSubmission,
+      setIsProcessing,
+      setSubmissionResult,
+      setBlockAllInteractions,
+      setIsClosing,
+      handleClose,
+      onRefetch
+    );
+  }, [
+    actualData,
+    isSubmitting,
+    submissionId,
+    resubmitFormSubmission,
+    onRefetch,
+  ]);
+
+  const handleClose = useCallback(() => {
+    if (isDisabled && !isClosing) return;
+
+    resetModalState(
+      initialStep,
+      mode,
+      clearErrors,
+      setActiveStep,
+      setSubmissionResult,
+      setCurrentMode,
+      setOriginalMode,
+      setIsProcessing,
+      setIsClosing,
+      setBlockAllInteractions,
+      setIsFormInitialized,
+      setShowUpdateConfirmDialog,
+      setPendingUpdateData,
+      isInitializedRef,
+      lastInitialDataRef
+    );
+
+    if (onClose) onClose();
+  }, [isDisabled, isClosing, initialStep, mode, clearErrors, onClose]);
+
+  // Updated onError handler to use validation utilities
+  const onError = useCallback((errors) => {
+    const errorMessage = generateErrorMessage({
+      inner: Object.values(errors).flat(),
+    });
+    setSubmissionResult({
+      type: "error",
+      message: errorMessage,
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) {
-      setActiveStep(initialStep);
-      setSubmissionResult(null);
-      setCurrentMode(mode);
-      setOriginalMode(mode);
-      setIsProcessing(false);
-      setIsClosing(false);
-      setBlockAllInteractions(false);
-      setIsFormInitialized(false);
-      isInitializedRef.current = false;
-      lastInitialDataRef.current = null;
+      resetModalState(
+        initialStep,
+        mode,
+        clearErrors,
+        setActiveStep,
+        setSubmissionResult,
+        setCurrentMode,
+        setOriginalMode,
+        setIsProcessing,
+        setIsClosing,
+        setBlockAllInteractions,
+        setIsFormInitialized,
+        setShowUpdateConfirmDialog,
+        setPendingUpdateData,
+        isInitializedRef,
+        lastInitialDataRef
+      );
       return;
     }
 
-    const shouldInitialize =
-      !isInitializedRef.current ||
-      JSON.stringify(initialData) !==
-        JSON.stringify(lastInitialDataRef.current);
+    if (isFetchingData) return;
 
-    if (shouldInitialize) {
-      const formData = initializeFormData(initialData);
+    if (
+      shouldInitializeForm(
+        isInitializedRef,
+        lastInitialDataRef,
+        actualData,
+        shouldFetchData
+      )
+    ) {
+      const formData = initializePendingFormData(actualData);
       reset(formData);
       setIsFormInitialized(true);
       setCurrentMode(mode);
       setOriginalMode(mode);
       isInitializedRef.current = true;
-      lastInitialDataRef.current = initialData;
+      lastInitialDataRef.current = actualData;
     }
-  }, [open, initialData, mode, initialStep, reset]);
+  }, [
+    open,
+    actualData,
+    mode,
+    initialStep,
+    reset,
+    isFetchingData,
+    shouldFetchData,
+    initializePendingFormData,
+  ]);
 
   const handleEmploymentTypeChange = useCallback(
-    (employmentTypes) => {
-      employmentTypes.forEach((employment, index) => {
-        if (
-          employment.employment_type_label === "PROBATIONARY" &&
-          employment.employment_start_date &&
-          !employment.employment_end_date
-        ) {
-          const startDate = new Date(employment.employment_start_date);
-          if (!isNaN(startDate.getTime())) {
-            const endDate = new Date(startDate);
-            endDate.setMonth(endDate.getMonth() + 6);
-            const calculatedEndDate = endDate.toISOString().split("T")[0];
-
-            setValue(
-              `employment_types.${index}.employment_end_date`,
-              calculatedEndDate,
-              {
-                shouldValidate: false,
-                shouldDirty: true,
-              }
-            );
-          }
-        }
-
-        if (employment.employment_type_label === "REGULAR") {
-          if (employment.employment_end_date) {
-            setValue(`employment_types.${index}.employment_end_date`, "", {
-              shouldValidate: false,
-              shouldDirty: true,
-            });
-          }
-          if (employment.employment_start_date) {
-            setValue(`employment_types.${index}.employment_start_date`, "", {
-              shouldValidate: false,
-              shouldDirty: true,
-            });
-          }
-        }
-      });
-    },
+    createEmploymentTypeChangeHandler(setValue),
     [setValue]
   );
 
@@ -366,44 +314,34 @@ const PendingRegistrationModal = ({
     return () => subscription.unsubscribe();
   }, [watch, handleEmploymentTypeChange, isFormInitialized, isDisabled]);
 
-  const validateCurrentStep = async (stepIndex) => {
-    try {
-      const stepSchema = getStepValidationSchema(stepIndex);
-      const currentData = getValues();
-
-      await stepSchema.validate(currentData, { abortEarly: false });
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
+  // Updated step navigation handlers using validation utilities
   const handleNext = async () => {
-    if (isViewMode || isDisabled) {
-      if (isViewMode) {
-        setActiveStep((prev) => prev + 1);
-      }
-      return;
+    const success = await handleStepNavigation(
+      "next",
+      activeStep,
+      isViewMode,
+      isDisabled,
+      getValues,
+      setActiveStep,
+      setSubmissionResult
+    );
+
+    if (!success && !isViewMode) {
+      // Additional error handling if needed
+      handleFormErrors(errors);
     }
-
-    setSubmissionResult(null);
-
-    const stepValid = await validateCurrentStep(activeStep);
-    if (!stepValid) {
-      setSubmissionResult({
-        type: "error",
-        message: "Please fill in all required fields to continue.",
-      });
-      return;
-    }
-
-    setActiveStep((prev) => prev + 1);
   };
 
   const handleBack = () => {
-    if (isDisabled) return;
-    setSubmissionResult(null);
-    setActiveStep((prev) => prev - 1);
+    handleStepNavigation(
+      "back",
+      activeStep,
+      isViewMode,
+      isDisabled,
+      getValues,
+      setActiveStep,
+      setSubmissionResult
+    );
   };
 
   const handleStepClick = (stepIndex) => {
@@ -413,232 +351,114 @@ const PendingRegistrationModal = ({
   };
 
   const handleEditClick = () => {
-    if (isDisabled) return;
-    setCurrentMode("edit");
-    setSubmissionResult(null);
+    const editButtonEnabled = shouldEnableEditButton(actualData, isSubmitting);
+    if (isDisabled || !editButtonEnabled) return;
+    handleEditModeToggle(
+      "enter",
+      originalMode,
+      setCurrentMode,
+      setSubmissionResult,
+      clearErrors,
+      handleClose
+    );
   };
 
   const handleCancelEdit = () => {
     if (isDisabled) return;
-    if (originalMode === "view") {
-      setCurrentMode("view");
-    } else {
-      handleClose();
-    }
-    setSubmissionResult(null);
-    clearErrors();
-  };
-
-  const processSubmission = async (data) => {
-    const fullSchema = createFlattenedEmployeeSchema();
-    await fullSchema.validate(data, { abortEarly: false });
-
-    const transformedData = transformEmployeeData(data);
-
-    Object.keys(transformedData).forEach((key) => {
-      if (transformedData[key] === undefined) {
-        delete transformedData[key];
-      }
-    });
-
-    // Use the pending registration update API
-    transformedData.set("_method", "PATCH");
-    const submissionId =
-      initialData?.id ||
-      initialData?.submission_id ||
-      initialData?.submittable?.id;
-    if (!submissionId) {
-      throw new Error("Submission ID is required for update mode");
-    }
-
-    const result = await updateFormSubmission({
-      id: submissionId,
-      data: transformedData,
-    }).unwrap();
-
-    if (onSubmitProp) {
-      await onSubmitProp(transformedData, currentMode, result);
-    }
-
-    await triggerRefetch(onRefetch, refetchQueries);
-
-    return result;
+    handleEditModeToggle(
+      "cancel",
+      originalMode,
+      setCurrentMode,
+      setSubmissionResult,
+      clearErrors,
+      handleClose
+    );
   };
 
   const onSubmit = async (data) => {
     if (isDisabled) return;
 
-    setIsProcessing(true);
-    setSubmissionResult(null);
+    // Validate and fix data before submission
+    const { fixedData, validationResults } = validateAndFixFormData(
+      data,
+      "Submission Data"
+    );
 
-    try {
-      await processSubmission(data);
-
+    if (!validationResults.isValid) {
       setSubmissionResult({
-        type: "success",
-        message: "Pending registration updated successfully!",
+        type: "error",
+        message: validationResults.errors.join(", "),
       });
-
-      setBlockAllInteractions(true);
-      setIsClosing(true);
-      setTimeout(() => handleClose(), 1000);
-    } catch (error) {
-      let errorMessage =
-        "Failed to update pending registration. Please try again.";
-
-      if (error.inner && error.inner.length > 0) {
-        const errorsByStep = {};
-
-        error.inner.forEach((err) => {
-          const stepIndex = getFieldStep(err.path);
-          const stepName = stepIndex >= 0 ? STEPS[stepIndex] : "Unknown";
-
-          if (!errorsByStep[stepName]) {
-            errorsByStep[stepName] = [];
-          }
-
-          const fieldName = err.path
-            .split(".")
-            .pop()
-            .replace(/_/g, " ")
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-          errorsByStep[stepName].push(fieldName);
-        });
-
-        const stepErrors = Object.entries(errorsByStep).map(
-          ([step, fields]) => {
-            if (fields.length === 1) {
-              return `${step}: ${fields[0]} is required`;
-            } else {
-              return `${step}: ${fields.join(", ")} are required`;
-            }
-          }
-        );
-
-        if (stepErrors.length === 1) {
-          errorMessage = stepErrors[0];
-        } else {
-          errorMessage = `Please complete required fields in: ${stepErrors.join(
-            "; "
-          )}`;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      setSubmissionResult({ type: "error", message: errorMessage });
-    } finally {
-      setIsProcessing(false);
+      return;
     }
+
+    await handleFormSubmission(
+      fixedData, // Use fixed data instead of raw data
+      submissionId,
+      actualData,
+      updateFormSubmission,
+      onSubmitProp,
+      currentMode,
+      onRefetch,
+      refetchQueries,
+      setIsProcessing,
+      setSubmissionResult,
+      setBlockAllInteractions,
+      setIsClosing,
+      handleClose,
+      autoCloseAfterUpdate
+    );
   };
 
   const handleUpdateAtStep = async () => {
     if (isDisabled) return;
 
-    setIsProcessing(true);
-    setSubmissionResult(null);
+    // Validate current step before proceeding
+    const stepValid = await validateCurrentStep(activeStep, getValues);
 
-    try {
-      const currentData = getValues();
-
-      const fullSchema = createFlattenedEmployeeSchema();
-      await fullSchema.validate(currentData, { abortEarly: false });
-
-      await processSubmission(currentData);
-
+    if (!stepValid && !isViewMode) {
       setSubmissionResult({
-        type: "success",
-        message: "Pending registration updated successfully!",
+        type: "error",
+        message: "Please fill in all required fields before updating.",
       });
-
-      if (autoCloseAfterUpdate) {
-        setBlockAllInteractions(true);
-        setIsClosing(true);
-        setTimeout(() => handleClose(), 1000);
-      } else {
-        setTimeout(() => setSubmissionResult(null), 3000);
-      }
-    } catch (error) {
-      let errorMessage =
-        "Failed to update pending registration. Please try again.";
-
-      if (error.inner && error.inner.length > 0) {
-        const errorsByStep = {};
-
-        error.inner.forEach((err) => {
-          const stepIndex = getFieldStep(err.path);
-          const stepName = stepIndex >= 0 ? STEPS[stepIndex] : "Unknown";
-
-          if (!errorsByStep[stepName]) {
-            errorsByStep[stepName] = [];
-          }
-
-          const fieldName = err.path
-            .split(".")
-            .pop()
-            .replace(/_/g, " ")
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-          errorsByStep[stepName].push(fieldName);
-        });
-
-        const stepErrors = Object.entries(errorsByStep).map(
-          ([step, fields]) => {
-            if (fields.length === 1) {
-              return `${step}: ${fields[0]} is required`;
-            } else {
-              return `${step}: ${fields.join(", ")} are required`;
-            }
-          }
-        );
-
-        if (stepErrors.length === 1) {
-          errorMessage = stepErrors[0];
-        } else {
-          errorMessage = `Please complete required fields in: ${stepErrors.join(
-            "; "
-          )}`;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      setSubmissionResult({ type: "error", message: errorMessage });
-    } finally {
-      setIsProcessing(false);
+      return;
     }
+
+    const currentData = getValues();
+    const { fixedData } = validateAndFixFormData(currentData, "Update Data");
+    setPendingUpdateData(fixedData);
+    setShowUpdateConfirmDialog(true);
   };
 
-  const onError = (errors) => {
-    if (isDisabled) return;
+  const handleConfirmUpdate = async () => {
+    if (!pendingUpdateData || isDisabled) return;
 
-    let errorMessage = "Please fill in all required fields to continue.";
-    const errorCount = Object.keys(errors).length;
+    setShowUpdateConfirmDialog(false);
 
-    if (errorCount > 0) {
-      errorMessage = `Please fix ${errorCount} validation error${
-        errorCount > 1 ? "s" : ""
-      } and try again.`;
-    }
+    await handleFormSubmission(
+      pendingUpdateData,
+      submissionId,
+      actualData,
+      updateFormSubmission,
+      onSubmitProp,
+      currentMode,
+      onRefetch,
+      refetchQueries,
+      setIsProcessing,
+      setSubmissionResult,
+      setBlockAllInteractions,
+      setIsClosing,
+      handleClose,
+      autoCloseAfterUpdate
+    );
 
-    setSubmissionResult({ type: "error", message: errorMessage });
+    setPendingUpdateData(null);
   };
 
-  const handleClose = useCallback(() => {
-    setActiveStep(initialStep);
-    setSubmissionResult(null);
-    setCurrentMode(mode);
-    setOriginalMode(mode);
-    setIsProcessing(false);
-    setIsClosing(false);
-    setBlockAllInteractions(false);
-    setIsFormInitialized(false);
-    isInitializedRef.current = false;
-    lastInitialDataRef.current = null;
-
-    if (onClose) {
-      onClose();
-    }
-  }, [initialStep, mode, onClose]);
+  const handleCancelUpdate = () => {
+    setShowUpdateConfirmDialog(false);
+    setPendingUpdateData(null);
+  };
 
   const CurrentStepComponent = stepComponents[activeStep];
   const isLastStep = activeStep === STEPS.length - 1;
@@ -659,30 +479,63 @@ const PendingRegistrationModal = ({
     );
   };
 
-  // Custom dialog title for pending registrations
-  const getPendingDialogTitle = (mode) => {
-    switch (mode) {
-      case "view":
-        return "VIEW PENDING REGISTRATION";
-      case "edit":
-        return "EDIT PENDING REGISTRATION";
-      default:
-        return "PENDING REGISTRATION";
-    }
-  };
+  const loadingDialogConfig = createLoadingDialog(
+    !isFormInitialized && (isFetchingData || (open && shouldFetchData)),
+    "Loading registration data..."
+  );
 
-  if (!isFormInitialized && open) {
+  const errorDialogConfig = createErrorDialog(
+    fetchError && open,
+    handleClose,
+    "Failed to load registration data. Please try again."
+  );
+
+  const initializingDialogConfig = createLoadingDialog(
+    !isFormInitialized && open && !isFetchingData && !shouldFetchData,
+    "Initializing form..."
+  );
+
+  if (
+    loadingDialogConfig.open ||
+    errorDialogConfig.open ||
+    initializingDialogConfig.open
+  ) {
+    const config = loadingDialogConfig.open
+      ? loadingDialogConfig
+      : errorDialogConfig.open
+      ? errorDialogConfig
+      : initializingDialogConfig;
+
     return (
-      <Dialog open={open} maxWidth="lg" fullWidth>
-        <Box sx={{ p: 3, textAlign: "center" }}>
-          <CircularProgress size={40} />
+      <Dialog
+        open={config.open}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={config.PaperProps}>
+        <Box sx={config.content.sx}>
+          {config.content.title && (
+            <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+              {config.content.title}
+            </Typography>
+          )}
+          {!config.content.title && <CircularProgress size={40} />}
           <Typography variant="body1" sx={{ mt: 2 }}>
-            Loading form...
+            {config.content.message}
           </Typography>
+          {config.content.onClose && (
+            <Button
+              variant="contained"
+              onClick={config.content.onClose}
+              sx={{ mt: 2 }}>
+              Close
+            </Button>
+          )}
         </Box>
       </Dialog>
     );
   }
+
+  const notificationConfig = createNotificationConfig(submissionResult);
 
   return (
     <Dialog
@@ -692,7 +545,10 @@ const PendingRegistrationModal = ({
       disableEscapeKeyDown={isDisabled}
       className="employee-wizard-dialog"
       PaperProps={{
-        className: "employee-wizard-dialog__paper",
+        sx: {
+          height: "90vh",
+          maxHeight: "90vh",
+        },
       }}>
       <Backdrop
         sx={{
@@ -718,47 +574,53 @@ const PendingRegistrationModal = ({
 
       <DialogTitle
         className="employee-wizard-title"
-        sx={{ position: "relative" }}>
-        <Box className="employee-wizard-title__header">
-          <Typography variant="h5">
-            {getPendingDialogTitle(currentMode)}
-          </Typography>
-          <Typography variant="body2">
-            {isViewOrEditMode && initialData
-              ? getEmployeeFullName(initialData) ||
-                `Step ${activeStep + 1} of ${STEPS.length}: ${
-                  STEPS[activeStep]
-                }`
-              : `Step ${activeStep + 1} of ${STEPS.length}: ${
-                  STEPS[activeStep]
-                }`}
-          </Typography>
-        </Box>
-
+        sx={{ position: "relative", flexShrink: 0 }}>
         <Box
-          sx={{
-            position: "absolute",
-            right: 56,
-            top: 8,
-            display: "flex",
-            gap: 1,
-          }}>
-          {isViewMode && (
-            <Tooltip title="Edit Pending Registration">
-              <IconButton onClick={handleEditClick} disabled={isDisabled}>
-                <EditIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+          className="employee-wizard-title__header"
+          sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: "rgb(33, 61, 112) !important",
+                  fontWeight: "bold !important",
+                  "&.MuiTypography-root": {
+                    color: "rgb(33, 61, 112) !important",
+                  },
+                }}>
+                {getPendingDialogTitle(currentMode)}
+              </Typography>
 
-          {isEditMode && originalMode === "view" && (
-            <Tooltip title="Cancel Edit">
-              <IconButton onClick={handleCancelEdit} disabled={isDisabled}>
-                <CancelIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+              <EditButton
+                isViewMode={isViewMode}
+                shouldEnableEditButton={() =>
+                  shouldEnableEditButton(actualData, isSubmitting)
+                }
+                isDisabled={isDisabled}
+                handleEditClick={handleEditClick}
+              />
+            </Box>
+
+            <Typography variant="body2">
+              {isViewOrEditMode && actualData
+                ? getEmployeeFullName(actualData) ||
+                  `Step ${activeStep + 1} of ${STEPS.length}: ${
+                    STEPS[activeStep]
+                  }`
+                : `Step ${activeStep + 1} of ${STEPS.length}: ${
+                    STEPS[activeStep]
+                  }`}
+            </Typography>
+          </Box>
         </Box>
+
+        <CancelEditButton
+          isEditMode={isEditMode}
+          originalMode={originalMode}
+          handleCancelEdit={handleCancelEdit}
+          isDisabled={isDisabled}
+        />
 
         <IconButton
           onClick={handleClose}
@@ -772,57 +634,32 @@ const PendingRegistrationModal = ({
 
       <DialogContent className="employee-wizard-content">
         <Box className="employee-wizard-content__inner">
-          {submissionResult && submissionResult.type === "error" && (
+          {notificationConfig && (
             <Fade in={true} timeout={300}>
-              <Box
-                sx={{
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  px: 2,
-                  py: 1,
-                  backgroundColor: "#ffebee",
-                  borderRadius: 1,
-                  border: "1px solid #ffcdd2",
-                }}>
-                <Error sx={{ color: "#d32f2f", fontSize: "20px" }} />
+              <Box sx={notificationConfig.sx}>
+                {notificationConfig.type === "error" ? (
+                  <ErrorIcon
+                    sx={{
+                      color: notificationConfig.iconColor,
+                      fontSize: "20px",
+                    }}
+                  />
+                ) : (
+                  <CheckCircle
+                    sx={{
+                      color: notificationConfig.iconColor,
+                      fontSize: "20px",
+                    }}
+                  />
+                )}
                 <Typography
                   variant="body2"
                   sx={{
-                    color: "#d32f2f",
+                    color: notificationConfig.textColor,
                     fontWeight: 500,
                     flex: 1,
                   }}>
-                  {submissionResult.message}
-                </Typography>
-              </Box>
-            </Fade>
-          )}
-
-          {submissionResult && submissionResult.type === "success" && (
-            <Fade in={true} timeout={300}>
-              <Box
-                sx={{
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  px: 2,
-                  py: 1,
-                  backgroundColor: "#e8f5e8",
-                  borderRadius: 1,
-                  border: "1px solid #c8e6c9",
-                }}>
-                <CheckCircle sx={{ color: "#2e7d32", fontSize: "20px" }} />
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#2e7d32",
-                    fontWeight: 500,
-                    flex: 1,
-                  }}>
-                  {submissionResult.message}
+                  {notificationConfig.message}
                 </Typography>
               </Box>
             </Fade>
@@ -831,7 +668,36 @@ const PendingRegistrationModal = ({
           <Stepper
             activeStep={activeStep}
             alternativeLabel
-            className="employee-wizard-stepper">
+            className="employee-wizard-stepper"
+            sx={{
+              mb: 3,
+              "& .MuiStepIcon-root": {
+                "&.MuiStepIcon-active": {
+                  color: "rgb(33, 61, 112) !important",
+                },
+                "&.MuiStepIcon-completed": { color: "#ff4400 !important" },
+              },
+              "& .css-tbmob9": {
+                backgroundColor: "rgb(33, 61, 112) !important",
+                color: "white !important",
+                fontSize: "0.7rem !important",
+              },
+              "& .css-1aixvs7": {
+                backgroundColor: "#ff4400 !important",
+                color: "white !important",
+                fontSize: "0.7rem !important",
+              },
+              '& div[style*="background-color: rgb(0, 223, 11)"]': {
+                backgroundColor: "rgb(33, 61, 112) !important",
+                color: "white !important",
+                fontSize: "0.7rem !important",
+              },
+              '& div[style*="background-color: rgb(255, 230, 0)"]': {
+                backgroundColor: "#ff4400 !important",
+                color: "white !important",
+                fontSize: "0.7rem !important",
+              },
+            }}>
             {STEPS.map((label, index) => (
               <Step key={label}>
                 <StepLabel
@@ -871,8 +737,8 @@ const PendingRegistrationModal = ({
                   selectedAccount={activeStep === 5 ? "account" : undefined}
                   selectedContact={activeStep === 6 ? "contact" : undefined}
                   selectedFiles={activeStep === 7 ? "files" : undefined}
-                  initialData={initialData}
-                  employeeData={initialData}
+                  initialData={actualData}
+                  employeeData={actualData}
                   isLoading={isDisabled}
                   mode={currentMode}
                   isViewMode={isViewMode}
@@ -880,6 +746,8 @@ const PendingRegistrationModal = ({
                   readOnly={isViewMode || isDisabled}
                   disabled={isViewMode || isDisabled}
                   showErrors={true}
+                  pendingData={actualData}
+                  filesData={actualData?.files || []}
                 />
               ) : (
                 <Box sx={{ p: 3, textAlign: "center" }}>
@@ -908,6 +776,18 @@ const PendingRegistrationModal = ({
         handleSubmit={handleSubmit}
         onSubmit={onSubmit}
         onError={onError}
+        showUpdateConfirmDialog={showUpdateConfirmDialog}
+        onConfirmUpdate={handleConfirmUpdate}
+        onCancelUpdate={handleCancelUpdate}
+        submissionId={submissionId}
+        isProcessing={isProcessing}
+        handleResubmit={handleResubmit}
+        shouldEnableResubmitButton={() =>
+          shouldEnableResubmitButton(actualData, isSubmitting)
+        }
+        shouldEnableEditButton={() =>
+          shouldEnableEditButton(actualData, isSubmitting)
+        }
       />
     </Dialog>
   );

@@ -16,6 +16,7 @@ import {
 import { useLazyGetAllShowReligionsQuery } from "../../../../../features/api/extras/religionsApi";
 import { useLazyGetAllShowPrefixesQuery } from "../../../../../features/api/extras/prefixesApi";
 import { useLazyGetAllGeneralsQuery } from "../../../../../features/api/employee/generalApi";
+import { useGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
 
 const PendingGeneralInformationForm = ({
   selectedGeneral,
@@ -35,6 +36,7 @@ const PendingGeneralInformationForm = ({
     religions: false,
     prefixes: false,
     referrers: false,
+    approvalForms: false,
   });
 
   const [
@@ -51,6 +53,17 @@ const PendingGeneralInformationForm = ({
     triggerGenerals,
     { data: generalsData, isLoading: generalsLoading, error: generalsError },
   ] = useLazyGetAllGeneralsQuery();
+
+  const {
+    data: approvalFormsData,
+    isLoading: approvalFormsLoading,
+    error: approvalFormsError,
+  } = useGetAllManpowerQuery(
+    { page: 1, per_page: 1000, status: "active" },
+    {
+      skip: mode === "create" && !dropdownsLoaded.approvalForms,
+    }
+  );
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
@@ -73,6 +86,7 @@ const PendingGeneralInformationForm = ({
             religions: true,
             prefixes: true,
             referrers: true,
+            approvalForms: true,
           });
         } catch (error) {
           console.error("Error loading initial dropdown data:", error);
@@ -101,6 +115,8 @@ const PendingGeneralInformationForm = ({
         case "referrers":
           await triggerGenerals(fetchParams);
           break;
+        case "approvalForms":
+          break;
         default:
           return;
       }
@@ -118,7 +134,12 @@ const PendingGeneralInformationForm = ({
     if (!data) return [];
     return Array.isArray(data)
       ? data
-      : data.result || data.data || data.items || data.results || [];
+      : data.result?.data ||
+          data.result ||
+          data.data ||
+          data.items ||
+          data.results ||
+          [];
   };
 
   const religions = useMemo(
@@ -144,6 +165,11 @@ const PendingGeneralInformationForm = ({
     return filtered;
   }, [generalsData, selectedGeneral]);
 
+  const approvalForms = useMemo(() => {
+    const normalized = normalizeApiData(approvalFormsData);
+    return Array.isArray(normalized) ? normalized : [];
+  }, [approvalFormsData]);
+
   const civilStatusOptions = [
     "SINGLE",
     "MARRIED",
@@ -164,58 +190,117 @@ const PendingGeneralInformationForm = ({
     return eighteenYearsAgo.toISOString().split("T")[0];
   };
 
-  const hasErrors = religionsError || prefixesError || generalsError;
+  const hasErrors =
+    religionsError || prefixesError || generalsError || approvalFormsError;
 
   return (
-    <Box className="pending-general-information-form" sx={{ width: "100%" }}>
+    <Box
+      className="pending-general-information-form"
+      sx={{ width: "100%", paddingTop: 1 }}>
       {hasErrors && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 1 }}>
           Error loading dropdown data. Please try again.
         </Alert>
       )}
 
-      <Grid container spacing={0.1}>
-        {/* Employee Code */}
+      <Grid container spacing={1}>
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "1134px", maxWidth: "1134px", pr: 1 }}>
           <Controller
-            name="employee_code"
+            name="submission_title"
             control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Employee Code"
-                variant="outlined"
+            render={({ field: { onChange, value } }) => (
+              <FormControl
                 fullWidth
-                disabled={isFieldDisabled}
-                error={!!errors.employee_code}
-                helperText={errors.employee_code?.message}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
+                variant="outlined"
+                error={!!errors.submission_title}
+                disabled={true}
                 sx={{
                   width: "100%",
                   position: "relative",
                   "& .MuiFormHelperText-root": {
                     position: "absolute",
-                    bottom: "-20px",
-                    marginTop: "0px",
                   },
-                }}
-              />
+                }}>
+                <Autocomplete
+                  onChange={(event, item) => {
+                    if (!isReadOnly) {
+                      onChange(item || null);
+                    }
+                  }}
+                  value={value || null}
+                  options={Array.isArray(approvalForms) ? approvalForms : []}
+                  loading={approvalFormsLoading}
+                  disabled={true}
+                  readOnly={isReadOnly}
+                  getOptionLabel={(item) => {
+                    if (!item) return "";
+
+                    if (
+                      item.submission_title &&
+                      typeof item.submission_title === "string"
+                    ) {
+                      return item.submission_title;
+                    }
+
+                    return (
+                      item?.submission_title || item?.name || item?.title || ""
+                    );
+                  }}
+                  isOptionEqualToValue={(option, value) => {
+                    if (!option || !value) return false;
+
+                    const optionId = option.id || option.submission_title;
+                    const valueId = value.id || value.submission_title;
+
+                    return optionId === valueId;
+                  }}
+                  onFocus={() => {
+                    if (!isReadOnly) {
+                      handleDropdownFocus("approvalForms");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!value || (!value.id && !value.submission_title)) {
+                      onChange(null);
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Form *"
+                      error={!!errors.submission_title}
+                      helperText={errors.submission_title?.message}
+                      InputProps={{
+                        ...params.InputProps,
+                        readOnly: isReadOnly,
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <li
+                      {...props}
+                      style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
+                      {option?.submission_title ||
+                        option?.name ||
+                        option?.title ||
+                        ""}
+                    </li>
+                  )}
+                />
+              </FormControl>
             )}
           />
         </Grid>
 
-        {/* First Name */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="first_name"
             control={control}
@@ -249,12 +334,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Middle Name */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="middle_name"
             control={control}
@@ -274,12 +358,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Last Name */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="last_name"
             control={control}
@@ -313,12 +396,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Suffix */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="suffix"
             control={control}
@@ -338,12 +420,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Prefix */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="prefix"
             control={control}
@@ -412,12 +493,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* ID Number */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="id_number"
             control={control}
@@ -451,12 +531,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Birth Date */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="birth_date"
             control={control}
@@ -493,12 +572,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Gender */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="gender"
             control={control}
@@ -538,12 +616,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Civil Status */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="civil_status"
             control={control}
@@ -583,12 +660,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Religion */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="religion"
             control={control}
@@ -655,12 +731,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Referred By */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="referred_by"
             control={control}
@@ -725,12 +800,11 @@ const PendingGeneralInformationForm = ({
           />
         </Grid>
 
-        {/* Remarks */}
         <Grid
           item
           xs={12}
           sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
             name="remarks"
             control={control}
@@ -742,61 +816,6 @@ const PendingGeneralInformationForm = ({
                 fullWidth
                 disabled={isFieldDisabled}
                 placeholder="Additional notes or comments..."
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-                sx={{ width: "100%" }}
-              />
-            )}
-          />
-        </Grid>
-
-        {/* Full Name (Display/Computed Field) */}
-        <Grid
-          item
-          xs={12}
-          sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
-          <Controller
-            name="full_name"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Full Name"
-                variant="outlined"
-                fullWidth
-                disabled={true}
-                InputProps={{
-                  readOnly: true,
-                }}
-                sx={{
-                  width: "100%",
-                  "& .MuiInputBase-input.Mui-disabled": {
-                    WebkitTextFillColor: "rgba(0, 0, 0, 0.6)",
-                  },
-                }}
-              />
-            )}
-          />
-        </Grid>
-
-        {/* Image URL */}
-        <Grid
-          item
-          xs={12}
-          sm={4}
-          sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
-          <Controller
-            name="image_url"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Image URL (Optional)"
-                variant="outlined"
-                fullWidth
-                disabled={isFieldDisabled}
                 InputProps={{
                   readOnly: isReadOnly,
                 }}

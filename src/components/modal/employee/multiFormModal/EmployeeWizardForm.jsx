@@ -24,7 +24,7 @@ import {
   CheckCircle,
   Error,
   Edit as EditIcon,
-  Cancel as CancelIcon,
+  EditOff,
 } from "@mui/icons-material";
 import "./Employee.scss";
 
@@ -298,14 +298,40 @@ const EmployeeWizardForm = ({
 
     if (shouldInitialize) {
       const formData = initializeFormData(initialData);
-      reset(formData);
+
+      if (mode === "create") {
+        const currentFormData = getValues();
+        const hasExistingData = Object.keys(currentFormData).some((key) => {
+          const value = currentFormData[key];
+          if (Array.isArray(value)) {
+            return (
+              value.length > 0 &&
+              value.some(
+                (item) =>
+                  typeof item === "object" &&
+                  Object.values(item).some(
+                    (val) => val !== null && val !== undefined && val !== ""
+                  )
+              )
+            );
+          }
+          return value !== null && value !== undefined && value !== "";
+        });
+
+        if (!hasExistingData || !isInitializedRef.current) {
+          reset(formData);
+        }
+      } else {
+        reset(formData);
+      }
+
       setIsFormInitialized(true);
       setCurrentMode(mode);
       setOriginalMode(mode);
       isInitializedRef.current = true;
       lastInitialDataRef.current = initialData;
     }
-  }, [open, initialData, mode, initialStep, reset]);
+  }, [open, initialData, mode, initialStep, reset, getValues]);
 
   const handleEmploymentTypeChange = useCallback(
     (employmentTypes) => {
@@ -713,7 +739,65 @@ const EmployeeWizardForm = ({
         className="employee-wizard-title"
         sx={{ position: "relative" }}>
         <Box className="employee-wizard-title__header">
-          <Typography variant="h5">{getDialogTitle(currentMode)}</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h5">{getDialogTitle(currentMode)}</Typography>
+
+            {/* Edit icons moved inline after the title */}
+            {isViewMode && (
+              <Tooltip title="EDIT EMPLOYEE">
+                <IconButton
+                  onClick={handleEditClick}
+                  disabled={isDisabled}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    padding: "8px",
+                    "&:hover": {
+                      backgroundColor: "rgba(0, 136, 32, 0.08)",
+                      transform: "scale(1.1)",
+                      transition: "all 0.2s ease-in-out",
+                    },
+                  }}>
+                  <EditIcon
+                    sx={{
+                      fontSize: "20px",
+                      "& path": {
+                        fill: "rgba(0, 136, 32, 1)",
+                      },
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {isEditMode && originalMode === "view" && (
+              <Tooltip title="CANCEL EDIT">
+                <IconButton
+                  onClick={handleCancelEdit}
+                  disabled={isDisabled}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    padding: "8px",
+                    "&:hover": {
+                      backgroundColor: "rgba(235, 0, 0, 0.08)",
+                      transform: "scale(1.1)",
+                      transition: "all 0.2s ease-in-out",
+                    },
+                  }}>
+                  <EditOff
+                    sx={{
+                      fontSize: "20px",
+                      "& path": {
+                        fill: "rgba(235, 0, 0, 1)",
+                      },
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+
           <Typography variant="body2">
             {isViewOrEditMode && initialData
               ? getEmployeeFullName(initialData) ||
@@ -726,31 +810,7 @@ const EmployeeWizardForm = ({
           </Typography>
         </Box>
 
-        <Box
-          sx={{
-            position: "absolute",
-            right: 56,
-            top: 8,
-            display: "flex",
-            gap: 1,
-          }}>
-          {isViewMode && (
-            <Tooltip title="Edit Employee">
-              <IconButton onClick={handleEditClick} disabled={isDisabled}>
-                <EditIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-
-          {isEditMode && originalMode === "view" && (
-            <Tooltip title="Cancel Edit">
-              <IconButton onClick={handleCancelEdit} disabled={isDisabled}>
-                <CancelIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-
+        {/* Close button remains in the top right */}
         <IconButton
           onClick={handleClose}
           disabled={isDisabled}

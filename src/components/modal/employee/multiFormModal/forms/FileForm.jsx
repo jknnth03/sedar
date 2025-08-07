@@ -96,7 +96,6 @@ const FileForm = ({
     },
   ] = useLazyGetAllCabinetsQuery();
 
-  // File attachment query for viewing files
   const {
     data: attachmentData,
     isLoading: isLoadingAttachment,
@@ -134,7 +133,6 @@ const FileForm = ({
     loadInitialData();
   }, [mode, isViewMode, triggerFileTypes, triggerFileCabinets]);
 
-  // Handle file viewer
   useEffect(() => {
     if (attachmentData) {
       const url = URL.createObjectURL(attachmentData);
@@ -286,10 +284,8 @@ const FileForm = ({
     [enqueueSnackbar]
   );
 
-  // File viewer functions
   const handleFileViewerOpen = useCallback(
     (fileId, fileName) => {
-      // Validate fileId before setting it
       if (
         fileId &&
         fileId !== "undefined" &&
@@ -303,7 +299,7 @@ const FileForm = ({
           "fileName:",
           fileName
         );
-        setCurrentFileId(String(fileId)); // Ensure it's a string
+        setCurrentFileId(String(fileId));
         setCurrentFileName(fileName || "attachment");
         setFileViewerOpen(true);
       } else {
@@ -390,7 +386,6 @@ const FileForm = ({
             finalFileCabinet = fileCabinetObj;
           }
 
-          // Ensure we have a valid file ID
           const originalFileId =
             file.id || file.file_id || file.original_file_id;
 
@@ -405,7 +400,7 @@ const FileForm = ({
               file.file_name || file.filename || file.original_name || null,
             existing_file_url: file.file_attachment || file.attachment || null,
             is_new_file: false,
-            original_file_id: originalFileId, // Make sure this is properly set
+            original_file_id: originalFileId,
           };
         });
         replace(newFileLines);
@@ -497,14 +492,13 @@ const FileForm = ({
   );
 
   useEffect(() => {
-    hasInitializedData.current = false;
-  }, [mode, employeeId]);
-
-  useEffect(() => {
     if (hasInitializedData.current) return;
 
     if (mode === "create") {
-      initializeEmptyForm();
+      const currentFiles = getValues("files");
+      if (!currentFiles || currentFiles.length === 0) {
+        initializeEmptyForm();
+      }
       return;
     }
 
@@ -670,7 +664,6 @@ const FileForm = ({
 
   const hasErrors = fileTypesError || fileCabinetsError;
 
-  // File Viewer Dialog Component
   const FileViewerDialog = () => (
     <Dialog
       open={fileViewerOpen}

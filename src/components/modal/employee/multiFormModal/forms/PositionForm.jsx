@@ -20,6 +20,7 @@ import { useLazyGetAllShowSchedulesQuery } from "../../../../../features/api/ext
 import { useLazyGetAllJobLevelsQuery } from "../../../../../features/api/masterlist/joblevelsApi";
 import { useLazyGetAllPositionsQuery } from "../../../../../features/api/masterlist/positionsApi";
 import "./General.scss";
+import { useSelector } from "react-redux";
 
 const PositionForm = ({
   selectedPosition,
@@ -43,14 +44,8 @@ const PositionForm = ({
     jobLevels: false,
   });
 
-  const [
-    triggerPositions,
-    {
-      data: positionsApiData,
-      isLoading: positionsLoading,
-      error: positionsError,
-    },
-  ] = useLazyGetAllPositionsQuery();
+  // Get approval form data from Redux
+  const approvalFormData = useSelector((state) => state.form.approvalForm);
 
   const [
     triggerSchedules,
@@ -74,7 +69,6 @@ const PositionForm = ({
     const fetchParams = { page: 1, per_page: 1000, status: "active" };
 
     if (mode === "edit" || mode === "view") {
-      triggerPositions(fetchParams);
       triggerSchedules(fetchParams);
       triggerJobLevels(fetchParams);
 
@@ -84,7 +78,6 @@ const PositionForm = ({
         jobLevels: true,
       });
     } else if (mode === "create") {
-      triggerPositions(fetchParams);
       triggerSchedules(fetchParams);
       triggerJobLevels(fetchParams);
 
@@ -94,7 +87,17 @@ const PositionForm = ({
         jobLevels: true,
       });
     }
-  }, [mode, triggerPositions, triggerSchedules, triggerJobLevels]);
+  }, [mode, triggerSchedules, triggerJobLevels]);
+
+  // Auto-fill position title from approval form data
+  useEffect(() => {
+    if (approvalFormData?.submittable?.position?.title_with_unit) {
+      setValue(
+        "position_title",
+        approvalFormData.submittable.position.title_with_unit
+      );
+    }
+  }, [approvalFormData, setValue]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
@@ -103,9 +106,6 @@ const PositionForm = ({
       const fetchParams = { page: 1, per_page: 1000, status: "active" };
 
       switch (dropdownName) {
-        case "positions":
-          triggerPositions(fetchParams);
-          break;
         case "schedules":
           triggerSchedules(fetchParams);
           break;
@@ -116,7 +116,7 @@ const PositionForm = ({
 
       setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
     },
-    [dropdownsLoaded, triggerPositions, triggerSchedules, triggerJobLevels]
+    [dropdownsLoaded, triggerSchedules, triggerJobLevels]
   );
 
   const normalizeApiData = (data) => {
@@ -126,10 +126,6 @@ const PositionForm = ({
       : data.result || data.data || data.items || data.results || [];
   };
 
-  const positions = useMemo(
-    () => normalizeApiData(positionsApiData),
-    [positionsApiData]
-  );
   const schedules = useMemo(
     () => normalizeApiData(schedulesApiData),
     [schedulesApiData]
@@ -141,15 +137,12 @@ const PositionForm = ({
 
   const isReadOnly = mode === "view";
 
+  console.log("selector/position", approvalFormData);
+
   return (
     <Box
       className="general-form"
       sx={{ width: "100%", maxWidth: "1200px", overflow: "0" }}>
-      {positionsError && (
-        <Alert severity="warning" sx={{ mb: 1 }}>
-          Failed to load positions from server.
-        </Alert>
-      )}
       {schedulesError && (
         <Alert severity="warning" sx={{ mb: 1 }}>
           Failed to load schedules from server.
@@ -164,80 +157,31 @@ const PositionForm = ({
       <Grid container spacing={1.2}>
         <Grid item xs={12} md={6}>
           <Controller
-            name="position_id"
+            name="position_title"
             control={control}
             render={({
               field: { onChange, value, onBlur },
               fieldState: { error },
             }) => (
-              <FormControl
+              <TextField
+                onChange={onChange}
+                onBlur={onBlur}
+                value={value || ""}
                 fullWidth
                 variant="outlined"
+                label={
+                  <>
+                    Position Title <span style={{ color: "red" }}>*</span>
+                  </>
+                }
+                disabled={true} // Always disabled since it's auto-filled
                 error={!!error}
-                disabled={isLoading || isReadOnly}
-                sx={{ minWidth: "360px", maxWidth: "360px" }}>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                    }
-                  }}
-                  onBlur={onBlur}
-                  value={value || null}
-                  options={positions ?? []}
-                  loading={positionsLoading}
-                  disabled={isLoading || isReadOnly}
-                  getOptionLabel={(item) => {
-                    if (!item) return "";
-                    return (
-                      item?.title?.name ||
-                      item?.name ||
-                      item?.title ||
-                      item?.position_title ||
-                      item?.position_name ||
-                      ""
-                    );
-                  }}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("positions");
-                    }
-                  }}
-                  onFocus={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("positions");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={
-                        <>
-                          Position Title <span style={{ color: "red" }}>*</span>
-                        </>
-                      }
-                      error={!!error}
-                      helperText={error?.message || ""}
-                      onBlur={params.InputProps.onBlur}
-                      onFocus={() => {
-                        params.InputProps.onFocus?.();
-                        if (!isReadOnly) {
-                          handleDropdownFocus("positions");
-                        }
-                      }}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
-                />
-              </FormControl>
+                helperText={error?.message || "Auto-filled from selected form"}
+                sx={{ minWidth: "360px", maxWidth: "360px" }}
+                InputProps={{
+                  readOnly: true,
+                }}
+              />
             )}
           />
         </Grid>

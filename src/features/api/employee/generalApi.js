@@ -53,6 +53,19 @@ const generalApi = sedarApi
         providesTags: ["general"],
       }),
 
+      // GET - All Manpower
+      getAllManpower: build.query({
+        query: ({
+          page = 1,
+          per_page = 10,
+          status = "active",
+          search = "",
+        }) => ({
+          url: `mrf/open?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
+        }),
+        providesTags: ["general"],
+      }),
+
       // DELETE - Delete Employee General Info (Updated endpoint)
       deleteGeneral: build.mutation({
         query: (id) => ({
@@ -70,6 +83,7 @@ export const {
   useGetAllGeneralsQuery,
   useLazyGetAllGeneralsQuery, // Added the lazy query hook
   useGetSingleGeneralQuery,
+  useGetAllManpowerQuery,
   useUpdateGeneralMutation,
   useDeleteGeneralMutation,
 } = generalApi;

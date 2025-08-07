@@ -27,7 +27,7 @@ import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import { useGetPendingEmployeesQuery } from "../../features/api/employee/pendingApi";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
-import EmployeeWizardForm from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
+import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../../pages/approver/FormSubmissionStyles";
 
@@ -51,7 +51,10 @@ const statusOptions = [
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
-  { value: "under_review", label: "Under Review" },
+  { value: "returned", label: "Returned" },
+  { value: "for receiving", label: "For Receiving" },
+  { value: "awaiting resubmission", label: "Awaiting Resubmission" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const FilterDialog = ({ open, onClose, selectedFilters, onFiltersChange }) => {
@@ -252,6 +255,7 @@ const PendingRegistration = () => {
       page,
       per_page: rowsPerPage,
       pagination: true,
+      status: "active",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -259,7 +263,7 @@ const PendingRegistration = () => {
     }
 
     if (selectedFilters.length > 0) {
-      params.status = selectedFilters.join(",");
+      params.approval_status = selectedFilters.join(",");
     }
 
     return params;
@@ -279,13 +283,30 @@ const PendingRegistration = () => {
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
   const employeesList = useMemo(
-    () => employeesData?.result?.data || [],
+    () => employeesData?.result?.data || employeesData?.data || [],
     [employeesData]
   );
 
+  const paginationData = useMemo(() => {
+    if (!employeesData) return null;
+
+    const resultData = employeesData?.result || employeesData;
+    return {
+      total: resultData?.total || 0,
+      current_page: resultData?.current_page || 1,
+      per_page: resultData?.per_page || 10,
+      last_page: resultData?.last_page || 1,
+    };
+  }, [employeesData]);
+
   const canEditEmployee = useCallback((employee) => {
-    const editableStatuses = ["pending", "under_review"];
-    return editableStatuses.includes(employee?.status);
+    const editableStatuses = [
+      "pending",
+      "awaiting resubmission",
+      "returned",
+      "rejected",
+    ];
+    return editableStatuses.includes(employee?.status?.toLowerCase());
   }, []);
 
   const handleSearchChange = useCallback((newSearchQuery) => {
@@ -318,14 +339,11 @@ const PendingRegistration = () => {
           throw new Error("Submittable ID not found for this record");
         }
 
-        console.log("Using submittable ID:", submittableId);
-
         const result = await getSingleEmployee(submittableId).unwrap();
         setSelectedEmployee(result?.result || employee);
         setModalMode("view");
         setModalOpen(true);
       } catch (error) {
-        console.error("Error fetching employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 3000,
@@ -433,7 +451,7 @@ const PendingRegistration = () => {
   }, []);
 
   const handleActionClick = useCallback(
-    (employee, action, event) => {
+    (employee, action, event = null) => {
       if (event) {
         event.stopPropagation();
       }
@@ -468,14 +486,6 @@ const PendingRegistration = () => {
       let result;
 
       switch (confirmAction) {
-        case "update":
-          if (selectedEmployee) {
-            enqueueSnackbar("Employee updated successfully!", {
-              variant: "success",
-              autoHideDuration: 2000,
-            });
-          }
-          break;
         case "approve":
           if (selectedEmployeeForAction) {
             enqueueSnackbar("Employee approved successfully!", {
@@ -498,19 +508,13 @@ const PendingRegistration = () => {
 
       refetch();
 
-      if (confirmAction === "update") {
-        handleModalClose();
-      } else if (confirmAction === "approve" || confirmAction === "reject") {
+      if (confirmAction === "approve" || confirmAction === "reject") {
         handleModalClose();
       }
     } catch (error) {
-      console.error(`${confirmAction} error:`, error);
-
       let errorMessage = "Action failed. Please try again.";
 
-      if (confirmAction === "update") {
-        errorMessage = "Failed to update employee. Please try again.";
-      } else if (confirmAction === "approve") {
+      if (confirmAction === "approve") {
         errorMessage = "Failed to approve employee. Please try again.";
       } else if (confirmAction === "reject") {
         errorMessage = "Failed to reject employee. Please try again.";
@@ -542,7 +546,6 @@ const PendingRegistration = () => {
     if (!confirmAction) return "";
 
     const messages = {
-      update: "Are you sure you want to update this employee registration?",
       approve: "Are you sure you want to approve this employee registration?",
       reject: "Are you sure you want to reject this employee registration?",
     };
@@ -554,7 +557,6 @@ const PendingRegistration = () => {
     if (!confirmAction) return "Confirmation";
 
     const titles = {
-      update: "Confirm Update",
       approve: "Confirm Approval",
       reject: "Confirm Rejection",
     };
@@ -566,7 +568,6 @@ const PendingRegistration = () => {
     if (!confirmAction) return "primary";
 
     const colors = {
-      update: "success",
       approve: "success",
       reject: "error",
     };
@@ -578,7 +579,6 @@ const PendingRegistration = () => {
     if (!confirmAction) return "Confirm";
 
     const texts = {
-      update: "Update",
       approve: "Approve",
       reject: "Reject",
     };
@@ -587,24 +587,16 @@ const PendingRegistration = () => {
   }, [confirmAction]);
 
   const getEmployeeDisplayName = useCallback(() => {
-    if (confirmAction === "update") {
-      return (
-        selectedEmployee?.full_name || selectedEmployee?.name || "Employee"
-      );
-    }
     return (
       selectedEmployeeForAction?.full_name ||
       selectedEmployeeForAction?.name ||
       "Employee"
     );
-  }, [confirmAction, selectedEmployee, selectedEmployeeForAction]);
+  }, [selectedEmployeeForAction]);
 
   const getEmployeeId = useCallback(() => {
-    if (confirmAction === "update") {
-      return selectedEmployee?.id || "Unknown";
-    }
     return selectedEmployeeForAction?.id || "Unknown";
-  }, [confirmAction, selectedEmployee, selectedEmployeeForAction]);
+  }, [selectedEmployeeForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
@@ -634,13 +626,17 @@ const PendingRegistration = () => {
             handleRowClick={handleRowClick}
             handleEditSubmission={handleEditEmployee}
             handleActionClick={handleActionClick}
+            paginationData={paginationData}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            onRefetch={refetch}
           />
 
           <Box sx={styles.paginationContainer}>
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={employeesData?.result?.total || 0}
+              count={paginationData?.total || 0}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}
@@ -657,18 +653,13 @@ const PendingRegistration = () => {
         />
 
         {selectedEmployee && (
-          <EmployeeWizardForm
+          <PendingRegistrationModal
             open={modalOpen}
             onClose={handleModalClose}
-            employee={selectedEmployee}
+            initialData={selectedEmployee}
             mode={modalMode}
             isLoading={modalLoading}
-            onSubmit={(data) => {
-              setSelectedEmployee(data);
-              setConfirmAction("update");
-              setConfirmOpen(true);
-            }}
-            refetch={refetch}
+            onRefetch={refetch}
           />
         )}
 

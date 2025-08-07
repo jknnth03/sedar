@@ -76,6 +76,13 @@ $black: #000000;
   }
 }
 
+// Additional specificity for VIEW EMPLOYEE DETAILS title color
+.employee-wizard-dialog
+  .employee-wizard-title__header
+  .MuiTypography-root.MuiTypography-h5 {
+  color: rgb(33, 61, 112) !important;
+}
+
 // Progress Bar - FIXED positioning
 .employee-wizard-progress {
   height: 3px !important;
@@ -100,13 +107,12 @@ $black: #000000;
     flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
-    overflow-y: auto !important;
+    overflow: auto !important;
   }
 
   &__form-container {
     flex: 1 !important;
     min-height: 400px !important;
-    overflow-y: auto !important;
   }
 }
 
@@ -351,9 +357,13 @@ $black: #000000;
   }
 
   &--next {
-    background-color: $success-color !important; // Green color
-    color: $white !important;
+    background-color: transparent !important; // remove background
+    color: $success-color !important; // green text
+    border: 1px solid $success-color !important; // green border
     min-width: 100px !important;
+    border-radius: 6px; // optional, for rounded corners
+    font-weight: 500; // match font styling if needed
+    padding: 6px 16px; // optional, adjust spacing
 
     &:hover {
       // FIXED: Use modern color.adjust() instead of deprecated darken()

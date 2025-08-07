@@ -144,6 +144,7 @@ export const getDefaultValues = ({ mode, initialData }) => {
     const bankIdValue = extractBankId(bankValue);
 
     const result = {
+      submission_title: extractObject(generalInfo.submission_title) || null,
       first_name: generalInfo.first_name || "",
       last_name: generalInfo.last_name || "",
       middle_name: generalInfo.middle_name || "",
@@ -277,6 +278,7 @@ export const getDefaultValues = ({ mode, initialData }) => {
   }
 
   return {
+    submission_title: null,
     first_name: "",
     last_name: "",
     middle_name: "",

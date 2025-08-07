@@ -16,6 +16,9 @@ import {
 import { useLazyGetAllShowReligionsQuery } from "../../../../../features/api/extras/religionsApi";
 import { useLazyGetAllShowPrefixesQuery } from "../../../../../features/api/extras/prefixesApi";
 import { useLazyGetAllGeneralsQuery } from "../../../../../features/api/employee/generalApi";
+import { useGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
+import { useDispatch, useSelector } from "react-redux";
+import { setApprovalForm } from "../../../../../features/slice/formSlice";
 
 const GeneralForm = ({
   selectedGeneral,
@@ -35,6 +38,7 @@ const GeneralForm = ({
     religions: false,
     prefixes: false,
     referrers: false,
+    approvalForms: false, // Add this
   });
 
   const [
@@ -51,6 +55,18 @@ const GeneralForm = ({
     triggerGenerals,
     { data: generalsData, isLoading: generalsLoading, error: generalsError },
   ] = useLazyGetAllGeneralsQuery();
+
+  // Add the new query hook
+  const {
+    data: approvalFormsData,
+    isLoading: approvalFormsLoading,
+    error: approvalFormsError,
+  } = useGetAllManpowerQuery(
+    { page: 1, per_page: 1000, status: "active" },
+    {
+      skip: mode === "create" && !dropdownsLoaded.approvalForms,
+    }
+  );
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
@@ -73,6 +89,7 @@ const GeneralForm = ({
             religions: true,
             prefixes: true,
             referrers: true,
+            approvalForms: true, // Add this
           });
         } catch (error) {
           console.error("Error loading initial dropdown data:", error);
@@ -101,6 +118,10 @@ const GeneralForm = ({
         case "referrers":
           await triggerGenerals(fetchParams);
           break;
+        case "approvalForms":
+          // For useGetAllApprovalFormsQuery, we just need to trigger the state update
+          // since it's not a lazy query
+          break;
         default:
           return;
       }
@@ -118,7 +139,12 @@ const GeneralForm = ({
     if (!data) return [];
     return Array.isArray(data)
       ? data
-      : data.result || data.data || data.items || data.results || [];
+      : data.result?.data ||
+          data.result ||
+          data.data ||
+          data.items ||
+          data.results ||
+          [];
   };
 
   const religions = useMemo(
@@ -143,6 +169,13 @@ const GeneralForm = ({
 
     return filtered;
   }, [generalsData, selectedGeneral]);
+
+  // Add approval forms memoized data
+  const approvalForms = useMemo(() => {
+    const normalized = normalizeApiData(approvalFormsData);
+    // Ensure we always return an array
+    return Array.isArray(normalized) ? normalized : [];
+  }, [approvalFormsData]);
 
   const civilStatusOptions = [
     "SINGLE",
@@ -190,7 +223,17 @@ const GeneralForm = ({
     });
   };
 
-  const hasErrors = religionsError || prefixesError || generalsError;
+  const hasErrors =
+    religionsError || prefixesError || generalsError || approvalFormsError;
+
+  const watchApprovalForm = watch("approval_form");
+  const dispatch = useDispatch();
+
+  console.log("watch", watchApprovalForm);
+  console.log(
+    "selector",
+    useSelector((state) => state.form.approvalForm)
+  );
 
   return (
     <Box className="general-form" sx={{ width: "100%" }}>
@@ -201,6 +244,75 @@ const GeneralForm = ({
       )}
 
       <Grid container spacing={0.1}>
+        {/* APPROVAL FORMS FIELD - Moved to first position */}
+        <Grid
+          item
+          xs={12}
+          sm={4}
+          sx={{ minWidth: "1102px", maxWidth: "1102px", pr: 1 }}>
+          <Controller
+            name="approval_form"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <FormControl
+                fullWidth
+                variant="outlined"
+                error={!!errors.approval_form}
+                disabled={isFieldDisabled || approvalFormsLoading}
+                sx={{
+                  width: "100%",
+                  position: "relative",
+                  "& .MuiFormHelperText-root": {
+                    position: "absolute",
+                    bottom: "-20px",
+                    marginTop: "0px",
+                  },
+                }}>
+                <Autocomplete
+                  onChange={(event, item) => {
+                    if (!isReadOnly) {
+                      onChange(item || null);
+                    }
+                    dispatch(setApprovalForm(item));
+                  }}
+                  value={value || null}
+                  options={Array.isArray(approvalForms) ? approvalForms : []}
+                  loading={approvalFormsLoading}
+                  disabled={isFieldDisabled}
+                  readOnly={isReadOnly}
+                  getOptionLabel={(item) => item?.submission_title || ""}
+                  isOptionEqualToValue={(option, value) => {
+                    if (!option || !value) return false;
+                    return option.id === value.id;
+                  }}
+                  onFocus={() => {
+                    if (!isReadOnly) {
+                      handleDropdownFocus("approvalForms");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!value || !value.id) {
+                      onChange(null);
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Form *"
+                      error={!!errors.approval_form}
+                      helperText={errors.approval_form?.message}
+                      InputProps={{
+                        ...params.InputProps,
+                        readOnly: isReadOnly,
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
+            )}
+          />
+        </Grid>
+
         <Grid
           item
           xs={12}

@@ -196,9 +196,6 @@ const ReceivingTable = ({
 }) => {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [pendingComments, setPendingComments] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
   const tableData = useMemo(() => {
@@ -216,44 +213,29 @@ const ReceivingTable = ({
     setSelectedSubmission(null);
   };
 
-  const handleReceive = (submission, comments) => {
-    setConfirmAction("receive");
-    setPendingComments(comments);
-    setConfirmOpen(true);
-  };
-
-  const handleReturn = (submission, comments) => {
-    setConfirmAction("return");
-    setPendingComments(comments);
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmClose = () => {
-    setConfirmOpen(false);
-    setConfirmAction(null);
-    setPendingComments("");
-  };
-
-  const handleConfirmAction = async () => {
-    if (!confirmAction || !selectedSubmission) return;
+  const handleReceive = async (submission, comments) => {
+    if (!onReceiveSubmission) return;
 
     setActionLoading(true);
-
     try {
-      if (confirmAction === "receive" && onReceiveSubmission) {
-        await onReceiveSubmission(selectedSubmission.id, pendingComments);
-      } else if (confirmAction === "return" && onReturnSubmission) {
-        await onReturnSubmission(selectedSubmission.id, pendingComments);
-      }
-
-      setConfirmOpen(false);
-      setDialogOpen(false);
-      setSelectedSubmission(null);
+      await onReceiveSubmission(submission.id, comments);
     } catch (error) {
+      throw error; // Let the dialog handle the error
     } finally {
       setActionLoading(false);
-      setConfirmAction(null);
-      setPendingComments("");
+    }
+  };
+
+  const handleReturn = async (submission, comments) => {
+    if (!onReturnSubmission) return;
+
+    setActionLoading(true);
+    try {
+      await onReturnSubmission(submission.id, comments);
+    } catch (error) {
+      throw error; // Let the dialog handle the error
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -462,15 +444,6 @@ const ReceivingTable = ({
         submission={selectedSubmission}
         onReceive={handleReceive}
         onReturn={handleReturn}
-        isLoading={actionLoading}
-      />
-
-      <ReceivingDialog.ConfirmationDialog
-        open={confirmOpen}
-        onClose={handleConfirmClose}
-        onConfirm={handleConfirmAction}
-        action={confirmAction}
-        submission={selectedSubmission}
         isLoading={actionLoading}
       />
     </>

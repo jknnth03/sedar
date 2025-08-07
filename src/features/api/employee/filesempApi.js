@@ -1,12 +1,9 @@
-// src/features/api/employee/filesempApi.js
-
 import { sedarApi } from "..";
 
 const filesempApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["FileEmp", "FileEmpMaster"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // Get files with proper query structure
       getShowFileTypesEmp: build.query({
         query: ({
           page = 1,
@@ -16,7 +13,6 @@ const filesempApi = sedarApi
         }) => {
           let url = `employees/files?pagination=1&page=${page}&per_page=${per_page}&status=${status}`;
 
-          // Only add search parameter if it has a value
           if (search && search.trim() !== "") {
             url += `&search=${encodeURIComponent(search.trim())}`;
           }
@@ -35,30 +31,26 @@ const filesempApi = sedarApi
             : [{ type: "FileEmp", id: "LIST" }],
       }),
 
-      // Get file attachment for showing/viewing - FIXED
       getFileEmpAttachment: build.query({
         query: (fileId) => {
-          // Validate fileId before making the request
           if (!fileId || fileId === "undefined" || fileId === "null") {
             throw new Error("Invalid file ID provided");
           }
 
           return {
             url: `employees/files/${fileId}/attachment`,
-            responseHandler: (response) => response.blob(), // Handle file download properly
+            responseHandler: (response) => response.blob(),
           };
         },
         providesTags: (result, error, fileId) => [
           { type: "FileEmp", id: fileId },
         ],
-        // Add error handling
         transformErrorResponse: (response, meta, arg) => {
           console.error("File attachment error:", response, "for fileId:", arg);
           return response;
         },
       }),
 
-      // Delete/Archive file
       deleteFileTypesEmp: build.mutation({
         query: ({ employeeId, fileId }) => ({
           url: `employees/${employeeId}/files/${fileId}`,
@@ -71,10 +63,8 @@ const filesempApi = sedarApi
         ],
       }),
 
-      // Create file with proper FormData handling
       createFileTypesEmp: build.mutation({
         query: ({ employeeId, ...data }) => {
-          // Handle FormData for file uploads
           const formData = new FormData();
           Object.keys(data).forEach((key) => {
             if (data[key] !== null && data[key] !== undefined) {
@@ -86,7 +76,7 @@ const filesempApi = sedarApi
             url: `employees/${employeeId}/files`,
             method: "POST",
             body: formData,
-            formData: true, // This tells RTK Query not to JSON.stringify
+            formData: true,
           };
         },
         invalidatesTags: [
@@ -95,10 +85,8 @@ const filesempApi = sedarApi
         ],
       }),
 
-      // Update file with proper FormData handling
       updateFileTypesEmp: build.mutation({
         query: ({ employeeId, fileId, ...data }) => {
-          // Handle FormData for file uploads
           const formData = new FormData();
           Object.keys(data).forEach((key) => {
             if (data[key] !== null && data[key] !== undefined) {
@@ -120,7 +108,6 @@ const filesempApi = sedarApi
         ],
       }),
 
-      // Get specific employee files
       getEmployeeFiles: build.query({
         query: ({ employeeId, page = 1, per_page = 10 }) => ({
           url: `employees/${employeeId}/files?page=${page}&per_page=${per_page}`,

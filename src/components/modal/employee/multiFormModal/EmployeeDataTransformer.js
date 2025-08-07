@@ -129,33 +129,36 @@ export const transformEmployeeData = (formData) => {
     code: cleanedData.id_number || `EMP-${Date.now()}`,
     first_name: cleanedData.first_name,
     last_name: cleanedData.last_name,
-    middle_name: cleanedData.middle_name,
-    suffix: cleanedData.suffix,
+    middle_name: cleanedData.middle_name || "",
+    suffix: cleanedData.suffix || "",
     prefix_id: extractIdFromObject(cleanedData.prefix),
     id_number: cleanedData.id_number,
     birth_date: formatDateForAPI(cleanedData.birth_date),
     gender: cleanedData.gender,
     civil_status: cleanedData.civil_status,
     religion_id: extractIdFromObject(cleanedData.religion),
-    referrer_id: extractIdFromObject(cleanedData.referred_by), // FIXED: Extract ID from referred_by object
-    remarks: cleanedData.remarks,
+    referrer_id: extractIdFromObject(cleanedData.referred_by),
+    remarks: cleanedData.remarks || "",
 
     region_id: extractIdFromObject(cleanedData.region_id),
     province_id: extractIdFromObject(cleanedData.province_id),
     city_municipality_id: extractIdFromObject(cleanedData.city_municipality_id),
-    sub_municipality: cleanedData.sub_municipality,
+    sub_municipality_id:
+      extractIdFromObject(cleanedData.sub_municipality) || "",
     barangay_id: extractIdFromObject(cleanedData.barangay_id),
-    street: cleanedData.street,
-    zip_code: cleanedData.zip_code,
-    foreign_address: cleanedData.foreign_address,
-    address_remarks: cleanedData.address_remarks,
+    street: cleanedData.street || "",
+    zip_code: cleanedData.zip_code || "",
+    foreign_address: cleanedData.foreign_address || "",
+    address_remarks: cleanedData.address_remarks || "",
 
-    position_id: extractIdFromObject(cleanedData.position_id),
+    position_id:
+      extractIdFromObject(cleanedData.approval_form?.submittable?.position) ||
+      extractIdFromObject(cleanedData.position_id),
     job_rate: cleanedData.job_rate,
     allowance: cleanedData.allowance || 0,
-    additional_rate: cleanedData.additional_rate,
-    additional_tools: cleanedData.additional_tools,
-    additional_rate_remarks: cleanedData.additional_rate_remarks,
+    additional_rate: cleanedData.additional_rate || "",
+    additional_tools: cleanedData.additional_tools || "",
+    additional_rate_remarks: cleanedData.additional_rate_remarks || "",
     schedule_id: extractIdFromObject(cleanedData.schedule_id),
     job_level_id: extractIdFromObject(cleanedData.job_level_id),
 
@@ -167,23 +170,26 @@ export const transformEmployeeData = (formData) => {
     program_id: extractIdFromObject(cleanedData.program_id),
     degree_id: extractIdFromObject(cleanedData.degree_id),
     honor_title_id: extractIdFromObject(cleanedData.honor_title_id),
-    academic_year_from: cleanedData.academic_year_from,
-    academic_year_to: cleanedData.academic_year_to,
-    gpa: cleanedData.gpa,
-    institution: cleanedData.institution,
+    academic_year_from: cleanedData.academic_year_from || "",
+    academic_year_to: cleanedData.academic_year_to || "",
+    gpa: cleanedData.gpa || "",
+    institution: cleanedData.institution || "",
     attainment_attachment: cleanedData.attainment_attachment,
-    attainment_remarks: cleanedData.attainment_remarks,
+    attainment_remarks: cleanedData.attainment_remarks || "",
 
-    sss_number: cleanedData.sss_number,
-    pag_ibig_number: cleanedData.pag_ibig_number,
-    philhealth_number: cleanedData.philhealth_number,
-    tin_number: cleanedData.tin_number,
+    sss_number: cleanedData.sss_number || "",
+    pag_ibig_number: cleanedData.pag_ibig_number || "",
+    philhealth_number: cleanedData.philhealth_number || "",
+    tin_number: cleanedData.tin_number || "",
     bank_id: cleanedData.bank_id,
     bank_account_number: cleanedData.bank_account_number,
 
-    email_address: cleanedData.email_address,
-    mobile_number: cleanedData.mobile_number,
-    contact_remarks: cleanedData.contact_remarks,
+    email_address: cleanedData.email_address || "",
+    mobile_number: cleanedData.mobile_number || "",
+    email_address_remarks: cleanedData.contact_remarks || "",
+    mobile_number_remarks: cleanedData.contact_remarks || "",
+
+    manpower_form_id: extractIdFromObject(cleanedData.approval_form) || "",
 
     files: transformFilesForAPI(cleanedData.files),
   };
@@ -207,37 +213,47 @@ export const transformEmployeeData = (formData) => {
   }
 
   const formDatas = new FormData();
+  const requiredFields = [
+    "manpower_form_id",
+    "mobile_number_remarks",
+    "email_address_remarks",
+  ];
 
   Object.entries(transformedData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      if (Array.isArray(value)) {
-        if (key === "employment_types") {
-          value.forEach((item, index) => {
-            Object.entries(item).forEach(([subKey, subValue]) => {
-              if (subValue !== undefined && subValue !== null) {
-                formDatas.append(
-                  `employment_types[${index}][${subKey}]`,
-                  subValue
-                );
-              }
-            });
-          });
-        } else if (key === "files") {
-          value.forEach((item, index) => {
-            Object.entries(item).forEach(([subKey, subValue]) => {
-              if (subValue !== undefined && subValue !== null) {
-                formDatas.append(`files[${index}][${subKey}]`, subValue);
-              }
-            });
-          });
-        } else {
-          value.forEach((item, index) => {
-            formDatas.append(`${key}[${index}]`, item);
-          });
-        }
-      } else {
-        formDatas.append(key, value);
+    if (value === null || value === undefined) {
+      if (requiredFields.includes(key)) {
+        formDatas.append(key, "");
       }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      if (key === "employment_types") {
+        value.forEach((item, index) => {
+          Object.entries(item).forEach(([subKey, subValue]) => {
+            if (subValue !== undefined && subValue !== null) {
+              formDatas.append(
+                `employment_types[${index}][${subKey}]`,
+                subValue
+              );
+            }
+          });
+        });
+      } else if (key === "files") {
+        value.forEach((item, index) => {
+          Object.entries(item).forEach(([subKey, subValue]) => {
+            if (subValue !== undefined && subValue !== null) {
+              formDatas.append(`files[${index}][${subKey}]`, subValue);
+            }
+          });
+        });
+      } else {
+        value.forEach((item, index) => {
+          formDatas.append(`${key}[${index}]`, item);
+        });
+      }
+    } else {
+      formDatas.append(key, value);
     }
   });
 
