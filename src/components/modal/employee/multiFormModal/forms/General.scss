@@ -1,0 +1,90 @@
+.general-form {
+  padding: 16px;
+
+  &__field {
+    width: 355px !important;
+
+    .MuiOutlinedInput-root {
+      border-radius: 8px;
+    }
+
+    .MuiSelect-select {
+      border-radius: 8px;
+    }
+
+    // Label color styling
+    .MuiInputLabel-root {
+      color: rgb(33, 61, 112) !important;
+
+      &.Mui-focused {
+        color: rgb(33, 61, 112) !important;
+      }
+    }
+
+    .MuiFormLabel-root {
+      color: rgb(33, 61, 112) !important;
+
+      &.Mui-focused {
+        color: rgb(33, 61, 112) !important;
+      }
+    }
+  }
+
+  &__text-field {
+    @extend .general-form__field;
+  }
+
+  &__select {
+    @extend .general-form__field;
+  }
+
+  &__multiline {
+    @extend .general-form__field;
+  }
+
+  // Error states
+  &__error-text {
+    color: #d32f2f;
+    font-size: 0.75rem;
+  }
+
+  // Loading states
+  &__loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  // Grid item styling
+  &__grid-item {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Responsive adjustments
+  @media (max-width: 1536px) {
+    &__field,
+    &__text-field,
+    &__select,
+    &__multiline {
+      width: 300px;
+    }
+  }
+
+  @media (max-width: 1200px) {
+    &__field,
+    &__text-field,
+    &__select,
+    &__multiline {
+      width: 250px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    &__field,
+    &__text-field,
+    &__select,
+    &__multiline {
+      width: 100%;
+    }
+  }
+}

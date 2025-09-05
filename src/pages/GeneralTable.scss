@@ -1,0 +1,202 @@
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Impact&family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+
+/* ==================== MAIN CONTAINER ==================== */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow-x: auto; // Changed from overflow: hidden
+  overflow-y: hidden;
+}
+
+// Add this if it doesn't exist
+.table-container {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  flex: 1;
+  .MuiTable-root {
+    min-width: max-content;
+  }
+}
+/* ==================== where the create button is ==================== */
+.header-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 5px;
+  gap: 12px;
+  width: 100%;
+  // background-color: red;
+}
+/* ==================== HEADER OF TITLE OF TABLE ==================== */
+
+.table-header {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  // background-color: aqua;
+  display: flex;
+}
+
+.table-header2 {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  width: 200px !important; /* Fixed width in pixels */
+  min-width: 200px !important; /* Ensure minimum width */
+  max-width: 200px !important; /* Prevent expansion */
+  display: flex;
+}
+
+.table-header3 {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  padding-left: 30px !important;
+}
+
+.table-status.MuiTableCell-root {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  // background-color: aqua;
+  width: 14%;
+  text-align: center;
+}
+
+.table-id {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  // background-color: aqua;
+  padding-left: 30px !important;
+  display: flex;
+  width: 10%;
+}
+
+.table-id2 {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  // background-color: aqua;
+  padding-left: 30px !important;
+  display: flex;
+  width: 24%;
+}
+
+.table-id3 {
+  font-weight: bold !important;
+  font-size: 1.11rem !important;
+  color: rgb(33, 61, 112) !important;
+  // background-color: aqua;
+  padding-left: 30px !important;
+  display: flex;
+  width: 20%;
+}
+
+/* ==================== TABLE CELL ==================== */
+.table-cell.MuiTableCell-root {
+  overflow: auto;
+  font-size: 0.98rem;
+}
+.table-cell4.MuiTableCell-root {
+  overflow: auto;
+  font-size: 0.98rem;
+  padding-left: 30px !important;
+  width: 100px !important; /* Match the header width */
+  min-width: 100px !important; /* Ensure minimum width */
+  max-width: 100px !important; /* Prevent expansion */
+}
+
+.table-cell2.MuiTableCell-root {
+  overflow: auto;
+  font-size: 0.98rem;
+  width: 200px !important; /* Match the header width */
+  min-width: 200px !important; /* Ensure minimum width */
+  max-width: 200px !important; /* Prevent expansion */
+}
+.table-cell3.MuiTableCell-root {
+  overflow: auto;
+  font-size: 0.98rem;
+  width: 400px !important; /* Match the header width */
+  min-width: 400px !important; /* Ensure minimum width */
+  max-width: 400px !important; /* Prevent expansion */
+}
+
+.table-cell-id.MuiTableCell-root {
+  overflow: auto;
+  font-size: 0.98rem;
+  padding-left: 30px !important;
+}
+
+.table-cell-id2.MuiTableCell-root {
+  overflow: auto;
+  padding-left: 30px !important;
+  width: 200px;
+  font-size: 0.98rem;
+  width: 180px !important; /* Match the header width */
+  min-width: 180px !important; /* Ensure minimum width */
+  max-width: 180px !important; /* Prevent expansion */
+}
+
+.table-status2.MuiTableCell-root {
+  overflow: auto;
+  padding-left: 30px !important;
+  font-size: 0.98rem;
+  width: 300px !important; /* Match the header width */
+  min-width: 300px !important; /* Ensure minimum width */
+  max-width: 300px !important; /* Prevent expansion */
+  text-align: center;
+}
+
+/* ==================== PAGINATION ==================== */
+.MuiTablePagination-root {
+  position: sticky !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  background-color: #fff !important;
+  min-height: 48px !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: 0 -4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+
+  // Remove the toolbar height
+  .MuiToolbar-root {
+    min-height: 48px !important;
+    padding: 8px 16px !important;
+    border: none !important;
+    border-top: none !important;
+
+    &::before,
+    &::after {
+      display: none !important;
+    }
+  }
+
+  // Target all pagination elements
+  .MuiTablePagination-toolbar,
+  .MuiTablePagination-spacer,
+  .MuiTablePagination-selectLabel,
+  .MuiTablePagination-select,
+  .MuiTablePagination-displayedRows,
+  .MuiTablePagination-actions {
+    border: none !important;
+    border-top: none !important;
+  }
+}
+
+// Also target if you have a custom wrapper
+.table-pagination {
+  .MuiTablePagination-root {
+    position: sticky !important;
+    bottom: 0 !important;
+    min-height: 48px !important;
+    box-shadow: 0 -4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+    border: none !important;
+  }
+}

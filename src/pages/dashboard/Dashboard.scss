@@ -1,0 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Impact&family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap");
+
+.headerbox {
+  .header {
+    color: rgb(33, 61, 112);
+    font-size: 25px;
+    font-family: "Anton", "Impact", "Poppins", "Roboto", sans-serif;
+    margin-left: 26px;
+    margin-bottom: 14px;
+  }
+}
+.dashboard_box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: skyblue;
+  border-radius: 4px;
+  padding: 10px;
+  color: black;
+  margin-left: 25px;
+  width: 96%;
+  height: 160px;
+  box-shadow: 0px 0px 11px 1px rgb(205, 205, 205);
+}
+
+.brightness_icon {
+  margin-right: 20px;
+  margin-left: 20px;
+  color: orangered;
+}
+
+.dashboard_box .firstline {
+  font-size: 24px;
+}
+
+.welcome_img {
+  height: 140px;
+  margin-left: 240px;
+}
+
+.dashboard_box .secondline {
+  font-size: 14px;
+}

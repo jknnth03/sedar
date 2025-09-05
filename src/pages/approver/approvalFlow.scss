@@ -1,0 +1,564 @@
+// ApprovalFlow Component Styles
+.approval-flow {
+  // Used in: main container div
+  &__container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #fafafa;
+  }
+
+  // Used in: header div
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    min-height: 72px;
+    padding: 16px 14px;
+    background-color: white;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  // Used in: header left section div
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+  }
+
+  // UNUSED - No CREATE FLOW button uses this class in the component
+  // The button uses inline sx styling instead
+  &__create-button {
+    background-color: rgb(33, 61, 112) !important;
+    height: 38px !important;
+    width: 200px !important;
+    text-transform: none !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(33, 61, 112, 0.2) !important;
+    transition: all 0.2s ease-in-out !important;
+
+    &:hover {
+      background-color: rgb(25, 45, 84) !important;
+      box-shadow: 0 4px 12px rgba(33, 61, 112, 0.3) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    &:disabled {
+      background-color: #ccc !important;
+      box-shadow: none !important;
+    }
+  }
+
+  // Used in: table container div
+  &__table-container {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+  }
+
+  // Used in: table wrapper div
+  &__table-wrapper {
+    flex: 1;
+    overflow: auto;
+    background-color: #fafafa;
+
+    .MuiTableCell-head {
+      background-color: #f8f9fa !important;
+      font-weight: 700 !important;
+      font-size: 18px !important;
+      color: rgb(33, 61, 112) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      border-bottom: 2px solid #e0e0e0 !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 10 !important;
+      height: 48px !important;
+      padding: 8px 16px !important;
+    }
+
+    .MuiTableCell-body {
+      font-size: 16px !important;
+      color: #333 !important;
+      border-bottom: 1px solid #f0f0f0 !important;
+      padding: 8px 16px !important;
+      height: 60px !important;
+      background-color: white !important;
+      vertical-align: middle !important;
+    }
+
+    .MuiTableRow-root {
+      transition: background-color 0.2s ease-in-out !important;
+
+      &:hover {
+        background-color: #f8f9fa !important;
+        cursor: pointer !important;
+
+        .MuiTableCell-root {
+          background-color: transparent !important;
+        }
+      }
+    }
+  }
+
+  // Used in: TableRow onClick handler
+  &__table-row {
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+
+    &:hover {
+      .MuiTableCell-root {
+        background-color: transparent !important;
+      }
+    }
+  }
+
+  // Used in: flow name TableCell
+  &__flow-name {
+    font-weight: 600 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  // UNUSED - No form info div uses this class
+  &__form-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // UNUSED - No form name element uses this class
+  &__form-name {
+    font-weight: 400 !important;
+  }
+
+  // UNUSED - No form slug element uses this class
+  &__form-slug {
+    color: #666 !important;
+    font-family: monospace !important;
+    font-size: 11px !important;
+  }
+
+  // UNUSED - No unit info div uses this class
+  &__unit-info {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 12px !important;
+  }
+
+  // UNUSED - No unit icon uses this class
+  &__unit-icon {
+    font-size: 16px !important;
+    color: #666 !important;
+  }
+
+  // UNUSED - No unit text uses this class
+  &__unit-text {
+    font-size: 12px !important;
+  }
+
+  // UNUSED - No receiver info div uses this class
+  &__receiver-info {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 12px !important;
+  }
+
+  // UNUSED - No receiver avatar uses this class
+  &__receiver-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 12px !important;
+  }
+
+  // UNUSED - No receiver name uses this class (renderReceiver uses inline Typography)
+  &__receiver-name {
+    font-weight: 400 !important;
+    font-size: 16px !important; // Changed from 14px to 16px to match table cell default
+  }
+
+  // UNUSED - No steps info div uses this class
+  &__steps-info {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  // UNUSED - No steps icon uses this class
+  &__steps-icon {
+    font-size: 16px !important;
+    color: #666 !important;
+  }
+
+  // UNUSED - No steps text uses this class
+  &__steps-text {
+    font-weight: 400 !important; // Changed from 600 to 400 to match default
+    font-size: 16px !important; // Matches table cell default
+  }
+
+  // UNUSED - renderApprovalSteps uses approval-flow__steps-container and approval-flow__steps-chip
+  &__status-chip {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    height: 30px !important;
+  }
+
+  // UNUSED - renderStatus uses inline sx styling instead
+  &__date-text {
+    font-weight: 400 !important;
+    font-size: 16px !important;
+  }
+
+  // Used in: action button IconButton
+  &__action-button {
+    color: rgb(33, 61, 112) !important;
+
+    &:hover {
+      background-color: rgba(33, 61, 112, 0.04) !important;
+    }
+  }
+
+  // Used in: MenuItem className
+  &__menu-item {
+    font-size: 0.875rem !important;
+
+    &--archive {
+      color: #ed6c02 !important;
+    }
+
+    &--restore {
+      color: #2e7d32 !important;
+    }
+  }
+
+  // Used in: menu icons
+  &__menu-icon {
+    margin-right: 0.5rem !important;
+  }
+
+  // Used in: pagination container div
+  &__pagination-container {
+    border-top: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    flex-shrink: 0;
+
+    .MuiTablePagination-root {
+      color: #666 !important;
+
+      .MuiTablePagination-selectLabel,
+      .MuiTablePagination-displayedRows {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+      }
+
+      .MuiTablePagination-select {
+        font-size: 14px !important;
+      }
+
+      .MuiIconButton-root {
+        color: rgb(33, 61, 112) !important;
+
+        &:hover {
+          background-color: rgba(33, 61, 112, 0.04) !important;
+        }
+
+        &.Mui-disabled {
+          color: #ccc !important;
+        }
+      }
+    }
+
+    .MuiTablePagination-toolbar {
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+  }
+
+  // Used in: loading state TableCell
+  &__loading-row {
+    padding: 2rem 0 !important;
+  }
+
+  // Used in: loading CircularProgress
+  &__loading-spinner {
+    color: rgb(33, 61, 112) !important;
+  }
+
+  // Used in: error state TableCell
+  &__error-row {
+    padding: 2rem 0 !important;
+  }
+
+  // Used in: no data state TableCell
+  &__no-data-container {
+    padding: 4rem 0 !important;
+    border-bottom: none !important;
+    color: #666 !important;
+    font-size: 16px !important;
+  }
+
+  // Used in: no data content div
+  &__no-data-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  // Used in: renderApprovalSteps function
+  &__steps-container {
+    /* No styles defined but class is used */
+  }
+
+  // Used in: renderApprovalSteps Chip component
+  &__steps-chip {
+    /* No styles defined but class is used */
+  }
+
+  // Used in: renderStatus function (Typography in date cell)
+  &__version-text {
+    /* No styles defined but class is used */
+  }
+}
+
+// Search Bar Styles
+.search-bar {
+  &__search-input {
+    height: 36px !important;
+    width: 300px !important; // Increased from 320px to 500px
+    background-color: white !important;
+    transition: all 0.2s ease-in-out !important;
+
+    .MuiOutlinedInput-root {
+      height: 36px !important;
+
+      fieldset {
+        border-color: #ccc !important;
+        transition: border-color 0.2s ease-in-out !important;
+      }
+
+      &:hover fieldset {
+        border-color: rgb(33, 61, 112) !important;
+      }
+
+      &.Mui-focused fieldset {
+        border-color: rgb(33, 61, 112) !important;
+        border-width: 2px !important;
+      }
+
+      &.Mui-disabled {
+        background-color: #f5f5f5 !important;
+      }
+    }
+  }
+  // Used in: CustomSearchBar container div
+  &__container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  // Used in: FormControlLabel className
+  &__archive-checkbox {
+    margin: 0 !important;
+    border-radius: 8px !important;
+    padding-left: 8px !important;
+    padding-right: 12px !important;
+    height: 36px !important;
+    transition: all 0.2s ease-in-out !important;
+
+    &--active {
+      border: 1px solid #d32f2f !important;
+      background-color: rgba(211, 47, 47, 0.04) !important;
+
+      &:hover {
+        background-color: rgba(211, 47, 47, 0.08) !important;
+        border-color: #d32f2f !important;
+      }
+
+      .MuiFormControlLabel-label {
+        color: #d32f2f !important;
+      }
+    }
+
+    &--inactive {
+      border: 1px solid #ccc !important;
+      background-color: white !important;
+
+      &:hover {
+        background-color: #f5f5f5 !important;
+        border-color: rgb(33, 61, 112) !important;
+      }
+
+      .MuiFormControlLabel-label {
+        color: rgb(33, 61, 112) !important;
+      }
+    }
+
+    .MuiFormControlLabel-label {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.5px !important;
+    }
+  }
+
+  // Used in: ArchiveIcon className
+  &__archive-icon {
+    &--active {
+      color: #d32f2f !important;
+    }
+
+    &--inactive {
+      color: rgb(33, 61, 112) !important;
+    }
+  }
+
+  // Used in: TextField className
+  &__search-field {
+    .MuiInputBase-input {
+      font-size: 14px !important;
+
+      &::placeholder {
+        opacity: 0.7 !important;
+      }
+    }
+  }
+
+  // Used in: TextField sx prop (referenced in sx object)
+  &__search-input {
+    height: 36px !important;
+    width: 320px !important;
+    background-color: white !important;
+    transition: all 0.2s ease-in-out !important;
+
+    .MuiOutlinedInput-root {
+      height: 36px !important;
+
+      fieldset {
+        border-color: #ccc !important;
+        transition: border-color 0.2s ease-in-out !important;
+      }
+
+      &:hover fieldset {
+        border-color: rgb(33, 61, 112) !important;
+      }
+
+      &.Mui-focused fieldset {
+        border-color: rgb(33, 61, 112) !important;
+        border-width: 2px !important;
+      }
+
+      &.Mui-disabled {
+        background-color: #f5f5f5 !important;
+      }
+    }
+  }
+
+  // Used in: SearchIcon className
+  &__search-icon {
+    margin-right: 0.5rem !important;
+    font-size: 20px !important;
+
+    &--loading {
+      color: #ccc !important;
+    }
+
+    &--normal {
+      color: #666 !important;
+    }
+  }
+
+  // Used in: loading CircularProgress
+  &__loading-spinner {
+    margin-left: 0.5rem !important;
+  }
+}
+
+// Confirmation Dialog Styles
+.confirmation-dialog {
+  // Used in: Dialog className
+  &__container {
+    z-index: 10000 !important;
+  }
+
+  // Used in: Dialog PaperProps
+  &__paper {
+    border-radius: 12px !important;
+    z-index: 10001 !important;
+  }
+
+  // Used in: icon container div
+  &__icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  // Used in: HelpIcon className
+  &__icon {
+    font-size: 60px !important;
+    color: #ff4400 !important;
+  }
+
+  // Used in: Typography className
+  &__title {
+    font-weight: bold !important;
+    text-align: center !important;
+    color: rgb(33, 61, 112) !important;
+  }
+
+  // Used in: DialogContent className
+  &__content {
+    text-align: center !important;
+  }
+
+  // Used in: flow name Typography
+  &__flow-name {
+    margin-top: 0.5rem !important;
+    text-align: center !important;
+  }
+
+  // Used in: DialogActions className
+  &__actions {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  // Used in: cancel Button className
+  &__cancel-button {
+    border-radius: 8px !important;
+    min-width: 80px !important;
+  }
+
+  // Used in: confirm Button className
+  &__confirm-button {
+    border-radius: 8px !important;
+    min-width: 80px !important;
+  }
+}
+
+// Modal Styles
+.approval-flow-modal {
+  // Used in: ApprovalFlowModal className
+  z-index: 10000 !important;
+
+  // Used in: ApprovalFlowModal PaperProps
+  &__paper {
+    z-index: 10001 !important;
+    position: relative !important;
+  }
+}

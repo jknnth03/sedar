@@ -1,0 +1,793 @@
+// Employee.scss - Fixed Row Spacing with Custom Stepper Colors
+
+// Import Sass color module for modern color functions
+@use "sass:color";
+
+// Color variables
+$primary-color: rgb(33, 61, 112);
+$primary-hover: rgb(25, 45, 84);
+$primary-light: rgba(33, 61, 112, 0.1);
+$background-light: #f8f9fa;
+$border-color: #e0e0e0;
+$text-secondary: #666;
+$text-muted: #999;
+$error-color: #dc3545;
+$success-color: #28a745;
+$completed-color: #00881dff; // Changed from rgb(255, 68, 0) to green
+$white: #ffffff;
+$black: #000000;
+
+// Employee Wizard Dialog - FIXED z-index and positioning
+.employee-wizard-dialog {
+  z-index: 1300 !important; // Ensure it's above other elements
+
+  .MuiDialog-paper {
+    min-height: 85vh;
+    max-height: 95vh;
+    margin: 8px;
+    width: 100%;
+    max-width: 1200px;
+    background-color: $white;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  // Fix backdrop
+  .MuiBackdrop-root {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+// Dialog Title - FIXED layout and positioning
+.employee-wizard-title {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border-bottom: 1px solid $border-color;
+  background-color: $background-light;
+  padding: 16px 24px !important;
+  margin: 0 !important;
+  min-height: auto !important;
+
+  &__header {
+    flex: 1;
+
+    h5,
+    .MuiTypography-h5 {
+      font-weight: 600 !important;
+      color: $primary-color !important;
+      margin: 0 0 4px 0 !important;
+      font-size: 1.25rem !important;
+    }
+
+    .MuiTypography-body2 {
+      color: $text-secondary !important;
+      margin: 0 !important;
+    }
+  }
+
+  &__close-button {
+    color: $primary-color !important;
+    margin-left: 16px !important;
+    padding: 8px !important;
+
+    &:hover {
+      background-color: $primary-light !important;
+    }
+  }
+}
+
+// Additional specificity for VIEW EMPLOYEE DETAILS title color
+.employee-wizard-dialog
+  .employee-wizard-title__header
+  .MuiTypography-root.MuiTypography-h5 {
+  color: rgb(33, 61, 112) !important;
+}
+
+// Progress Bar - FIXED positioning
+.employee-wizard-progress {
+  height: 3px !important;
+  margin: 0 !important;
+
+  .MuiLinearProgress-bar {
+    background-color: $primary-color !important;
+  }
+}
+
+// Dialog Content - FIXED layout and spacing
+.employee-wizard-content {
+  padding: 0 !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: $white;
+  overflow: hidden !important;
+
+  &__inner {
+    padding: 24px !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: auto !important;
+  }
+
+  &__form-container {
+    flex: 1 !important;
+    min-height: 400px !important;
+  }
+}
+
+// Stepper - FIXED styling with CUSTOM COLORS
+.employee-wizard-stepper {
+  margin-bottom: 10px !important;
+  background-color: transparent !important;
+
+  .MuiStep-root {
+    padding: 10px 8px !important;
+  }
+
+  .MuiStepLabel-root {
+    .MuiStepLabel-label {
+      font-size: 0.875rem !important;
+      font-weight: 400 !important;
+      color: $text-secondary !important;
+
+      &.Mui-active {
+        font-weight: 600 !important;
+        color: $primary-color !important; // Blue for active step
+      }
+
+      &.Mui-completed {
+        color: $completed-color !important; // Green for completed steps
+      }
+    }
+  }
+
+  .MuiStepIcon-root {
+    color: $border-color !important;
+
+    &.Mui-active {
+      color: $primary-color !important; // Blue for active step icon
+    }
+
+    &.Mui-completed {
+      color: $completed-color !important; // Green for completed step icons
+    }
+  }
+
+  // Additional override to force correct colors and white text inside
+  .MuiStepIcon-text {
+    fill: $white !important; // White text inside the colored circle
+  }
+
+  // Force override any Material-UI default colors
+  .Mui-active {
+    .MuiStepIcon-root {
+      color: $primary-color !important;
+    }
+  }
+
+  .Mui-completed {
+    .MuiStepIcon-root {
+      color: $completed-color !important;
+    }
+  }
+}
+
+// Alert Container - FIXED animations and spacing
+.employee-wizard-alert {
+  margin-bottom: 0 !important;
+  transition: all 0.3s ease !important;
+  overflow: hidden !important;
+  max-height: 0 !important;
+
+  &--visible {
+    margin-bottom: 24px !important;
+    max-height: 100px !important;
+  }
+
+  &__inner {
+    .MuiAlert-message {
+      font-weight: 500 !important;
+    }
+  }
+}
+
+// Placeholder Form - FIXED layout
+.placeholder-form {
+  padding: 32px !important;
+  min-height: 350px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  background-color: $background-light !important;
+  border-radius: 8px !important;
+  border: 2px dashed $border-color !important;
+
+  &__title {
+    color: $text-secondary !important;
+    margin-bottom: 16px !important;
+  }
+
+  &__description {
+    color: $text-secondary !important;
+    max-width: 400px !important;
+    line-height: 1.5 !important;
+  }
+}
+
+// Review Step - FIXED layout and styling
+.review-step {
+  padding: 24px !important;
+
+  &__title {
+    color: $primary-color !important;
+    font-weight: 600 !important;
+    margin-bottom: 16px !important;
+  }
+
+  &__subtitle {
+    color: $text-secondary !important;
+    margin-bottom: 24px !important;
+  }
+
+  &__section {
+    padding: 24px !important;
+    margin-bottom: 24px !important;
+    background-color: $white !important;
+    border: 1px solid $border-color !important;
+    border-radius: 8px !important;
+
+    &-title {
+      color: $primary-color !important;
+      border-bottom: 1px solid $border-color !important;
+      padding-bottom: 8px !important;
+      margin-bottom: 16px !important;
+      font-weight: 600 !important;
+    }
+
+    &-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+      gap: 16px !important;
+      margin-top: 16px !important;
+    }
+
+    &-field {
+      .field-label {
+        font-weight: 600 !important;
+        color: $text-secondary !important;
+        font-size: 0.75rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        margin-bottom: 4px !important;
+        display: block !important;
+      }
+
+      .field-value {
+        font-size: 0.875rem !important;
+        margin-top: 4px !important;
+        color: #333 !important;
+
+        em {
+          color: $text-muted !important;
+          font-style: italic !important;
+        }
+      }
+    }
+  }
+
+  &__json-section {
+    padding: 24px !important;
+    background-color: $background-light !important;
+    border-radius: 8px !important;
+
+    &-title {
+      color: $primary-color !important;
+      margin-bottom: 16px !important;
+      font-weight: 600 !important;
+    }
+
+    &-container {
+      max-height: 300px !important;
+      overflow: auto !important;
+      background-color: $white !important;
+      padding: 16px !important;
+      border-radius: 4px !important;
+      border: 1px solid $border-color !important;
+
+      pre {
+        font-size: 11px !important;
+        margin: 0 !important;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
+        line-height: 1.4 !important;
+        color: #333 !important;
+      }
+    }
+  }
+}
+
+// Dialog Actions - FIXED layout and button positioning
+.employee-wizard-actions {
+  padding: 24px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border-top: 1px solid $border-color !important;
+  background-color: $background-light !important;
+  margin: 0 !important;
+  min-height: auto !important;
+
+  &__left-section {
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  &__right-section {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+}
+
+// Buttons - FIXED styling and states
+.employee-wizard-button {
+  min-height: 36px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  border-radius: 6px !important;
+
+  &--back {
+    border: 1px solid $primary-color !important;
+    color: $primary-color !important;
+    background-color: transparent !important;
+    min-width: 80px !important;
+
+    &:hover {
+      border-color: $primary-hover !important;
+      background-color: $primary-light !important;
+    }
+
+    &:disabled {
+      border-color: $text-muted !important;
+      color: $text-muted !important;
+      background-color: transparent !important;
+    }
+  }
+
+  &--next {
+    background-color: transparent !important; // remove background
+    color: $success-color !important; // green text
+    border: 1px solid $success-color !important; // green border
+    min-width: 100px !important;
+    border-radius: 6px; // optional, for rounded corners
+    font-weight: 500; // match font styling if needed
+    padding: 6px 16px; // optional, adjust spacing
+
+    &:hover {
+      // FIXED: Use modern color.adjust() instead of deprecated darken()
+      background-color: color.adjust(
+        $success-color,
+        $lightness: -10%
+      ) !important;
+    }
+
+    &:disabled {
+      background-color: $text-muted !important;
+      color: $white !important;
+    }
+  }
+
+  &--submit {
+    background-color: $primary-color !important;
+    color: $white !important;
+    min-width: 150px !important;
+
+    &:hover {
+      background-color: $primary-hover !important;
+    }
+
+    &:disabled {
+      background-color: $text-muted !important;
+      color: $white !important;
+    }
+  }
+
+  &--create {
+    background-color: #45a049 !important;
+    color: $white !important;
+    min-width: 150px !important;
+    border: none !important;
+
+    &:hover {
+      background-color: color.adjust(#45a049, $lightness: -8%) !important;
+    }
+
+    &:disabled {
+      background-color: $text-muted !important;
+      color: $white !important;
+    }
+  }
+
+  &--secondary {
+    border: 1px solid $text-muted !important;
+    color: $text-secondary !important;
+    background-color: transparent !important;
+
+    &:hover {
+      border-color: $text-secondary !important;
+      background-color: #f5f5f5 !important;
+    }
+  }
+}
+
+// Form Field Overrides - FIXED Material-UI conflicts and ROW SPACING
+.employee-wizard-dialog {
+  .MuiFormControl-root {
+    margin-bottom: 12px !important; // Reduced from 16px to 12px
+    width: 100% !important;
+  }
+
+  // Special handling for form grids to reduce spacing between rows
+  .MuiGrid-container {
+    margin-bottom: 0 !important;
+
+    .MuiGrid-item {
+      padding-bottom: 8px !important; // Reduced padding between grid items
+    }
+  }
+
+  // Specific targeting for position form and other multi-row forms
+  .position-form,
+  .general-form,
+  .address-form,
+  .contact-form,
+  .account-form {
+    .MuiGrid-container {
+      row-gap: 20px !important; // Reduced row gap
+    }
+
+    .MuiFormControl-root {
+      margin-bottom: 2px !important; // Even smaller margin for grid layouts
+    }
+  }
+
+  .MuiInputLabel-root {
+    color: $text-secondary !important;
+
+    &.Mui-focused {
+      color: $primary-color !important;
+    }
+  }
+
+  .MuiOutlinedInput-root {
+    &:hover .MuiOutlinedInput-notchedOutline {
+      border-color: $primary-color !important;
+    }
+
+    &.Mui-focused .MuiOutlinedInput-notchedOutline {
+      border-color: $primary-color !important;
+    }
+  }
+
+  .MuiFormHelperText-root {
+    margin-left: 0 !important;
+
+    &.Mui-error {
+      color: $error-color !important;
+    }
+  }
+}
+
+// Responsive Design - FIXED mobile layout
+@media (max-width: 768px) {
+  .employee-wizard-dialog {
+    .MuiDialog-paper {
+      min-height: 95vh !important;
+      max-height: 95vh !important;
+      margin: 4px !important;
+      width: calc(100vw - 8px) !important;
+      max-width: none !important;
+    }
+
+    // Tighter spacing on mobile
+    .MuiFormControl-root {
+      margin-bottom: 8px !important;
+    }
+
+    .MuiGrid-container {
+      .MuiGrid-item {
+        padding-bottom: 4px !important;
+      }
+    }
+  }
+
+  .employee-wizard-title {
+    padding: 16px !important;
+
+    &__header {
+      h5,
+      .MuiTypography-h5 {
+        font-size: 1.1rem !important;
+      }
+
+      .MuiTypography-body2 {
+        font-size: 0.75rem !important;
+      }
+    }
+  }
+
+  .employee-wizard-content__inner {
+    padding: 16px !important;
+  }
+
+  .employee-wizard-actions {
+    padding: 16px !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+
+    &__left-section,
+    &__right-section {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+
+    &__right-section {
+      flex-direction: row !important;
+      gap: 12px !important;
+    }
+  }
+
+  .employee-wizard-stepper {
+    .MuiStepLabel-label {
+      font-size: 0.75rem !important;
+    }
+  }
+
+  .review-step {
+    padding: 16px !important;
+
+    &__section {
+      padding: 16px !important;
+
+      &-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+    }
+
+    &__json-section {
+      padding: 16px !important;
+
+      &-container {
+        max-height: 200px !important;
+        padding: 12px !important;
+
+        pre {
+          font-size: 10px !important;
+        }
+      }
+    }
+  }
+
+  .placeholder-form {
+    padding: 24px 16px !important;
+    min-height: 300px !important;
+
+    &__description {
+      font-size: 0.875rem !important;
+    }
+  }
+}
+
+// Print Styles
+@media print {
+  .employee-wizard-dialog {
+    .MuiDialog-paper {
+      box-shadow: none !important;
+      max-height: none !important;
+      min-height: auto !important;
+    }
+  }
+
+  .employee-wizard-title,
+  .employee-wizard-actions,
+  .employee-wizard-stepper {
+    display: none !important;
+  }
+
+  .employee-wizard-content {
+    padding: 0 !important;
+  }
+
+  .review-step__json-section {
+    display: none !important;
+  }
+}
+
+// Force White Background Theme (Override Dark Mode)
+.employee-wizard-dialog {
+  .MuiDialog-paper {
+    background-color: $white !important;
+    color: #333333 !important;
+  }
+
+  .MuiDialog-container {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .employee-wizard-title,
+  .employee-wizard-actions {
+    background-color: $background-light !important;
+    border-color: $border-color !important;
+    color: #333333 !important;
+  }
+
+  .employee-wizard-content {
+    background-color: $white !important;
+    color: #333333 !important;
+  }
+
+  .placeholder-form {
+    background-color: $background-light !important;
+    border-color: $border-color !important;
+    color: $text-secondary !important;
+  }
+
+  .review-step__section {
+    background-color: $white !important;
+    border-color: $border-color !important;
+    color: #333333 !important;
+  }
+
+  .review-step__json-section {
+    background-color: $background-light !important;
+
+    &-container {
+      background-color: $white !important;
+      border-color: $border-color !important;
+      color: #333333 !important;
+    }
+  }
+
+  // Force all text to be dark
+  * {
+    color: inherit !important;
+  }
+
+  // Override any Material-UI dark mode styles
+  .MuiTypography-root {
+    color: inherit !important;
+  }
+
+  .MuiFormLabel-root {
+    color: $text-secondary !important;
+  }
+
+  .MuiInputBase-root {
+    background-color: $white !important;
+    color: #333333 !important;
+  }
+
+  .MuiOutlinedInput-root {
+    background-color: $white !important;
+
+    .MuiOutlinedInput-input {
+      color: #333333 !important;
+    }
+  }
+}
+
+// Disable dark mode entirely for this component
+@media (prefers-color-scheme: dark) {
+  .employee-wizard-dialog {
+    .MuiDialog-paper {
+      background-color: $white !important;
+      color: #333333 !important;
+    }
+
+    .employee-wizard-title,
+    .employee-wizard-actions {
+      background-color: $background-light !important;
+      border-color: $border-color !important;
+    }
+
+    .employee-wizard-content {
+      background-color: $white !important;
+    }
+
+    .placeholder-form {
+      background-color: $background-light !important;
+      border-color: $border-color !important;
+      color: $text-secondary !important;
+    }
+
+    .review-step__section {
+      background-color: $white !important;
+      border-color: $border-color !important;
+    }
+
+    .review-step__json-section {
+      background-color: $background-light !important;
+
+      &-container {
+        background-color: $white !important;
+        border-color: $border-color !important;
+        color: #333333 !important;
+      }
+    }
+  }
+}
+
+// Additional fixes for common Material-UI issues
+.employee-wizard-dialog {
+  // Ensure proper stacking
+  .MuiDialog-container {
+    z-index: 1300 !important;
+  }
+
+  // Fix any overlay issues
+  .MuiDialog-root {
+    z-index: 1300 !important;
+  }
+
+  // Ensure form inputs are properly styled
+  .MuiTextField-root {
+    margin-bottom: 12px !important; // Reduced from 16px
+
+    .MuiInputBase-root {
+      background-color: $white !important;
+    }
+  }
+
+  // Fix select dropdowns
+  .MuiSelect-root {
+    background-color: $white !important;
+  }
+
+  // Fix date pickers
+  .MuiDatePicker-root {
+    width: 100% !important;
+  }
+}
+
+// Specific override for Create button ONLY in employee wizard dialog
+.employee-wizard-dialog {
+  .css-1blvszr-MuiButtonBase-root-MuiButton-root,
+  .employee-wizard-button--create {
+    background-color: #45a049 !important;
+    color: $white !important;
+    border: none !important;
+
+    &:hover {
+      background-color: color.adjust(#45a049, $lightness: -8%) !important;
+    }
+
+    &:disabled {
+      background-color: $text-muted !important;
+      color: $white !important;
+    }
+  }
+
+  // More specific targeting for the Create button in dialog actions
+  .employee-wizard-actions {
+    .MuiButton-root:contains("Create"),
+    .MuiButton-root[aria-label*="Create"],
+    .MuiButton-root[class*="css-"]:last-child {
+      background-color: #45a049 !important;
+      color: $white !important;
+      border: none !important;
+
+      &:hover {
+        background-color: color.adjust(#45a049, $lightness: -8%) !important;
+      }
+
+      &:disabled {
+        background-color: $text-muted !important;
+        color: $white !important;
+      }
+    }
+  }
+}

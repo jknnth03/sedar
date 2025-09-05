@@ -1,0 +1,203 @@
+@use "../../../styles/mixins.scss" as mx;
+
+.sidebar-drawer {
+  height: 100vh;
+  overflow: auto;
+
+  @include mx.lm {
+    display: none;
+  }
+
+  .MuiDrawer-paper {
+    box-sizing: border-box;
+    position: unset;
+    box-shadow: 1px 1px 40px rgb(224, 224, 224) !important;
+    border-right: none;
+  }
+}
+
+.mainbox {
+  height: 100vh;
+  transition: width 0.5s ease;
+  overflow-x: hidden;
+  position: relative;
+  background-color: rgb(255, 0, 0);
+  z-index: 1000;
+  padding-left: 10px;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+
+  &.open {
+    width: 300px;
+  }
+
+  &.closed {
+    width: 90px;
+  }
+
+  @include mx.lm {
+    display: none;
+  }
+}
+.logo-container {
+  display: flex;
+  align-items: center; // Align items vertically centered
+  gap: 0px; // Optional: adds space between the images
+}
+.sidebar__logo {
+  width: 120px;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  margin-left: 18px;
+  margin-top: 34px;
+  margin-bottom: 38px;
+}
+.sidebar__logo2 {
+  width: 40px;
+  margin-top: 34px;
+  margin-left: 16px;
+  margin-bottom: 44px;
+  transition: all 0.3s ease-in-out;
+}
+
+.liststyle {
+  height: 50px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 10px;
+}
+
+.main-item {
+  color: rgb(33, 61, 112);
+  background-color: white;
+
+  &:not(.active):hover {
+    background-color: rgb(233, 246, 255);
+    color: rgb(33, 61, 112);
+  }
+
+  &.active {
+    background-color: rgb(33, 61, 112);
+    color: white;
+
+    .icon {
+      color: white !important;
+    }
+  }
+}
+
+.sub-item {
+  color: rgb(55, 75, 115);
+  background-color: white;
+
+  &:not(.active):hover {
+    background-color: rgb(233, 246, 255);
+    color: rgb(55, 75, 115);
+  }
+
+  &.active {
+    background-color: rgba(33, 61, 112, 0.15);
+    color: rgb(33, 61, 112);
+
+    .icon {
+      color: rgb(33, 61, 112) !important;
+    }
+  }
+}
+
+.icon {
+  color: rgb(33, 61, 112) !important;
+  margin-right: 8px;
+  margin-left: -12px;
+}
+
+.mainbox.open .icon {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+.MuiListItemIcon-root {
+  min-width: 36px !important;
+}
+
+.text {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  transition: visibility 0.3s ease-in-out;
+}
+
+.main-item-wrapper {
+  margin-bottom: 4px;
+}
+
+.sidebar-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 110px);
+  padding-bottom: 10px;
+}
+
+.sidebar_footer {
+  margin-top: 15px;
+  width: 100%;
+  height: 90px;
+  background-color: #ffffff;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 15px 0;
+  flex-shrink: 0;
+  margin-bottom: 20px;
+}
+
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background-color: rgba(33, 61, 112, 0.3);
+  border-radius: 3px;
+}
+
+.footer__logo {
+  width: 60px;
+  height: auto;
+  transition: all 0.3s ease-in-out;
+}
+
+.mainbox.closed .footer__logo {
+  margin-right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+.mainbox.closed .liststyle {
+  justify-content: center;
+  padding-left: 0;
+}
+
+.mainbox.closed .sidebar_footer span {
+  display: none;
+  font-size: 1px;
+}
+
+.sidebar_footer span {
+  font-size: 12px;
+  color: #555;
+  line-height: 1.2;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.sidebar_footer span:not(:last-child) {
+  margin-bottom: 5px;
+}
