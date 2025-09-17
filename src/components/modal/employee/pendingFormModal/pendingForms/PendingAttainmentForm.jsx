@@ -5,6 +5,7 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
+  useCallback,
 } from "react";
 import { useFormContext } from "react-hook-form";
 import { Box, Alert } from "@mui/material";
@@ -68,60 +69,43 @@ const PendingAttainmentForm = forwardRef(
       },
     ] = useLazyGetAllShowAttainmentsQuery();
 
-    useEffect(() => {
-      if (mode === "edit" || mode === "view") {
+    const handleDropdownFocus = useCallback(
+      (dropdownName) => {
+        if (mode === "view" || dropdownsLoaded[dropdownName]) return;
+
         const fetchParams = {
           page: 1,
           per_page: 1000,
           status: showArchived ? "all" : "active",
         };
 
-        fetchPrograms(fetchParams);
-        fetchDegrees(fetchParams);
-        fetchHonors(fetchParams);
-        fetchAttainments(fetchParams);
-        setDropdownsLoaded({
-          programs: true,
-          degrees: true,
-          honors: true,
-          attainments: true,
-        });
-      }
-    }, [
-      mode,
-      showArchived,
-      fetchPrograms,
-      fetchDegrees,
-      fetchHonors,
-      fetchAttainments,
-    ]);
+        switch (dropdownName) {
+          case "programs":
+            fetchPrograms(fetchParams);
+            break;
+          case "degrees":
+            fetchDegrees(fetchParams);
+            break;
+          case "honors":
+            fetchHonors(fetchParams);
+            break;
+          case "attainments":
+            fetchAttainments(fetchParams);
+            break;
+        }
 
-    const handleDropdownFocus = (dropdownName) => {
-      if (dropdownsLoaded[dropdownName]) return;
-
-      const fetchParams = {
-        page: 1,
-        per_page: 1000,
-        status: showArchived ? "all" : "active",
-      };
-
-      switch (dropdownName) {
-        case "programs":
-          fetchPrograms(fetchParams);
-          break;
-        case "degrees":
-          fetchDegrees(fetchParams);
-          break;
-        case "honors":
-          fetchHonors(fetchParams);
-          break;
-        case "attainments":
-          fetchAttainments(fetchParams);
-          break;
-      }
-
-      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
-    };
+        setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+      },
+      [
+        dropdownsLoaded,
+        fetchPrograms,
+        fetchDegrees,
+        fetchHonors,
+        fetchAttainments,
+        showArchived,
+        mode,
+      ]
+    );
 
     const normalizeApiData = (data) => {
       if (!data) return [];
@@ -137,16 +121,105 @@ const PendingAttainmentForm = forwardRef(
       return [];
     };
 
-    const programs = useMemo(
-      () => normalizeApiData(programsData),
-      [programsData]
-    );
-    const degrees = useMemo(() => normalizeApiData(degreesData), [degreesData]);
-    const honors = useMemo(() => normalizeApiData(honorsData), [honorsData]);
-    const attainments = useMemo(
-      () => normalizeApiData(attainmentsData),
-      [attainmentsData]
-    );
+    const programs = useMemo(() => {
+      if (mode === "view" && selectedPendingAttainment?.program) {
+        return [selectedPendingAttainment.program];
+      }
+      if (mode === "edit" && selectedPendingAttainment?.program) {
+        const existingProgram = selectedPendingAttainment.program;
+        const apiPrograms = normalizeApiData(programsData);
+
+        if (!programsData) {
+          return [existingProgram];
+        }
+
+        const hasExistingInApi = apiPrograms.some(
+          (prog) => prog.id === existingProgram.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingProgram, ...apiPrograms];
+        }
+
+        return apiPrograms;
+      }
+      return normalizeApiData(programsData);
+    }, [mode, programsData, selectedPendingAttainment?.program]);
+
+    const degrees = useMemo(() => {
+      if (mode === "view" && selectedPendingAttainment?.degree) {
+        return [selectedPendingAttainment.degree];
+      }
+      if (mode === "edit" && selectedPendingAttainment?.degree) {
+        const existingDegree = selectedPendingAttainment.degree;
+        const apiDegrees = normalizeApiData(degreesData);
+
+        if (!degreesData) {
+          return [existingDegree];
+        }
+
+        const hasExistingInApi = apiDegrees.some(
+          (deg) => deg.id === existingDegree.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingDegree, ...apiDegrees];
+        }
+
+        return apiDegrees;
+      }
+      return normalizeApiData(degreesData);
+    }, [mode, degreesData, selectedPendingAttainment?.degree]);
+
+    const honors = useMemo(() => {
+      if (mode === "view" && selectedPendingAttainment?.honor_title) {
+        return [selectedPendingAttainment.honor_title];
+      }
+      if (mode === "edit" && selectedPendingAttainment?.honor_title) {
+        const existingHonor = selectedPendingAttainment.honor_title;
+        const apiHonors = normalizeApiData(honorsData);
+
+        if (!honorsData) {
+          return [existingHonor];
+        }
+
+        const hasExistingInApi = apiHonors.some(
+          (honor) => honor.id === existingHonor.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingHonor, ...apiHonors];
+        }
+
+        return apiHonors;
+      }
+      return normalizeApiData(honorsData);
+    }, [mode, honorsData, selectedPendingAttainment?.honor_title]);
+
+    const attainments = useMemo(() => {
+      if (mode === "view" && selectedPendingAttainment?.attainment) {
+        return [selectedPendingAttainment.attainment];
+      }
+      if (mode === "edit" && selectedPendingAttainment?.attainment) {
+        const existingAttainment = selectedPendingAttainment.attainment;
+        const apiAttainments = normalizeApiData(attainmentsData);
+
+        if (!attainmentsData) {
+          return [existingAttainment];
+        }
+
+        const hasExistingInApi = apiAttainments.some(
+          (att) => att.id === existingAttainment.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingAttainment, ...apiAttainments];
+        }
+
+        return apiAttainments;
+      }
+      return normalizeApiData(attainmentsData);
+    }, [mode, attainmentsData, selectedPendingAttainment?.attainment]);
 
     const getOptionLabel = (option, type) => {
       if (!option) return "";
@@ -529,25 +602,25 @@ const PendingAttainmentForm = forwardRef(
           </Alert>
         )}
 
-        {programsError && (
+        {mode !== "view" && programsError && (
           <Alert severity="warning" className="general-form__alert">
             Failed to load programs from server.
           </Alert>
         )}
 
-        {degreesError && (
+        {mode !== "view" && degreesError && (
           <Alert severity="warning" className="general-form__alert">
             Failed to load degrees from server.
           </Alert>
         )}
 
-        {honorsError && (
+        {mode !== "view" && honorsError && (
           <Alert severity="warning" className="general-form__alert">
             Failed to load honor titles from server.
           </Alert>
         )}
 
-        {attainmentsError && (
+        {mode !== "view" && attainmentsError && (
           <Alert severity="warning" className="general-form__alert">
             Failed to load attainments from server.
           </Alert>
@@ -569,7 +642,8 @@ const PendingAttainmentForm = forwardRef(
           handleFileChange={handleFileChange}
           handleFileRemove={handleFileRemove}
           getOptionLabel={getOptionLabel}
-          selectedAttainment={selectedPendingAttainment}
+          selectedPendingAttainment={selectedPendingAttainment}
+          mode={mode}
         />
       </Box>
     );

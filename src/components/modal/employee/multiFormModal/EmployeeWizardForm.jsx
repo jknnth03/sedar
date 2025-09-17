@@ -286,7 +286,6 @@ const EmployeeWizardForm = ({
   return (
     <Dialog
       open={open}
-      maxWidth="lg"
       fullWidth
       disableEscapeKeyDown={isDisabled}
       className="employee-wizard-dialog"

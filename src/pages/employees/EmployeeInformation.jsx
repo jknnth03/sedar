@@ -15,6 +15,9 @@ import {
   Fade,
   CircularProgress,
   Badge,
+  useMediaQuery,
+  useTheme,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -29,11 +32,12 @@ import ACCOUNTS from "../../pages/employees/Accounts.jsx";
 import FILES from "../../pages/employees/Files.jsx";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
+import "../../styles/mixins.scss";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams.js";
 import useDebounce from "../../hooks/useDebounce";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/employeeWizardForm.jsx";
 import Status from "./Statuses.jsx";
-import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js"; // Import the dashboard API
+import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -42,60 +46,91 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   const archivedIconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
-  const archivedLabelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            disabled={isLoading}
-            icon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
-            checkedIcon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
-            size="small"
-          />
-        }
-        label="ARCHIVED"
-        sx={{
-          margin: 0,
-          border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-          borderRadius: "8px",
-          paddingLeft: "8px",
-          paddingRight: "12px",
-          height: "36px",
-          backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            backgroundColor: showArchived
-              ? "rgba(211, 47, 47, 0.08)"
-              : "#f5f5f5",
-            borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-          },
-          "& .MuiFormControlLabel-label": {
-            fontSize: "12px",
-            fontWeight: 600,
-            color: archivedLabelColor,
-            letterSpacing: "0.5px",
-          },
-        }}
-      />
+    <Box
+      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
+      className="search-bar-container">
+      {/* Archived Checkbox - Show only icon for very small screens */}
+      {isVerySmall ? (
+        <IconButton
+          onClick={() => setShowArchived(!showArchived)}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            color: archivedIconColor,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+          }}>
+          <ArchiveIcon sx={{ fontSize: "18px" }} />
+        </IconButton>
+      ) : (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              disabled={isLoading}
+              icon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
+              checkedIcon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
+              size="small"
+            />
+          }
+          label="ARCHIVED"
+          className="archived-checkbox"
+          sx={{
+            margin: 0,
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            paddingLeft: "8px",
+            paddingRight: "12px",
+            height: "36px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+            "& .MuiFormControlLabel-label": {
+              fontSize: "12px",
+              fontWeight: 600,
+              color: archivedIconColor,
+              letterSpacing: "0.5px",
+            },
+          }}
+        />
+      )}
 
       <TextField
-        placeholder="Search employees..."
+        placeholder={isVerySmall ? "Search..." : "Search employees..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
+        className="search-input"
         InputProps={{
           startAdornment: (
             <SearchIcon
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
@@ -104,7 +139,8 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: "320px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -127,8 +163,9 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: "14px",
+            fontSize: isVerySmall ? "13px" : "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -140,6 +177,11 @@ const CustomSearchBar = ({
 };
 
 function EmployeeInformation() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const [value, setValue] = React.useState(currentParams?.tab ?? "1");
@@ -158,11 +200,9 @@ function EmployeeInformation() {
     severity: "success",
   });
 
-  // Fetch dashboard data for notification count
   const { data: dashboardData, isLoading: isDashboardLoading } =
     useShowDashboardQuery();
 
-  // Get open_mrfs count from dashboard data
   const openMrfsCount = dashboardData?.result?.employees?.open_mrfs || 0;
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -310,18 +350,28 @@ function EmployeeInformation() {
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          alignItems: isMobile || isTablet ? "flex-start" : "center",
+          justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
+          flexDirection: isMobile || isTablet ? "column" : "row",
           flexShrink: 0,
-          minHeight: "72px",
-          padding: "16px 14px",
+          minHeight: isMobile || isTablet ? "auto" : "72px",
+          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
           backgroundColor: "white",
           borderBottom: "1px solid #e0e0e0",
           boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          gap: isMobile || isTablet ? "16px" : "0",
         }}>
-        {/* Left side - Header and Create Button grouped together */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
-          <Typography className="header">EMPLOYEE INFORMATION</Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+            width: isMobile || isTablet ? "100%" : "auto",
+            justifyContent: "flex-start",
+          }}>
+          <Typography className="header">
+            {isVerySmall ? "EMPLOYEE INFO" : "EMPLOYEE INFORMATION"}
+          </Typography>
           <Fade in={!isLoading}>
             <Badge
               badgeContent={openMrfsCount}
@@ -343,38 +393,70 @@ function EmployeeInformation() {
                   boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
                 },
               }}>
-              <Button
-                variant="contained"
-                onClick={() => handleOpenModal("create")}
-                startIcon={<AddIcon />}
-                disabled={isLoading}
-                sx={{
-                  backgroundColor: "rgb(33, 61, 112)",
-                  height: "38px",
-                  width: "140px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: "rgb(25, 45, 84)",
-                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
-                }}>
-                CREATE
-              </Button>
+              {/* CREATE Button - Show only icon for very small screens */}
+              {isVerySmall ? (
+                <IconButton
+                  onClick={() => handleOpenModal("create")}
+                  disabled={isLoading}
+                  sx={{
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                      transform: "translateY(-1px)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                      boxShadow: "none",
+                    },
+                  }}>
+                  <AddIcon sx={{ fontSize: "18px" }} />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={() => handleOpenModal("create")}
+                  startIcon={<AddIcon />}
+                  disabled={isLoading}
+                  className="create-button"
+                  sx={{
+                    backgroundColor: "rgb(33, 61, 112)",
+                    height: isMobile ? "36px" : "38px",
+                    width: isMobile ? "auto" : "140px",
+                    minWidth: isMobile ? "100px" : "140px",
+                    padding: isMobile ? "0 16px" : "0 20px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: isMobile ? "12px" : "14px",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                    transition: "all 0.2s ease-in-out",
+                    "& .MuiButton-startIcon": {
+                      marginRight: isMobile ? "4px" : "8px",
+                    },
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                      transform: "translateY(-1px)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                      boxShadow: "none",
+                    },
+                  }}>
+                  CREATE
+                </Button>
+              )}
             </Badge>
           </Fade>
         </Box>
 
-        {/* Right side - Search Bar with Archive button */}
         <CustomSearchBar
           searchQuery={searchQuery}
           setSearchQuery={handleSearchChange}
@@ -409,9 +491,9 @@ function EmployeeInformation() {
               "& .MuiTab-root": {
                 textTransform: "none",
                 fontWeight: 600,
-                fontSize: "13px",
+                fontSize: isVerySmall ? "11px" : "13px",
                 minHeight: "56px",
-                padding: "12px 16px",
+                padding: isVerySmall ? "12px 8px" : "12px 16px",
                 color: "#666",
                 transition: "all 0.2s ease-in-out",
                 "&.Mui-selected": {
@@ -419,7 +501,7 @@ function EmployeeInformation() {
                   fontWeight: 700,
                 },
                 "&:hover": {
-                  color: "rgb(33, 61, 112)",
+                  color: "rgb(33, 61, 112) 78, ",
                   backgroundColor: "rgba(33, 61, 112, 0.04)",
                 },
               },
@@ -429,7 +511,17 @@ function EmployeeInformation() {
               },
             }}>
             {tabs.map((tab) => (
-              <Tab key={tab.value} label={tab.label} value={tab.value} />
+              <Tab
+                key={tab.value}
+                label={
+                  isVerySmall && tab.label.length > 12
+                    ? tab.label
+                        .replace("EMPLOYEE ", "EMP ")
+                        .replace("INFORMATION", "INFO")
+                    : tab.label
+                }
+                value={tab.value}
+              />
             ))}
           </TabList>
         </Box>

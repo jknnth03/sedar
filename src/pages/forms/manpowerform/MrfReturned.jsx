@@ -23,7 +23,7 @@ import formSubmissionApi, {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
 } from "../../../features/api/approvalsetting/formSubmissionApi";
-import FormSubmissionModal from "../../../components/modal/approvalSettings/formSubmissionModal";
+import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import MrfReturnedTable from "./MrfReturnedTable";
 import { styles } from "./FormSubmissionStyles";
 import { useDispatch } from "react-redux";

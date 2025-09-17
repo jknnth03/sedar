@@ -22,8 +22,9 @@ import {
   FormGroup,
   TablePagination,
   Alert,
+  useMediaQuery,
+  IconButton,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -35,6 +36,11 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import { styles } from "../../pages/forms/manpowerform/FormSubmissionStyles";
+import {
+  pendingRegistrationStyles,
+  StyledTabs,
+  StyledTab,
+} from "./PendingRegistrationStyles";
 import { useGetPendingEmployeesQuery } from "../../features/api/employee/pendingApi";
 import {
   useLazyGetSingleEmployeeQuery,
@@ -46,42 +52,6 @@ import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import { format } from "date-fns";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -99,17 +69,7 @@ const TabPanel = ({ children, value, index, ...other }) => {
       }}
       {...other}>
       {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            overflow: "hidden",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
+        <Box sx={pendingRegistrationStyles.tabPanel}>{children}</Box>
       )}
     </div>
   );
@@ -137,6 +97,8 @@ const DateFilterDialog = ({
   dateFilters,
   onDateFiltersChange,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
   const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
 
@@ -165,15 +127,25 @@ const DateFilterDialog = ({
       open={open}
       onClose={onClose}
       maxWidth="xs"
-      fullWidth
+      fullWidth={!isMobile}
+      fullScreen={isMobile}
       PaperProps={{
-        sx: styles.filterDialog,
+        sx: {
+          ...pendingRegistrationStyles.filterDialog,
+          ...(isMobile && pendingRegistrationStyles.filterDialogMobile),
+        },
       }}>
       <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
+        <Box sx={pendingRegistrationStyles.filterDialogTitle}>
+          <Box sx={pendingRegistrationStyles.filterDialogTitleLeft}>
+            <CalendarTodayIcon sx={pendingRegistrationStyles.filterIcon} />
+            <Typography
+              variant="h6"
+              sx={{
+                ...pendingRegistrationStyles.filterDialogTitleText,
+                ...(isMobile &&
+                  pendingRegistrationStyles.filterDialogTitleTextMobile),
+              }}>
               FILTER BY DATE
             </Typography>
           </Box>
@@ -182,15 +154,16 @@ const DateFilterDialog = ({
             variant="outlined"
             onClick={handleClear}
             disabled={!hasFilters}
-            sx={styles.selectAllButton}>
+            sx={pendingRegistrationStyles.selectAllButton}>
             Clear All
           </Button>
         </Box>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent
+        sx={pendingRegistrationStyles.filterDialogContent(isMobile)}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <Box sx={pendingRegistrationStyles.datePickerContainer(isMobile)}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -214,19 +187,20 @@ const DateFilterDialog = ({
         </LocalizationProvider>
       </DialogContent>
 
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
+      <DialogActions
+        sx={pendingRegistrationStyles.filterDialogActions(isMobile)}>
+        <Box sx={pendingRegistrationStyles.dialogActionsContainer}>
+          <Box sx={pendingRegistrationStyles.dialogButtonsContainer(isMobile)}>
             <Button
               onClick={onClose}
               variant="outlined"
-              sx={styles.cancelButton}>
+              sx={pendingRegistrationStyles.cancelButton(isMobile)}>
               CANCEL
             </Button>
             <Button
               onClick={handleApply}
               variant="contained"
-              sx={styles.applyFiltersButton}>
+              sx={pendingRegistrationStyles.applyFiltersButton(isMobile)}>
               APPLY FILTERS
             </Button>
           </Box>
@@ -243,6 +217,11 @@ const CustomSearchBar = ({
   onFilterClick,
   isLoading = false,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+  const isSmallerThan450 = useMediaQuery("(max-width:450px)");
   const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
 
   const getFilterLabel = () => {
@@ -258,46 +237,80 @@ const CustomSearchBar = ({
     if (dateFilters.endDate) {
       return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
     }
-    return "FILTER";
+    return isVerySmall ? "DATE" : "FILTER";
   };
 
   return (
-    <Box sx={styles.searchBarContainer}>
+    <Box
+      sx={{
+        ...pendingRegistrationStyles.searchBarContainer,
+        ...(isMobile && pendingRegistrationStyles.searchBarContainerMobile),
+        ...(isTablet && pendingRegistrationStyles.searchBarContainerTablet),
+        ...(isVerySmall &&
+          pendingRegistrationStyles.searchBarContainerVerySmall),
+      }}>
       <Tooltip title="Click here to filter by date range" arrow>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={hasActiveFilters}
-              onChange={onFilterClick}
-              disabled={isLoading}
-              icon={<CalendarTodayIcon />}
-              checkedIcon={<CalendarTodayIcon />}
-              size="small"
+        {isSmallerThan450 ? (
+          <IconButton
+            onClick={onFilterClick}
+            disabled={isLoading}
+            size="small"
+            sx={pendingRegistrationStyles.filterIconButton(hasActiveFilters)}>
+            <CalendarTodayIcon
+              sx={pendingRegistrationStyles.filterIconButtonIcon}
             />
-          }
-          label={
-            <Box sx={styles.filterLabelBox}>
-              <span>{getFilterLabel()}</span>
-            </Box>
-          }
-          sx={styles.filterControlLabel(hasActiveFilters)}
-        />
+          </IconButton>
+        ) : (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasActiveFilters}
+                onChange={onFilterClick}
+                disabled={isLoading}
+                icon={<CalendarTodayIcon />}
+                checkedIcon={<CalendarTodayIcon />}
+                size="small"
+              />
+            }
+            label={
+              <Box sx={pendingRegistrationStyles.filterLabelBox}>
+                <span>{getFilterLabel()}</span>
+              </Box>
+            }
+            sx={pendingRegistrationStyles.filterControlLabel(hasActiveFilters)}
+          />
+        )}
       </Tooltip>
 
       <TextField
-        placeholder="Search employee..."
+        placeholder={isVerySmall ? "Search..." : "Search employee..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
         InputProps={{
-          startAdornment: <SearchIcon sx={styles.searchIcon(isLoading)} />,
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={styles.searchProgress} />
+          startAdornment: (
+            <SearchIcon
+              sx={pendingRegistrationStyles.searchIcon(isLoading, isVerySmall)}
+            />
           ),
-          sx: styles.searchInputProps(isLoading),
+          endAdornment: isLoading && (
+            <CircularProgress
+              size={16}
+              sx={pendingRegistrationStyles.searchProgress}
+            />
+          ),
+          sx: pendingRegistrationStyles.searchInputProps(
+            isLoading,
+            isVerySmall,
+            isMobile
+          ),
         }}
-        sx={styles.searchTextField}
+        sx={{
+          ...pendingRegistrationStyles.searchTextField,
+          ...(isVerySmall &&
+            pendingRegistrationStyles.searchTextFieldVerySmall),
+        }}
       />
     </Box>
   );
@@ -324,15 +337,8 @@ const ErrorDisplay = ({ error, onRetry }) => {
   };
 
   return (
-    <Box
-      sx={{
-        p: 4,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 2,
-      }}>
-      <ErrorOutlineIcon sx={{ fontSize: 64, color: "error.main" }} />
+    <Box sx={pendingRegistrationStyles.errorContainer}>
+      <ErrorOutlineIcon sx={pendingRegistrationStyles.errorIcon} />
       <Typography variant="h6" color="error" align="center">
         Error Loading Data
       </Typography>
@@ -355,6 +361,9 @@ const ErrorDisplay = ({ error, onRetry }) => {
 
 const PendingRegistration = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
@@ -672,54 +681,53 @@ const PendingRegistration = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            overflow: "hidden",
-            minWidth: 0,
-          }}>
+        <Box sx={pendingRegistrationStyles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              minWidth: 0,
+              ...pendingRegistrationStyles.headerContainer,
+              ...(isMobile && pendingRegistrationStyles.headerContainerMobile),
+              ...(isTablet && pendingRegistrationStyles.headerContainerTablet),
             }}>
-            <Paper
-              elevation={0}
+            <Box
               sx={{
-                borderRadius: "8px 8px 0 0",
-                backgroundColor: "#ffffff",
+                ...pendingRegistrationStyles.headerTitle,
+                ...(isMobile && pendingRegistrationStyles.headerTitleMobile),
               }}>
-              <Box sx={styles.headerContainer}>
-                <Box sx={styles.headerLeftSection}>
-                  <Typography className="header">
-                    PENDING REGISTRATIONS
-                  </Typography>
-                </Box>
+              <Typography
+                className="header"
+                sx={{
+                  ...pendingRegistrationStyles.headerTitleText,
+                  ...(isMobile &&
+                    pendingRegistrationStyles.headerTitleTextMobile),
+                  ...(isVerySmall &&
+                    pendingRegistrationStyles.headerTitleTextVerySmall),
+                }}>
+                {isVerySmall ? "PENDING REGS" : "PENDING REGISTRATIONS"}
+              </Typography>
+            </Box>
 
-                <CustomSearchBar
-                  searchQuery={searchQuery}
-                  setSearchQuery={handleSearchChange}
-                  dateFilters={dateFilters}
-                  onFilterClick={handleFilterClick}
-                  isLoading={isLoading}
-                />
-              </Box>
-            </Paper>
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoading}
+            />
+          </Box>
 
+          <Box sx={pendingRegistrationStyles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="Pending registration management tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...pendingRegistrationStyles.tabsStyled,
+                ...(isVerySmall &&
+                  pendingRegistrationStyles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
@@ -729,17 +737,20 @@ const PendingRegistration = () => {
                         badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          "& .MuiBadge-badge": {
-                            fontSize: "0.55rem",
-                            minWidth: 14,
-                            height: 14,
-                            borderRadius: "50%",
-                            top: -2,
-                            right: -6,
-                          },
+                          ...pendingRegistrationStyles.tabBadge,
+                          ...(isVerySmall &&
+                            pendingRegistrationStyles.tabBadgeVerySmall),
                         }}>
-                        {tab.label}
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("Awaiting ", "")
+                              .replace("Resubmission", "Resub")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("Awaiting ", "")
+                        .replace("Resubmission", "Resub")
                     ) : (
                       tab.label
                     )
@@ -749,17 +760,9 @@ const PendingRegistration = () => {
               ))}
             </StyledTabs>
 
-            <Box
-              sx={{
-                flex: 1,
-                overflow: "hidden",
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
+            <Box sx={pendingRegistrationStyles.tabsContainer}>
               {apiError && (
-                <Box sx={{ p: 2 }}>
+                <Box sx={pendingRegistrationStyles.alertContainer}>
                   <Alert
                     severity="error"
                     action={
@@ -802,119 +805,48 @@ const PendingRegistration = () => {
             maxWidth="xs"
             fullWidth
             PaperProps={{
-              sx: {
-                borderRadius: 3,
-                padding: 2,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-                textAlign: "center",
-              },
+              sx: pendingRegistrationStyles.confirmDialog,
             }}>
-            <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}>
-                <Box
-                  sx={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    backgroundColor: "#ff4400",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                  <Typography
-                    sx={{
-                      color: "white",
-                      fontSize: "30px",
-                      fontWeight: "normal",
-                    }}>
+            <DialogTitle sx={pendingRegistrationStyles.confirmTitle}>
+              <Box sx={pendingRegistrationStyles.confirmIconContainer}>
+                <Box sx={pendingRegistrationStyles.confirmIcon}>
+                  <Typography sx={pendingRegistrationStyles.confirmIconText}>
                     ?
                   </Typography>
                 </Box>
               </Box>
               <Typography
                 variant="h5"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(25, 45, 84)",
-                  marginBottom: 0,
-                }}>
+                sx={pendingRegistrationStyles.confirmTitle}>
                 {getConfirmationTitle()}
               </Typography>
             </DialogTitle>
-            <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+            <DialogContent sx={pendingRegistrationStyles.confirmContent}>
               <Typography
                 variant="body1"
-                sx={{
-                  marginBottom: 2,
-                  fontSize: "16px",
-                  color: "#333",
-                  fontWeight: 400,
-                }}>
+                sx={pendingRegistrationStyles.confirmMessage}>
                 {getConfirmationMessage()}
               </Typography>
               <Typography
                 variant="body2"
-                sx={{
-                  fontSize: "14px",
-                  color: "#666",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
+                sx={pendingRegistrationStyles.confirmEmployeeInfo}>
                 {getEmployeeDisplayName()} - ID: {getEmployeeId()}
               </Typography>
             </DialogContent>
-            <DialogActions
-              sx={{
-                justifyContent: "center",
-                padding: 0,
-                marginTop: 3,
-                gap: 2,
-              }}>
+            <DialogActions sx={pendingRegistrationStyles.confirmActions}>
               <Button
                 onClick={() => setConfirmOpen(false)}
                 variant="outlined"
-                sx={{
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                  borderColor: "#f44336",
-                  color: "#f44336",
-                  paddingX: 3,
-                  paddingY: 1,
-                  borderRadius: 2,
-                  "&:hover": {
-                    borderColor: "#d32f2f",
-                    backgroundColor: "rgba(244, 67, 54, 0.04)",
-                  },
-                }}
+                sx={pendingRegistrationStyles.confirmCancelButton}
                 disabled={modalLoading}>
                 CANCEL
               </Button>
               <Button
                 onClick={handleConfirmSave}
                 variant="contained"
-                sx={{
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                  backgroundColor:
-                    getConfirmButtonColor() === "success"
-                      ? "#4caf50"
-                      : "#f44336",
-                  paddingX: 3,
-                  paddingY: 1,
-                  borderRadius: 2,
-                  "&:hover": {
-                    backgroundColor:
-                      getConfirmButtonColor() === "success"
-                        ? "#388e3c"
-                        : "#d32f2f",
-                  },
-                }}
+                sx={pendingRegistrationStyles.confirmActionButton(
+                  getConfirmButtonColor()
+                )}
                 disabled={modalLoading}>
                 {modalLoading ? (
                   <CircularProgress size={20} color="inherit" />

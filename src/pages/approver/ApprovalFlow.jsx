@@ -5,7 +5,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TablePagination,
   CircularProgress,
@@ -26,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   useTheme,
+  useMediaQuery,
   alpha,
   Fade,
   Chip,
@@ -44,6 +44,7 @@ import HelpIcon from "@mui/icons-material/Help";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PersonIcon from "@mui/icons-material/Person";
+import CloseIcon from "@mui/icons-material/Close";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
@@ -54,10 +55,39 @@ import {
   useUpdateApprovalFlowMutation,
 } from "../../features/api/approvalsetting/approvalFlowApi";
 import { CONSTANT } from "../../config";
-import useDebounce from "../../hooks/useDebounce";
 import dayjs from "dayjs";
-import CloseIcon from "@mui/icons-material/Close";
 import ApprovalFlowModal from "../../components/modal/approvalSettings/approvalFlowModal";
+import {
+  MainContainer,
+  HeaderContainer,
+  HeaderContent,
+  SearchBarContainer,
+  ArchivedIconButton,
+  ArchivedFormControl,
+  SearchTextField,
+  CreateButton,
+  CreateIconButton,
+  TableContentContainer,
+  StyledTableContainer,
+  StyledTableRow,
+  StatusChip,
+  PaginationContainer,
+  NoDataContainer,
+  StepsDialog,
+  StepsDialogTitle,
+  StepsDialogContent,
+  StepContainer,
+  StepAvatar,
+  StepInfoContainer,
+  StepHeaderContainer,
+  ConfirmDialog,
+  ConfirmDialogActions,
+  ViewStepsIconButton,
+  MenuIconButton,
+  CloseIconButton,
+  FlowNameContainer,
+  EmptyStepsContainer,
+} from "./ApprovalFlowStyles";
 
 const useDebounceInternal = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -82,100 +112,68 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
-  const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
-  const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:369px)");
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            disabled={isLoading}
-            icon={<ArchiveIcon sx={{ color: iconColor }} />}
-            checkedIcon={<ArchiveIcon sx={{ color: iconColor }} />}
-            size="small"
-          />
-        }
-        label="ARCHIVED"
-        sx={{
-          margin: 0,
-          border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-          borderRadius: "8px",
-          paddingLeft: "8px",
-          paddingRight: "12px",
-          height: "36px",
-          backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            backgroundColor: showArchived
-              ? "rgba(211, 47, 47, 0.08)"
-              : "#f5f5f5",
-            borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-          },
-          "& .MuiFormControlLabel-label": {
-            fontSize: "12px",
-            fontWeight: 600,
-            color: labelColor,
-            letterSpacing: "0.5px",
-          },
-        }}
-      />
+    <SearchBarContainer isVerySmall={isVerySmall}>
+      {isVerySmall ? (
+        <ArchivedIconButton
+          onClick={() => setShowArchived(!showArchived)}
+          disabled={isLoading}
+          size="small"
+          showArchived={showArchived}>
+          <ArchiveIcon sx={{ fontSize: "18px" }} />
+        </ArchivedIconButton>
+      ) : (
+        <ArchivedFormControl
+          control={
+            <Checkbox
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              disabled={isLoading}
+              icon={
+                <ArchiveIcon
+                  sx={{ color: showArchived ? "#d32f2f" : "rgb(33, 61, 112)" }}
+                />
+              }
+              checkedIcon={
+                <ArchiveIcon
+                  sx={{ color: showArchived ? "#d32f2f" : "rgb(33, 61, 112)" }}
+                />
+              }
+              size="small"
+            />
+          }
+          label="ARCHIVED"
+          showArchived={showArchived}
+        />
+      )}
 
-      <TextField
-        placeholder="Search Approval Flows..."
+      <SearchTextField
+        placeholder={isVerySmall ? "Search..." : "Search Approval Flows..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
+        isVerySmall={isVerySmall}
+        isLoading={isLoading}
         InputProps={{
           startAdornment: (
             <SearchIcon
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
             <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
-          sx: {
-            height: "36px",
-            width: "320px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
-        }}
-        sx={{
-          "& .MuiInputBase-input": {
-            fontSize: "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
         }}
       />
-    </Box>
+    </SearchBarContainer>
   );
 };
 
@@ -186,21 +184,8 @@ const StepsViewDialog = ({ open, onClose, flow }) => {
   );
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          minWidth: "500px",
-          width: "90%",
-          maxWidth: "600px",
-          minHeight: "500px",
-        },
-      }}>
-      <DialogTitle sx={{ position: "relative", pb: 1 }}>
+    <StepsDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <StepsDialogTitle>
         <div>
           <Typography variant="h5" sx={{ fontWeight: 600, color: "#213D70" }}>
             APPROVAL STEPS
@@ -209,50 +194,23 @@ const StepsViewDialog = ({ open, onClose, flow }) => {
             {flow?.name}
           </Typography>
         </div>
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: "absolute",
-            right: 8,
-            top: 8,
-            color: "#666",
-            "&:hover": {
-              backgroundColor: "rgba(0, 0, 0, 0.04)",
-            },
-          }}>
+        <CloseIconButton onClick={onClose}>
           <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+        </CloseIconButton>
+      </StepsDialogTitle>
 
-      <DialogContent sx={{ pt: 3, pb: 4, px: 3, minHeight: "400px" }}>
+      <StepsDialogContent>
         {sortedApprovers.length > 0 ? (
           <Box>
             {sortedApprovers.map((approver, index) => (
-              <Box
+              <StepContainer
                 key={`${approver.step_id}-${approver.approver_id}`}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mb: index < sortedApprovers.length - 1 ? 4 : 0,
-                  py: 1,
-                }}>
-                <Avatar
-                  sx={{
-                    bgcolor: "#213D70",
-                    mr: 2,
-                    width: 48,
-                    height: 48,
-                  }}>
+                isLast={index >= sortedApprovers.length - 1}>
+                <StepAvatar>
                   <PersonIcon sx={{ color: "white" }} />
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      mb: 0.5,
-                    }}>
+                </StepAvatar>
+                <StepInfoContainer>
+                  <StepHeaderContainer>
                     <Typography
                       variant="h6"
                       sx={{ fontWeight: 600, color: "#000" }}>
@@ -268,7 +226,7 @@ const StepsViewDialog = ({ open, onClose, flow }) => {
                       }}>
                       STEP {approver.step_number}
                     </Typography>
-                  </Box>
+                  </StepHeaderContainer>
                   <Typography
                     variant="body2"
                     sx={{
@@ -278,29 +236,30 @@ const StepsViewDialog = ({ open, onClose, flow }) => {
                     }}>
                     {approver.approver_position || "No Position Specified"}
                   </Typography>
-                </Box>
-              </Box>
+                </StepInfoContainer>
+              </StepContainer>
             ))}
           </Box>
         ) : (
-          <Box sx={{ textAlign: "center", py: 4 }}>
+          <EmptyStepsContainer>
             <AccountTreeIcon sx={{ fontSize: 60, color: "#ccc", mb: 2 }} />
             <Typography variant="body1" color="text.secondary">
               No approval steps configured
             </Typography>
-          </Box>
+          </EmptyStepsContainer>
         )}
-      </DialogContent>
-    </Dialog>
+      </StepsDialogContent>
+    </StepsDialog>
   );
 };
 
 const ApprovalFlow = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
 
@@ -337,10 +296,8 @@ const ApprovalFlow = () => {
 
   const queryParams = useMemo(() => {
     const params = {
-      page,
-      per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
-      pagination: true,
+      pagination: "none",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -348,7 +305,7 @@ const ApprovalFlow = () => {
     }
 
     return params;
-  }, [debounceValue, page, rowsPerPage, showArchived]);
+  }, [debounceValue, showArchived]);
 
   const {
     data: approvalFlowsData,
@@ -372,12 +329,10 @@ const ApprovalFlow = () => {
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
-    setPage(1);
   }, []);
 
   const handleChangeArchived = useCallback((newShowArchived) => {
     setShowArchived(newShowArchived);
-    setPage(1);
   }, []);
 
   const handleAddNew = useCallback(() => {
@@ -505,15 +460,6 @@ const ApprovalFlow = () => {
     }
   };
 
-  const handlePageChange = useCallback((event, newPage) => {
-    setPage(newPage + 1);
-  }, []);
-
-  const handleRowsPerPageChange = useCallback((event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
-  }, []);
-
   const handleViewSteps = useCallback((event, flow) => {
     event.stopPropagation();
     event.preventDefault();
@@ -534,16 +480,9 @@ const ApprovalFlow = () => {
 
     return (
       <Tooltip title="View approval steps" arrow>
-        <IconButton
-          onClick={(e) => handleViewSteps(e, flow)}
-          sx={{
-            color: "rgb(33, 61, 112)",
-            "&:hover": {
-              backgroundColor: "rgba(33, 61, 112, 0.08)",
-            },
-          }}>
+        <ViewStepsIconButton onClick={(e) => handleViewSteps(e, flow)}>
           <VisibilityIcon sx={{ fontSize: "24px" }} />
-        </IconButton>
+        </ViewStepsIconButton>
       </Tooltip>
     );
   };
@@ -562,21 +501,10 @@ const ApprovalFlow = () => {
     const isActive = flow.is_active && !flow.deleted_at;
 
     return (
-      <Chip
+      <StatusChip
         label={isActive ? "ACTIVE" : "INACTIVE"}
         size="small"
-        sx={{
-          backgroundColor: isActive ? "#e8f5e8" : "#fff3e0",
-          color: isActive ? "#2e7d32" : "#ed6c02",
-          border: `1px solid ${isActive ? "#4caf50" : "#ff9800"}`,
-          fontWeight: 600,
-          fontSize: "11px",
-          height: "24px",
-          borderRadius: "12px",
-          "& .MuiChip-label": {
-            padding: "0 8px",
-          },
-        }}
+        isActive={isActive}
       />
     );
   };
@@ -585,59 +513,34 @@ const ApprovalFlow = () => {
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
-        }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-            minHeight: "72px",
-            padding: "16px 14px",
-            backgroundColor: "white",
-            borderBottom: "1px solid #e0e0e0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
-            <Typography className="header">APPROVAL FLOWS</Typography>
+      <MainContainer>
+        <HeaderContainer isMobile={isMobile} isTablet={isTablet}>
+          <HeaderContent
+            isMobile={isMobile}
+            isTablet={isTablet}
+            isVerySmall={isVerySmall}>
+            <Typography className="header">
+              {isVerySmall ? "APPROVAL FLOWS" : "APPROVAL FLOWS"}
+            </Typography>
             <Fade in={!isLoadingState}>
-              <Button
-                variant="contained"
-                onClick={handleAddNew}
-                startIcon={<AddIcon />}
-                disabled={isLoadingState}
-                sx={{
-                  backgroundColor: "rgb(33, 61, 112)",
-                  height: "38px",
-                  width: "160px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: "rgb(25, 45, 84)",
-                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
-                }}>
-                CREATE FLOW
-              </Button>
+              {isVerySmall ? (
+                <CreateIconButton
+                  onClick={handleAddNew}
+                  disabled={isLoadingState}>
+                  <AddIcon sx={{ fontSize: "18px" }} />
+                </CreateIconButton>
+              ) : (
+                <CreateButton
+                  variant="contained"
+                  onClick={handleAddNew}
+                  startIcon={<AddIcon />}
+                  disabled={isLoadingState}
+                  isMobile={isMobile}>
+                  CREATE
+                </CreateButton>
+              )}
             </Fade>
-          </Box>
+          </HeaderContent>
 
           <CustomSearchBar
             searchQuery={searchQuery}
@@ -646,81 +549,84 @@ const ApprovalFlow = () => {
             setShowArchived={handleChangeArchived}
             isLoading={isLoadingState}
           />
-        </Box>
+        </HeaderContainer>
 
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <TableContainer
-            sx={{
-              flex: 1,
-              overflow: "auto",
-              backgroundColor: "#fafafa",
-              "& .MuiTableCell-head": {
-                backgroundColor: "#f8f9fa",
-                fontWeight: 700,
-                fontSize: "18px",
-                color: "rgb(33, 61, 112)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                borderBottom: "2px solid #e0e0e0",
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-                height: "48px",
-                padding: "8px 16px",
-              },
-              "& .MuiTableCell-body": {
-                fontSize: "16px",
-                color: "#333",
-                borderBottom: "1px solid #f0f0f0",
-                padding: "8px 16px",
-                height: "52px",
-                backgroundColor: "white",
-              },
-              "& .MuiTableRow-root": {
-                transition: "background-color 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: "#f8f9fa",
-                  cursor: "pointer",
-                  "& .MuiTableCell-root": {
-                    backgroundColor: "transparent",
-                  },
-                },
-              },
-            }}>
-            <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <TableContentContainer>
+          <StyledTableContainer isMobile={isMobile} isVerySmall={isVerySmall}>
+            <Table stickyHeader sx={{ minWidth: isMobile ? 800 : 1200 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell align="left" sx={{ width: 80, minWidth: 80 }}>
+                  <TableCell
+                    align="left"
+                    sx={{
+                      width: isVerySmall ? 50 : isMobile ? 60 : 80,
+                      minWidth: isVerySmall ? 50 : isMobile ? 60 : 80,
+                      display: isVerySmall ? "none" : "table-cell",
+                    }}>
                     ID
                   </TableCell>
-                  <TableCell sx={{ width: 400, minWidth: 400 }}>
-                    FLOW NAME
+                  <TableCell
+                    sx={{
+                      width: isVerySmall ? 200 : isMobile ? 250 : 400,
+                      minWidth: isVerySmall ? 200 : isMobile ? 250 : 400,
+                    }}>
+                    {isVerySmall ? "FLOW" : "FLOW NAME"}
                   </TableCell>
-                  <TableCell sx={{ width: 300, minWidth: 300 }}>FORM</TableCell>
-                  <TableCell sx={{ width: 450, minWidth: 450 }}>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall ? 150 : isMobile ? 200 : 300,
+                      minWidth: isVerySmall ? 150 : isMobile ? 200 : 300,
+                      display: isVerySmall ? "none" : "table-cell",
+                    }}>
+                    FORM
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall ? 150 : isMobile ? 250 : 450,
+                      minWidth: isVerySmall ? 150 : isMobile ? 250 : 450,
+                      display: isVerySmall ? "none" : "table-cell",
+                    }}>
                     CHARGING
                   </TableCell>
-                  <TableCell sx={{ width: 250, minWidth: 250 }}>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall ? 120 : isMobile ? 180 : 250,
+                      minWidth: isVerySmall ? 120 : isMobile ? 180 : 250,
+                      display: isVerySmall ? "none" : "table-cell",
+                    }}>
                     RECEIVER
                   </TableCell>
-                  <TableCell align="center" sx={{ width: 150, minWidth: 150 }}>
-                    APPROVERS
+                  <TableCell
+                    align="center"
+                    sx={{
+                      width: isVerySmall ? 80 : isMobile ? 100 : 150,
+                      minWidth: isVerySmall ? 80 : isMobile ? 100 : 150,
+                    }}>
+                    {isVerySmall ? "STEPS" : "APPROVERS"}
                   </TableCell>
-                  <TableCell align="center" sx={{ width: 150, minWidth: 150 }}>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      width: isVerySmall ? 70 : isMobile ? 100 : 150,
+                      minWidth: isVerySmall ? 70 : isMobile ? 100 : 150,
+                    }}>
                     STATUS
                   </TableCell>
-                  <TableCell sx={{ width: 200, minWidth: 200 }}>
-                    LAST MODIFIED
+                  <TableCell
+                    sx={{
+                      width: isVerySmall ? 100 : isMobile ? 150 : 200,
+                      minWidth: isVerySmall ? 100 : isMobile ? 150 : 200,
+                      display: isVerySmall ? "none" : "table-cell",
+                    }}>
+                    {isMobile ? "MODIFIED" : "LAST MODIFIED"}
                   </TableCell>
-                  <TableCell align="center" sx={{ width: 100, minWidth: 100 }}>
-                    ACTIONS
+                  <TableCell
+                    align="center"
+                    sx={{
+                      width: isVerySmall ? 60 : isMobile ? 80 : 100,
+                      minWidth: isVerySmall ? 60 : isMobile ? 80 : 100,
+                    }}>
+                    {isVerySmall ? "" : "ACTIONS"}
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -744,38 +650,31 @@ const ApprovalFlow = () => {
                   </TableRow>
                 ) : approvalFlowsList.length > 0 ? (
                   approvalFlowsList.map((flow) => (
-                    <TableRow
-                      key={flow.id}
-                      sx={{
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.04
-                          ),
-                          "& .MuiTableCell-root": {
-                            backgroundColor: "transparent",
-                          },
-                        },
-                        transition: "background-color 0.2s ease",
-                      }}>
+                    <StyledTableRow key={flow.id}>
                       <TableCell
                         align="left"
-                        onClick={() => handleRowClick(flow)}>
+                        onClick={() => handleRowClick(flow)}
+                        sx={{ display: isVerySmall ? "none" : "table-cell" }}>
                         {flow.id}
                       </TableCell>
                       <TableCell onClick={() => handleRowClick(flow)}>
                         {flow.name}
                       </TableCell>
-                      <TableCell onClick={() => handleRowClick(flow)}>
+                      <TableCell
+                        onClick={() => handleRowClick(flow)}
+                        sx={{ display: isVerySmall ? "none" : "table-cell" }}>
                         <Typography sx={{ fontWeight: 600 }}>
                           {flow.form?.name || "-"}
                         </Typography>
                       </TableCell>
-                      <TableCell onClick={() => handleRowClick(flow)}>
+                      <TableCell
+                        onClick={() => handleRowClick(flow)}
+                        sx={{ display: isVerySmall ? "none" : "table-cell" }}>
                         <Typography>{flow.charging?.name || "-"}</Typography>
                       </TableCell>
-                      <TableCell onClick={() => handleRowClick(flow)}>
+                      <TableCell
+                        onClick={() => handleRowClick(flow)}
+                        sx={{ display: isVerySmall ? "none" : "table-cell" }}>
                         {renderReceiver(flow.receiver)}
                       </TableCell>
                       <TableCell
@@ -788,7 +687,9 @@ const ApprovalFlow = () => {
                         onClick={() => handleRowClick(flow)}>
                         {renderStatus(flow)}
                       </TableCell>
-                      <TableCell onClick={() => handleRowClick(flow)}>
+                      <TableCell
+                        onClick={() => handleRowClick(flow)}
+                        sx={{ display: isVerySmall ? "none" : "table-cell" }}>
                         <Typography variant="body2">
                           {flow.updated_at
                             ? dayjs(flow.updated_at).format("MMM D, YYYY")
@@ -796,17 +697,11 @@ const ApprovalFlow = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton
+                        <MenuIconButton
                           onClick={(e) => handleMenuOpen(e, flow)}
-                          size="small"
-                          sx={{
-                            color: "rgb(33, 61, 112)",
-                            "&:hover": {
-                              backgroundColor: "rgba(33, 61, 112, 0.04)",
-                            },
-                          }}>
+                          size="small">
                           <MoreVertIcon fontSize="small" />
-                        </IconButton>
+                        </MenuIconButton>
                         <Menu
                           anchorEl={menuAnchor[flow.id]}
                           open={Boolean(menuAnchor[flow.id])}
@@ -819,9 +714,7 @@ const ApprovalFlow = () => {
                             horizontal: "right",
                             vertical: "bottom",
                           }}
-                          sx={{
-                            zIndex: 10000,
-                          }}>
+                          sx={{ zIndex: 10000 }}>
                           <MenuItem
                             onClick={(e) => handleArchiveRestoreClick(flow, e)}
                             sx={{
@@ -847,7 +740,7 @@ const ApprovalFlow = () => {
                           </MenuItem>
                         </Menu>
                       </TableCell>
-                    </TableRow>
+                    </StyledTableRow>
                   ))
                 ) : (
                   <TableRow>
@@ -860,13 +753,7 @@ const ApprovalFlow = () => {
                         color: "#666",
                         fontSize: "16px",
                       }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 2,
-                        }}>
+                      <NoDataContainer>
                         {CONSTANT.BUTTONS.NODATA.icon}
                         <Typography variant="h6" color="text.secondary">
                           No approval flows found
@@ -878,66 +765,20 @@ const ApprovalFlow = () => {
                             ? "No archived flows"
                             : "No active flows"}
                         </Typography>
-                      </Box>
+                      </NoDataContainer>
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </StyledTableContainer>
+        </TableContentContainer>
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={approvalFlowsData?.result?.total || 0}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              sx={{
-                "& .MuiTablePagination-toolbar": {
-                  paddingLeft: "24px",
-                  paddingRight: "24px",
-                },
-              }}
-            />
-          </Box>
-        </Box>
-
-        <Dialog
+        <ConfirmDialog
           open={confirmOpen}
           onClose={() => setConfirmOpen(false)}
           maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: { borderRadius: 3 },
-          }}>
+          fullWidth>
           <DialogTitle>
             <Box
               display="flex"
@@ -963,31 +804,33 @@ const ApprovalFlow = () => {
               this approval flow?
             </Typography>
             {selectedFlowForAction && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                className="confirmation-dialog__flow-name">
-                {selectedFlowForAction.name}
-              </Typography>
+              <FlowNameContainer>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  textAlign="center">
+                  {selectedFlowForAction.name}
+                </Typography>
+              </FlowNameContainer>
             )}
           </DialogContent>
-          <DialogActions className="confirmation-dialog__actions">
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              color="error"
-              className="confirmation-dialog__cancel-button">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleArchiveRestoreConfirm}
-              variant="contained"
-              color="success"
-              className="confirmation-dialog__confirm-button">
-              Confirm
-            </Button>
+          <DialogActions>
+            <ConfirmDialogActions>
+              <Button
+                onClick={() => setConfirmOpen(false)}
+                variant="outlined"
+                color="error">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleArchiveRestoreConfirm}
+                variant="contained"
+                color="success">
+                Confirm
+              </Button>
+            </ConfirmDialogActions>
           </DialogActions>
-        </Dialog>
+        </ConfirmDialog>
 
         <StepsViewDialog
           open={stepsDialogOpen}
@@ -1013,7 +856,7 @@ const ApprovalFlow = () => {
             }}
           />
         </FormProvider>
-      </Box>
+      </MainContainer>
     </FormProvider>
   );
 };

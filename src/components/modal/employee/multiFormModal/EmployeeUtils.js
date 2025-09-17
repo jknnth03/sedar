@@ -197,6 +197,40 @@ export const getDefaultValues = ({ mode, initialData }) => {
       return "";
     };
 
+    const getPositionData = () => {
+      let positionObject = null;
+      let positionId = "";
+      let positionTitle = "";
+
+      if (submissionTitleValue?.position) {
+        positionObject = submissionTitleValue.position;
+        positionId =
+          submissionTitleValue.position.id ||
+          submissionTitleValue.position_id ||
+          "";
+        positionTitle =
+          submissionTitleValue.position.title_with_unit ||
+          submissionTitleValue.position.title ||
+          "";
+      } else if (submissionTitleValue?.submittable?.position) {
+        positionObject = submissionTitleValue.submittable.position;
+        positionId =
+          submissionTitleValue.submittable.position.id ||
+          submissionTitleValue.submittable.position_id ||
+          "";
+        positionTitle =
+          submissionTitleValue.submittable.position.title_with_unit ||
+          submissionTitleValue.submittable.position.title ||
+          "";
+      } else if (positionInfo.position_id) {
+        positionId = positionInfo.position_id;
+      }
+
+      return { positionObject, positionId, positionTitle };
+    };
+
+    const { positionObject, positionId, positionTitle } = getPositionData();
+
     const result = {
       submission_title: submissionTitleValue,
       approval_form: submissionTitleValue,
@@ -232,7 +266,9 @@ export const getDefaultValues = ({ mode, initialData }) => {
       foreign_address: addressInfo.foreign_address || "",
       address_remarks: addressInfo.remarks || "",
 
-      position_id: positionInfo.position_id || "",
+      position: positionObject,
+      position_id: positionId,
+      position_title: positionTitle,
       job_rate: positionInfo.job_rate || 0,
       allowance: positionInfo.allowance || 0,
       additional_rate: positionInfo.additional_rate || null,
@@ -365,7 +401,9 @@ export const getDefaultValues = ({ mode, initialData }) => {
     foreign_address: "",
     address_remarks: "",
 
+    position: null,
     position_id: "",
+    position_title: "",
     job_rate: 0,
     allowance: 0,
     additional_rate: null,

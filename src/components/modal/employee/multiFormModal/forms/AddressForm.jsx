@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Box, FormControl, Grid, TextField, Autocomplete } from "@mui/material";
 import { useLazyGetAllShowBarangaysQuery } from "../../../../../features/api/administrative/barangaysApi";
@@ -64,78 +70,164 @@ const AddressForm = ({
     },
   ] = useLazyGetAllShowBarangaysQuery();
 
-  useEffect(() => {
-    if (mode === "edit" || mode === "view") {
-      triggerRegions();
+  const isReadOnly = mode === "view";
 
-      setDropdownsLoaded({
-        regions: true,
-        provinces: true,
-        municipalities: true,
-        barangays: true,
-      });
-    }
-  }, [
-    mode,
-    triggerRegions,
-    triggerProvinces,
-    triggerMunicipalities,
-    triggerBarangays,
-  ]);
-
-  const handleDropdownFocus = (dropdownName) => {
-    if (dropdownsLoaded[dropdownName]) return;
-
-    switch (dropdownName) {
-      case "regions":
-        triggerRegions();
-        break;
-      case "provinces":
-        if (watchedValues.region_id?.psgc_id) {
-          triggerProvinces({ psgc_id: watchedValues.region_id.psgc_id });
-        }
-        break;
-      case "municipalities":
-        if (watchedValues.province_id?.psgc_id) {
-          triggerMunicipalities({ psgc_id: watchedValues.province_id.psgc_id });
-        } else if (watchedValues.region_id?.psgc_id) {
-          triggerMunicipalities({ psgc_id: watchedValues.region_id.psgc_id });
-        }
-        break;
-      case "barangays":
-        if (watchedValues.city_municipality_id?.psgc_id) {
-          triggerBarangays({
-            psgc_id: watchedValues.city_municipality_id.psgc_id,
-          });
-        }
-        break;
-    }
-
-    setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
-  };
-
-  const normalizeApiData = (data) => {
+  const normalizeApiData = useCallback((data) => {
     if (!data) return [];
     return Array.isArray(data)
       ? data
       : data.result || data.data || data.items || data.results || [];
-  };
+  }, []);
 
-  const regions = useMemo(
-    () => normalizeApiData(regionsApiData),
-    [regionsApiData]
-  );
-  const provinces = useMemo(
-    () => normalizeApiData(provincesApiData),
-    [provincesApiData]
-  );
-  const municipalities = useMemo(
-    () => normalizeApiData(municipalitiesApiData),
-    [municipalitiesApiData]
-  );
-  const barangays = useMemo(
-    () => normalizeApiData(barangaysApiData),
-    [barangaysApiData]
+  const regions = useMemo(() => {
+    if (mode === "view" && employeeData?.region_id) {
+      return [employeeData.region_id];
+    }
+    if (mode === "edit" && employeeData?.region_id) {
+      const existingRegion = employeeData.region_id;
+      const apiRegions = normalizeApiData(regionsApiData);
+
+      if (!regionsApiData) {
+        return [existingRegion];
+      }
+
+      const hasExistingInApi = apiRegions.some(
+        (region) => region.id === existingRegion.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingRegion, ...apiRegions];
+      }
+
+      return apiRegions;
+    }
+    return normalizeApiData(regionsApiData);
+  }, [mode, regionsApiData, employeeData?.region_id, normalizeApiData]);
+
+  const provinces = useMemo(() => {
+    if (mode === "view" && employeeData?.province_id) {
+      return [employeeData.province_id];
+    }
+    if (mode === "edit" && employeeData?.province_id) {
+      const existingProvince = employeeData.province_id;
+      const apiProvinces = normalizeApiData(provincesApiData);
+
+      if (!provincesApiData) {
+        return [existingProvince];
+      }
+
+      const hasExistingInApi = apiProvinces.some(
+        (province) => province.id === existingProvince.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingProvince, ...apiProvinces];
+      }
+
+      return apiProvinces;
+    }
+    return normalizeApiData(provincesApiData);
+  }, [mode, provincesApiData, employeeData?.province_id, normalizeApiData]);
+
+  const municipalities = useMemo(() => {
+    if (mode === "view" && employeeData?.city_municipality_id) {
+      return [employeeData.city_municipality_id];
+    }
+    if (mode === "edit" && employeeData?.city_municipality_id) {
+      const existingMunicipality = employeeData.city_municipality_id;
+      const apiMunicipalities = normalizeApiData(municipalitiesApiData);
+
+      if (!municipalitiesApiData) {
+        return [existingMunicipality];
+      }
+
+      const hasExistingInApi = apiMunicipalities.some(
+        (municipality) => municipality.id === existingMunicipality.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingMunicipality, ...apiMunicipalities];
+      }
+
+      return apiMunicipalities;
+    }
+    return normalizeApiData(municipalitiesApiData);
+  }, [
+    mode,
+    municipalitiesApiData,
+    employeeData?.city_municipality_id,
+    normalizeApiData,
+  ]);
+
+  const barangays = useMemo(() => {
+    if (mode === "view" && employeeData?.barangay_id) {
+      return [employeeData.barangay_id];
+    }
+    if (mode === "edit" && employeeData?.barangay_id) {
+      const existingBarangay = employeeData.barangay_id;
+      const apiBarangays = normalizeApiData(barangaysApiData);
+
+      if (!barangaysApiData) {
+        return [existingBarangay];
+      }
+
+      const hasExistingInApi = apiBarangays.some(
+        (barangay) => barangay.id === existingBarangay.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingBarangay, ...apiBarangays];
+      }
+
+      return apiBarangays;
+    }
+    return normalizeApiData(barangaysApiData);
+  }, [mode, barangaysApiData, employeeData?.barangay_id, normalizeApiData]);
+
+  const handleDropdownFocus = useCallback(
+    (dropdownName) => {
+      if (mode === "view" || dropdownsLoaded[dropdownName]) return;
+
+      const fetchParams = { page: 1, per_page: 1000, status: "active" };
+
+      switch (dropdownName) {
+        case "regions":
+          triggerRegions(fetchParams);
+          break;
+        case "provinces":
+          if (watchedValues.region_id?.psgc_id) {
+            triggerProvinces({ psgc_id: watchedValues.region_id.psgc_id });
+          }
+          break;
+        case "municipalities":
+          if (watchedValues.province_id?.psgc_id) {
+            triggerMunicipalities({
+              psgc_id: watchedValues.province_id.psgc_id,
+            });
+          } else if (watchedValues.region_id?.psgc_id) {
+            triggerMunicipalities({ psgc_id: watchedValues.region_id.psgc_id });
+          }
+          break;
+        case "barangays":
+          if (watchedValues.city_municipality_id?.psgc_id) {
+            triggerBarangays({
+              psgc_id: watchedValues.city_municipality_id.psgc_id,
+            });
+          }
+          break;
+      }
+
+      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+    },
+    [
+      dropdownsLoaded,
+      triggerRegions,
+      triggerProvinces,
+      triggerMunicipalities,
+      triggerBarangays,
+      mode,
+      watchedValues,
+    ]
   );
 
   const handleRegionChange = (value) => {
@@ -179,8 +271,6 @@ const AddressForm = ({
   const handleBarangayChange = (value) => {
     setValue("barangay_id", value);
   };
-
-  const isReadOnly = mode === "view";
 
   return (
     <Box

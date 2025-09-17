@@ -106,8 +106,12 @@ const ApprovalFlowModal = ({
     useGetAllApproversQuery();
   const { data: receiversData, isLoading: isReceiversLoading } =
     useGetAllReceiversQuery();
+
   const { data: formsData, isLoading: isFormsLoading } =
-    useGetAllApprovalFormsQuery();
+    useGetAllApprovalFormsQuery({
+      pagination: "none",
+      status: "active",
+    });
 
   const approvers =
     approversData?.result?.data ||
@@ -127,26 +131,7 @@ const ApprovalFlowModal = ({
     formsData?.data ||
     formsData ||
     [];
-  useEffect(() => {
-    console.log("=== RECEIVERS DEBUG ===");
-    console.log("receiversData:", receiversData);
-    console.log("receivers:", receivers);
-    console.log("isReceiversLoading:", isReceiversLoading);
-  }, [receiversData, receivers, isReceiversLoading]);
 
-  useEffect(() => {
-    console.log("=== APPROVERS DEBUG ===");
-    console.log("approversData:", approversData);
-    console.log("approvers:", approvers);
-    console.log("isApproversLoading:", isApproversLoading);
-  }, [approversData, approvers, isApproversLoading]);
-
-  useEffect(() => {
-    console.log("=== APPROVAL FORMS DEBUG ===");
-    console.log("formsData:", formsData);
-    console.log("approvalForms:", approvalForms);
-    console.log("isFormsLoading:", isFormsLoading);
-  }, [receiversData, receivers, isReceiversLoading]);
   const resetAllState = () => {
     reset(defaultValues);
     setApproverSequence([]);

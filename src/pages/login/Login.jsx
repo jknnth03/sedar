@@ -209,6 +209,9 @@ const LoginPage = () => {
             position: "relative",
             padding: "0",
             overflow: "hidden",
+            "@media (max-width: 767.98px)": {
+              display: "none",
+            },
           }}>
           {/* Work illustration covering full area */}
           <img
@@ -225,6 +228,7 @@ const LoginPage = () => {
 
         {/* Right side - Login Form */}
         <Box
+          className="login-form-container"
           sx={{
             flex: 1,
             padding: "20px 50px",

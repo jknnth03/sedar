@@ -38,7 +38,7 @@ import DataChangeForreceiving from "./DataChangeForreceiving";
 import DataChangeReturned from "./DataChangeReturned";
 import DataChangeReceived from "./DataChangeReceived";
 import DataChangeCancelled from "./DataChangeCancelled";
-import DataChangeModal from "../../../components/modal/form/DataChangeModal";
+import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",

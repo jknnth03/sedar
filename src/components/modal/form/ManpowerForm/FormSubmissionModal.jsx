@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import {
   Dialog,
@@ -24,13 +24,10 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { yupResolver } from "@hookform/resolvers/yup";
 import dayjs from "dayjs";
-import { useLazyGetAllPositionsQuery } from "../../../features/api/masterlist/positionsApi";
-import { useLazyGetAllJobLevelsQuery } from "../../../features/api/masterlist/jobLevelsApi";
-import { useGetAllEmployeesToBeReplacedQuery } from "../../../features/api/employee/mainApi";
 import {
   createFormSubmissionSchema,
   formSubmissionDefaultValues,
-} from "../../../schema/approver/formSubmissionSchema";
+} from "../../../../schema/approver/formSubmissionSchema";
 import FormSubmissionFields from "./FormSubmissionFields";
 
 const ErrorDialog = ({ open, message, onClose }) => {
@@ -115,7 +112,7 @@ const ErrorDialog = ({ open, message, onClose }) => {
               textAlign: "center",
               width: "100%",
             }}>
-            {message}
+            {typeof message === "string" ? message : "An error occurred"}
           </Typography>
         </Box>
       </Box>
@@ -133,6 +130,7 @@ const FormContent = ({
   onModeChange,
   reset,
   backendErrors = {},
+  resetKey,
 }) => {
   const {
     formState: { errors },
@@ -154,85 +152,24 @@ const FormContent = ({
   const watchedRequisitionType = watch("requisition_type_id");
   const watchedPositionId = watch("position_id");
 
-  const [
-    getPositions,
-    { data: positionsData = [], isLoading: positionsLoading },
-  ] = useLazyGetAllPositionsQuery();
-  const [
-    getJobLevels,
-    { data: jobLevelsData = [], isLoading: jobLevelsLoading },
-  ] = useLazyGetAllJobLevelsQuery();
-
-  const { data: employeesData = [] } = useGetAllEmployeesToBeReplacedQuery(
-    {
-      position_id: watchedPositionId?.id,
-      requisition_type_id: watchedRequisitionType?.id,
-      pagination: false,
-    },
-    {
-      skip: !watchedPositionId?.id || !watchedRequisitionType?.id,
-    }
-  );
-
   useEffect(() => {
-    getPositions()
-      .unwrap()
-      .catch((error) => {
-        if (
-          error?.data?.message ===
-          "No requestable positions found for this user."
-        ) {
-          setApiError(error.data.message);
-          setShowErrorDialog(true);
-        }
-      });
-    getJobLevels();
-  }, [getPositions, getJobLevels]);
-
-  const positions = Array.isArray(positionsData?.result)
-    ? positionsData.result
-    : Array.isArray(positionsData)
-    ? positionsData
-    : [];
-
-  const jobLevels = Array.isArray(jobLevelsData?.result)
-    ? jobLevelsData.result
-    : Array.isArray(jobLevelsData)
-    ? jobLevelsData
-    : [];
-
-  const requisitions = [];
-
-  const employees = Array.isArray(employeesData?.result?.data)
-    ? employeesData.result.data
-    : Array.isArray(employeesData?.result)
-    ? employeesData.result
-    : Array.isArray(employeesData)
-    ? employeesData
-    : [];
-
-  const isDataLoading = positionsLoading || jobLevelsLoading;
-  const areDropdownsReady = positions.length > 0 && jobLevels.length > 0;
-
-  const findOptionById = (options, id) => {
-    if (!id || !options?.length) return null;
-    return options.find((option) => option.id === id) || null;
-  };
+    setSelectedFile(null);
+    setCurrentMode(mode);
+    setOriginalMode(mode);
+    setApiError(null);
+    setShowErrorDialog(false);
+  }, [resetKey, mode]);
 
   const isAdditionalManpower = () => {
     if (!watchedRequisitionType) return false;
     return watchedRequisitionType.name === "ADDITIONAL MANPOWER";
   };
 
-  const isEmployeeFieldEnabled = () => {
-    const hasRequiredFields =
-      watchedPositionId?.id && watchedRequisitionType?.id;
-
-    if (isAdditionalManpower()) {
-      return false;
-    }
-
-    return hasRequiredFields;
+  const isReplacementDueToEmployeeMovement = () => {
+    if (!watchedRequisitionType) return false;
+    return (
+      watchedRequisitionType.name === "REPLACEMENT DUE TO EMPLOYEE MOVEMENT"
+    );
   };
 
   const shouldEnableEditButton = () => {
@@ -249,96 +186,10 @@ const FormContent = ({
     return selectedEntry.actions.can_resubmit === true;
   };
 
-  const populateFormWithEntry = (entry) => {
-    if (!entry || !positions.length || !jobLevels.length) {
-      return;
-    }
-
-    let submittableData = null;
-
-    if (entry.submittable) {
-      submittableData = entry.submittable;
-    } else if (entry.data) {
-      submittableData = entry.data;
-    } else if (entry.attributes) {
-      submittableData = entry.attributes;
-    } else {
-      submittableData = entry;
-    }
-
-    if (!submittableData) {
-      return;
-    }
-
-    const foundPosition = findOptionById(
-      positions,
-      submittableData.position_id
-    );
-    const foundJobLevel = findOptionById(
-      jobLevels,
-      submittableData.job_level_id
-    );
-    const foundRequisition = findOptionById(
-      requisitions,
-      submittableData.requisition_type_id
-    );
-
-    if (foundPosition)
-      setValue("position_id", foundPosition, { shouldValidate: false });
-    if (foundJobLevel)
-      setValue("job_level_id", foundJobLevel, { shouldValidate: false });
-    if (foundRequisition)
-      setValue("requisition_type_id", foundRequisition, {
-        shouldValidate: false,
-      });
-
-    setValue("employment_type", submittableData.employment_type || "", {
-      shouldValidate: false,
-    });
-    setValue("expected_salary", submittableData.expected_salary || "", {
-      shouldValidate: false,
-    });
-    setValue("justification", submittableData.justification || "", {
-      shouldValidate: false,
-    });
-    setValue("remarks", submittableData.remarks || "", {
-      shouldValidate: false,
-    });
-
-    if (
-      currentMode === "view" &&
-      submittableData.manpower_attachment_filename
-    ) {
-      setValue(
-        "manpower_form_attachment",
-        submittableData.manpower_attachment_filename || null,
-        { shouldValidate: false }
-      );
-      setSelectedFile({
-        name: submittableData.manpower_attachment_filename,
-        url:
-          submittableData.manpower_attachment ||
-          submittableData.manpower_form_attachment,
-      });
-    } else if (currentMode === "edit") {
-      setValue("manpower_form_attachment", null, { shouldValidate: false });
-      setSelectedFile(null);
-    }
-
-    clearErrors();
-  };
-
   const initializeForm = () => {
     if (currentMode === "create") {
       reset(formSubmissionDefaultValues);
       setSelectedFile(null);
-    } else if (
-      selectedEntry &&
-      (currentMode === "view" || currentMode === "edit") &&
-      positions.length > 0 &&
-      jobLevels.length > 0
-    ) {
-      populateFormWithEntry(selectedEntry);
     }
   };
 
@@ -348,33 +199,10 @@ const FormContent = ({
   }, [mode]);
 
   useEffect(() => {
-    if (areDropdownsReady && !isDataLoading) {
+    if (currentMode === "create") {
       initializeForm();
     }
-  }, [currentMode, areDropdownsReady, isDataLoading, selectedEntry?.id]);
-
-  useEffect(() => {
-    if (
-      selectedEntry &&
-      employees.length > 0 &&
-      (currentMode === "view" || currentMode === "edit")
-    ) {
-      const submittableData =
-        selectedEntry.submittable ||
-        selectedEntry.data ||
-        selectedEntry.attributes ||
-        selectedEntry;
-      const foundEmployee = findOptionById(
-        employees,
-        submittableData.employee_to_be_replaced_id
-      );
-      if (foundEmployee) {
-        setValue("employee_to_be_replaced_id", foundEmployee, {
-          shouldValidate: false,
-        });
-      }
-    }
-  }, [employees.length, selectedEntry, currentMode, setValue]);
+  }, [currentMode]);
 
   useEffect(() => {
     if (backendErrors && Object.keys(backendErrors).length > 0) {
@@ -409,15 +237,12 @@ const FormContent = ({
     if (onModeChange) {
       onModeChange(originalMode);
     }
-
-    if (selectedEntry && (originalMode === "view" || originalMode === "edit")) {
-      populateFormWithEntry(selectedEntry);
-    }
   };
 
   const handleClose = () => {
     setCurrentMode("create");
     setOriginalMode("create");
+    setSelectedFile(null);
     if (reset) {
       reset();
     }
@@ -450,20 +275,26 @@ const FormContent = ({
   useEffect(() => {
     if (isAdditionalManpower()) {
       setValue("employee_to_be_replaced_id", null);
-    } else if (!isEmployeeFieldEnabled()) {
-      setValue("employee_to_be_replaced_id", null);
     }
-  }, [
-    watchedRequisitionType,
-    watchedPositionId,
-    setValue,
-    isAdditionalManpower,
-    isEmployeeFieldEnabled,
-  ]);
+  }, [watchedRequisitionType, setValue, isAdditionalManpower]);
 
   const handleFileChange = (file) => {
     setSelectedFile(file);
     setValue("manpower_form_attachment", file);
+  };
+
+  const formatDateForPayload = (date) => {
+    if (!date) return null;
+    if (dayjs.isDayjs(date)) {
+      return date.format("YYYY-MM-DD");
+    }
+    if (date instanceof Date) {
+      return dayjs(date).format("YYYY-MM-DD");
+    }
+    if (typeof date === "string") {
+      return dayjs(date).format("YYYY-MM-DD");
+    }
+    return null;
   };
 
   const onSubmit = (data) => {
@@ -474,13 +305,14 @@ const FormContent = ({
         const formData = new FormData();
 
         formData.append("mode", currentMode);
+        formData.append("form_id", "1");
 
         if (data.position_id?.id) {
-          formData.append("position_id", data.position_id.id);
+          formData.append("position_id", data.position_id.id.toString());
         }
 
         if (data.job_level_id?.id) {
-          formData.append("job_level_id", data.job_level_id.id);
+          formData.append("job_level_id", data.job_level_id.id.toString());
         }
 
         if (data.employment_type && data.employment_type.trim() !== "") {
@@ -488,17 +320,13 @@ const FormContent = ({
         }
 
         if (data.expected_salary) {
-          formData.append("expected_salary", data.expected_salary);
+          formData.append("expected_salary", data.expected_salary.toString());
         }
 
         if (data.requisition_type_id?.id) {
-          formData.append("requisition_type_id", data.requisition_type_id.id);
-        }
-
-        if (data.employee_to_be_replaced_id?.id && !isAdditionalManpower()) {
           formData.append(
-            "employee_to_be_replaced_id",
-            data.employee_to_be_replaced_id.id
+            "requisition_type_id",
+            data.requisition_type_id.id.toString()
           );
         }
 
@@ -512,12 +340,71 @@ const FormContent = ({
 
         formData.append("manpower_form_attachment", selectedFile);
 
+        if (
+          data.employee_to_be_replaced_id?.id &&
+          !isAdditionalManpower() &&
+          !isReplacementDueToEmployeeMovement()
+        ) {
+          formData.append(
+            "employee_to_be_replaced_id",
+            data.employee_to_be_replaced_id.id.toString()
+          );
+        }
+
+        if (isReplacementDueToEmployeeMovement()) {
+          if (data.movement_employee_id?.id) {
+            formData.append(
+              "employee_id",
+              data.movement_employee_id.id.toString()
+            );
+          }
+
+          if (data.movement_new_position_id?.id) {
+            formData.append(
+              "new_position_id",
+              data.movement_new_position_id.id.toString()
+            );
+          }
+
+          if (
+            data.movement_reason_for_change &&
+            data.movement_reason_for_change.trim() !== ""
+          ) {
+            formData.append(
+              "reason_for_change",
+              data.movement_reason_for_change
+            );
+          }
+
+          formData.append(
+            "is_developmental_assignment",
+            data.movement_is_da ? "1" : "0"
+          );
+
+          if (data.movement_is_da) {
+            const formattedStartDate = formatDateForPayload(
+              data.movement_da_start_date
+            );
+            if (formattedStartDate) {
+              formData.append("movement_da_start_date", formattedStartDate);
+            }
+
+            const formattedEndDate = formatDateForPayload(
+              data.movement_da_end_date
+            );
+            if (formattedEndDate) {
+              formData.append("movement_da_end_date", formattedEndDate);
+            }
+          }
+        }
+
         if (onSave) {
           onSave(formData, currentMode);
         }
       } else {
         const jsonData = {
           mode: currentMode,
+          form_id: 1,
         };
 
         if (data.position_id?.id) {
@@ -540,17 +427,56 @@ const FormContent = ({
           jsonData.requisition_type_id = data.requisition_type_id.id;
         }
 
-        if (data.employee_to_be_replaced_id?.id && !isAdditionalManpower()) {
-          jsonData.employee_to_be_replaced_id =
-            data.employee_to_be_replaced_id.id;
-        }
-
         if (data.justification && data.justification.trim() !== "") {
           jsonData.justification = data.justification;
         }
 
         if (data.remarks && data.remarks.trim() !== "") {
           jsonData.remarks = data.remarks;
+        }
+
+        if (
+          data.employee_to_be_replaced_id?.id &&
+          !isAdditionalManpower() &&
+          !isReplacementDueToEmployeeMovement()
+        ) {
+          jsonData.employee_to_be_replaced_id =
+            data.employee_to_be_replaced_id.id;
+        }
+
+        if (isReplacementDueToEmployeeMovement()) {
+          if (data.movement_employee_id?.id) {
+            jsonData.employee_id = data.movement_employee_id.id;
+          }
+
+          if (data.movement_new_position_id?.id) {
+            jsonData.new_position_id = data.movement_new_position_id.id;
+          }
+
+          if (
+            data.movement_reason_for_change &&
+            data.movement_reason_for_change.trim() !== ""
+          ) {
+            jsonData.reason_for_change = data.movement_reason_for_change;
+          }
+
+          jsonData.is_developmental_assignment = data.movement_is_da || false;
+
+          if (data.movement_is_da) {
+            const formattedStartDate = formatDateForPayload(
+              data.movement_da_start_date
+            );
+            if (formattedStartDate) {
+              jsonData.movement_da_start_date = formattedStartDate;
+            }
+
+            const formattedEndDate = formatDateForPayload(
+              data.movement_da_end_date
+            );
+            if (formattedEndDate) {
+              jsonData.movement_da_end_date = formattedEndDate;
+            }
+          }
         }
 
         if (onSave) {
@@ -560,7 +486,9 @@ const FormContent = ({
     } else if (currentMode === "edit" && selectedEntry?.id) {
       const submissionData = {
         id: selectedEntry.id,
-        data: {},
+        data: {
+          form_id: 1,
+        },
       };
 
       if (data.position_id?.id) {
@@ -583,17 +511,59 @@ const FormContent = ({
         submissionData.data.requisition_type_id = data.requisition_type_id.id;
       }
 
-      if (data.employee_to_be_replaced_id?.id && !isAdditionalManpower()) {
-        submissionData.data.employee_to_be_replaced_id =
-          data.employee_to_be_replaced_id.id;
-      }
-
       if (data.justification && data.justification.trim() !== "") {
         submissionData.data.justification = data.justification;
       }
 
       if (data.remarks && data.remarks.trim() !== "") {
         submissionData.data.remarks = data.remarks;
+      }
+
+      if (
+        data.employee_to_be_replaced_id?.id &&
+        !isAdditionalManpower() &&
+        !isReplacementDueToEmployeeMovement()
+      ) {
+        submissionData.data.employee_to_be_replaced_id =
+          data.employee_to_be_replaced_id.id;
+      }
+
+      if (isReplacementDueToEmployeeMovement()) {
+        if (data.movement_employee_id?.id) {
+          submissionData.data.employee_id = data.movement_employee_id.id;
+        }
+
+        if (data.movement_new_position_id?.id) {
+          submissionData.data.new_position_id =
+            data.movement_new_position_id.id;
+        }
+
+        if (
+          data.movement_reason_for_change &&
+          data.movement_reason_for_change.trim() !== ""
+        ) {
+          submissionData.data.reason_for_change =
+            data.movement_reason_for_change;
+        }
+
+        submissionData.data.is_developmental_assignment =
+          data.movement_is_da || false;
+
+        if (data.movement_is_da) {
+          const formattedStartDate = formatDateForPayload(
+            data.movement_da_start_date
+          );
+          if (formattedStartDate) {
+            submissionData.data.movement_da_start_date = formattedStartDate;
+          }
+
+          const formattedEndDate = formatDateForPayload(
+            data.movement_da_end_date
+          );
+          if (formattedEndDate) {
+            submissionData.data.movement_da_end_date = formattedEndDate;
+          }
+        }
       }
 
       if (selectedFile && selectedFile instanceof File) {
@@ -620,6 +590,13 @@ const FormContent = ({
     }
   };
 
+  const safeRenderText = (text) => {
+    if (typeof text === "string") return text;
+    if (typeof text === "number") return text.toString();
+    if (text && typeof text === "object") return "";
+    return text || "";
+  };
+
   return (
     <>
       <ErrorDialog
@@ -635,11 +612,12 @@ const FormContent = ({
           alignItems: "center",
           pb: 1,
           backgroundColor: "#fff",
+          flexShrink: 0,
         }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-            {getModalTitle()}
+            {safeRenderText(getModalTitle())}
           </Typography>
           {isViewMode && shouldEnableEditButton() && (
             <Tooltip title="EDIT FORM" arrow placement="top">
@@ -722,8 +700,23 @@ const FormContent = ({
       <DialogContent
         sx={{
           backgroundColor: "#fff",
-          minHeight: "400px",
-          position: "relative",
+          flex: 1,
+          overflow: "auto",
+          padding: "16px 24px",
+          "&::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "#f1f1f1",
+            borderRadius: "4px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#c1c1c1",
+            borderRadius: "4px",
+            "&:hover": {
+              backgroundColor: "#a1a1a1",
+            },
+          },
         }}>
         {hasBackendError && (
           <Box
@@ -753,12 +746,12 @@ const FormContent = ({
         )}
 
         <FormSubmissionFields
+          key={resetKey}
           mode={currentMode}
           selectedEntry={selectedEntry}
           onFileChange={handleFileChange}
           selectedFile={selectedFile}
-          disabled={isDataLoading || !areDropdownsReady}
-          isEmployeeFieldEnabled={isEmployeeFieldEnabled()}
+          resetTrigger={resetKey}
         />
       </DialogContent>
 
@@ -768,6 +761,7 @@ const FormContent = ({
           py: 2,
           backgroundColor: "#fff",
           justifyContent: "flex-end",
+          flexShrink: 0,
         }}>
         {isViewMode && (
           <Box>
@@ -790,7 +784,7 @@ const FormContent = ({
                   color: "rgba(255, 255, 255, 0.5)",
                 },
               }}>
-              Resubmit
+              {safeRenderText("Resubmit")}
             </Button>
           </Box>
         )}
@@ -830,7 +824,9 @@ const FormContent = ({
                   border: "none !important",
                 },
               }}>
-              {isLoading ? "Saving..." : isCreateMode ? "Create" : "Update"}
+              {safeRenderText(
+                isLoading ? "Saving..." : isCreateMode ? "Create" : "Update"
+              )}
             </Button>
           </Box>
         )}
@@ -850,6 +846,9 @@ const FormSubmissionModal = ({
   onModeChange,
   backendErrors = {},
 }) => {
+  const [resetKey, setResetKey] = useState(0);
+  const prevOpenRef = useRef(open);
+
   const hasExistingFile =
     selectedEntry?.submittable?.manpower_attachment_filename ||
     selectedEntry?.data?.manpower_attachment_filename ||
@@ -864,6 +863,21 @@ const FormSubmissionModal = ({
     mode: "onChange",
   });
 
+  useEffect(() => {
+    if (prevOpenRef.current !== open) {
+      if (open) {
+        methods.reset(formSubmissionDefaultValues);
+        setResetKey(Date.now());
+      } else {
+        setTimeout(() => {
+          methods.reset(formSubmissionDefaultValues);
+          setResetKey(Date.now());
+        }, 100);
+      }
+      prevOpenRef.current = open;
+    }
+  }, [open, methods]);
+
   const handleClose = () => {
     methods.reset(formSubmissionDefaultValues);
     onClose();
@@ -872,6 +886,7 @@ const FormSubmissionModal = ({
   const handleModeChange = (newMode) => {
     if (newMode === "create") {
       methods.reset(formSubmissionDefaultValues);
+      setResetKey((prev) => prev + 1);
     }
 
     if (onModeChange) {
@@ -886,13 +901,6 @@ const FormSubmissionModal = ({
   };
 
   useEffect(() => {
-    const hasFile =
-      selectedEntry?.submittable?.manpower_attachment_filename ||
-      selectedEntry?.data?.manpower_attachment_filename ||
-      selectedEntry?.attributes?.manpower_attachment_filename ||
-      selectedEntry?.manpower_attachment_filename
-        ? true
-        : false;
     methods.clearErrors();
   }, [mode, selectedEntry, methods]);
 
@@ -907,8 +915,13 @@ const FormSubmissionModal = ({
         fullWidth
         PaperProps={{
           sx: {
-            minHeight: "70vh",
-            maxHeight: "90vh",
+            height: "80vh",
+            maxHeight: "80vh",
+            minHeight: "80vh",
+            width: "100%",
+            maxWidth: "900px",
+            display: "flex",
+            flexDirection: "column",
           },
         }}>
         <FormProvider {...methods}>
@@ -922,6 +935,7 @@ const FormSubmissionModal = ({
             onModeChange={handleModeChange}
             reset={methods.reset}
             backendErrors={backendErrors}
+            resetKey={resetKey}
           />
         </FormProvider>
       </Dialog>

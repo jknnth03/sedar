@@ -22,7 +22,7 @@ import {
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
-import DataChangeModal from "../../../components/modal/form/DataChangeModal";
+import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 
 const useDebounceInternal = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);

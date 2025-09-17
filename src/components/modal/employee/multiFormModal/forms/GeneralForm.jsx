@@ -8,7 +8,7 @@ import {
   useLazyCheckEmployeeIdUniqueQuery,
 } from "../../../../../features/api/extras/prefixesApi";
 import { useLazyGetAllGeneralsQuery } from "../../../../../features/api/employee/generalApi";
-import { useGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
+import { useLazyGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
 import { useDispatch } from "react-redux";
 import { setApprovalForm } from "../../../../../features/slice/formSlice";
 import GeneralFormFields from "./GeneralFormFields";
@@ -72,11 +72,14 @@ const GeneralForm = ({
     },
   ] = useLazyCheckEmployeeIdUniqueQuery();
 
-  const {
-    data: approvalFormsData,
-    isLoading: approvalFormsLoading,
-    error: approvalFormsError,
-  } = useGetAllManpowerQuery({ page: 1, per_page: 1000, status: "active" });
+  const [
+    triggerApprovalForms,
+    {
+      data: approvalFormsData,
+      isLoading: approvalFormsLoading,
+      error: approvalFormsError,
+    },
+  ] = useLazyGetAllManpowerQuery();
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
@@ -98,17 +101,97 @@ const GeneralForm = ({
       : data.result || data.data || data.items || data.results || [];
   }, []);
 
-  const religions = useMemo(
-    () => normalizeApiData(religionsData),
-    [religionsData, normalizeApiData]
-  );
+  const religions = useMemo(() => {
+    if ((mode === "view" || isViewMode) && selectedGeneral?.religion) {
+      return [selectedGeneral.religion];
+    }
+    if (mode === "edit" && selectedGeneral?.religion) {
+      const existingReligion = selectedGeneral.religion;
+      const apiReligions = normalizeApiData(religionsData);
 
-  const prefixes = useMemo(
-    () => normalizeApiData(prefixesData),
-    [prefixesData, normalizeApiData]
-  );
+      if (!religionsData) {
+        return [existingReligion];
+      }
+
+      const hasExistingInApi = apiReligions.some(
+        (religion) => religion.id === existingReligion.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingReligion, ...apiReligions];
+      }
+
+      return apiReligions;
+    }
+    return normalizeApiData(religionsData);
+  }, [
+    mode,
+    isViewMode,
+    religionsData,
+    selectedGeneral?.religion,
+    normalizeApiData,
+  ]);
+
+  const prefixes = useMemo(() => {
+    if ((mode === "view" || isViewMode) && selectedGeneral?.prefix) {
+      return [selectedGeneral.prefix];
+    }
+    if (mode === "edit" && selectedGeneral?.prefix) {
+      const existingPrefix = selectedGeneral.prefix;
+      const apiPrefixes = normalizeApiData(prefixesData);
+
+      if (!prefixesData) {
+        return [existingPrefix];
+      }
+
+      const hasExistingInApi = apiPrefixes.some(
+        (prefix) => prefix.id === existingPrefix.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingPrefix, ...apiPrefixes];
+      }
+
+      return apiPrefixes;
+    }
+    return normalizeApiData(prefixesData);
+  }, [
+    mode,
+    isViewMode,
+    prefixesData,
+    selectedGeneral?.prefix,
+    normalizeApiData,
+  ]);
 
   const referrers = useMemo(() => {
+    if ((mode === "view" || isViewMode) && selectedGeneral?.referred_by) {
+      return [selectedGeneral.referred_by];
+    }
+    if (mode === "edit" && selectedGeneral?.referred_by) {
+      const existingReferrer = selectedGeneral.referred_by;
+      const apiGenerals = normalizeApiData(generalsData);
+
+      if (!generalsData) {
+        return [existingReferrer];
+      }
+
+      const filtered = apiGenerals.filter((general) => {
+        if (selectedGeneral?.id) {
+          return general.id !== selectedGeneral.id;
+        }
+        return true;
+      });
+
+      const hasExistingInApi = filtered.some(
+        (general) => general.id === existingReferrer.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingReferrer, ...filtered];
+      }
+
+      return filtered;
+    }
     const generals = normalizeApiData(generalsData);
     const filtered = generals.filter((general) => {
       if (selectedGeneral?.id) {
@@ -117,29 +200,40 @@ const GeneralForm = ({
       return true;
     });
     return filtered;
-  }, [generalsData, selectedGeneral, normalizeApiData]);
+  }, [generalsData, selectedGeneral, normalizeApiData, mode, isViewMode]);
 
   const approvalForms = useMemo(() => {
-    const normalized = normalizeApiData(approvalFormsData);
-
-    if (
-      watchedSubmissionTitle &&
-      typeof watchedSubmissionTitle === "object" &&
-      (watchedSubmissionTitle.id || watchedSubmissionTitle.submission_title)
-    ) {
-      const existingItem = normalized.find(
-        (item) =>
-          item.id === watchedSubmissionTitle.id ||
-          item.submission_title === watchedSubmissionTitle.submission_title ||
-          item.linked_mrf_title === watchedSubmissionTitle.submission_title
-      );
-      if (!existingItem) {
-        return [watchedSubmissionTitle, ...normalized];
-      }
+    if ((mode === "view" || isViewMode) && selectedGeneral?.submission_title) {
+      return [selectedGeneral.submission_title];
     }
+    if (mode === "edit" && selectedGeneral?.submission_title) {
+      const existingForm = selectedGeneral.submission_title;
+      const apiForms = normalizeApiData(approvalFormsData);
 
-    return normalized;
-  }, [approvalFormsData, normalizeApiData, watchedSubmissionTitle]);
+      if (!approvalFormsData) {
+        return [existingForm];
+      }
+
+      const hasExistingInApi = apiForms.some(
+        (form) =>
+          (form.id || form.submission_title) ===
+          (existingForm.id || existingForm.submission_title)
+      );
+
+      if (!hasExistingInApi) {
+        return [existingForm, ...apiForms];
+      }
+
+      return apiForms;
+    }
+    return normalizeApiData(approvalFormsData);
+  }, [
+    approvalFormsData,
+    normalizeApiData,
+    selectedGeneral?.submission_title,
+    mode,
+    isViewMode,
+  ]);
 
   useEffect(() => {
     const fetchNextId = async () => {
@@ -154,53 +248,12 @@ const GeneralForm = ({
           if (result.data && result.data.next_id_number) {
             setValue("id_number", result.data.next_id_number);
           }
-        } catch (error) {
-          //
-        }
+        } catch (error) {}
       }
     };
 
     fetchNextId();
   }, [watchedPrefix, getNextId, setValue, mode, isReadOnly]);
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (mode === "edit" || mode === "view" || isViewMode) {
-        const fetchParams = { page: 1, per_page: 1000, status: "active" };
-
-        try {
-          const promises = [
-            triggerReligions(fetchParams, true),
-            triggerPrefixes(fetchParams),
-            triggerGenerals(fetchParams),
-          ];
-
-          await Promise.allSettled(promises);
-
-          setDropdownsLoaded({
-            religions: true,
-            prefixes: true,
-            referrers: true,
-            approvalForms: true,
-          });
-        } catch (error) {
-          //
-        }
-      }
-    };
-
-    loadInitialData();
-  }, [mode, isViewMode, triggerReligions, triggerPrefixes, triggerGenerals]);
-
-  useEffect(() => {
-    if (
-      approvalFormsData &&
-      !approvalFormsLoading &&
-      !dropdownsLoaded.approvalForms
-    ) {
-      setDropdownsLoaded((prev) => ({ ...prev, approvalForms: true }));
-    }
-  }, [approvalFormsData, approvalFormsLoading, dropdownsLoaded.approvalForms]);
 
   useEffect(() => {
     if (
@@ -238,43 +291,40 @@ const GeneralForm = ({
     return () => clearTimeout(timer);
   }, [getValues, selectedGeneral, mode]);
 
-  const handleDropdownFocus = async (dropdownName) => {
-    if (dropdownsLoaded[dropdownName] || isReadOnly) {
-      return;
-    }
+  const handleDropdownFocus = useCallback(
+    (dropdownName) => {
+      if (mode === "view" || isViewMode || dropdownsLoaded[dropdownName])
+        return;
 
-    const fetchParams = { page: 1, per_page: 1000, status: "active" };
+      const fetchParams = { page: 1, per_page: 1000, status: "active" };
 
-    try {
       switch (dropdownName) {
         case "religions":
-          await triggerReligions(fetchParams, true);
+          triggerReligions(fetchParams);
           break;
         case "prefixes":
-          await triggerPrefixes(fetchParams);
+          triggerPrefixes(fetchParams);
           break;
         case "referrers":
-          await triggerGenerals(fetchParams);
+          triggerGenerals(fetchParams);
           break;
         case "approvalForms":
-          if (approvalFormsData) {
-            setDropdownsLoaded((prev) => ({ ...prev, approvalForms: true }));
-          }
+          triggerApprovalForms(fetchParams);
           break;
-        default:
-          return;
       }
 
-      if (dropdownName !== "approvalForms") {
-        setDropdownsLoaded((prev) => {
-          const newState = { ...prev, [dropdownName]: true };
-          return newState;
-        });
-      }
-    } catch (error) {
-      //
-    }
-  };
+      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+    },
+    [
+      dropdownsLoaded,
+      triggerReligions,
+      triggerPrefixes,
+      triggerGenerals,
+      triggerApprovalForms,
+      mode,
+      isViewMode,
+    ]
+  );
 
   const validateIdUniqueness = useCallback(
     async (prefixId, idNumber) => {
@@ -293,9 +343,7 @@ const GeneralForm = ({
         } else {
           clearErrors("id_number");
         }
-      } catch (error) {
-        //
-      }
+      } catch (error) {}
     },
     [checkIdUnique, setError, clearErrors, mode]
   );

@@ -1,17 +1,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Anton&family=Impact&family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+@import "../styles/mixins.scss";
 
-/* ==================== MAIN CONTAINER ==================== */
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
-  overflow-x: auto; // Changed from overflow: hidden
+  overflow-x: auto;
   overflow-y: hidden;
 }
 
-// Add this if it doesn't exist
 .table-container {
   overflow-x: auto !important;
   overflow-y: auto !important;
@@ -20,7 +19,7 @@
     min-width: max-content;
   }
 }
-/* ==================== where the create button is ==================== */
+
 .header-container {
   display: flex;
   justify-content: flex-start;
@@ -28,15 +27,272 @@
   padding: 5px;
   gap: 12px;
   width: 100%;
-  // background-color: red;
 }
-/* ==================== HEADER OF TITLE OF TABLE ==================== */
+
+.header-container-responsive {
+  // Mobile and small screens (up to 600px)
+  @media (max-width: 600px) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+
+    .left-section {
+      width: 100% !important;
+      justify-content: flex-start !important;
+    }
+  }
+
+  // Tablet and small desktop (601px to 768px) - FIXED: Stack vertically
+  @media (min-width: 601px) and (max-width: 768px) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    padding: 12px 16px !important;
+
+    .left-section {
+      width: 100% !important;
+      justify-content: flex-start !important;
+    }
+  }
+
+  // Desktop and larger screens (769px+)
+  @media (min-width: 769px) {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    padding: 16px 20px !important;
+
+    .left-section {
+      flex: 0 0 auto !important;
+      justify-content: flex-start !important;
+    }
+  }
+
+  @include xxs {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+
+    .left-section {
+      width: 100% !important;
+      justify-content: flex-start !important;
+    }
+  }
+}
+
+.create-button {
+  // Mobile (up to 480px)
+  @media (max-width: 480px) {
+    width: auto !important;
+    min-width: 100px !important;
+    height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 12px !important;
+
+    .MuiButton-startIcon {
+      margin-right: 4px !important;
+    }
+  }
+
+  // Small tablets (481px to 600px)
+  @media (min-width: 481px) and (max-width: 600px) {
+    width: auto !important;
+    min-width: 120px !important;
+    height: 38px !important;
+    padding: 0 18px !important;
+    font-size: 13px !important;
+
+    .MuiButton-startIcon {
+      margin-right: 6px !important;
+    }
+  }
+
+  // Tablets and small desktop (601px to 768px)
+  @media (min-width: 601px) and (max-width: 768px) {
+    width: auto !important;
+    min-width: 130px !important;
+    height: 38px !important;
+    padding: 0 20px !important;
+    font-size: 14px !important;
+
+    .MuiButton-startIcon {
+      margin-right: 8px !important;
+    }
+  }
+
+  // Desktop and larger (769px+)
+  @media (min-width: 769px) {
+    width: 140px !important;
+    min-width: 140px !important;
+    height: 38px !important;
+    padding: 0 20px !important;
+    font-size: 14px !important;
+
+    .MuiButton-startIcon {
+      margin-right: 8px !important;
+    }
+  }
+
+  @include xxs {
+    width: auto !important;
+    min-width: 100px !important;
+    height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 12px !important;
+
+    .MuiButton-startIcon {
+      margin-right: 4px !important;
+    }
+  }
+}
+
+.search-bar-container {
+  // Mobile (up to 480px)
+  @media (max-width: 480px) {
+    width: 100% !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+
+  // Small tablets (481px to 600px)
+  @media (min-width: 481px) and (max-width: 600px) {
+    width: 100% !important;
+    flex-direction: row !important;
+    gap: 10px !important;
+  }
+
+  // Tablets (601px to 768px) - FIXED: Full width and better spacing
+  @media (min-width: 601px) and (max-width: 768px) {
+    width: 100% !important;
+    flex-direction: row !important;
+    gap: 16px !important;
+  }
+
+  // Desktop and larger (769px+)
+  @media (min-width: 769px) {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    gap: 16px !important;
+  }
+
+  @include xxs {
+    width: 100% !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+}
+
+.archived-checkbox {
+  // Mobile (up to 480px)
+  @media (max-width: 480px) {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    height: 36px !important;
+    padding-left: 6px !important;
+    padding-right: 8px !important;
+
+    .MuiFormControlLabel-label {
+      font-size: 11px !important;
+    }
+  }
+
+  // Small tablets (481px to 600px)
+  @media (min-width: 481px) and (max-width: 600px) {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    height: 36px !important;
+    padding-left: 8px !important;
+    padding-right: 10px !important;
+
+    .MuiFormControlLabel-label {
+      font-size: 12px !important;
+    }
+  }
+
+  // Tablets and desktop (601px+)
+  @media (min-width: 601px) {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    height: 36px !important;
+    padding-left: 8px !important;
+    padding-right: 12px !important;
+
+    .MuiFormControlLabel-label {
+      font-size: 12px !important;
+    }
+  }
+
+  @include xxs {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    height: 36px !important;
+    padding-left: 6px !important;
+    padding-right: 8px !important;
+
+    .MuiFormControlLabel-label {
+      font-size: 11px !important;
+    }
+  }
+}
+
+.search-input {
+  // Mobile (up to 480px)
+  @media (max-width: 480px) {
+    flex: 1 !important;
+
+    .MuiInputBase-root {
+      width: 100% !important;
+      min-width: 200px !important;
+    }
+  }
+
+  // Small tablets (481px to 600px)
+  @media (min-width: 481px) and (max-width: 600px) {
+    flex: 1 !important;
+
+    .MuiInputBase-root {
+      width: 100% !important;
+      min-width: 240px !important;
+    }
+  }
+
+  // Tablets (601px to 768px) - FIXED: Full width for better fit
+  @media (min-width: 601px) and (max-width: 768px) {
+    flex: 1 !important;
+
+    .MuiInputBase-root {
+      width: 100% !important;
+      min-width: 300px !important;
+    }
+  }
+
+  // Desktop and larger (769px+)
+  @media (min-width: 769px) {
+    flex: 0 0 auto !important;
+
+    .MuiInputBase-root {
+      width: 320px !important;
+    }
+  }
+
+  @include xxs {
+    flex: 1 !important;
+
+    .MuiInputBase-root {
+      width: 100% !important;
+      min-width: 200px !important;
+    }
+  }
+}
 
 .table-header {
   font-weight: bold !important;
   font-size: 1.11rem !important;
   color: rgb(33, 61, 112) !important;
-  // background-color: aqua;
   display: flex;
 }
 
@@ -44,9 +300,9 @@
   font-weight: bold !important;
   font-size: 1.11rem !important;
   color: rgb(33, 61, 112) !important;
-  width: 200px !important; /* Fixed width in pixels */
-  min-width: 200px !important; /* Ensure minimum width */
-  max-width: 200px !important; /* Prevent expansion */
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
   display: flex;
 }
 
@@ -61,7 +317,6 @@
   font-weight: bold !important;
   font-size: 1.11rem !important;
   color: rgb(33, 61, 112) !important;
-  // background-color: aqua;
   width: 14%;
   text-align: center;
 }
@@ -70,7 +325,6 @@
   font-weight: bold !important;
   font-size: 1.11rem !important;
   color: rgb(33, 61, 112) !important;
-  // background-color: aqua;
   padding-left: 30px !important;
   display: flex;
   width: 10%;
@@ -80,7 +334,6 @@
   font-weight: bold !important;
   font-size: 1.11rem !important;
   color: rgb(33, 61, 112) !important;
-  // background-color: aqua;
   padding-left: 30px !important;
   display: flex;
   width: 24%;
@@ -90,39 +343,39 @@
   font-weight: bold !important;
   font-size: 1.11rem !important;
   color: rgb(33, 61, 112) !important;
-  // background-color: aqua;
   padding-left: 30px !important;
   display: flex;
   width: 20%;
 }
 
-/* ==================== TABLE CELL ==================== */
 .table-cell.MuiTableCell-root {
   overflow: auto;
   font-size: 0.98rem;
 }
+
 .table-cell4.MuiTableCell-root {
   overflow: auto;
   font-size: 0.98rem;
   padding-left: 30px !important;
-  width: 100px !important; /* Match the header width */
-  min-width: 100px !important; /* Ensure minimum width */
-  max-width: 100px !important; /* Prevent expansion */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
 }
 
 .table-cell2.MuiTableCell-root {
   overflow: auto;
   font-size: 0.98rem;
-  width: 200px !important; /* Match the header width */
-  min-width: 200px !important; /* Ensure minimum width */
-  max-width: 200px !important; /* Prevent expansion */
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
 }
+
 .table-cell3.MuiTableCell-root {
   overflow: auto;
   font-size: 0.98rem;
-  width: 400px !important; /* Match the header width */
-  min-width: 400px !important; /* Ensure minimum width */
-  max-width: 400px !important; /* Prevent expansion */
+  width: 400px !important;
+  min-width: 400px !important;
+  max-width: 400px !important;
 }
 
 .table-cell-id.MuiTableCell-root {
@@ -136,22 +389,21 @@
   padding-left: 30px !important;
   width: 200px;
   font-size: 0.98rem;
-  width: 180px !important; /* Match the header width */
-  min-width: 180px !important; /* Ensure minimum width */
-  max-width: 180px !important; /* Prevent expansion */
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
 }
 
 .table-status2.MuiTableCell-root {
   overflow: auto;
   padding-left: 30px !important;
   font-size: 0.98rem;
-  width: 300px !important; /* Match the header width */
-  min-width: 300px !important; /* Ensure minimum width */
-  max-width: 300px !important; /* Prevent expansion */
+  width: 300px !important;
+  min-width: 300px !important;
+  max-width: 300px !important;
   text-align: center;
 }
 
-/* ==================== PAGINATION ==================== */
 .MuiTablePagination-root {
   position: sticky !important;
   bottom: 0 !important;
@@ -165,7 +417,6 @@
   display: flex !important;
   justify-content: flex-end !important;
 
-  // Remove the toolbar height
   .MuiToolbar-root {
     min-height: 48px !important;
     padding: 8px 16px !important;
@@ -178,7 +429,6 @@
     }
   }
 
-  // Target all pagination elements
   .MuiTablePagination-toolbar,
   .MuiTablePagination-spacer,
   .MuiTablePagination-selectLabel,
@@ -190,7 +440,6 @@
   }
 }
 
-// Also target if you have a custom wrapper
 .table-pagination {
   .MuiTablePagination-root {
     position: sticky !important;

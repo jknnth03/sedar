@@ -44,6 +44,8 @@ import RegistrationApproval from "../../pages/approver/registrationApproval/Regi
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
 import DataChangeReceiving from "../../pages/receiving/DataChangeReceiving";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
+import KPI from "../../pages/evaluation/Kpi.jsx";
+import Evaluation from "../../pages/evaluation/Evaluation.jsx";
 
 export const ROUTES = [
   {
@@ -137,6 +139,22 @@ export const ROUTES = [
         handle: {
           permission:
             CONSTANT.PAGES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.EVALUATION.name,
+        path: CONSTANT.PAGES.EVALUATION.path,
+        element: <Evaluation />,
+        handle: {
+          permission: CONSTANT.PAGES.EVALUATION.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.EVALUATION.children.KPI.name,
+        path: CONSTANT.PAGES.EVALUATION.children.KPI.path,
+        element: <KPI />,
+        handle: {
+          permission: CONSTANT.PAGES.EVALUATION.children.KPI.name,
         },
       },
       {

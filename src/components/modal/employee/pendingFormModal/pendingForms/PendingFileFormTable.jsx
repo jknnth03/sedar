@@ -27,19 +27,29 @@ import {
 import { useGetFileEmpAttachmentQuery } from "../../../../../features/api/employee/filesempApi";
 
 const PendingFileFormTable = ({
-  fileTypes,
-  fileCabinets,
-  fileTypesLoading,
-  fileCabinetsLoading,
-  isLoading,
+  fields,
+  watchedFiles,
   isReadOnly,
-  watchedValues,
+  isFieldDisabled,
+  processedFileTypes,
+  processedFileCabinets,
+  isLoadingFileTypes,
+  isLoadingFileCabinets,
+  errors,
+  getFileTypeLabel,
+  getFileCabinetLabel,
+  getFileName,
   handleDropdownFocus,
-  getOptionLabel,
+  handleFileChange,
+  handleRemoveFile,
+  handleFileDownload,
+  handleFileViewerOpen,
+  addFileLine,
+  removeFileLine,
 }) => {
   const {
     control,
-    formState: { errors },
+    formState: { errors: formErrors },
     setValue,
     watch,
   } = useFormContext();
@@ -70,99 +80,6 @@ const PendingFileFormTable = ({
     }
   }, [attachmentData]);
 
-  const getEnhancedOptionLabel = (item, type) => {
-    if (!item) return "";
-    if (getOptionLabel && typeof getOptionLabel === "function") {
-      return getOptionLabel(item, type);
-    }
-    if (item.name) return item.name;
-    if (item.label) return item.label;
-    if (item.id) return `${type} ${item.id}`;
-    return "";
-  };
-
-  const addFileLine = () => {
-    if (isReadOnly) return;
-
-    const currentFiles = watch("files") || [];
-    const newIndex = currentFiles.length;
-    const newFile = {
-      id: `pending_file_${Date.now()}_${newIndex}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`,
-      original_file_id: null,
-      employee_id: "",
-      file_description: "",
-      file_attachment: null,
-      file_name: "",
-      existing_file_name: null,
-      existing_file_url: null,
-      file_url: null,
-      file_type: null,
-      file_type_id: null,
-      file_cabinet: null,
-      file_cabinet_id: null,
-      is_new_file: true,
-      index: newIndex,
-    };
-
-    setValue("files", [...currentFiles, newFile]);
-  };
-
-  const removeFileLine = (index) => {
-    if (isReadOnly) return;
-
-    const currentFiles = watch("files") || [];
-    const updatedFiles = currentFiles.filter((_, i) => i !== index);
-    setValue(
-      "files",
-      updatedFiles.map((file, i) => ({ ...file, index: i }))
-    );
-  };
-
-  const handleFileChange = (index, event) => {
-    if (isReadOnly) return;
-
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const currentFiles = watch("files") || [];
-    const updatedFiles = [...currentFiles];
-
-    if (updatedFiles[index]) {
-      updatedFiles[index] = {
-        ...updatedFiles[index],
-        file_attachment: file,
-        file_name: file.name,
-        existing_file_name: null,
-        existing_file_url: null,
-        file_url: null,
-        is_new_file: true,
-      };
-      setValue("files", updatedFiles);
-    }
-  };
-
-  const handleRemoveFile = (index) => {
-    if (isReadOnly) return;
-
-    const currentFiles = watch("files") || [];
-    const updatedFiles = [...currentFiles];
-
-    if (updatedFiles[index]) {
-      updatedFiles[index] = {
-        ...updatedFiles[index],
-        file_attachment: null,
-        file_name: "",
-        existing_file_name: null,
-        existing_file_url: null,
-        file_url: null,
-        is_new_file: true,
-      };
-      setValue("files", updatedFiles);
-    }
-  };
-
   const getFileAttachmentData = (fileData) => {
     const attachmentUrl = fileData?.existing_file_url || fileData?.file_url;
     const attachmentFilename =
@@ -190,16 +107,6 @@ const PendingFileFormTable = ({
     };
   };
 
-  const handleFileViewerOpen = useCallback((fileId, fileName) => {
-    if (fileId && fileId !== "undefined" && fileId !== "null") {
-      setCurrentAttachmentId(fileId);
-      setCurrentFileName(fileName);
-      setFileViewerOpen(true);
-    } else {
-      console.error("No valid file ID found");
-    }
-  }, []);
-
   const handleFileViewerClick = useCallback(
     (index) => {
       const currentFiles = watch("files") || [];
@@ -221,13 +128,15 @@ const PendingFileFormTable = ({
         !isNaN(attachmentData.id) &&
         attachmentData.id > 0
       ) {
-        handleFileViewerOpen(attachmentData.id, attachmentData.filename);
+        setCurrentAttachmentId(attachmentData.id);
+        setCurrentFileName(attachmentData.filename);
+        setFileViewerOpen(true);
       } else {
         console.error("Invalid attachment ID:", attachmentData.id);
         alert("No valid attachment ID found.");
       }
     },
-    [watch, handleFileViewerOpen]
+    [watch]
   );
 
   const handleFileViewerClose = useCallback(() => {
@@ -236,24 +145,6 @@ const PendingFileFormTable = ({
     setCurrentFileName("");
     setFileUrl(null);
   }, []);
-
-  const handleFileDownload = useCallback((url, filename) => {
-    if (url && filename) {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      alert("No attachment available to download");
-    }
-  }, []);
-
-  const getFileName = (filename) => {
-    if (!filename) return "attachment.pdf";
-    return filename.split("/").pop() || filename;
-  };
 
   const getDisplayFilename = (fileData) => {
     if (!fileData) return "No file attached";
@@ -420,9 +311,9 @@ const PendingFileFormTable = ({
   return (
     <>
       <Box className="file-form-container">
-        {filesWatch.map((field, index) => (
+        {(watchedFiles || fields)?.map((field, index) => (
           <Box
-            key={field.id || index}
+            key={field?.id || index}
             className="file-line-container"
             sx={{ mb: 3, paddingTop: 2 }}>
             <Grid container spacing={1} className="general-form__grid">
@@ -438,7 +329,7 @@ const PendingFileFormTable = ({
                     <FormControl
                       fullWidth
                       error={!!fieldState.error}
-                      disabled={isLoading || fileTypesLoading}>
+                      disabled={isFieldDisabled}>
                       <Autocomplete
                         {...controllerField}
                         onChange={(event, item) => {
@@ -451,16 +342,17 @@ const PendingFileFormTable = ({
                               updatedFiles[index].file_type_id = item;
                             }
                             setValue("files", updatedFiles);
-                            console.log(`File ${index} type updated:`, item);
                           }
                         }}
                         value={controllerField.value || null}
-                        options={fileTypes ?? []}
-                        loading={fileTypesLoading}
-                        disabled={isLoading}
+                        options={processedFileTypes ?? []}
+                        loading={isLoadingFileTypes}
+                        disabled={isFieldDisabled} // This will properly disable the dropdown
                         readOnly={isReadOnly}
                         getOptionLabel={(item) =>
-                          getEnhancedOptionLabel(item, "file_type")
+                          getFileTypeLabel
+                            ? getFileTypeLabel(item)
+                            : item?.name || item?.label || ""
                         }
                         isOptionEqualToValue={(option, value) => {
                           if (!option || !value) return false;
@@ -486,6 +378,7 @@ const PendingFileFormTable = ({
                               ...params.InputProps,
                               readOnly: isReadOnly,
                             }}
+                            disabled={isFieldDisabled} // This will make the input look disabled
                           />
                         )}
                       />
@@ -512,7 +405,7 @@ const PendingFileFormTable = ({
                     <FormControl
                       fullWidth
                       error={!!fieldState.error}
-                      disabled={isLoading || fileCabinetsLoading}>
+                      disabled={isFieldDisabled}>
                       <Autocomplete
                         {...controllerField}
                         onChange={(event, item) => {
@@ -525,16 +418,17 @@ const PendingFileFormTable = ({
                               updatedFiles[index].file_cabinet_id = item;
                             }
                             setValue("files", updatedFiles);
-                            console.log(`File ${index} cabinet updated:`, item);
                           }
                         }}
                         value={controllerField.value || null}
-                        options={fileCabinets ?? []}
-                        loading={fileCabinetsLoading}
-                        disabled={isLoading}
+                        options={processedFileCabinets ?? []}
+                        loading={isLoadingFileCabinets}
+                        disabled={isFieldDisabled} // This will properly disable the dropdown
                         readOnly={isReadOnly}
                         getOptionLabel={(item) =>
-                          getEnhancedOptionLabel(item, "file_cabinet")
+                          getFileCabinetLabel
+                            ? getFileCabinetLabel(item)
+                            : item?.name || item?.label || ""
                         }
                         isOptionEqualToValue={(option, value) => {
                           if (!option || !value) return false;
@@ -560,6 +454,7 @@ const PendingFileFormTable = ({
                               ...params.InputProps,
                               readOnly: isReadOnly,
                             }}
+                            disabled={isFieldDisabled} // This will make the input look disabled
                           />
                         )}
                       />
@@ -588,7 +483,7 @@ const PendingFileFormTable = ({
                       label="File Description"
                       variant="outlined"
                       fullWidth
-                      disabled={isLoading}
+                      disabled={isFieldDisabled} // This will make the input look disabled
                       error={!!fieldState.error}
                       helperText={fieldState.error?.message}
                       className="file-description-field"
@@ -620,7 +515,7 @@ const PendingFileFormTable = ({
                         variant="outlined"
                         fullWidth
                         value={getDisplayFilename(filesWatch[index])}
-                        disabled={true}
+                        disabled={true} // Always disabled in read-only mode
                         InputProps={{
                           readOnly: true,
                           endAdornment: getDisplayFilename(
@@ -689,7 +584,7 @@ const PendingFileFormTable = ({
                         id={`file-upload-input-${index}`}
                         type="file"
                         onChange={(e) => handleFileChange(index, e)}
-                        disabled={isReadOnly}
+                        disabled={isFieldDisabled} // Properly disable file input
                       />
                       <label
                         htmlFor={`file-upload-input-${index}`}
@@ -698,7 +593,7 @@ const PendingFileFormTable = ({
                           variant="outlined"
                           component="span"
                           fullWidth
-                          disabled={isLoading}
+                          disabled={isFieldDisabled} // Properly disable button
                           className="file-upload-button"
                           sx={{ height: "56px" }}>
                           {filesWatch[index]?.file_attachment instanceof File
@@ -716,7 +611,7 @@ const PendingFileFormTable = ({
                           <IconButton
                             size="small"
                             onClick={() => handleFileViewerClick(index)}
-                            disabled={isLoading}
+                            disabled={isFieldDisabled}
                             color="primary"
                             sx={{
                               minWidth: "auto",
@@ -739,7 +634,7 @@ const PendingFileFormTable = ({
                                 attachmentData.filename
                               );
                             }}
-                            disabled={isLoading}
+                            disabled={isFieldDisabled}
                             color="info"
                             sx={{
                               minWidth: "auto",
@@ -758,7 +653,7 @@ const PendingFileFormTable = ({
                         <IconButton
                           size="small"
                           onClick={() => handleRemoveFile(index)}
-                          disabled={isLoading}
+                          disabled={isFieldDisabled}
                           color="error"
                           sx={{
                             minWidth: "auto",
@@ -775,7 +670,7 @@ const PendingFileFormTable = ({
                     </Box>
                   )}
 
-                  {errors.files?.[index]?.file_attachment && (
+                  {errors?.files?.[index]?.file_attachment && (
                     <Typography
                       color="error"
                       variant="caption"
@@ -805,7 +700,7 @@ const PendingFileFormTable = ({
                     {filesWatch.length > 1 && (
                       <Button
                         onClick={() => removeFileLine(index)}
-                        disabled={isLoading}
+                        disabled={isFieldDisabled}
                         variant="contained"
                         size="small"
                         startIcon={<DeleteIcon />}
@@ -826,7 +721,7 @@ const PendingFileFormTable = ({
                     {index === filesWatch.length - 1 && (
                       <Button
                         onClick={addFileLine}
-                        disabled={isLoading}
+                        disabled={isFieldDisabled}
                         variant="contained"
                         size="small"
                         startIcon={<AddIcon />}

@@ -36,7 +36,7 @@ const generateUniqueId = (prefix = "pending_file") => {
 
 const PendingFileForm = ({
   onSubmit,
-  selectedFiles = { files },
+  selectedFiles = { files: [] }, // Fix: provide proper default value
   showArchived,
   isLoading = false,
   employeeId,
@@ -108,32 +108,6 @@ const PendingFileForm = ({
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      if (mode === "edit" || mode === "view" || isViewMode) {
-        const fetchParams = { page: 1, per_page: 1000, status: "active" };
-
-        try {
-          const promises = [
-            triggerFileTypes(fetchParams),
-            triggerFileCabinets(fetchParams),
-          ];
-
-          await Promise.allSettled(promises);
-
-          setDropdownsLoaded({
-            fileTypes: true,
-            fileCabinets: true,
-          });
-        } catch (error) {
-          console.error("Error loading dropdown data:", error);
-        }
-      }
-    };
-
-    loadInitialData();
-  }, [mode, isViewMode, triggerFileTypes, triggerFileCabinets]);
-
-  useEffect(() => {
     if (attachmentData) {
       const url = URL.createObjectURL(attachmentData);
       setFileUrl(url);
@@ -142,28 +116,31 @@ const PendingFileForm = ({
     }
   }, [attachmentData]);
 
-  const handleDropdownFocus = async (dropdownName) => {
-    if (dropdownsLoaded[dropdownName] || isReadOnly) return;
+  const handleDropdownFocus = useCallback(
+    async (dropdownName) => {
+      if (dropdownsLoaded[dropdownName] || isReadOnly) return;
 
-    const fetchParams = { page: 1, per_page: 1000, status: "active" };
+      const fetchParams = { page: 1, per_page: 1000, status: "active" };
 
-    try {
-      switch (dropdownName) {
-        case "fileTypes":
-          await triggerFileTypes(fetchParams);
-          break;
-        case "fileCabinets":
-          await triggerFileCabinets(fetchParams);
-          break;
-        default:
-          return;
+      try {
+        switch (dropdownName) {
+          case "fileTypes":
+            await triggerFileTypes(fetchParams);
+            break;
+          case "fileCabinets":
+            await triggerFileCabinets(fetchParams);
+            break;
+          default:
+            return;
+        }
+
+        setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+      } catch (error) {
+        console.error("Error loading dropdown data:", error);
       }
-
-      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
-    } catch (error) {
-      console.error("Error loading dropdown data:", error);
-    }
-  };
+    },
+    [dropdownsLoaded, triggerFileTypes, triggerFileCabinets, isReadOnly]
+  );
 
   const normalizeApiData = (data) => {
     if (!data) return [];
@@ -195,13 +172,90 @@ const PendingFileForm = ({
     return options;
   };
 
+  // Fix: Helper function to safely get files array from selectedFiles
+  const getSelectedFilesArray = useCallback(() => {
+    if (!selectedFiles) return [];
+
+    // If selectedFiles is already an array
+    if (Array.isArray(selectedFiles)) {
+      return selectedFiles;
+    }
+
+    // If selectedFiles is an object with a files property
+    if (selectedFiles.files && Array.isArray(selectedFiles.files)) {
+      return selectedFiles.files;
+    }
+
+    // If selectedFiles is an object but files property is not an array
+    if (selectedFiles.files) {
+      return [];
+    }
+
+    // Default case
+    return [];
+  }, [selectedFiles]);
+
   const processedFileTypes = useMemo(() => {
+    const filesArray = getSelectedFilesArray();
+
+    if (mode === "view" && filesArray.length > 0) {
+      const existingFileTypes = filesArray
+        .map((file) => file.file_type)
+        .filter(Boolean);
+      return existingFileTypes;
+    }
+    if (mode === "edit" && filesArray.length > 0) {
+      const existingFileTypes = filesArray
+        .map((file) => file.file_type)
+        .filter(Boolean);
+      const apiFileTypes = normalizeApiData(fileTypesData);
+
+      if (!fileTypesData) {
+        return existingFileTypes;
+      }
+
+      const mergedTypes = [...existingFileTypes];
+      apiFileTypes.forEach((apiType) => {
+        if (!mergedTypes.some((existing) => existing.id === apiType.id)) {
+          mergedTypes.push(apiType);
+        }
+      });
+
+      return mergedTypes;
+    }
     return normalizeApiData(fileTypesData);
-  }, [fileTypesData]);
+  }, [mode, fileTypesData, getSelectedFilesArray]);
 
   const processedFileCabinets = useMemo(() => {
+    const filesArray = getSelectedFilesArray();
+
+    if (mode === "view" && filesArray.length > 0) {
+      const existingFileCabinets = filesArray
+        .map((file) => file.file_cabinet)
+        .filter(Boolean);
+      return existingFileCabinets;
+    }
+    if (mode === "edit" && filesArray.length > 0) {
+      const existingFileCabinets = filesArray
+        .map((file) => file.file_cabinet)
+        .filter(Boolean);
+      const apiFileCabinets = normalizeApiData(fileCabinetsData);
+
+      if (!fileCabinetsData) {
+        return existingFileCabinets;
+      }
+
+      const mergedCabinets = [...existingFileCabinets];
+      apiFileCabinets.forEach((apiCabinet) => {
+        if (!mergedCabinets.some((existing) => existing.id === apiCabinet.id)) {
+          mergedCabinets.push(apiCabinet);
+        }
+      });
+
+      return mergedCabinets;
+    }
     return normalizeApiData(fileCabinetsData);
-  }, [fileCabinetsData]);
+  }, [mode, fileCabinetsData, getSelectedFilesArray]);
 
   const getFileTypeLabel = useCallback((option) => {
     if (!option) return "Unknown";
@@ -390,12 +444,10 @@ const PendingFileForm = ({
     (selectedFiles) => {
       if (hasInitializedData.current) return;
 
-      if (
-        selectedFiles &&
-        Array.isArray(selectedFiles) &&
-        selectedFiles.length > 0
-      ) {
-        const newFileLines = selectedFiles.map((file, index) => {
+      const filesArray = getSelectedFilesArray();
+
+      if (filesArray.length > 0) {
+        const newFileLines = filesArray.map((file, index) => {
           const fileTypeId = file.file_type_id || file.file_type?.id;
           const fileCabinetId =
             file.file_cabinet_id ||
@@ -453,6 +505,7 @@ const PendingFileForm = ({
       initializeEmptyForm,
       processedFileTypes,
       processedFileCabinets,
+      getSelectedFilesArray,
     ]
   );
 
@@ -469,17 +522,12 @@ const PendingFileForm = ({
     }
 
     if (mode === "edit" || mode === "view" || isViewMode) {
-      const hasDropdownData =
-        processedFileTypes.length > 0 && processedFileCabinets.length > 0;
-
-      if (hasDropdownData) {
-        if (pendingData && pendingData.files) {
-          initializeWithPendingData(pendingData);
-        } else if (selectedFiles && selectedFiles.length > 0) {
-          initializeWithSelectedFiles(selectedFiles);
-        } else {
-          initializeEmptyForm();
-        }
+      if (pendingData && pendingData.files) {
+        initializeWithPendingData(pendingData);
+      } else if (selectedFiles && getSelectedFilesArray().length > 0) {
+        initializeWithSelectedFiles(selectedFiles);
+      } else {
+        initializeEmptyForm();
       }
     }
   }, [
@@ -487,11 +535,10 @@ const PendingFileForm = ({
     isViewMode,
     pendingData,
     selectedFiles,
-    processedFileTypes.length,
-    processedFileCabinets.length,
     initializeWithPendingData,
     initializeWithSelectedFiles,
     initializeEmptyForm,
+    getSelectedFilesArray,
   ]);
 
   const validateFileLine = useCallback((line) => {
@@ -630,7 +677,9 @@ const PendingFileForm = ({
     return true;
   }, [getValues, setError]);
 
-  const hasErrors = fileTypesError || fileCabinetsError;
+  const hasErrors =
+    (mode !== "view" && fileTypesError) ||
+    (mode !== "view" && fileCabinetsError);
 
   const FileViewerDialog = () => (
     <Dialog
@@ -759,23 +808,6 @@ const PendingFileForm = ({
       </DialogContent>
     </Dialog>
   );
-
-  if (
-    (mode === "edit" || mode === "view" || isViewMode) &&
-    !hasInitializedData.current &&
-    (processedFileTypes.length === 0 || processedFileCabinets.length === 0)
-  ) {
-    return (
-      <Box
-        className="pending-file-form-container"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box className="pending-file-form-container">

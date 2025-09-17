@@ -152,6 +152,17 @@ const extractManpowerFormId = (formData) => {
 
 const extractPositionId = (formData) => {
   if (
+    formData.position_id !== null &&
+    formData.position_id !== undefined &&
+    formData.position_id !== ""
+  ) {
+    const extracted = extractIdFromObject(formData.position_id);
+    if (extracted !== null && extracted !== undefined) {
+      return extracted;
+    }
+  }
+
+  if (
     formData.position &&
     typeof formData.position === "object" &&
     formData.position.id
@@ -159,34 +170,33 @@ const extractPositionId = (formData) => {
     return formData.position.id;
   }
 
-  if (formData.position_id) {
-    return extractIdFromObject(formData.position_id);
-  }
-
   const approvalForm = formData.approval_form || formData.submission_title;
-  if (
-    approvalForm &&
-    typeof approvalForm === "object" &&
-    approvalForm.submittable
-  ) {
-    if (approvalForm.submittable.position_id) {
-      return approvalForm.submittable.position_id;
+
+  if (approvalForm && typeof approvalForm === "object") {
+    if (approvalForm.position_id) {
+      return approvalForm.position_id;
     }
 
-    if (
-      approvalForm.submittable.position &&
-      approvalForm.submittable.position.id
-    ) {
-      return approvalForm.submittable.position.id;
+    if (approvalForm.position && approvalForm.position.id) {
+      return approvalForm.position.id;
+    }
+
+    if (approvalForm.submittable) {
+      if (approvalForm.submittable.position_id) {
+        return approvalForm.submittable.position_id;
+      }
+
+      if (
+        approvalForm.submittable.position &&
+        approvalForm.submittable.position.id
+      ) {
+        return approvalForm.submittable.position.id;
+      }
     }
   }
 
-  if (
-    formData.position_details &&
-    formData.position_details.position &&
-    formData.position_details.position.id
-  ) {
-    return formData.position_details.position.id;
+  if (formData.approvalFormData && formData.approvalFormData.position_id) {
+    return formData.approvalFormData.position_id;
   }
 
   return null;

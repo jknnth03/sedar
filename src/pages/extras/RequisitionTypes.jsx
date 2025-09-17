@@ -1,35 +1,41 @@
-import React, { useState, useMemo } from "react";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
-import CircularProgress from "@mui/material/CircularProgress";
-import TableRow from "@mui/material/TableRow";
-import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
-import ArchiveIcon from "@mui/icons-material/Archive";
-import RestoreIcon from "@mui/icons-material/Restore";
-import Button from "@mui/material/Button";
-import { useSnackbar } from "notistack";
-import AddIcon from "@mui/icons-material/Add";
-import { SearchBar } from "../masterlist/masterlistComponents";
-import NoDataGIF from "../../assets/no-data.gif";
-import Box from "@mui/material/Box";
-import HelpIcon from "@mui/icons-material/Help";
+import React, { useState, useMemo, useCallback } from "react";
 import {
-  Chip,
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  CircularProgress,
+  TableRow,
+  Box,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  Button,
+  IconButton,
+  Menu,
+  MenuItem,
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
+  DialogContent,
+  DialogActions,
+  useTheme,
+  useMediaQuery,
+  alpha,
+  Fade,
+  Chip,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ArchiveIcon from "@mui/icons-material/Archive";
+import AddIcon from "@mui/icons-material/Add";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import RestoreIcon from "@mui/icons-material/Restore";
+import HelpIcon from "@mui/icons-material/Help";
+import EditIcon from "@mui/icons-material/Edit";
+import { useSnackbar } from "notistack";
 import {
   useDeleteRequisitionsMutation,
   useGetShowRequisitionsQuery,
@@ -37,9 +43,150 @@ import {
 import RequisitionsModal from "../../components/modal/extras/RequisitionsModal";
 import useDebounce from "../../hooks/useDebounce";
 
+const CustomSearchBar = ({
+  searchQuery,
+  setSearchQuery,
+  showArchived,
+  setShowArchived,
+  isLoading = false,
+}) => {
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
+  const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
+  const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
+
+  return (
+    <Box
+      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
+      className="search-bar-container">
+      {isVerySmall ? (
+        <IconButton
+          onClick={() => setShowArchived(!showArchived)}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            color: iconColor,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+          }}>
+          <ArchiveIcon sx={{ fontSize: "18px" }} />
+        </IconButton>
+      ) : (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              disabled={isLoading}
+              icon={<ArchiveIcon sx={{ color: iconColor }} />}
+              checkedIcon={<ArchiveIcon sx={{ color: iconColor }} />}
+              size="small"
+            />
+          }
+          label="ARCHIVED"
+          sx={{
+            margin: 0,
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            paddingLeft: "8px",
+            paddingRight: "12px",
+            height: "36px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+            "& .MuiFormControlLabel-label": {
+              fontSize: "12px",
+              fontWeight: 600,
+              color: labelColor,
+              letterSpacing: "0.5px",
+            },
+          }}
+        />
+      )}
+
+      <TextField
+        placeholder={isVerySmall ? "Search..." : "Search Requisition Types..."}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        disabled={isLoading}
+        size="small"
+        className="search-input"
+        InputProps={{
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: isVerySmall ? "18px" : "20px",
+              }}
+            />
+          ),
+          endAdornment: isLoading && (
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+          ),
+          sx: {
+            height: "36px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
+        }}
+        sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
+          "& .MuiInputBase-input": {
+            fontSize: isVerySmall ? "13px" : "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
+      />
+    </Box>
+  );
+};
+
 const RequisitionTypes = () => {
-  // State management
-  const [page, setPage] = useState(1); // Start from 1 for API
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -47,62 +194,83 @@ const RequisitionTypes = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedRequisitionType, setSelectedRequisitionType] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
+  const [isLoading, setIsLoading] = useState(false);
+
   const debounceValue = useDebounce(searchQuery, 500);
 
-  // API query
+  const queryParams = useMemo(
+    () => ({
+      search: debounceValue,
+      page,
+      per_page: rowsPerPage,
+      status: showArchived ? "inactive" : "active",
+    }),
+    [debounceValue, page, rowsPerPage, showArchived]
+  );
+
   const {
     data: requisitions,
-    isLoading,
+    isLoading: queryLoading,
     isFetching,
     refetch,
-  } = useGetShowRequisitionsQuery({
-    search: debounceValue,
-    page,
-    per_page: rowsPerPage,
-    status: showArchived ? "inactive" : "active",
-  });
+    error,
+  } = useGetShowRequisitionsQuery(queryParams);
 
   const [deleteRequisition] = useDeleteRequisitionsMutation();
+
   const requisitionList = useMemo(
     () => requisitions?.result?.data || [],
     [requisitions]
   );
 
-  // Menu handlers
-  const handleMenuOpen = (event, requisitionId) => {
-    setMenuAnchor({ [requisitionId]: event.currentTarget });
-  };
+  const handleSearchChange = useCallback((newSearchQuery) => {
+    setSearchQuery(newSearchQuery);
+    setPage(1);
+  }, []);
 
-  const handleMenuClose = () => {
-    setMenuAnchor({});
-  };
+  const handleChangeArchived = useCallback((newShowArchived) => {
+    setShowArchived(newShowArchived);
+    setPage(1);
+  }, []);
 
-  // Archive/Restore handlers
-  const handleArchiveRestoreClick = (requisition) => {
-    setSelectedRequisitionType(requisition);
-    setConfirmOpen(true);
-    handleMenuClose();
-  };
+  const handleMenuOpen = useCallback((event, requisition) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({
+      ...prev,
+      [requisition.id]: event.currentTarget,
+    }));
+  }, []);
+
+  const handleMenuClose = useCallback((requisitionId) => {
+    setMenuAnchor((prev) => ({ ...prev, [requisitionId]: null }));
+  }, []);
+
+  const handleArchiveRestoreClick = useCallback(
+    (requisition, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedRequisitionType(requisition);
+      setConfirmOpen(true);
+      handleMenuClose(requisition.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedRequisitionType) return;
 
+    setIsLoading(true);
     try {
-      console.log("🟡 Archiving/Restoring:", selectedRequisitionType);
       await deleteRequisition(selectedRequisitionType.id).unwrap();
-      console.log("🟢 API Success");
-
       enqueueSnackbar(
         selectedRequisitionType.deleted_at
           ? "Requisition Type restored successfully!"
           : "Requisition Type archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
-
       refetch();
     } catch (error) {
-      console.error("❌ API Error:", error);
       enqueueSnackbar("Action failed. Please try again.", {
         variant: "error",
         autoHideDuration: 2000,
@@ -110,121 +278,405 @@ const RequisitionTypes = () => {
     } finally {
       setConfirmOpen(false);
       setSelectedRequisitionType(null);
+      setIsLoading(false);
     }
   };
 
-  // Modal handlers
-  const handleAddRequisitionType = () => {
+  const handleAddRequisitionType = useCallback(() => {
     setSelectedRequisitionType(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (requisition) => {
-    setSelectedRequisitionType(requisition);
-    setModalOpen(true);
-    handleMenuClose();
-  };
+  const handleEditClick = useCallback(
+    (requisition) => {
+      setSelectedRequisitionType(requisition);
+      setModalOpen(true);
+      handleMenuClose(requisition.id);
+    },
+    [handleMenuClose]
+  );
 
-  // Search and filter handlers
-  const handleSearchChange = (newSearchQuery) => {
-    setSearchQuery(newSearchQuery);
-    setPage(1); // Reset to first page when search changes
-  };
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
 
-  const handleShowArchivedChange = (newShowArchived) => {
-    setShowArchived(newShowArchived);
-    setPage(1); // Reset to first page when filter changes
-  };
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const renderStatusChip = useCallback((requisition) => {
+    const isActive = !requisition.deleted_at;
+
+    return (
+      <Chip
+        label={isActive ? "ACTIVE" : "INACTIVE"}
+        size="small"
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff3e0",
+          color: isActive ? "#2e7d32" : "#ed6c02",
+          border: `1px solid ${isActive ? "#4caf50" : "#ff9800"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
+      />
+    );
+  }, []);
+
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
-    <>
-      <div className="header-container">
-        <Typography className="header">REQUISITION TYPES</Typography>
-        <Button
-          className="add-button"
-          variant="contained"
-          onClick={handleAddRequisitionType}
-          startIcon={<AddIcon />}>
-          CREATE
-        </Button>
-      </div>
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        backgroundColor: "white",
+      }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: isMobile || isTablet ? "flex-start" : "center",
+          justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
+          flexDirection: isMobile || isTablet ? "column" : "row",
+          flexShrink: 0,
+          minHeight: isMobile || isTablet ? "auto" : "72px",
+          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
+          backgroundColor: "white",
+          borderBottom: "1px solid #e0e0e0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          gap: isMobile || isTablet ? "16px" : "0",
+        }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+            width: isMobile || isTablet ? "100%" : "auto",
+            justifyContent: "flex-start",
+          }}>
+          <Typography className="header">
+            {isVerySmall ? "REQUISITIONS" : "REQUISITION TYPES"}
+          </Typography>
 
-      <Paper className="container">
-        <div className="table-controls">
-          <SearchBar
-            searchQuery={searchQuery}
-            setSearchQuery={handleSearchChange}
-            showArchived={showArchived}
-            setShowArchived={handleShowArchivedChange}
-          />
-        </div>
+          {isVerySmall ? (
+            <IconButton
+              onClick={handleAddRequisitionType}
+              disabled={isLoadingState}
+              sx={{
+                backgroundColor: "rgb(33, 61, 112)",
+                color: "white",
+                width: "36px",
+                height: "36px",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  backgroundColor: "rgb(25, 45, 84)",
+                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                  transform: "translateY(-1px)",
+                },
+                "&:disabled": {
+                  backgroundColor: "#ccc",
+                  boxShadow: "none",
+                },
+              }}>
+              <AddIcon sx={{ fontSize: "18px" }} />
+            </IconButton>
+          ) : (
+            <Fade in={!isLoadingState}>
+              <Button
+                variant="contained"
+                onClick={handleAddRequisitionType}
+                startIcon={<AddIcon />}
+                disabled={isLoadingState}
+                sx={{
+                  backgroundColor: "rgb(33, 61, 112)",
+                  height: isMobile ? "36px" : "38px",
+                  width: isMobile ? "auto" : "160px",
+                  minWidth: isMobile ? "100px" : "160px",
+                  padding: isMobile ? "0 16px" : "0 20px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: isMobile ? "12px" : "14px",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                  transition: "all 0.2s ease-in-out",
+                  "& .MuiButton-startIcon": {
+                    marginRight: isMobile ? "4px" : "8px",
+                  },
+                  "&:hover": {
+                    backgroundColor: "rgb(25, 45, 84)",
+                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                    transform: "translateY(-1px)",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "#ccc",
+                    boxShadow: "none",
+                  },
+                }}>
+                CREATE
+              </Button>
+            </Fade>
+          )}
+        </Box>
 
-        <TableContainer className="table-container">
-          <Table stickyHeader>
+        <CustomSearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={handleSearchChange}
+          showArchived={showArchived}
+          setShowArchived={handleChangeArchived}
+          isLoading={isLoadingState}
+        />
+      </Box>
+
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "white",
+        }}>
+        <TableContainer
+          sx={{
+            flex: 1,
+            overflow: "auto",
+            backgroundColor: "#fafafa",
+            "& .MuiTableCell-head": {
+              backgroundColor: "#f8f9fa",
+              fontWeight: 700,
+              fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
+              color: "rgb(33, 61, 112)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              borderBottom: "2px solid #e0e0e0",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              height: isMobile ? "44px" : "48px",
+              padding: isMobile ? "6px 12px" : "8px 16px",
+            },
+            "& .MuiTableCell-body": {
+              fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
+              color: "#333",
+              borderBottom: "1px solid #f0f0f0",
+              padding: isMobile ? "6px 12px" : "8px 16px",
+              height: isMobile ? "48px" : "52px",
+              backgroundColor: "white",
+            },
+            "& .MuiTableRow-root": {
+              transition: "background-color 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: "#f8f9fa",
+                cursor: "pointer",
+                "& .MuiTableCell-root": {
+                  backgroundColor: "transparent",
+                },
+              },
+            },
+          }}>
+          <Table stickyHeader sx={{ minWidth: isMobile ? 500 : 1200 }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-id">ID</TableCell>
-                <TableCell className="table-id">CODE</TableCell>
-                <TableCell className="table-header">REQUISITION TYPE</TableCell>
-                <TableCell className="table-status">STATUS</TableCell>
-                <TableCell className="table-status">ACTIONS</TableCell>
+                <TableCell
+                  align="left"
+                  sx={{
+                    width: isVerySmall ? "40px" : "60px",
+                    minWidth: isVerySmall ? "40px" : "60px",
+                  }}>
+                  ID
+                </TableCell>
+                <TableCell
+                  sx={{
+                    width: isVerySmall ? "70px" : isMobile ? "80px" : "150px",
+                    minWidth: isVerySmall
+                      ? "70px"
+                      : isMobile
+                      ? "80px"
+                      : "150px",
+                  }}>
+                  CODE
+                </TableCell>
+                <TableCell
+                  sx={{
+                    width: isMobile ? "120px" : "300px",
+                    minWidth: isMobile ? "100px" : "300px",
+                  }}>
+                  REQUISITION TYPE
+                </TableCell>
+                {!isMobile && (
+                  <TableCell sx={{ width: "100px", minWidth: "100px" }}>
+                    STATUS
+                  </TableCell>
+                )}
+                <TableCell
+                  align="center"
+                  sx={{
+                    width: isMobile ? "80px" : "100px",
+                    minWidth: isMobile ? "80px" : "100px",
+                  }}>
+                  ACTIONS
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading || isFetching ? (
+              {isLoadingState ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <CircularProgress size={24} />
+                  <TableCell
+                    colSpan={isMobile ? 4 : 5}
+                    align="center"
+                    sx={{ py: 4 }}>
+                    <CircularProgress
+                      size={32}
+                      sx={{ color: "rgb(33, 61, 112)" }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={isMobile ? 4 : 5}
+                    align="center"
+                    sx={{ py: 4 }}>
+                    <Typography color="error">
+                      Error loading data: {error.message || "Unknown error"}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : requisitionList.length > 0 ? (
                 requisitionList.map((requisition) => (
-                  <TableRow key={requisition.id}>
-                    <TableCell className="table-cell-id">
+                  <TableRow
+                    key={requisition.id}
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
+                        "& .MuiTableCell-root": {
+                          backgroundColor: "transparent",
+                        },
+                      },
+                      transition: "background-color 0.2s ease",
+                    }}>
+                    <TableCell
+                      align="left"
+                      sx={{
+                        width: isVerySmall ? "40px" : "60px",
+                        minWidth: isVerySmall ? "40px" : "60px",
+                      }}>
                       {requisition.id}
                     </TableCell>
-                    <TableCell className="table-cell-id2">
+                    <TableCell
+                      sx={{
+                        width: isVerySmall
+                          ? "70px"
+                          : isMobile
+                          ? "80px"
+                          : "150px",
+                        minWidth: isVerySmall
+                          ? "70px"
+                          : isMobile
+                          ? "80px"
+                          : "150px",
+                        fontSize: isVerySmall ? "10px" : "12px",
+                        color: "#666",
+                        fontFamily: "monospace",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
                       {requisition.code}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell
+                      sx={{
+                        width: isMobile ? "120px" : "300px",
+                        minWidth: isMobile ? "100px" : "300px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 600,
+                      }}>
                       {requisition.name}
                     </TableCell>
-                    <TableCell className="table-status">
-                      <Chip
-                        label={showArchived ? "INACTIVE" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="medium"
-                        sx={{ "& .MuiChip-label": { fontSize: "0.68rem" } }}
-                      />
-                    </TableCell>
-
-                    <TableCell className="table-status">
+                    {!isMobile && (
+                      <TableCell
+                        sx={{
+                          width: "100px",
+                          minWidth: "100px",
+                        }}>
+                        {renderStatusChip(requisition)}
+                      </TableCell>
+                    )}
+                    <TableCell
+                      align="center"
+                      sx={{
+                        width: isMobile ? "80px" : "100px",
+                        minWidth: isMobile ? "80px" : "100px",
+                      }}>
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, requisition.id)}>
-                        <MoreVertIcon />
+                        onClick={(e) => handleMenuOpen(e, requisition)}
+                        size="small"
+                        sx={{
+                          color: "rgb(33, 61, 112)",
+                          "&:hover": {
+                            backgroundColor: "rgba(33, 61, 112, 0.04)",
+                          },
+                        }}>
+                        <MoreVertIcon fontSize="small" />
                       </IconButton>
                       <Menu
                         anchorEl={menuAnchor[requisition.id]}
                         open={Boolean(menuAnchor[requisition.id])}
-                        onClose={handleMenuClose}>
+                        onClose={() => handleMenuClose(requisition.id)}
+                        transformOrigin={{
+                          horizontal: "right",
+                          vertical: "top",
+                        }}
+                        anchorOrigin={{
+                          horizontal: "right",
+                          vertical: "bottom",
+                        }}>
                         {!requisition.deleted_at && (
                           <MenuItem
-                            onClick={() => handleEditClick(requisition)}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                            onClick={() => handleEditClick(requisition)}
+                            sx={{
+                              fontSize: "0.875rem",
+                            }}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                            Edit
                           </MenuItem>
                         )}
                         <MenuItem
-                          onClick={() =>
-                            handleArchiveRestoreClick(requisition)
-                          }>
+                          onClick={(e) =>
+                            handleArchiveRestoreClick(requisition, e)
+                          }
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: requisition.deleted_at
+                              ? theme.palette.success.main
+                              : "#d32f2f",
+                          }}>
                           {requisition.deleted_at ? (
                             <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
                               Restore
                             </>
                           ) : (
                             <>
-                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              <ArchiveIcon
+                                fontSize="small"
+                                sx={{ mr: 1, color: "#d32f2f" }}
+                              />
                               Archive
                             </>
                           )}
@@ -235,46 +687,91 @@ const RequisitionTypes = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{ width: "365px" }}
-                    />
+                  <TableCell
+                    colSpan={isMobile ? 4 : 5}
+                    align="center"
+                    sx={{
+                      py: 8,
+                      borderBottom: "none",
+                      color: "#666",
+                      fontSize: isMobile ? "14px" : "16px",
+                    }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      <Typography variant="h6" color="text.secondary">
+                        No requisition types found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived requisition types"
+                          : "No active requisition types"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={requisitions?.result?.total || 0}
-          rowsPerPage={rowsPerPage}
-          page={page - 1}
-          onPageChange={(event, newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
-        />
-      </Paper>
 
-      <RequisitionsModal
-        open={modalOpen}
-        handleClose={() => setModalOpen(false)}
-        refetch={refetch}
-        showArchived={showArchived}
-        selectedRequisition={selectedRequisitionType}
-      />
+        <Box
+          sx={{
+            borderTop: "1px solid #e0e0e0",
+            backgroundColor: "#f8f9fa",
+            flexShrink: 0,
+            "& .MuiTablePagination-root": {
+              color: "#666",
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  fontSize: isMobile ? "12px" : "14px",
+                  fontWeight: 500,
+                },
+              "& .MuiTablePagination-select": {
+                fontSize: isMobile ? "12px" : "14px",
+              },
+              "& .MuiIconButton-root": {
+                color: "rgb(33, 61, 112)",
+                "&:hover": {
+                  backgroundColor: "rgba(33, 61, 112, 0.04)",
+                },
+                "&.Mui-disabled": {
+                  color: "#ccc",
+                },
+              },
+            },
+          }}>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            component="div"
+            count={requisitions?.result?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={Math.max(0, page - 1)}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            sx={{
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: isMobile ? "12px" : "24px",
+                paddingRight: isMobile ? "12px" : "24px",
+              },
+            }}
+          />
+        </Box>
+      </Box>
 
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
+        fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, padding: 2, textAlign: "center" },
+          sx: { borderRadius: 3 },
         }}>
         <DialogTitle>
           <Box
@@ -282,7 +779,7 @@ const RequisitionTypes = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400 " }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
           <Typography
             variant="h6"
@@ -292,37 +789,57 @@ const RequisitionTypes = () => {
             Confirmation
           </Typography>
         </DialogTitle>
-
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
-            <span style={{ fontWeight: "bold" }}>
+            <strong>
               {selectedRequisitionType?.deleted_at ? "restore" : "archive"}
-            </span>{" "}
+            </strong>{" "}
             this requisition type?
           </Typography>
+          {selectedRequisitionType && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {selectedRequisitionType.name}
+            </Typography>
+          )}
         </DialogContent>
-
-        <DialogActions sx={{ justifyContent: "center" }}>
-          <Button
-            onClick={() => setConfirmOpen(false)}
-            variant="outlined"
-            color="error">
-            No
-          </Button>
-          <Button
-            onClick={handleArchiveRestoreConfirm}
-            variant="contained"
-            sx={{
-              backgroundColor: "rgb(0, 151, 20)",
-              color: "#fff",
-              "&:hover": { backgroundColor: "rgb(0, 102, 14)" },
-            }}>
-            Yes
-          </Button>
+        <DialogActions>
+          <Box
+            display="flex"
+            justifyContent="center"
+            width="100%"
+            gap={2}
+            mb={2}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              variant="outlined"
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchiveRestoreConfirm}
+              variant="contained"
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
-    </>
+
+      <RequisitionsModal
+        open={modalOpen}
+        handleClose={() => setModalOpen(false)}
+        selectedRequisition={selectedRequisitionType}
+        refetch={refetch}
+        showArchived={showArchived}
+      />
+    </Box>
   );
 };
 

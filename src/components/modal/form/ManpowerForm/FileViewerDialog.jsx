@@ -13,7 +13,7 @@ import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
-import { useGetFormSubmissionAttachmentQuery } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useGetFormSubmissionAttachmentQuery } from "../../../../features/api/approvalsetting/formSubmissionApi";
 
 const FileViewerDialog = ({
   open,

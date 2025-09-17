@@ -87,3 +87,14 @@
     text-align: center;
   }
 }
+.login-illustration {
+  @include mx.sm {
+    display: none !important;
+  }
+}
+
+.login-form-container {
+  @include mx.sm {
+    max-width: 100% !important;
+  }
+}

@@ -23,7 +23,7 @@ import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
 } from "../../../features/api/approvalsetting/formSubmissionApi";
-import FormSubmissionModal from "../../../components/modal/approvalSettings/formSubmissionModal";
+import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import MrfCancelledTable from "./MrfCancelledTable";
 import { styles } from "./FormSubmissionStyles";
 

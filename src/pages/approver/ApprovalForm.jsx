@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogActions,
   useTheme,
+  useMediaQuery,
   alpha,
   Fade,
   Chip,
@@ -69,60 +70,90 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
   const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            disabled={isLoading}
-            icon={<ArchiveIcon sx={{ color: iconColor }} />}
-            checkedIcon={<ArchiveIcon sx={{ color: iconColor }} />}
-            size="small"
-          />
-        }
-        label="ARCHIVED"
-        sx={{
-          margin: 0,
-          border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-          borderRadius: "8px",
-          paddingLeft: "8px",
-          paddingRight: "12px",
-          height: "36px",
-          backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            backgroundColor: showArchived
-              ? "rgba(211, 47, 47, 0.08)"
-              : "#f5f5f5",
-            borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-          },
-          "& .MuiFormControlLabel-label": {
-            fontSize: "12px",
-            fontWeight: 600,
-            color: labelColor,
-            letterSpacing: "0.5px",
-          },
-        }}
-      />
+    <Box
+      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
+      className="search-bar-container">
+      {isVerySmall ? (
+        <IconButton
+          onClick={() => setShowArchived(!showArchived)}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            color: iconColor,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+          }}>
+          <ArchiveIcon sx={{ fontSize: "18px" }} />
+        </IconButton>
+      ) : (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              disabled={isLoading}
+              icon={<ArchiveIcon sx={{ color: iconColor }} />}
+              checkedIcon={<ArchiveIcon sx={{ color: iconColor }} />}
+              size="small"
+            />
+          }
+          label="ARCHIVED"
+          sx={{
+            margin: 0,
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            paddingLeft: "8px",
+            paddingRight: "12px",
+            height: "36px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+            "& .MuiFormControlLabel-label": {
+              fontSize: "12px",
+              fontWeight: 600,
+              color: labelColor,
+              letterSpacing: "0.5px",
+            },
+          }}
+        />
+      )}
 
       <TextField
-        placeholder="Search Approval Forms..."
+        placeholder={isVerySmall ? "Search..." : "Search Approval Forms..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
+        className="search-input"
         InputProps={{
           startAdornment: (
             <SearchIcon
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
@@ -131,7 +162,8 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: "320px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -154,8 +186,9 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: "14px",
+            fontSize: isVerySmall ? "13px" : "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -168,6 +201,9 @@ const CustomSearchBar = ({
 
 const ApprovalForm = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
 
   const [page, setPage] = useState(1);
@@ -413,45 +449,88 @@ const ApprovalForm = () => {
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            alignItems: isMobile || isTablet ? "flex-start" : "center",
+            justifyContent:
+              isMobile || isTablet ? "flex-start" : "space-between",
+            flexDirection: isMobile || isTablet ? "column" : "row",
             flexShrink: 0,
-            minHeight: "72px",
-            padding: "16px 14px",
+            minHeight: isMobile || isTablet ? "auto" : "72px",
+            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
             backgroundColor: "white",
             borderBottom: "1px solid #e0e0e0",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            gap: isMobile || isTablet ? "16px" : "0",
           }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
-            <Typography className="header">APPROVAL FORMS</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+              width: isMobile || isTablet ? "100%" : "auto",
+              justifyContent: "flex-start",
+            }}>
+            <Typography className="header">
+              {isVerySmall ? "APPROVAL" : "APPROVAL FORMS"}
+            </Typography>
             <Fade in={!isLoadingState}>
-              <Button
-                variant="contained"
-                onClick={handleAddNew}
-                startIcon={<AddIcon />}
-                disabled={isLoadingState}
-                sx={{
-                  backgroundColor: "rgb(33, 61, 112)",
-                  height: "38px",
-                  width: "160px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: "rgb(25, 45, 84)",
-                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
-                }}>
-                CREATE FORM
-              </Button>
+              {isVerySmall ? (
+                <IconButton
+                  onClick={handleAddNew}
+                  disabled={isLoadingState}
+                  sx={{
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                      transform: "translateY(-1px)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                      boxShadow: "none",
+                    },
+                  }}>
+                  <AddIcon sx={{ fontSize: "18px" }} />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleAddNew}
+                  startIcon={<AddIcon />}
+                  disabled={isLoadingState}
+                  sx={{
+                    backgroundColor: "rgb(33, 61, 112)",
+                    height: isMobile ? "36px" : "38px",
+                    width: isMobile ? "auto" : "160px",
+                    minWidth: isMobile ? "120px" : "160px",
+                    padding: isMobile ? "0 16px" : "0 20px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: isMobile ? "12px" : "14px",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                    transition: "all 0.2s ease-in-out",
+                    "& .MuiButton-startIcon": {
+                      marginRight: isMobile ? "4px" : "8px",
+                    },
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                      transform: "translateY(-1px)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                      boxShadow: "none",
+                    },
+                  }}>
+                  {isMobile ? "CREATE" : "CREATE"}
+                </Button>
+              )}
             </Fade>
           </Box>
 
@@ -480,7 +559,7 @@ const ApprovalForm = () => {
               "& .MuiTableCell-head": {
                 backgroundColor: "#f8f9fa",
                 fontWeight: 700,
-                fontSize: "18px",
+                fontSize: isMobile ? "14px" : isTablet ? "16px" : "18px",
                 color: "rgb(33, 61, 112)",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
@@ -488,15 +567,15 @@ const ApprovalForm = () => {
                 position: "sticky",
                 top: 0,
                 zIndex: 10,
-                height: "48px",
-                padding: "8px 16px",
+                height: isMobile ? "40px" : "48px",
+                padding: isMobile ? "6px 12px" : "8px 16px",
               },
               "& .MuiTableCell-body": {
-                fontSize: "16px",
+                fontSize: isMobile ? "13px" : "16px",
                 color: "#333",
                 borderBottom: "1px solid #f0f0f0",
-                padding: "8px 16px",
-                height: "52px",
+                padding: isMobile ? "6px 12px" : "8px 16px",
+                height: isMobile ? "44px" : "52px",
                 backgroundColor: "white",
               },
               "& .MuiTableRow-root": {
@@ -510,33 +589,52 @@ const ApprovalForm = () => {
                 },
               },
             }}>
-            <Table stickyHeader sx={{ minWidth: 1700 }}>
+            <Table stickyHeader sx={{ minWidth: isMobile ? 800 : 1700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell
                     align="left"
-                    sx={{ width: "60px", minWidth: "60px" }}>
+                    sx={{
+                      width: isMobile ? "50px" : "60px",
+                      minWidth: isMobile ? "50px" : "60px",
+                    }}>
                     ID
                   </TableCell>
-                  <TableCell sx={{ width: "250px", minWidth: "250px" }}>
+                  <TableCell
+                    sx={{
+                      width: isMobile ? "180px" : "250px",
+                      minWidth: isMobile ? "180px" : "250px",
+                    }}>
                     FORM NAME
                   </TableCell>
-
-                  <TableCell sx={{ width: "150px", minWidth: "150px" }}>
-                    CODE
-                  </TableCell>
-                  <TableCell sx={{ width: "250px", minWidth: "250px" }}>
-                    DESCRIPTION
-                  </TableCell>
-                  <TableCell sx={{ width: "100px", minWidth: "100px" }}>
+                  {!isMobile && (
+                    <TableCell sx={{ width: "150px", minWidth: "150px" }}>
+                      CODE
+                    </TableCell>
+                  )}
+                  {!isMobile && !isTablet && (
+                    <TableCell sx={{ width: "250px", minWidth: "250px" }}>
+                      DESCRIPTION
+                    </TableCell>
+                  )}
+                  <TableCell
+                    sx={{
+                      width: isMobile ? "80px" : "100px",
+                      minWidth: isMobile ? "80px" : "100px",
+                    }}>
                     STATUS
                   </TableCell>
-                  <TableCell sx={{ width: "150px", minWidth: "150px" }}>
-                    LAST MODIFIED
-                  </TableCell>
+                  {!isMobile && (
+                    <TableCell sx={{ width: "150px", minWidth: "150px" }}>
+                      LAST MODIFIED
+                    </TableCell>
+                  )}
                   <TableCell
                     align="center"
-                    sx={{ width: "100px", minWidth: "100px" }}>
+                    sx={{
+                      width: isMobile ? "60px" : "100px",
+                      minWidth: isMobile ? "60px" : "100px",
+                    }}>
                     ACTIONS
                   </TableCell>
                 </TableRow>
@@ -544,7 +642,10 @@ const ApprovalForm = () => {
               <TableBody>
                 {isLoadingState ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <TableCell
+                      colSpan={isMobile ? 4 : isTablet ? 5 : 7}
+                      align="center"
+                      sx={{ py: 4 }}>
                       <CircularProgress
                         size={32}
                         sx={{ color: "rgb(33, 61, 112)" }}
@@ -553,8 +654,13 @@ const ApprovalForm = () => {
                   </TableRow>
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <Typography color="error">
+                    <TableCell
+                      colSpan={isMobile ? 4 : isTablet ? 5 : 7}
+                      align="center"
+                      sx={{ py: 4 }}>
+                      <Typography
+                        color="error"
+                        fontSize={isMobile ? "14px" : "16px"}>
                         Error loading data: {error.message || "Unknown error"}
                       </Typography>
                     </TableCell>
@@ -579,13 +685,16 @@ const ApprovalForm = () => {
                       }}>
                       <TableCell
                         align="left"
-                        sx={{ width: "60px", minWidth: "60px" }}>
+                        sx={{
+                          width: isMobile ? "50px" : "60px",
+                          minWidth: isMobile ? "50px" : "60px",
+                        }}>
                         {form.id}
                       </TableCell>
                       <TableCell
                         sx={{
-                          width: "250px",
-                          minWidth: "250px",
+                          width: isMobile ? "180px" : "250px",
+                          minWidth: isMobile ? "180px" : "250px",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -593,49 +702,58 @@ const ApprovalForm = () => {
                         }}>
                         {form.name}
                       </TableCell>
+                      {!isMobile && (
+                        <TableCell
+                          sx={{
+                            width: "150px",
+                            minWidth: "150px",
+                            fontSize: "12px",
+                            color: "#666",
+                          }}>
+                          {form.code || "-"}
+                        </TableCell>
+                      )}
+                      {!isMobile && !isTablet && (
+                        <TableCell
+                          sx={{
+                            width: "250px",
+                            minWidth: "250px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            color: "#666",
+                            fontStyle: form.description ? "normal" : "italic",
+                          }}>
+                          {form.description || "No description available"}
+                        </TableCell>
+                      )}
                       <TableCell
                         sx={{
-                          width: "150px",
-                          minWidth: "150px",
-                          fontSize: "12px",
-                          color: "#666",
-                        }}>
-                        {form.code || "-"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          width: "250px",
-                          minWidth: "250px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          color: "#666",
-                          fontStyle: form.description ? "normal" : "italic",
-                        }}>
-                        {form.description || "No description available"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          width: "100px",
-                          minWidth: "100px",
+                          width: isMobile ? "80px" : "100px",
+                          minWidth: isMobile ? "80px" : "100px",
                         }}>
                         {renderStatusChip(form)}
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          width: "150px",
-                          minWidth: "150px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {form.updated_at
-                          ? dayjs(form.updated_at).format("MMM D, YYYY")
-                          : "-"}
-                      </TableCell>
+                      {!isMobile && (
+                        <TableCell
+                          sx={{
+                            width: "150px",
+                            minWidth: "150px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                          {form.updated_at
+                            ? dayjs(form.updated_at).format("MMM D, YYYY")
+                            : "-"}
+                        </TableCell>
+                      )}
                       <TableCell
                         align="center"
-                        sx={{ width: "100px", minWidth: "100px" }}>
+                        sx={{
+                          width: isMobile ? "60px" : "100px",
+                          minWidth: isMobile ? "60px" : "100px",
+                        }}>
                         <IconButton
                           onClick={(e) => handleMenuOpen(e, form)}
                           size="small"
@@ -689,13 +807,13 @@ const ApprovalForm = () => {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={isMobile ? 4 : isTablet ? 5 : 7}
                       align="center"
                       sx={{
                         py: 8,
                         borderBottom: "none",
                         color: "#666",
-                        fontSize: "16px",
+                        fontSize: isMobile ? "14px" : "16px",
                       }}>
                       <Box
                         sx={{
@@ -705,7 +823,9 @@ const ApprovalForm = () => {
                           gap: 2,
                         }}>
                         {CONSTANT.BUTTONS.NODATA.icon}
-                        <Typography variant="h6" color="text.secondary">
+                        <Typography
+                          variant={isMobile ? "body1" : "h6"}
+                          color="text.secondary">
                           No approval forms found
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
@@ -732,11 +852,11 @@ const ApprovalForm = () => {
                 color: "#666",
                 "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
                   {
-                    fontSize: "14px",
+                    fontSize: isMobile ? "12px" : "14px",
                     fontWeight: 500,
                   },
                 "& .MuiTablePagination-select": {
-                  fontSize: "14px",
+                  fontSize: isMobile ? "12px" : "14px",
                 },
                 "& .MuiIconButton-root": {
                   color: "rgb(33, 61, 112)",

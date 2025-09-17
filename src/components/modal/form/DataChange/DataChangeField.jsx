@@ -15,10 +15,10 @@ import {
   Delete,
   AttachFile,
 } from "@mui/icons-material";
-import { useGetAllApprovalFormsQuery } from "../../../features/api/approvalsetting/approvalFormApi";
-import { useGetAllPositionsQuery } from "../../../features/api/masterlist/positionsApi";
-import { useLazyGetAllDataChangeOptionsQuery } from "../../../features/api/forms/datachangeApi";
-import FileViewerDialog from "../approvalSettings/FileViewerDialog";
+import { useGetAllApprovalFormsQuery } from "../../../../features/api/approvalsetting/approvalFormApi";
+import { useGetAllPositionsQuery } from "../../../../features/api/masterlist/positionsApi";
+import { useLazyGetAllDataChangeOptionsQuery } from "../../../../features/api/forms/datachangeApi";
+import FileViewerDialog from "../ManpowerForm/FileViewerDialog";
 
 const DataChangeFields = ({
   mode,

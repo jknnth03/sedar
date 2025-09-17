@@ -9,6 +9,8 @@ import {
   Checkbox,
   FormControlLabel,
   useTheme,
+  useMediaQuery,
+  IconButton,
 } from "@mui/material";
 import MarkAsUnreadIcon from "@mui/icons-material/MarkAsUnread";
 import SearchIcon from "@mui/icons-material/Search";
@@ -46,58 +48,90 @@ const CustomSearchBar = ({
   setShowReceived,
   isLoading = false,
 }) => {
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:430px)");
+
   const iconColor = showReceived ? "#007c00ff" : "rgb(33, 61, 112)";
   const labelColor = showReceived ? "#007c00ff" : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showReceived}
-            onChange={(e) => setShowReceived(e.target.checked)}
-            disabled={isLoading}
-            icon={<MarkAsUnreadIcon sx={{ color: iconColor }} />}
-            checkedIcon={<MarkAsUnreadIcon sx={{ color: iconColor }} />}
-            size="small"
-          />
-        }
-        label="RECEIVED FORMS"
-        sx={{
-          margin: 0,
-          border: `1px solid ${showReceived ? "#007c00ff" : "#ccc"}`,
-          borderRadius: "8px",
-          paddingLeft: "8px",
-          paddingRight: "12px",
-          height: "36px",
-          backgroundColor: showReceived ? "rgba(0, 124, 0, 0.04)" : "white",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            backgroundColor: showReceived ? "rgba(0, 124, 0, 0.08)" : "#f5f5f5",
-            borderColor: showReceived ? "#007c00ff" : "rgb(33, 61, 112)",
-          },
-          "& .MuiFormControlLabel-label": {
-            fontSize: "12px",
-            fontWeight: 600,
-            color: labelColor,
-            letterSpacing: "0.5px",
-          },
-        }}
-      />
+    <Box
+      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
+      className="search-bar-container">
+      {isVerySmall ? (
+        <IconButton
+          onClick={() => setShowReceived(!showReceived)}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${showReceived ? "#007c00ff" : "#ccc"}`,
+            borderRadius: "8px",
+            backgroundColor: showReceived ? "rgba(0, 124, 0, 0.04)" : "white",
+            color: iconColor,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showReceived
+                ? "rgba(0, 124, 0, 0.08)"
+                : "#f5f5f5",
+              borderColor: showReceived ? "#007c00ff" : "rgb(33, 61, 112)",
+            },
+          }}>
+          <MarkAsUnreadIcon sx={{ fontSize: "18px" }} />
+        </IconButton>
+      ) : (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showReceived}
+              onChange={(e) => setShowReceived(e.target.checked)}
+              disabled={isLoading}
+              icon={<MarkAsUnreadIcon sx={{ color: iconColor }} />}
+              checkedIcon={<MarkAsUnreadIcon sx={{ color: iconColor }} />}
+              size="small"
+            />
+          }
+          label="RECEIVED FORMS"
+          sx={{
+            margin: 0,
+            border: `1px solid ${showReceived ? "#007c00ff" : "#ccc"}`,
+            borderRadius: "8px",
+            paddingLeft: "8px",
+            paddingRight: "12px",
+            height: "36px",
+            backgroundColor: showReceived ? "rgba(0, 124, 0, 0.04)" : "white",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showReceived
+                ? "rgba(0, 124, 0, 0.08)"
+                : "#f5f5f5",
+              borderColor: showReceived ? "#007c00ff" : "rgb(33, 61, 112)",
+            },
+            "& .MuiFormControlLabel-label": {
+              fontSize: "12px",
+              fontWeight: 600,
+              color: labelColor,
+              letterSpacing: "0.5px",
+            },
+          }}
+        />
+      )}
 
       <TextField
-        placeholder="Search..."
+        placeholder={isVerySmall ? "Search..." : "Search forms..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
+        className="search-input"
         InputProps={{
           startAdornment: (
             <SearchIcon
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
@@ -106,7 +140,8 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: "320px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -129,8 +164,9 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: "14px",
+            fontSize: isVerySmall ? "13px" : "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -143,6 +179,10 @@ const CustomSearchBar = ({
 
 const PendingForms = () => {
   const { enqueueSnackbar } = useSnackbar();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
+  const isVerySmall = useMediaQuery("(max-width:430px)");
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -284,18 +324,42 @@ const PendingForms = () => {
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            alignItems: isMobile || isTablet ? "flex-start" : "center",
+            justifyContent:
+              isMobile || isTablet ? "flex-start" : "space-between",
+            flexDirection: isMobile || isTablet ? "column" : "row",
             flexShrink: 0,
-            minHeight: "72px",
-            padding: "16px 14px",
+            minHeight: isMobile || isTablet ? "auto" : "72px",
+            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
             backgroundColor: "white",
             borderBottom: "1px solid #e0e0e0",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            gap: isMobile || isTablet ? "16px" : "0",
           }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
-            <Typography className="header">
-              {showReceived ? "RECEIVED RECEIVING" : "PENDING RECEIVING"}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+              width: isMobile || isTablet ? "100%" : "auto",
+              justifyContent: "flex-start",
+            }}>
+            <Typography
+              className="header"
+              sx={{
+                fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
+                fontWeight: 700,
+                color: "rgb(33, 61, 112)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {isVerySmall
+                ? showReceived
+                  ? "RECEIVED"
+                  : "PENDING"
+                : showReceived
+                ? "RECEIVED RECEIVING"
+                : "PENDING RECEIVING"}
             </Typography>
           </Box>
 
@@ -335,11 +399,11 @@ const PendingForms = () => {
                 color: "#666",
                 "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
                   {
-                    fontSize: "14px",
+                    fontSize: isMobile ? "12px" : "14px",
                     fontWeight: 500,
                   },
                 "& .MuiTablePagination-select": {
-                  fontSize: "14px",
+                  fontSize: isMobile ? "12px" : "14px",
                 },
                 "& .MuiIconButton-root": {
                   color: "rgb(33, 61, 112)",
@@ -362,8 +426,9 @@ const PendingForms = () => {
               onRowsPerPageChange={handleRowsPerPageChange}
               sx={{
                 "& .MuiTablePagination-toolbar": {
-                  paddingLeft: "24px",
-                  paddingRight: "24px",
+                  paddingLeft: isMobile ? "16px" : "24px",
+                  paddingRight: isMobile ? "16px" : "24px",
+                  minHeight: isMobile ? "48px" : "52px",
                 },
               }}
             />

@@ -16,6 +16,7 @@ import {
   useTheme,
   alpha,
   Chip,
+  useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { FormProvider, useForm } from "react-hook-form";
@@ -53,21 +54,66 @@ const CustomSearchBar = ({
   isLoading = false,
   styles,
 }) => {
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   return (
-    <Box sx={styles.searchContainer}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       <TextField
-        placeholder="Search Registration Approvals..."
+        placeholder={
+          isVerySmall ? "Search..." : "Search Registration Approvals..."
+        }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
         InputProps={{
-          startAdornment: <SearchIcon sx={styles.searchIcon(isLoading)} />,
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={styles.searchProgress} />
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: isVerySmall ? "18px" : "20px",
+              }}
+            />
           ),
+          endAdornment: isLoading && (
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+          ),
+          sx: {
+            height: "36px",
+            width: isVerySmall ? "100%" : "380px",
+            minWidth: isVerySmall ? "180px" : "280px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={styles.searchTextField(isLoading)}
+        sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
+          "& .MuiInputBase-input": {
+            fontSize: isVerySmall ? "13px" : "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -77,6 +123,9 @@ const RegistrationApproval = () => {
   const theme = useTheme();
   const styles = createRegistrationApprovalStyles(theme);
   const { enqueueSnackbar } = useSnackbar();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -228,13 +277,43 @@ const RegistrationApproval = () => {
 
   return (
     <FormProvider {...methods}>
-      <Box sx={styles.mainContainer}>
-        <Box sx={styles.headerContainer}>
-          <Box sx={styles.headerLeft}>
+      <Box
+        sx={{
+          width: "100%",
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          backgroundColor: "#fafafa",
+        }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: isMobile || isTablet ? "flex-start" : "center",
+            justifyContent:
+              isMobile || isTablet ? "flex-start" : "space-between",
+            flexDirection: isMobile || isTablet ? "column" : "row",
+            flexShrink: 0,
+            minHeight: isMobile || isTablet ? "auto" : "72px",
+            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
+            backgroundColor: "white",
+            borderBottom: "1px solid #e0e0e0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            gap: isMobile || isTablet ? "16px" : "0",
+          }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+              width: isMobile || isTablet ? "100%" : "auto",
+              justifyContent: "flex-start",
+            }}>
             <Typography className="header">
-              PENDING REGISTRATION APPROVAL
+              {isVerySmall ? "REG APPROVAL" : "PENDING REGISTRATION APPROVAL"}
             </Typography>
           </Box>
+
           <CustomSearchBar
             searchQuery={searchQuery}
             setSearchQuery={handleSearchChange}
@@ -243,118 +322,358 @@ const RegistrationApproval = () => {
           />
         </Box>
 
-        <Box sx={styles.tableMainContainer}>
-          <TableContainer sx={styles.tableContainer}>
-            <Table stickyHeader sx={styles.table}>
-              <TableHead>
-                <TableRow>
-                  <TableCell align="left" sx={styles.idCell}>
-                    ID
-                  </TableCell>
-                  <TableCell sx={styles.nameCell}>FULL NAME</TableCell>
-                  <TableCell sx={styles.idNumberCell}>ID NUMBER</TableCell>
-                  <TableCell sx={styles.departmentCell}>DEPARTMENT</TableCell>
-                  <TableCell sx={styles.requestByCell}>REQUESTED BY</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {isLoadingState ? (
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "white",
+          }}>
+          <Box sx={{ flex: 1, overflow: "auto", backgroundColor: "#fafafa" }}>
+            <TableContainer sx={styles.tableContainer}>
+              <Table stickyHeader sx={styles.table}>
+                <TableHead>
                   <TableRow>
                     <TableCell
-                      colSpan={5}
-                      align="center"
-                      sx={styles.loadingCell}>
-                      <CircularProgress size={32} sx={styles.loadingProgress} />
+                      align="left"
+                      sx={{
+                        ...styles.idCell,
+                        width: isVerySmall
+                          ? "60px"
+                          : isMobile
+                          ? "70px"
+                          : "80px",
+                        minWidth: isVerySmall
+                          ? "60px"
+                          : isMobile
+                          ? "70px"
+                          : "80px",
+                        fontSize: isVerySmall ? "11px" : "13px",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      ID
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        ...styles.nameCell,
+                        width: isVerySmall
+                          ? "150px"
+                          : isMobile
+                          ? "200px"
+                          : "250px",
+                        minWidth: isVerySmall
+                          ? "150px"
+                          : isMobile
+                          ? "200px"
+                          : "250px",
+                        fontSize: isVerySmall ? "11px" : "13px",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      FULL NAME
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        ...styles.idNumberCell,
+                        width: isVerySmall
+                          ? "120px"
+                          : isMobile
+                          ? "150px"
+                          : "180px",
+                        minWidth: isVerySmall
+                          ? "120px"
+                          : isMobile
+                          ? "150px"
+                          : "180px",
+                        fontSize: isVerySmall ? "11px" : "13px",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {isVerySmall ? "ID #" : "ID NUMBER"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        ...styles.departmentCell,
+                        width: isVerySmall
+                          ? "100px"
+                          : isMobile
+                          ? "140px"
+                          : "180px",
+                        minWidth: isVerySmall
+                          ? "100px"
+                          : isMobile
+                          ? "140px"
+                          : "180px",
+                        fontSize: isVerySmall ? "11px" : "13px",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {isVerySmall ? "DEPT" : "DEPARTMENT"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        ...styles.requestByCell,
+                        width: isVerySmall
+                          ? "150px"
+                          : isMobile
+                          ? "200px"
+                          : "250px",
+                        minWidth: isVerySmall
+                          ? "150px"
+                          : isMobile
+                          ? "200px"
+                          : "250px",
+                        fontSize: isVerySmall ? "11px" : "13px",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {isVerySmall ? "REQ BY" : "REQUESTED BY"}
                     </TableCell>
                   </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={styles.errorCell}>
-                      <Typography color="error">
-                        Error loading data: {error.message || "Unknown error"}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : registrationApprovalsList.length > 0 ? (
-                  registrationApprovalsList.map((registration) => {
-                    const formDetails = registration?.submission?.form_details;
-                    const generalInfo = formDetails?.general_info;
-                    const charging = registration?.submission?.charging;
-                    const requestedBy = registration?.submission?.requested_by;
-
-                    return (
-                      <TableRow
-                        key={registration.id}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleRowClick(registration);
-                        }}
+                </TableHead>
+                <TableBody>
+                  {isLoadingState ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        align="center"
                         sx={{
-                          ...styles.tableRow(theme),
-                          cursor: "pointer",
-                          "&:hover": {
-                            backgroundColor: alpha(
-                              theme.palette.primary.main,
-                              0.04
-                            ),
-                          },
+                          ...styles.loadingCell,
+                          padding: isMobile ? "20px" : "40px",
                         }}>
-                        <TableCell align="left" sx={styles.idCell}>
-                          {registration.id}
-                        </TableCell>
-                        <TableCell sx={styles.nameCell}>
-                          {generalInfo?.full_name ||
-                            formDetails?.employee_name ||
-                            "-"}
-                        </TableCell>
-                        <TableCell sx={styles.idNumberCell}>
-                          {generalInfo?.employee_code || "-"}
-                        </TableCell>
-                        <TableCell sx={styles.departmentCell}>
-                          {charging?.department_name || "-"}
-                        </TableCell>
-                        <TableCell sx={styles.requestByCell}>
-                          {requestedBy?.full_name || "-"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      align="center"
-                      sx={styles.emptyStateContainer}>
-                      <Box sx={styles.emptyStateBox}>
-                        {CONSTANT.BUTTONS.NODATA.icon}
-                        <Typography variant="h6" color="text.secondary">
-                          No registration approvals found
+                        <CircularProgress
+                          size={32}
+                          sx={styles.loadingProgress}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        align="center"
+                        sx={{
+                          ...styles.errorCell,
+                          padding: isMobile ? "20px" : "40px",
+                        }}>
+                        <Typography
+                          color="error"
+                          sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                          Error loading data: {error.message || "Unknown error"}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {searchQuery
-                            ? `No results for "${searchQuery}"`
-                            : "No active registrations"}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      </TableCell>
+                    </TableRow>
+                  ) : registrationApprovalsList.length > 0 ? (
+                    registrationApprovalsList.map((registration) => {
+                      const formDetails =
+                        registration?.submission?.form_details;
+                      const generalInfo = formDetails?.general_info;
+                      const charging = registration?.submission?.charging;
+                      const requestedBy =
+                        registration?.submission?.requested_by;
 
-          <Box sx={styles.paginationContainer}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={registrationApprovalsData?.result?.total || 0}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              sx={styles.paginationToolbar}
-            />
+                      return (
+                        <TableRow
+                          key={registration.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRowClick(registration);
+                          }}
+                          sx={{
+                            ...styles.tableRow(theme),
+                            cursor: "pointer",
+                            "&:hover": {
+                              backgroundColor: alpha(
+                                theme.palette.primary.main,
+                                0.04
+                              ),
+                            },
+                          }}>
+                          <TableCell
+                            align="left"
+                            sx={{
+                              ...styles.idCell,
+                              width: isVerySmall
+                                ? "60px"
+                                : isMobile
+                                ? "70px"
+                                : "80px",
+                              minWidth: isVerySmall
+                                ? "60px"
+                                : isMobile
+                                ? "70px"
+                                : "80px",
+                              fontSize: isVerySmall ? "11px" : "13px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {registration.id}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              ...styles.nameCell,
+                              width: isVerySmall
+                                ? "150px"
+                                : isMobile
+                                ? "200px"
+                                : "250px",
+                              minWidth: isVerySmall
+                                ? "150px"
+                                : isMobile
+                                ? "200px"
+                                : "250px",
+                              fontSize: isVerySmall ? "11px" : "13px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {generalInfo?.full_name ||
+                              formDetails?.employee_name ||
+                              "-"}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              ...styles.idNumberCell,
+                              width: isVerySmall
+                                ? "120px"
+                                : isMobile
+                                ? "150px"
+                                : "180px",
+                              minWidth: isVerySmall
+                                ? "120px"
+                                : isMobile
+                                ? "150px"
+                                : "180px",
+                              fontSize: isVerySmall ? "11px" : "13px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {generalInfo?.employee_code || "-"}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              ...styles.departmentCell,
+                              width: isVerySmall
+                                ? "100px"
+                                : isMobile
+                                ? "140px"
+                                : "180px",
+                              minWidth: isVerySmall
+                                ? "100px"
+                                : isMobile
+                                ? "140px"
+                                : "180px",
+                              fontSize: isVerySmall ? "11px" : "13px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {charging?.department_name || "-"}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              ...styles.requestByCell,
+                              width: isVerySmall
+                                ? "150px"
+                                : isMobile
+                                ? "200px"
+                                : "250px",
+                              minWidth: isVerySmall
+                                ? "150px"
+                                : isMobile
+                                ? "200px"
+                                : "250px",
+                              fontSize: isVerySmall ? "11px" : "13px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {requestedBy?.full_name || "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        align="center"
+                        sx={{
+                          ...styles.emptyStateContainer,
+                          padding: isMobile ? "20px" : "40px",
+                        }}>
+                        <Box sx={styles.emptyStateBox}>
+                          {CONSTANT.BUTTONS.NODATA.icon}
+                          <Typography
+                            variant="h6"
+                            color="text.secondary"
+                            sx={{ fontSize: isVerySmall ? "14px" : "16px" }}>
+                            No registration approvals found
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                            {searchQuery
+                              ? `No results for "${searchQuery}"`
+                              : "No active registrations"}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <Box
+              sx={{
+                ...styles.paginationContainer,
+                padding: isMobile ? "8px" : "16px",
+              }}>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50, 100]}
+                component="div"
+                count={registrationApprovalsData?.result?.total || 0}
+                rowsPerPage={rowsPerPage}
+                page={Math.max(0, page - 1)}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                sx={{
+                  ...styles.paginationToolbar,
+                  "& .MuiTablePagination-toolbar": {
+                    minHeight: isMobile ? "40px" : "52px",
+                    paddingLeft: isMobile ? "8px" : "16px",
+                    paddingRight: isMobile ? "8px" : "16px",
+                  },
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                    {
+                      fontSize: isVerySmall ? "12px" : "14px",
+                    },
+                  "& .MuiTablePagination-select": {
+                    fontSize: isVerySmall ? "12px" : "14px",
+                  },
+                  "& .MuiIconButton-root": {
+                    padding: isMobile ? "4px" : "8px",
+                  },
+                }}
+              />
+            </Box>
           </Box>
         </Box>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
   Box,
@@ -35,7 +35,54 @@ const PendingAccountForm = ({
 
   const isReadOnly = mode === "view";
 
+  const handleDropdownFocus = useCallback(
+    (dropdownName) => {
+      if (mode === "view" || banksLoaded) return;
+
+      if (dropdownName === "banks") {
+        const fetchParams = { page: 1, per_page: 1000, status: "active" };
+        triggerBanks(fetchParams);
+        setBanksLoaded(true);
+      }
+    },
+    [banksLoaded, triggerBanks, mode]
+  );
+
   const banks = useMemo(() => {
+    if (mode === "view" && selectedAccount?.bank) {
+      return [selectedAccount.bank];
+    }
+    if (mode === "edit" && selectedAccount?.bank) {
+      const existingBank = selectedAccount.bank;
+      const normalizedBanks = (() => {
+        if (!banksData) return [];
+        if (Array.isArray(banksData)) return banksData;
+        if (banksData.result && Array.isArray(banksData.result.data))
+          return banksData.result.data;
+        if (banksData.result && Array.isArray(banksData.result))
+          return banksData.result;
+        if (Array.isArray(banksData.data)) return banksData.data;
+        if (Array.isArray(banksData.banks)) return banksData.banks;
+        if (Array.isArray(banksData.items)) return banksData.items;
+        if (Array.isArray(banksData.results)) return banksData.results;
+        return [];
+      })();
+
+      if (!banksData) {
+        return [existingBank];
+      }
+
+      const hasExistingInApi = normalizedBanks.some(
+        (bank) => bank.id === existingBank.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingBank, ...normalizedBanks];
+      }
+
+      return normalizedBanks;
+    }
+
     if (!banksData) return [];
     if (Array.isArray(banksData)) return banksData;
     if (banksData.result && Array.isArray(banksData.result.data))
@@ -48,14 +95,12 @@ const PendingAccountForm = ({
     if (Array.isArray(banksData.results)) return banksData.results;
 
     return [];
-  }, [banksData]);
+  }, [mode, banksData, selectedAccount?.bank]);
 
   const bankValue = watch("bank");
 
-  // Initialize bank value from pending data
   useEffect(() => {
     if (selectedAccount && banks.length > 0) {
-      // For pending data, the bank value comes directly from the account object
       const bankData = selectedAccount.bank;
 
       if (
@@ -75,7 +120,6 @@ const PendingAccountForm = ({
     }
   }, [selectedAccount, bankValue, banks, setValue]);
 
-  // Handle edit/view mode bank initialization
   useEffect(() => {
     if (
       selectedAccount &&
@@ -97,7 +141,6 @@ const PendingAccountForm = ({
     }
   }, [selectedAccount, mode, banks, getValues, setValue]);
 
-  // Auto-select default bank when SSS number is entered
   useEffect(() => {
     const allFormValues = getValues();
 
@@ -112,16 +155,6 @@ const PendingAccountForm = ({
     }
   }, [banks, bankValue, getValues, setValue]);
 
-  // Load banks data
-  useEffect(() => {
-    if (!banksLoaded && !banksLoading) {
-      const fetchParams = { page: 1, per_page: 1000, status: "active" };
-      triggerBanks(fetchParams);
-      setBanksLoaded(true);
-    }
-  }, [triggerBanks, banksLoaded, banksLoading]);
-
-  // Sync bank object with latest data
   useEffect(() => {
     if (banks.length > 0 && bankValue) {
       if (typeof bankValue === "object" && bankValue.id) {
@@ -132,14 +165,6 @@ const PendingAccountForm = ({
       }
     }
   }, [banks, bankValue, setValue]);
-
-  const handleDropdownFocus = (dropdownName) => {
-    if (dropdownName === "banks" && !banksLoaded) {
-      const fetchParams = { page: 1, per_page: 1000, status: "active" };
-      triggerBanks(fetchParams);
-      setBanksLoaded(true);
-    }
-  };
 
   const formatSSS = (value) => {
     if (!value) return "";
@@ -240,7 +265,7 @@ const PendingAccountForm = ({
     <Box
       className="pending-account-form"
       sx={{ width: "100%", maxWidth: "1200px", p: 2 }}>
-      {banksError && (
+      {mode !== "view" && banksError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           Failed to load banks from server.
         </Alert>
@@ -434,7 +459,9 @@ const PendingAccountForm = ({
                   }}
                   value={getBankDisplayValue()}
                   options={banks ?? []}
-                  loading={banksLoading}
+                  loading={mode !== "view" && banksLoading}
+                  disabled={isLoading || isReadOnly}
+                  readOnly={isReadOnly}
                   getOptionLabel={(item) => {
                     if (!item) return "";
                     return (
@@ -449,7 +476,7 @@ const PendingAccountForm = ({
                     if (!option || !value) return false;
                     return option.id === value.id;
                   }}
-                  onOpen={() => {
+                  onFocus={() => {
                     if (!isReadOnly) {
                       handleDropdownFocus("banks");
                     }
@@ -462,8 +489,6 @@ const PendingAccountForm = ({
                   blurOnSelect={true}
                   clearOnEscape={false}
                   disableClearable={isReadOnly}
-                  readOnly={isReadOnly}
-                  disabled={isLoading || banksLoading || isReadOnly}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -475,7 +500,7 @@ const PendingAccountForm = ({
                         readOnly: isReadOnly,
                         endAdornment: (
                           <>
-                            {banksLoading ? (
+                            {mode !== "view" && banksLoading ? (
                               <CircularProgress color="inherit" size={20} />
                             ) : null}
                             {params.InputProps.endAdornment}
@@ -504,7 +529,9 @@ const PendingAccountForm = ({
                     </li>
                   )}
                   noOptionsText={
-                    banksLoading ? "Loading banks..." : "No banks found"
+                    mode !== "view" && banksLoading
+                      ? "Loading banks..."
+                      : "No banks found"
                   }
                 />
                 {errors.bank && (

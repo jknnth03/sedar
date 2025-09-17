@@ -9,7 +9,7 @@ const formSlice = createSlice({
   initialState,
   reducers: {
     setApprovalForm: (state, action) => {
-      console.log("Redux Approval Form triggered:", action.payload); // 🔥 ADD THIS
+      console.log("Redux Approval Form triggered:", action.payload);
       state.approvalForm = action.payload;
     },
     resetApprovalForm: () => {

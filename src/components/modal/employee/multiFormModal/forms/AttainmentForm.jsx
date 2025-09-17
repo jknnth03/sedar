@@ -5,6 +5,7 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
+  useCallback,
 } from "react";
 import { useFormContext } from "react-hook-form";
 import { Box, Alert } from "@mui/material";
@@ -71,62 +72,9 @@ const AttainmentForm = forwardRef(
       },
     ] = useLazyGetAllShowAttainmentsQuery();
 
-    useEffect(() => {
-      if (mode === "edit" || mode === "view") {
-        const fetchParams = {
-          page: 1,
-          per_page: 1000,
-          status: showArchived ? "all" : "active",
-        };
+    const isReadOnly = mode === "view";
 
-        fetchPrograms(fetchParams);
-        fetchDegrees(fetchParams);
-        fetchHonors(fetchParams);
-        fetchAttainments(fetchParams);
-        setDropdownsLoaded({
-          programs: true,
-          degrees: true,
-          honors: true,
-          attainments: true,
-        });
-      }
-    }, [
-      mode,
-      showArchived,
-      fetchPrograms,
-      fetchDegrees,
-      fetchHonors,
-      fetchAttainments,
-    ]);
-
-    const handleDropdownFocus = (dropdownName) => {
-      if (dropdownsLoaded[dropdownName]) return;
-
-      const fetchParams = {
-        page: 1,
-        per_page: 1000,
-        status: showArchived ? "all" : "active",
-      };
-
-      switch (dropdownName) {
-        case "programs":
-          fetchPrograms(fetchParams);
-          break;
-        case "degrees":
-          fetchDegrees(fetchParams);
-          break;
-        case "honors":
-          fetchHonors(fetchParams);
-          break;
-        case "attainments":
-          fetchAttainments(fetchParams);
-          break;
-      }
-
-      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
-    };
-
-    const normalizeApiData = (data) => {
+    const normalizeApiData = useCallback((data) => {
       if (!data) return [];
       if (Array.isArray(data)) return data;
       if (data.result && Array.isArray(data.result)) return data.result;
@@ -138,17 +86,168 @@ const AttainmentForm = forwardRef(
       if (data.items && Array.isArray(data.items)) return data.items;
       if (data.results && Array.isArray(data.results)) return data.results;
       return [];
-    };
+    }, []);
 
-    const programs = useMemo(
-      () => normalizeApiData(programsData),
-      [programsData]
-    );
-    const degrees = useMemo(() => normalizeApiData(degreesData), [degreesData]);
-    const honors = useMemo(() => normalizeApiData(honorsData), [honorsData]);
-    const attainments = useMemo(
-      () => normalizeApiData(attainmentsData),
-      [attainmentsData]
+    const programs = useMemo(() => {
+      if (mode === "view" && employeeData?.program_id) {
+        return [employeeData.program_id];
+      }
+      if (mode === "edit" && selectedAttainment?.program_id) {
+        const existingProgram = selectedAttainment.program_id;
+        const apiPrograms = normalizeApiData(programsData);
+
+        if (!programsData) {
+          return [existingProgram];
+        }
+
+        const hasExistingInApi = apiPrograms.some(
+          (program) => program.id === existingProgram.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingProgram, ...apiPrograms];
+        }
+
+        return apiPrograms;
+      }
+      return normalizeApiData(programsData);
+    }, [
+      mode,
+      programsData,
+      selectedAttainment?.program_id,
+      employeeData?.program_id,
+      normalizeApiData,
+    ]);
+
+    const degrees = useMemo(() => {
+      if (mode === "view" && employeeData?.degree_id) {
+        return [employeeData.degree_id];
+      }
+      if (mode === "edit" && selectedAttainment?.degree_id) {
+        const existingDegree = selectedAttainment.degree_id;
+        const apiDegrees = normalizeApiData(degreesData);
+
+        if (!degreesData) {
+          return [existingDegree];
+        }
+
+        const hasExistingInApi = apiDegrees.some(
+          (degree) => degree.id === existingDegree.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingDegree, ...apiDegrees];
+        }
+
+        return apiDegrees;
+      }
+      return normalizeApiData(degreesData);
+    }, [
+      mode,
+      degreesData,
+      selectedAttainment?.degree_id,
+      employeeData?.degree_id,
+      normalizeApiData,
+    ]);
+
+    const honors = useMemo(() => {
+      if (mode === "view" && employeeData?.honor_title_id) {
+        return [employeeData.honor_title_id];
+      }
+      if (mode === "edit" && selectedAttainment?.honor_title_id) {
+        const existingHonor = selectedAttainment.honor_title_id;
+        const apiHonors = normalizeApiData(honorsData);
+
+        if (!honorsData) {
+          return [existingHonor];
+        }
+
+        const hasExistingInApi = apiHonors.some(
+          (honor) => honor.id === existingHonor.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingHonor, ...apiHonors];
+        }
+
+        return apiHonors;
+      }
+      return normalizeApiData(honorsData);
+    }, [
+      mode,
+      honorsData,
+      selectedAttainment?.honor_title_id,
+      employeeData?.honor_title_id,
+      normalizeApiData,
+    ]);
+
+    const attainments = useMemo(() => {
+      if (mode === "view" && employeeData?.attainment_id) {
+        return [employeeData.attainment_id];
+      }
+      if (mode === "edit" && selectedAttainment?.attainment_id) {
+        const existingAttainment = selectedAttainment.attainment_id;
+        const apiAttainments = normalizeApiData(attainmentsData);
+
+        if (!attainmentsData) {
+          return [existingAttainment];
+        }
+
+        const hasExistingInApi = apiAttainments.some(
+          (attainment) => attainment.id === existingAttainment.id
+        );
+
+        if (!hasExistingInApi) {
+          return [existingAttainment, ...apiAttainments];
+        }
+
+        return apiAttainments;
+      }
+      return normalizeApiData(attainmentsData);
+    }, [
+      mode,
+      attainmentsData,
+      selectedAttainment?.attainment_id,
+      employeeData?.attainment_id,
+      normalizeApiData,
+    ]);
+
+    const handleDropdownFocus = useCallback(
+      (dropdownName) => {
+        if (mode === "view" || dropdownsLoaded[dropdownName]) return;
+
+        const fetchParams = {
+          page: 1,
+          per_page: 1000,
+          status: showArchived ? "all" : "active",
+        };
+
+        switch (dropdownName) {
+          case "programs":
+            fetchPrograms(fetchParams);
+            break;
+          case "degrees":
+            fetchDegrees(fetchParams);
+            break;
+          case "honors":
+            fetchHonors(fetchParams);
+            break;
+          case "attainments":
+            fetchAttainments(fetchParams);
+            break;
+        }
+
+        setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+      },
+      [
+        dropdownsLoaded,
+        mode,
+        showArchived,
+        fetchPrograms,
+        fetchDegrees,
+        fetchHonors,
+        fetchAttainments,
+      ]
     );
 
     const getOptionLabel = (option, type) => {
@@ -571,8 +670,6 @@ const AttainmentForm = forwardRef(
       validateForm,
       setErrorMessage,
     }));
-
-    const isReadOnly = mode === "view";
 
     return (
       <Box className="general-form">

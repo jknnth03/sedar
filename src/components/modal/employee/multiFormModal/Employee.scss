@@ -1,4 +1,4 @@
-// Employee.scss - Fixed Row Spacing with Custom Stepper Colors
+// Employee.scss - Smaller Fixed Modal Size with Custom Stepper Colors
 
 // Import Sass color module for modern color functions
 @use "sass:color";
@@ -13,23 +13,41 @@ $text-secondary: #666;
 $text-muted: #999;
 $error-color: #dc3545;
 $success-color: #28a745;
-$completed-color: #00881dff; // Changed from rgb(255, 68, 0) to green
+$completed-color: #00881dff;
 $white: #ffffff;
 $black: #000000;
 
-// Employee Wizard Dialog - FIXED z-index and positioning
+// FIXED MODAL SIZE - Employee Wizard Dialog (SMALLER WIDTH)
 .employee-wizard-dialog {
-  z-index: 1300 !important; // Ensure it's above other elements
+  z-index: 1300 !important;
 
   .MuiDialog-paper {
-    min-height: 85vh;
-    max-height: 95vh;
-    margin: 8px;
-    width: 100%;
-    max-width: 1200px;
+    // FIXED DIMENSIONS - Reduced width from 1400px to 1100px
+    width: 1210px !important; // Fixed smaller width
+    height: 90vh !important; // Fixed height
+    min-width: 1210px !important; // Prevent shrinking
+    max-width: 1210px !important; // Prevent expanding
+    min-height: 90vh !important; // Prevent shrinking
+    max-height: 90vh !important; // Prevent expanding
+
+    // Positioning
+    margin: auto !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+
+    // Styling
     background-color: $white;
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    overflow: hidden !important;
+
+    // Ensure no flex behavior that could change size
+    display: flex !important;
+    flex-direction: column !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
   }
 
   // Fix backdrop
@@ -38,16 +56,18 @@ $black: #000000;
   }
 }
 
-// Dialog Title - FIXED layout and positioning
+// FIXED Dialog Title Layout - ADJUSTED HEIGHT
 .employee-wizard-title {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   border-bottom: 1px solid $border-color;
   background-color: $background-light;
-  padding: 16px 24px !important;
-  margin: 0 !important;
-  min-height: auto !important;
+  padding: 16px 24px !important; // Increased back to 16px for more breathing room
+  margin: 0 0 12px 0 !important; // Added bottom margin for spacing
+  min-height: 72px !important; // Increased from 60px to 72px for better spacing
+  max-height: 72px !important; // Increased from 60px to 72px for better spacing
+  flex-shrink: 0 !important; // Prevent title from shrinking
 
   &__header {
     flex: 1;
@@ -62,7 +82,7 @@ $black: #000000;
 
     .MuiTypography-body2 {
       color: $text-secondary !important;
-      margin: 0 !important;
+      margin: 0 0 8px 0 !important; // Added bottom margin to step text
     }
   }
 
@@ -84,17 +104,18 @@ $black: #000000;
   color: rgb(33, 61, 112) !important;
 }
 
-// Progress Bar - FIXED positioning
+// FIXED Progress Bar
 .employee-wizard-progress {
   height: 3px !important;
   margin: 0 !important;
+  flex-shrink: 0 !important;
 
   .MuiLinearProgress-bar {
     background-color: $primary-color !important;
   }
 }
 
-// Dialog Content - FIXED layout and spacing
+// FIXED Dialog Content Layout
 .employee-wizard-content {
   padding: 0 !important;
   flex: 1 !important;
@@ -102,28 +123,34 @@ $black: #000000;
   flex-direction: column !important;
   background-color: $white;
   overflow: hidden !important;
+  min-height: 0 !important; // Allow content to shrink properly
 
   &__inner {
-    padding: 24px !important;
+    padding: 16px 24px 24px 24px !important; // Reduced top padding from 24px to 16px
     flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: auto !important;
+    min-height: 0 !important; // Allow inner content to shrink
   }
 
   &__form-container {
     flex: 1 !important;
-    min-height: 400px !important;
+    min-height: 400px !important; // Fixed minimum content height
+    padding-right: 8px !important; // Space for scrollbar
   }
 }
 
-// Stepper - FIXED styling with CUSTOM COLORS
+// FIXED Stepper Height - REDUCED HEIGHT AND SPACING
 .employee-wizard-stepper {
-  margin-bottom: 10px !important;
+  margin-bottom: 16px !important; // Reduced from 24px to 16px
   background-color: transparent !important;
+  min-height: 60px !important; // Reduced from 80px to 60px
+  max-height: 60px !important; // Reduced from 80px to 60px
+  flex-shrink: 0 !important; // Prevent stepper from shrinking
 
   .MuiStep-root {
-    padding: 10px 8px !important;
+    padding: 8px 6px !important; // Reduced from 10px 8px to 8px 6px
   }
 
   .MuiStepLabel-root {
@@ -134,11 +161,11 @@ $black: #000000;
 
       &.Mui-active {
         font-weight: 600 !important;
-        color: $primary-color !important; // Blue for active step
+        color: $primary-color !important;
       }
 
       &.Mui-completed {
-        color: $completed-color !important; // Green for completed steps
+        color: $completed-color !important;
       }
     }
   }
@@ -147,20 +174,18 @@ $black: #000000;
     color: $border-color !important;
 
     &.Mui-active {
-      color: $primary-color !important; // Blue for active step icon
+      color: $primary-color !important;
     }
 
     &.Mui-completed {
-      color: $completed-color !important; // Green for completed step icons
+      color: $completed-color !important;
     }
   }
 
-  // Additional override to force correct colors and white text inside
   .MuiStepIcon-text {
-    fill: $white !important; // White text inside the colored circle
+    fill: $white !important;
   }
 
-  // Force override any Material-UI default colors
   .Mui-active {
     .MuiStepIcon-root {
       color: $primary-color !important;
@@ -174,17 +199,11 @@ $black: #000000;
   }
 }
 
-// Alert Container - FIXED animations and spacing
+// FIXED Alert Container
 .employee-wizard-alert {
-  margin-bottom: 0 !important;
+  margin-bottom: 16px !important;
   transition: all 0.3s ease !important;
-  overflow: hidden !important;
-  max-height: 0 !important;
-
-  &--visible {
-    margin-bottom: 24px !important;
-    max-height: 100px !important;
-  }
+  flex-shrink: 0 !important;
 
   &__inner {
     .MuiAlert-message {
@@ -193,7 +212,7 @@ $black: #000000;
   }
 }
 
-// Placeholder Form - FIXED layout
+// FIXED Placeholder Form
 .placeholder-form {
   padding: 32px !important;
   min-height: 350px !important;
@@ -218,7 +237,7 @@ $black: #000000;
   }
 }
 
-// Review Step - FIXED layout and styling
+// FIXED Review Step
 .review-step {
   padding: 24px !important;
 
@@ -309,16 +328,18 @@ $black: #000000;
   }
 }
 
-// Dialog Actions - FIXED layout and button positioning
+// FIXED Dialog Actions
 .employee-wizard-actions {
-  padding: 24px !important;
+  padding: 20px 24px !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   border-top: 1px solid $border-color !important;
   background-color: $background-light !important;
   margin: 0 !important;
-  min-height: auto !important;
+  min-height: 80px !important; // Fixed actions height
+  max-height: 80px !important; // Fixed actions height
+  flex-shrink: 0 !important; // Prevent actions from shrinking
 
   &__left-section {
     display: flex !important;
@@ -332,7 +353,7 @@ $black: #000000;
   }
 }
 
-// Buttons - FIXED styling and states
+// Button Styles
 .employee-wizard-button {
   min-height: 36px !important;
   font-weight: 500 !important;
@@ -358,16 +379,12 @@ $black: #000000;
   }
 
   &--next {
-    background-color: transparent !important; // remove background
-    color: $success-color !important; // green text
-    border: 1px solid $success-color !important; // green border
+    background-color: transparent !important;
+    color: $success-color !important;
+    border: 1px solid $success-color !important;
     min-width: 100px !important;
-    border-radius: 6px; // optional, for rounded corners
-    font-weight: 500; // match font styling if needed
-    padding: 6px 16px; // optional, adjust spacing
 
     &:hover {
-      // FIXED: Use modern color.adjust() instead of deprecated darken()
       background-color: color.adjust(
         $success-color,
         $lightness: -10%
@@ -423,34 +440,32 @@ $black: #000000;
   }
 }
 
-// Form Field Overrides - FIXED Material-UI conflicts and ROW SPACING
+// Form Field Overrides with Fixed Spacing
 .employee-wizard-dialog {
   .MuiFormControl-root {
-    margin-bottom: 12px !important; // Reduced from 16px to 12px
+    margin-bottom: 12px !important;
     width: 100% !important;
   }
 
-  // Special handling for form grids to reduce spacing between rows
   .MuiGrid-container {
     margin-bottom: 0 !important;
 
     .MuiGrid-item {
-      padding-bottom: 8px !important; // Reduced padding between grid items
+      padding-bottom: 8px !important;
     }
   }
 
-  // Specific targeting for position form and other multi-row forms
   .position-form,
   .general-form,
   .address-form,
   .contact-form,
   .account-form {
     .MuiGrid-container {
-      row-gap: 20px !important; // Reduced row gap
+      row-gap: 20px !important;
     }
 
     .MuiFormControl-root {
-      margin-bottom: 2px !important; // Even smaller margin for grid layouts
+      margin-bottom: 2px !important;
     }
   }
 
@@ -481,31 +496,48 @@ $black: #000000;
   }
 }
 
-// Responsive Design - FIXED mobile layout
+// RESPONSIVE DESIGN - Maintain fixed smaller size on larger screens, adjust for smaller
+@media (min-width: 1300px) {
+  .employee-wizard-dialog {
+    .MuiDialog-paper {
+      // Keep same fixed smaller dimensions even on larger screens
+      width: 1100px !important;
+      height: 85vh !important;
+    }
+  }
+}
+
+// Mobile/Tablet responsive design
+@media (max-width: 1200px) {
+  .employee-wizard-dialog {
+    .MuiDialog-paper {
+      width: 95vw !important; // Use viewport width on smaller screens
+      max-width: 95vw !important;
+      min-width: 95vw !important;
+      height: 95vh !important; // Enhanced height for smaller screens
+      max-height: 95vh !important;
+      min-height: 95vh !important;
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .employee-wizard-dialog {
     .MuiDialog-paper {
-      min-height: 95vh !important;
+      width: 98vw !important;
+      max-width: 98vw !important;
+      min-width: 98vw !important;
+      height: 95vh !important;
       max-height: 95vh !important;
-      margin: 4px !important;
-      width: calc(100vw - 8px) !important;
-      max-width: none !important;
-    }
-
-    // Tighter spacing on mobile
-    .MuiFormControl-root {
-      margin-bottom: 8px !important;
-    }
-
-    .MuiGrid-container {
-      .MuiGrid-item {
-        padding-bottom: 4px !important;
-      }
+      min-height: 95vh !important;
+      margin: 2px !important;
     }
   }
 
   .employee-wizard-title {
-    padding: 16px !important;
+    padding: 12px !important;
+    min-height: 50px !important; // Further reduced for mobile
+    max-height: 50px !important;
 
     &__header {
       h5,
@@ -520,13 +552,15 @@ $black: #000000;
   }
 
   .employee-wizard-content__inner {
-    padding: 16px !important;
+    padding: 12px 16px 16px 16px !important; // Reduced top padding for mobile
   }
 
   .employee-wizard-actions {
     padding: 16px !important;
+    min-height: 60px !important;
+    max-height: 60px !important;
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 8px !important;
 
     &__left-section,
     &__right-section {
@@ -536,48 +570,21 @@ $black: #000000;
 
     &__right-section {
       flex-direction: row !important;
-      gap: 12px !important;
+      gap: 8px !important;
     }
   }
 
   .employee-wizard-stepper {
+    min-height: 50px !important; // Further reduced for mobile
+    max-height: 50px !important;
+    margin-bottom: 12px !important; // Reduced margin for mobile
+
     .MuiStepLabel-label {
       font-size: 0.75rem !important;
     }
-  }
 
-  .review-step {
-    padding: 16px !important;
-
-    &__section {
-      padding: 16px !important;
-
-      &-grid {
-        grid-template-columns: 1fr !important;
-        gap: 12px !important;
-      }
-    }
-
-    &__json-section {
-      padding: 16px !important;
-
-      &-container {
-        max-height: 200px !important;
-        padding: 12px !important;
-
-        pre {
-          font-size: 10px !important;
-        }
-      }
-    }
-  }
-
-  .placeholder-form {
-    padding: 24px 16px !important;
-    min-height: 300px !important;
-
-    &__description {
-      font-size: 0.875rem !important;
+    .MuiStep-root {
+      padding: 6px 4px !important; // Further reduced for mobile
     }
   }
 }
@@ -586,9 +593,18 @@ $black: #000000;
 @media print {
   .employee-wizard-dialog {
     .MuiDialog-paper {
-      box-shadow: none !important;
-      max-height: none !important;
+      width: auto !important;
+      height: auto !important;
+      min-width: auto !important;
+      max-width: none !important;
       min-height: auto !important;
+      max-height: none !important;
+      position: relative !important;
+      transform: none !important;
+      top: auto !important;
+      left: auto !important;
+      margin: 0 !important;
+      box-shadow: none !important;
     }
   }
 
@@ -607,7 +623,7 @@ $black: #000000;
   }
 }
 
-// Force White Background Theme (Override Dark Mode)
+// Force White Background Theme
 .employee-wizard-dialog {
   .MuiDialog-paper {
     background-color: $white !important;
@@ -652,12 +668,10 @@ $black: #000000;
     }
   }
 
-  // Force all text to be dark
   * {
     color: inherit !important;
   }
 
-  // Override any Material-UI dark mode styles
   .MuiTypography-root {
     color: inherit !important;
   }
@@ -680,7 +694,7 @@ $black: #000000;
   }
 }
 
-// Disable dark mode entirely for this component
+// Dark mode override
 @media (prefers-color-scheme: dark) {
   .employee-wizard-dialog {
     .MuiDialog-paper {
@@ -697,63 +711,37 @@ $black: #000000;
     .employee-wizard-content {
       background-color: $white !important;
     }
-
-    .placeholder-form {
-      background-color: $background-light !important;
-      border-color: $border-color !important;
-      color: $text-secondary !important;
-    }
-
-    .review-step__section {
-      background-color: $white !important;
-      border-color: $border-color !important;
-    }
-
-    .review-step__json-section {
-      background-color: $background-light !important;
-
-      &-container {
-        background-color: $white !important;
-        border-color: $border-color !important;
-        color: #333333 !important;
-      }
-    }
   }
 }
 
-// Additional fixes for common Material-UI issues
+// Additional Material-UI overrides
 .employee-wizard-dialog {
-  // Ensure proper stacking
   .MuiDialog-container {
     z-index: 1300 !important;
   }
 
-  // Fix any overlay issues
   .MuiDialog-root {
     z-index: 1300 !important;
   }
 
-  // Ensure form inputs are properly styled
   .MuiTextField-root {
-    margin-bottom: 12px !important; // Reduced from 16px
+    margin-bottom: 12px !important;
 
     .MuiInputBase-root {
       background-color: $white !important;
     }
   }
 
-  // Fix select dropdowns
   .MuiSelect-root {
     background-color: $white !important;
   }
 
-  // Fix date pickers
   .MuiDatePicker-root {
     width: 100% !important;
   }
 }
 
-// Specific override for Create button ONLY in employee wizard dialog
+// Create button specific styling
 .employee-wizard-dialog {
   .css-1blvszr-MuiButtonBase-root-MuiButton-root,
   .employee-wizard-button--create {
@@ -771,7 +759,6 @@ $black: #000000;
     }
   }
 
-  // More specific targeting for the Create button in dialog actions
   .employee-wizard-actions {
     .MuiButton-root:contains("Create"),
     .MuiButton-root[aria-label*="Create"],

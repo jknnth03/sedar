@@ -579,6 +579,7 @@ const PendingPositionForm = ({
                 helperText={error?.message || ""}
                 multiline
                 rows={2}
+                j
                 placeholder="List additional tools or equipment..."
                 sx={{ minWidth: "544px", maxWidth: "544px" }}
                 InputProps={{

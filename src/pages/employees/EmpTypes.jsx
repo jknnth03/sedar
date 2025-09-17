@@ -82,13 +82,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     const result = apiResponse?.result;
     const data = result?.data || [];
 
-    // Debug: Log the data structure
-    console.log("Employment Types Data:", data);
-    if (data.length > 0) {
-      console.log("First item structure:", data[0]);
-      console.log("Available keys:", Object.keys(data[0]));
-    }
-
     return {
       employmentTypeList: data,
       totalCount: result?.total || data.length,

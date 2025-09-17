@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
   Box,
@@ -29,7 +29,9 @@ const AccountForm = ({
     reset,
   } = useFormContext();
 
-  const [banksLoaded, setBanksLoaded] = useState(false);
+  const [dropdownsLoaded, setDropdownsLoaded] = useState({
+    banks: false,
+  });
 
   const [
     triggerBanks,
@@ -38,20 +40,52 @@ const AccountForm = ({
 
   const isReadOnly = mode === "view";
 
-  const banks = useMemo(() => {
-    if (!banksData) return [];
-    if (Array.isArray(banksData)) return banksData;
-    if (banksData.result && Array.isArray(banksData.result.data))
-      return banksData.result.data;
-    if (banksData.result && Array.isArray(banksData.result))
-      return banksData.result;
-    if (Array.isArray(banksData.data)) return banksData.data;
-    if (Array.isArray(banksData.banks)) return banksData.banks;
-    if (Array.isArray(banksData.items)) return banksData.items;
-    if (Array.isArray(banksData.results)) return banksData.results;
-
+  const normalizeApiData = useCallback((data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data.result && Array.isArray(data.result.data)) return data.result.data;
+    if (data.result && Array.isArray(data.result)) return data.result;
+    if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.banks)) return data.banks;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.results)) return data.results;
     return [];
-  }, [banksData]);
+  }, []);
+
+  const banks = useMemo(() => {
+    if (mode === "view" && selectedAccount?.bank) {
+      return [selectedAccount.bank];
+    }
+    if (mode === "edit" && selectedAccount?.bank) {
+      const existingBank =
+        selectedAccount.bank ||
+        selectedAccount.account?.bank ||
+        selectedAccount.account_info?.bank;
+      const apiBanks = normalizeApiData(banksData);
+
+      if (!banksData) {
+        return existingBank ? [existingBank] : [];
+      }
+
+      const hasExistingInApi = apiBanks.some(
+        (bank) => bank.id === existingBank?.id
+      );
+
+      if (existingBank && !hasExistingInApi) {
+        return [existingBank, ...apiBanks];
+      }
+
+      return apiBanks;
+    }
+    return normalizeApiData(banksData);
+  }, [
+    mode,
+    banksData,
+    selectedAccount?.bank,
+    selectedAccount?.account?.bank,
+    selectedAccount?.account_info?.bank,
+    normalizeApiData,
+  ]);
 
   const bankValue = watch("bank");
 
@@ -115,14 +149,6 @@ const AccountForm = ({
   }, [banks, bankValue, getValues, setValue]);
 
   useEffect(() => {
-    if (!banksLoaded && !banksLoading) {
-      const fetchParams = { page: 1, per_page: 1000, status: "active" };
-      triggerBanks(fetchParams);
-      setBanksLoaded(true);
-    }
-  }, [triggerBanks, banksLoaded, banksLoading]);
-
-  useEffect(() => {
     if (banks.length > 0 && bankValue) {
       if (typeof bankValue === "object" && bankValue.id) {
         const foundBank = banks.find((bank) => bank.id === bankValue.id);
@@ -133,13 +159,22 @@ const AccountForm = ({
     }
   }, [banks, bankValue, setValue]);
 
-  const handleDropdownFocus = (dropdownName) => {
-    if (dropdownName === "banks" && !banksLoaded) {
+  const handleDropdownFocus = useCallback(
+    (dropdownName) => {
+      if (mode === "view" || dropdownsLoaded[dropdownName]) return;
+
       const fetchParams = { page: 1, per_page: 1000, status: "active" };
-      triggerBanks(fetchParams);
-      setBanksLoaded(true);
-    }
-  };
+
+      switch (dropdownName) {
+        case "banks":
+          triggerBanks(fetchParams);
+          break;
+      }
+
+      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+    },
+    [dropdownsLoaded, triggerBanks, mode]
+  );
 
   const formatSSS = (value) => {
     if (!value) return "";

@@ -48,6 +48,7 @@ const PositionForm = ({
   });
 
   const approvalFormData = useSelector((state) => state.form.approvalForm);
+  const submissionTitle = watch("submission_title");
 
   const [
     triggerSchedules,
@@ -67,42 +68,144 @@ const PositionForm = ({
     },
   ] = useLazyGetAllJobLevelsQuery();
 
-  useEffect(() => {
-    const fetchParams = { page: 1, per_page: 1000, status: "active" };
+  const isReadOnly = mode === "view";
 
-    if (mode === "edit" || mode === "view") {
-      triggerSchedules(fetchParams);
-      triggerJobLevels(fetchParams);
+  const normalizeApiData = useCallback((data) => {
+    if (!data) return [];
+    return Array.isArray(data)
+      ? data
+      : data.result || data.data || data.items || data.results || [];
+  }, []);
 
-      setDropdownsLoaded({
-        positions: true,
-        schedules: true,
-        jobLevels: true,
-      });
-    } else if (mode === "create") {
-      triggerSchedules(fetchParams);
-      triggerJobLevels(fetchParams);
-
-      setDropdownsLoaded({
-        positions: true,
-        schedules: true,
-        jobLevels: true,
-      });
+  const schedules = useMemo(() => {
+    if (mode === "view" && employeeData?.schedule_id) {
+      return [employeeData.schedule_id];
     }
-  }, [mode, triggerSchedules, triggerJobLevels]);
+    if (mode === "edit" && employeeData?.schedule_id) {
+      const existingSchedule = employeeData.schedule_id;
+      const apiSchedules = normalizeApiData(schedulesApiData);
 
-  useEffect(() => {
-    if (approvalFormData?.submittable?.position?.title_with_unit) {
-      setValue(
-        "position_title",
-        approvalFormData.submittable.position.title_with_unit
+      if (!schedulesApiData) {
+        return [existingSchedule];
+      }
+
+      const hasExistingInApi = apiSchedules.some(
+        (schedule) => schedule.id === existingSchedule.id
       );
+
+      if (!hasExistingInApi) {
+        return [existingSchedule, ...apiSchedules];
+      }
+
+      return apiSchedules;
     }
-  }, [approvalFormData, setValue]);
+    return normalizeApiData(schedulesApiData);
+  }, [mode, schedulesApiData, employeeData?.schedule_id, normalizeApiData]);
+
+  const jobLevels = useMemo(() => {
+    if (mode === "view" && employeeData?.job_level_id) {
+      return [employeeData.job_level_id];
+    }
+    if (mode === "edit" && employeeData?.job_level_id) {
+      const existingJobLevel = employeeData.job_level_id;
+      const apiJobLevels = normalizeApiData(jobLevelsApiData);
+
+      if (!jobLevelsApiData) {
+        return [existingJobLevel];
+      }
+
+      const hasExistingInApi = apiJobLevels.some(
+        (jobLevel) => jobLevel.id === existingJobLevel.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingJobLevel, ...apiJobLevels];
+      }
+
+      return apiJobLevels;
+    }
+    return normalizeApiData(jobLevelsApiData);
+  }, [mode, jobLevelsApiData, employeeData?.job_level_id, normalizeApiData]);
+
+  useEffect(() => {
+    let positionTitle = "";
+    let positionId = null;
+    let positionObject = null;
+
+    if (approvalFormData) {
+      if (approvalFormData.position_title) {
+        positionTitle = approvalFormData.position_title;
+      }
+
+      if (approvalFormData.position_id) {
+        positionId = approvalFormData.position_id;
+      }
+
+      if (positionId && positionTitle) {
+        positionObject = {
+          id: positionId,
+          title: positionTitle,
+          title_with_unit: positionTitle,
+        };
+      }
+    }
+
+    if (!positionTitle && !positionId) {
+      if (submissionTitle?.position?.title_with_unit) {
+        positionTitle = submissionTitle.position.title_with_unit;
+        positionObject = submissionTitle.position;
+      } else if (submissionTitle?.position?.title) {
+        positionTitle = submissionTitle.position.title;
+        positionObject = submissionTitle.position;
+      } else if (submissionTitle?.submittable?.position?.title_with_unit) {
+        positionTitle = submissionTitle.submittable.position.title_with_unit;
+        positionObject = submissionTitle.submittable.position;
+      } else if (submissionTitle?.submittable?.position?.title) {
+        positionTitle = submissionTitle.submittable.position.title;
+        positionObject = submissionTitle.submittable.position;
+      }
+    }
+
+    if (!positionTitle) {
+      let titleString = null;
+
+      if (submissionTitle?.submission_title) {
+        titleString = submissionTitle.submission_title;
+      } else if (approvalFormData?.submission_title) {
+        titleString = approvalFormData.submission_title;
+      }
+
+      if (titleString) {
+        const titleParts = titleString.split(" | ");
+        if (titleParts.length >= 2) {
+          positionTitle = titleParts[1].trim();
+        }
+      }
+    }
+
+    if (positionTitle) {
+      setValue("position_title", positionTitle);
+    }
+
+    if (positionObject && positionObject.id) {
+      setValue("position", positionObject);
+      setValue("position_id", positionObject.id);
+    } else if (positionId) {
+      setValue("position_id", positionId);
+    }
+
+    if (!positionId) {
+      if (submissionTitle?.position_id) {
+        setValue("position_id", submissionTitle.position_id);
+      } else if (submissionTitle?.submittable?.position_id) {
+        setValue("position_id", submissionTitle.submittable.position_id);
+      }
+    }
+  }, [submissionTitle, approvalFormData, setValue]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
-      if (dropdownsLoaded[dropdownName]) return;
+      if (mode === "view" || dropdownsLoaded[dropdownName]) return;
 
       const fetchParams = { page: 1, per_page: 1000, status: "active" };
 
@@ -117,26 +220,8 @@ const PositionForm = ({
 
       setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
     },
-    [dropdownsLoaded, triggerSchedules, triggerJobLevels]
+    [dropdownsLoaded, triggerSchedules, triggerJobLevels, mode]
   );
-
-  const normalizeApiData = (data) => {
-    if (!data) return [];
-    return Array.isArray(data)
-      ? data
-      : data.result || data.data || data.items || data.results || [];
-  };
-
-  const schedules = useMemo(
-    () => normalizeApiData(schedulesApiData),
-    [schedulesApiData]
-  );
-  const jobLevels = useMemo(
-    () => normalizeApiData(jobLevelsApiData),
-    [jobLevelsApiData]
-  );
-
-  const isReadOnly = mode === "view";
 
   return (
     <Box

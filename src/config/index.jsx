@@ -45,29 +45,26 @@ import MarkAsUnreadIcon from "@mui/icons-material/MarkAsUnread";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import CloudSyncIcon from "@mui/icons-material/CloudSync";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import VpnKeyIcon from "@mui/icons-material/VpnKey";
 
 import NotificationBadge from "./NotificationBadge";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
 import moduleApi from "../features/api/usermanagement/dashboardApi";
 import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
 
-// Helper function to update dashboard notifications
 export const updateDashboardNotifications = (dispatch) => {
-  // Invalidate dashboard counts to refresh notifications
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
 
-  // Optionally invalidate related submission data to ensure consistency
   dispatch(formSubmissionApi.util.invalidateTags(["mrfSubmissions"]));
   dispatch(formSubmissionApi.util.invalidateTags(["formSubmissions"]));
 };
 
-// Hook to get dispatch function for notification updates
 export const useNotificationUpdater = () => {
   const dispatch = useDispatch();
 
   return {
     updateNotifications: () => updateDashboardNotifications(dispatch),
-    dispatch, // Export dispatch for more granular control if needed
   };
 };
 
@@ -343,7 +340,36 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
-
+    EVALUATION: {
+      name: "Evaluation",
+      path: "/evaluation",
+      icon: (
+        <TrendingUpIcon
+          sx={{
+            marginRight: "5px",
+            marginLeft: "6px",
+            width: "23px",
+            height: "23px",
+          }}
+        />
+      ),
+      icon_on: null,
+      notificationCount:
+        counts.rejectedReturnedSubmissions + counts.rejectedDataChanges,
+      children: {
+        KPI: {
+          name: "KPI",
+          path: "kpi",
+          icon: (
+            <VpnKeyIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: counts.rejectedReturnedSubmissions,
+        },
+      },
+    },
     MASTERLIST: {
       name: "Masterlist",
       path: "/masterlist",

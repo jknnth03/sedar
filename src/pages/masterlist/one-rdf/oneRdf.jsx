@@ -12,13 +12,10 @@ import {
   TableRow,
   Box,
   TextField,
-  Checkbox,
-  FormControlLabel,
-  Button,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import ArchiveIcon from "@mui/icons-material/Archive";
-import AddIcon from "@mui/icons-material/Add";
 import "../../../pages/GeneralStyle.scss";
 import { useGetShowOneRdfQuery } from "../../../features/api/masterlist/realonerdfApi";
 import { CONSTANT } from "../../../config";
@@ -28,64 +25,28 @@ import dayjs from "dayjs";
 const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
-  showArchived,
-  setShowArchived,
   isLoading = false,
 }) => {
-  const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
-  const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
+  const isVerySmall = useMediaQuery("(max-width:369px)");
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            disabled={isLoading}
-            icon={<ArchiveIcon sx={{ color: iconColor }} />}
-            checkedIcon={<ArchiveIcon sx={{ color: iconColor }} />}
-            size="small"
-          />
-        }
-        label="ARCHIVED"
-        sx={{
-          margin: 0,
-          border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-          borderRadius: "8px",
-          paddingLeft: "8px",
-          paddingRight: "12px",
-          height: "36px",
-          backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            backgroundColor: showArchived
-              ? "rgba(211, 47, 47, 0.08)"
-              : "#f5f5f5",
-            borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-          },
-          "& .MuiFormControlLabel-label": {
-            fontSize: "12px",
-            fontWeight: 600,
-            color: labelColor,
-            letterSpacing: "0.5px",
-          },
-        }}
-      />
-
+    <Box
+      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
+      className="search-bar-container">
       <TextField
-        placeholder="Search..."
+        placeholder={isVerySmall ? "Search..." : "Search charging..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
+        className="search-input"
         InputProps={{
           startAdornment: (
             <SearchIcon
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
@@ -94,7 +55,8 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: "320px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -117,8 +79,9 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: "14px",
+            fontSize: isVerySmall ? "13px" : "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -130,23 +93,26 @@ const CustomSearchBar = ({
 };
 
 const OneRdf = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
 
   const debounceValue = useDebounce(searchQuery, 500);
 
-  // Fix: Reset page to 1 when search changes
   const queryParams = useMemo(
     () => ({
       search: debounceValue,
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
+      status: "active",
       pagination: true,
     }),
-    [debounceValue, page, rowsPerPage, showArchived]
+    [debounceValue, page, rowsPerPage]
   );
 
   const {
@@ -165,21 +131,8 @@ const OneRdf = () => {
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
-    // Reset page to 1 when search changes
     setPage(1);
   }, []);
-
-  const handleChangeArchived = useCallback((newShowArchived) => {
-    setShowArchived(newShowArchived);
-    // Reset page to 1 when archived status changes
-    setPage(1);
-  }, []);
-
-  // Debug: Log the query params and response
-  console.log("Query Params:", queryParams);
-  console.log("API Response:", oneRdfData);
-  console.log("Search Query:", searchQuery);
-  console.log("Debounced Value:", debounceValue);
 
   return (
     <Box
@@ -191,34 +144,37 @@ const OneRdf = () => {
         overflow: "hidden",
         backgroundColor: "white",
       }}>
-      {/* Header Section */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          alignItems: isMobile || isTablet ? "flex-start" : "center",
+          justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
+          flexDirection: isMobile || isTablet ? "column" : "row",
           flexShrink: 0,
-          minHeight: "60px",
-          padding: "12px 16px",
+          minHeight: isMobile || isTablet ? "auto" : "60px",
+          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
           backgroundColor: "white",
           borderBottom: "1px solid #e0e0e0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          gap: isMobile || isTablet ? "16px" : "0",
         }}>
-        {/* Left side - Header */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            width: isMobile || isTablet ? "100%" : "auto",
+            justifyContent: "flex-start",
+          }}>
           <Typography className="header">CHARGING</Typography>
         </Box>
 
-        {/* Right side - Search Bar */}
         <CustomSearchBar
           searchQuery={searchQuery}
           setSearchQuery={handleSearchChange}
-          showArchived={showArchived}
-          setShowArchived={handleChangeArchived}
           isLoading={isLoading || isFetching}
         />
       </Box>
 
-      {/* Table Section */}
       <Box
         sx={{
           flex: 1,
@@ -234,7 +190,7 @@ const OneRdf = () => {
             "& .MuiTableCell-head": {
               backgroundColor: "#f8f9fa",
               fontWeight: 700,
-              fontSize: "18px",
+              fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
               color: "rgb(33, 61, 112)",
               textTransform: "uppercase",
               letterSpacing: "0.5px",
@@ -242,15 +198,15 @@ const OneRdf = () => {
               position: "sticky",
               top: 0,
               zIndex: 10,
-              height: "48px",
-              padding: "8px 16px",
+              height: isMobile ? "44px" : "48px",
+              padding: isMobile ? "6px 12px" : "8px 16px",
             },
             "& .MuiTableCell-body": {
-              fontSize: "16px",
+              fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
               color: "#333",
               borderBottom: "1px solid #f0f0f0",
-              padding: "8px 16px",
-              height: "52px",
+              padding: isMobile ? "6px 12px" : "8px 16px",
+              height: isMobile ? "48px" : "52px",
             },
             "& .MuiTableRow-root": {
               transition: "background-color 0.2s ease-in-out",
@@ -262,26 +218,51 @@ const OneRdf = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="left" sx={{ width: "60px" }}>
+                <TableCell
+                  align="left"
+                  sx={{ width: isVerySmall ? "40px" : "60px" }}>
                   ID
                 </TableCell>
-                <TableCell sx={{ width: "500px" }}>NAME</TableCell>
-                <TableCell align="center" sx={{ width: "100px" }}>
+                <TableCell sx={{ width: isMobile ? "120px" : "500px" }}>
+                  NAME
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ width: isVerySmall ? "60px" : "100px" }}>
                   CODE
                 </TableCell>
-                <TableCell sx={{ width: "180px" }}>COMPANY</TableCell>
-                <TableCell sx={{ width: "500px" }}>BUSINESS UNIT</TableCell>
-                <TableCell sx={{ width: "500px" }}>DEPARTMENT</TableCell>
-                <TableCell sx={{ width: "140px" }}>UNIT</TableCell>
-                <TableCell sx={{ width: "140px" }}>SUB UNIT</TableCell>
-                <TableCell sx={{ width: "140px" }}>LOCATION</TableCell>
-                <TableCell sx={{ width: "500px" }}>LAST MODIFIED</TableCell>
+                {!isVerySmall && (
+                  <TableCell sx={{ width: isMobile ? "100px" : "180px" }}>
+                    COMPANY
+                  </TableCell>
+                )}
+                {!isMobile && (
+                  <TableCell sx={{ width: "500px" }}>BUSINESS UNIT</TableCell>
+                )}
+                {!isMobile && (
+                  <TableCell sx={{ width: "500px" }}>DEPARTMENT</TableCell>
+                )}
+                {!isMobile && !isTablet && (
+                  <TableCell sx={{ width: "140px" }}>UNIT</TableCell>
+                )}
+                {!isMobile && !isTablet && (
+                  <TableCell sx={{ width: "140px" }}>SUB UNIT</TableCell>
+                )}
+                {!isMobile && !isTablet && (
+                  <TableCell sx={{ width: "140px" }}>LOCATION</TableCell>
+                )}
+                <TableCell sx={{ width: isMobile ? "80px" : "500px" }}>
+                  {isMobile ? "MODIFIED" : "LAST MODIFIED"}
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading || isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                  <TableCell
+                    colSpan={isVerySmall ? 4 : isMobile ? 5 : isTablet ? 7 : 10}
+                    align="center"
+                    sx={{ py: 4 }}>
                     <CircularProgress
                       size={32}
                       sx={{ color: "rgb(33, 61, 112)" }}
@@ -294,8 +275,8 @@ const OneRdf = () => {
                     <TableCell align="left">{oneRdf.id}</TableCell>
                     <TableCell
                       sx={{
-                        width: "220px",
-                        minWidth: "180px",
+                        width: isMobile ? "120px" : "220px",
+                        minWidth: isMobile ? "100px" : "180px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -305,61 +286,87 @@ const OneRdf = () => {
                     </TableCell>
                     <TableCell
                       align="center"
-                      sx={{ fontFamily: "monospace", fontSize: "12px" }}>
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: isVerySmall ? "10px" : "12px",
+                      }}>
                       {oneRdf.code}
                     </TableCell>
-                    <TableCell>{oneRdf.company_name || "-"}</TableCell>
+                    {!isVerySmall && (
+                      <TableCell
+                        sx={{
+                          width: isMobile ? "100px" : "220px",
+                          minWidth: isMobile ? "80px" : "180px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {oneRdf.company_name || "-"}
+                      </TableCell>
+                    )}
+                    {!isMobile && (
+                      <TableCell
+                        sx={{
+                          width: "220px",
+                          minWidth: "180px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {oneRdf.business_unit_name || "-"}
+                      </TableCell>
+                    )}
+                    {!isMobile && (
+                      <TableCell
+                        sx={{
+                          width: "220px",
+                          minWidth: "180px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {oneRdf.department_name || "-"}
+                      </TableCell>
+                    )}
+                    {!isMobile && !isTablet && (
+                      <TableCell
+                        sx={{
+                          width: "220px",
+                          minWidth: "180px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {oneRdf.unit_name || "-"}
+                      </TableCell>
+                    )}
+                    {!isMobile && !isTablet && (
+                      <TableCell
+                        sx={{
+                          width: "220px",
+                          minWidth: "180px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {oneRdf.sub_unit_name || "-"}
+                      </TableCell>
+                    )}
+                    {!isMobile && !isTablet && (
+                      <TableCell>{oneRdf.location_name || "-"}</TableCell>
+                    )}
                     <TableCell
                       sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {oneRdf.business_unit_name || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {oneRdf.department_name || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {oneRdf.unit_name || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {oneRdf.sub_unit_name || "-"}
-                    </TableCell>
-                    <TableCell>{oneRdf.location_name || "-"}</TableCell>
-                    <TableCell
-                      sx={{
-                        width: "220px",
-                        minWidth: "180px",
+                        width: isMobile ? "80px" : "220px",
+                        minWidth: isMobile ? "60px" : "180px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
                       {oneRdf.updated_at
-                        ? dayjs(oneRdf.updated_at).format("MMM D, YYYY")
+                        ? dayjs(oneRdf.updated_at).format(
+                            isMobile ? "MMM D" : "MMM D, YYYY"
+                          )
                         : "-"}
                     </TableCell>
                   </TableRow>
@@ -367,13 +374,13 @@ const OneRdf = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
+                    colSpan={isVerySmall ? 4 : isMobile ? 5 : isTablet ? 7 : 10}
                     align="center"
                     sx={{
                       py: 8,
                       borderBottom: "none",
                       color: "#666",
-                      fontSize: "16px",
+                      fontSize: isMobile ? "14px" : "16px",
                     }}>
                     {searchQuery && !isLoading ? (
                       <Typography>
@@ -389,7 +396,6 @@ const OneRdf = () => {
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
         <Box
           sx={{
             borderTop: "1px solid #e0e0e0",
@@ -399,11 +405,11 @@ const OneRdf = () => {
               color: "#666",
               "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
                 {
-                  fontSize: "14px",
+                  fontSize: isMobile ? "12px" : "14px",
                   fontWeight: 500,
                 },
               "& .MuiTablePagination-select": {
-                fontSize: "14px",
+                fontSize: isMobile ? "12px" : "14px",
               },
               "& .MuiIconButton-root": {
                 color: "rgb(33, 61, 112)",
@@ -429,8 +435,8 @@ const OneRdf = () => {
             }}
             sx={{
               "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
+                paddingLeft: isMobile ? "12px" : "24px",
+                paddingRight: isMobile ? "12px" : "24px",
               },
             }}
           />

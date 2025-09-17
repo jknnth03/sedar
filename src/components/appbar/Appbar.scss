@@ -1,6 +1,44 @@
-.appbar.css-wsljbo-MuiToolbar-root {
-  background-color: rgb(245, 245, 245);
-  min-height: 42px !important;
-  height: 42px !important;
-  padding-top: 8px !important; /* Add top padding */
+@import "../../styles/mixins.scss";
+.appbar {
+  // Base styles for the appbar
+
+  .menu-toggle-btn {
+    // Default desktop behavior - icons will toggle based on React state
+
+    @include sm {
+      // On small screens (768px and below)
+      // Force MenuIcon to always show (handled in React component)
+      // Additional mobile-specific styles can go here
+
+      // Example: Make button larger on mobile
+      .MuiIconButton-root {
+        padding: 12px;
+      }
+
+      // Example: Adjust icon size on mobile
+      svg {
+        font-size: 1.5rem;
+      }
+    }
+  }
+
+  .appbar_text {
+    @include sm {
+      // Hide or adjust text on small screens if needed
+      font-size: 14px;
+    }
+  }
+
+  .account-menu {
+    @include sm {
+      // Adjust account menu positioning on mobile if needed
+      // margin-left: auto;
+    }
+  }
+
+  // Additional responsive adjustments
+  @include sm {
+    padding: 0 8px; // Reduce padding on mobile
+    min-height: 56px; // Standard mobile toolbar height
+  }
 }

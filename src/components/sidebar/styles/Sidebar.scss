@@ -4,15 +4,58 @@
   height: 100vh;
   overflow: auto;
 
-  @include mx.lm {
-    display: none;
+  @include mx.sm {
+    // On mobile (768px and below), show as overlay when opened
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1300;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+
+    &.mobile-open {
+      transform: translateX(0);
+    }
   }
+
+  // Removed @include mx.lm to stop hiding at 930px
+  // Now it will only hide at 768px via @include mx.sm
 
   .MuiDrawer-paper {
     box-sizing: border-box;
     position: unset;
     box-shadow: 1px 1px 40px rgb(224, 224, 224) !important;
     border-right: none;
+
+    @include mx.sm {
+      position: fixed;
+      height: 100vh;
+      width: 280px;
+    }
+  }
+}
+
+// Mobile overlay backdrop
+.mobile-sidebar-backdrop {
+  display: none;
+
+  @include mx.sm {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1250;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+
+    &.show {
+      display: block;
+      opacity: 1;
+      visibility: visible;
+    }
   }
 }
 
@@ -36,15 +79,38 @@
     width: 90px;
   }
 
+  // Force display flex above 768px to override lm breakpoint
+  @media (min-width: 769px) {
+    display: flex !important;
+  }
+
+  @include mx.sm {
+    // On mobile, sidebar becomes an overlay
+    width: 280px !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1300;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+
+    &.mobile-open {
+      transform: translateX(0);
+    }
+  }
+
   @include mx.lm {
-    display: none;
+    display: flex !important;
   }
 }
+
 .logo-container {
   display: flex;
-  align-items: center; // Align items vertically centered
-  gap: 0px; // Optional: adds space between the images
+  align-items: center;
+  gap: 0px;
 }
+
 .sidebar__logo {
   width: 120px;
   position: relative;
@@ -52,7 +118,13 @@
   margin-left: 18px;
   margin-top: 34px;
   margin-bottom: 38px;
+
+  @include mx.sm {
+    width: 100px;
+    margin-left: 20px;
+  }
 }
+
 .sidebar__logo2 {
   width: 40px;
   margin-top: 34px;
@@ -121,6 +193,14 @@
   margin-right: 8px;
 }
 
+// Mobile: always show full icons and text
+@include mx.sm {
+  .mainbox .icon {
+    margin-left: 0;
+    margin-right: 8px;
+  }
+}
+
 .MuiListItemIcon-root {
   min-width: 36px !important;
 }
@@ -129,6 +209,10 @@
   margin-top: 10px;
   margin-bottom: 10px;
   transition: visibility 0.3s ease-in-out;
+
+  @include mx.sm {
+    visibility: visible !important;
+  }
 }
 
 .main-item-wrapper {
@@ -147,7 +231,6 @@
   width: 100%;
   height: 90px;
   background-color: #ffffff;
-
   position: relative;
   display: flex;
   align-items: center;
@@ -196,8 +279,64 @@
   line-height: 1.2;
   text-align: center;
   margin-bottom: 5px;
+
+  @include mx.sm {
+    display: block !important;
+    font-size: 12px !important;
+  }
 }
 
 .sidebar_footer span:not(:last-child) {
   margin-bottom: 5px;
+}
+
+// Mobile close button styles - add this to your existing Sidebar.scss file
+
+.mobile-close-button {
+  // Only show on mobile devices (768px and below)
+  @include mx.sm {
+    display: block;
+  }
+
+  // Hide on desktop
+  @media (min-width: 769px) {
+    display: none !important;
+  }
+
+  .MuiIconButton-root {
+    width: 32px;
+    height: 32px;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+.desktop-sidebar-override.sidebar-drawer {
+  display: block !important;
+}
+
+.desktop-sidebar-override.sidebar-drawer .mainbox {
+  display: flex !important;
+}
+
+@media (max-width: 930.98px) and (min-width: 769px) {
+  .desktop-sidebar-override.sidebar-drawer {
+    display: block !important;
+  }
+
+  .desktop-sidebar-override.sidebar-drawer .mainbox {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar-override.sidebar-drawer {
+    display: none !important;
+  }
 }

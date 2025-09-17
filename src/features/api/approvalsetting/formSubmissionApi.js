@@ -172,9 +172,7 @@ const formSubmissionApi = sedarApi
           });
 
           const queryString = queryParams.toString();
-          const url = queryString
-            ? `approval-forms?${queryString}`
-            : "approval-forms";
+          const url = queryString ? `forms?${queryString}` : "forms";
 
           return {
             url,

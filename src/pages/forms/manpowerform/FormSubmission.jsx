@@ -23,7 +23,7 @@ import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
 } from "../../../features/api/approvalsetting/formSubmissionApi";
-import FormSubmissionModal from "../../../components/modal/approvalSettings/formSubmissionModal";
+import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import FormSubmissionTable from "./FormSubmissionTable";
 import { styles } from "./FormSubmissionStyles";
 
@@ -481,9 +481,20 @@ const FormSubmission = ({ searchQuery, startDate, endDate }) => {
 
   const getSubmissionDisplayName = useCallback(() => {
     if (confirmAction === "update") {
-      return selectedSubmission?.form?.name || "Manpower Form";
+      const formName =
+        selectedSubmission?.form?.name ||
+        selectedSubmission?.form ||
+        "Manpower Form";
+      return typeof formName === "string" ? formName : "Manpower Form";
     }
-    return selectedSubmissionForAction?.form?.name || "Untitled Submission";
+
+    const submissionForAction =
+      selectedSubmissionForAction?.form?.name ||
+      selectedSubmissionForAction?.form ||
+      "Untitled Submission";
+    return typeof submissionForAction === "string"
+      ? submissionForAction
+      : "Untitled Submission";
   }, [confirmAction, selectedSubmission, selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;

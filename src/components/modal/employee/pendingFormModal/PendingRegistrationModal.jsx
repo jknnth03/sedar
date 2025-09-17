@@ -138,6 +138,17 @@ const PendingRegistrationModal = ({
   const isViewOrEditMode = isViewMode || isEditMode;
   const isDisabled = isSubmitting || blockAllInteractions;
 
+  // Custom function to check if editing should be enabled based on current_step_number
+  const shouldEnableEditBasedOnStep = useCallback((data) => {
+    if (!data) return false;
+
+    // Get the current_step_number from the data
+    const currentStepNumber = data.current_step_number || 1;
+
+    // Only disable editing when current_step_number is 2 and above
+    return currentStepNumber < 2;
+  }, []);
+
   const initializePendingFormData = useCallback(
     (data) => {
       const formData = getPendingValues({
@@ -375,7 +386,9 @@ const PendingRegistrationModal = ({
   };
 
   const handleEditClick = () => {
-    const editButtonEnabled = shouldEnableEditButton(actualData, isSubmitting);
+    // Use the new step-based edit logic instead of the imported function
+    const editButtonEnabled =
+      shouldEnableEditBasedOnStep(actualData) && !isSubmitting;
     if (isDisabled || !editButtonEnabled) return;
     handleEditModeToggle(
       "enter",
@@ -619,7 +632,7 @@ const PendingRegistrationModal = ({
               <EditButton
                 isViewMode={isViewMode}
                 shouldEnableEditButton={() =>
-                  shouldEnableEditButton(actualData, isSubmitting)
+                  shouldEnableEditBasedOnStep(actualData) && !isSubmitting
                 }
                 isDisabled={isDisabled}
                 handleEditClick={handleEditClick}
@@ -810,7 +823,7 @@ const PendingRegistrationModal = ({
           shouldEnableResubmitButton(actualData, isSubmitting)
         }
         shouldEnableEditButton={() =>
-          shouldEnableEditButton(actualData, isSubmitting)
+          shouldEnableEditBasedOnStep(actualData) && !isSubmitting
         }
       />
     </Dialog>

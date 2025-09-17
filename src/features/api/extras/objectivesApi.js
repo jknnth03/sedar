@@ -35,6 +35,20 @@ const objectivesApi = sedarApi
         providesTags: ["objectives"],
       }),
 
+      getAllShowObjectives: build.query({
+        query: ({ status, search = "" } = {}) => {
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", "false");
+
+          if (status) queryParams.append("status", status);
+          if (search) queryParams.append("search", search);
+
+          return { url: `objectives?${queryParams.toString()}` };
+        },
+        providesTags: ["objectives"],
+      }),
+
       updateObjective: build.mutation({
         query: ({ id, ...body }) => ({
           url: `objectives/${id}`,
@@ -57,6 +71,7 @@ const objectivesApi = sedarApi
 export const {
   usePostObjectiveMutation,
   useGetShowObjectivesQuery,
+  useGetAllShowObjectivesQuery,
   useUpdateObjectiveMutation,
   useDeleteObjectiveMutation,
 } = objectivesApi;

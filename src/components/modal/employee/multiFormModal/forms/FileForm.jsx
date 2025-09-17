@@ -109,32 +109,6 @@ const FileForm = ({
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      if (mode === "edit" || mode === "view" || isViewMode) {
-        const fetchParams = { page: 1, per_page: 1000, status: "active" };
-
-        try {
-          const promises = [
-            triggerFileTypes(fetchParams),
-            triggerFileCabinets(fetchParams),
-          ];
-
-          await Promise.allSettled(promises);
-
-          setDropdownsLoaded({
-            fileTypes: true,
-            fileCabinets: true,
-          });
-        } catch (error) {
-          //
-        }
-      }
-    };
-
-    loadInitialData();
-  }, [mode, isViewMode, triggerFileTypes, triggerFileCabinets]);
-
-  useEffect(() => {
     if (attachmentData) {
       const url = URL.createObjectURL(attachmentData);
       setFileUrl(url);
@@ -143,30 +117,7 @@ const FileForm = ({
     }
   }, [attachmentData]);
 
-  const handleDropdownFocus = async (dropdownName) => {
-    if (dropdownsLoaded[dropdownName] || isReadOnly) return;
-
-    const fetchParams = { page: 1, per_page: 1000, status: "active" };
-
-    try {
-      switch (dropdownName) {
-        case "fileTypes":
-          await triggerFileTypes(fetchParams);
-          break;
-        case "fileCabinets":
-          await triggerFileCabinets(fetchParams);
-          break;
-        default:
-          return;
-      }
-
-      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
-    } catch (error) {
-      //
-    }
-  };
-
-  const normalizeApiData = (data) => {
+  const normalizeApiData = useCallback((data) => {
     if (!data) return [];
 
     let options = [];
@@ -194,15 +145,96 @@ const FileForm = ({
       }
     }
     return options;
-  };
+  }, []);
+
+  const handleDropdownFocus = useCallback(
+    (dropdownName) => {
+      if (mode === "view" || isViewMode || dropdownsLoaded[dropdownName])
+        return;
+
+      const fetchParams = { page: 1, per_page: 1000, status: "active" };
+
+      switch (dropdownName) {
+        case "fileTypes":
+          triggerFileTypes(fetchParams);
+          break;
+        case "fileCabinets":
+          triggerFileCabinets(fetchParams);
+          break;
+        default:
+          return;
+      }
+
+      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+    },
+    [dropdownsLoaded, triggerFileTypes, triggerFileCabinets, mode, isViewMode]
+  );
 
   const processedFileTypes = useMemo(() => {
+    if ((mode === "view" || isViewMode) && employeeData?.files) {
+      const existingTypes = employeeData.files
+        .filter((file) => file.file_type)
+        .map((file) => file.file_type);
+      return existingTypes;
+    }
+    if (mode === "edit" && employeeData?.files) {
+      const existingTypes = employeeData.files
+        .filter((file) => file.file_type)
+        .map((file) => file.file_type);
+      const apiTypes = normalizeApiData(fileTypesData);
+
+      if (!fileTypesData) {
+        return existingTypes;
+      }
+
+      const combinedTypes = [...existingTypes];
+      apiTypes.forEach((apiType) => {
+        if (!existingTypes.some((existing) => existing.id === apiType.id)) {
+          combinedTypes.push(apiType);
+        }
+      });
+
+      return combinedTypes;
+    }
     return normalizeApiData(fileTypesData);
-  }, [fileTypesData]);
+  }, [mode, isViewMode, fileTypesData, employeeData?.files, normalizeApiData]);
 
   const processedFileCabinets = useMemo(() => {
+    if ((mode === "view" || isViewMode) && employeeData?.files) {
+      const existingCabinets = employeeData.files
+        .filter((file) => file.file_cabinet || file.cabinet)
+        .map((file) => file.file_cabinet || file.cabinet);
+      return existingCabinets;
+    }
+    if (mode === "edit" && employeeData?.files) {
+      const existingCabinets = employeeData.files
+        .filter((file) => file.file_cabinet || file.cabinet)
+        .map((file) => file.file_cabinet || file.cabinet);
+      const apiCabinets = normalizeApiData(fileCabinetsData);
+
+      if (!fileCabinetsData) {
+        return existingCabinets;
+      }
+
+      const combinedCabinets = [...existingCabinets];
+      apiCabinets.forEach((apiCabinet) => {
+        if (
+          !existingCabinets.some((existing) => existing.id === apiCabinet.id)
+        ) {
+          combinedCabinets.push(apiCabinet);
+        }
+      });
+
+      return combinedCabinets;
+    }
     return normalizeApiData(fileCabinetsData);
-  }, [fileCabinetsData]);
+  }, [
+    mode,
+    isViewMode,
+    fileCabinetsData,
+    employeeData?.files,
+    normalizeApiData,
+  ]);
 
   const getFileTypeLabel = useCallback((option) => {
     if (!option) return "Unknown";
@@ -494,17 +526,12 @@ const FileForm = ({
     }
 
     if (mode === "edit" || mode === "view" || isViewMode) {
-      const hasDropdownData =
-        processedFileTypes.length > 0 && processedFileCabinets.length > 0;
-
-      if (hasDropdownData) {
-        if (employeeData && employeeData.files) {
-          initializeWithEmployeeData(employeeData);
-        } else if (selectedFiles && selectedFiles.length > 0) {
-          initializeWithSelectedFiles(selectedFiles);
-        } else {
-          initializeEmptyForm();
-        }
+      if (employeeData && employeeData.files) {
+        initializeWithEmployeeData(employeeData);
+      } else if (selectedFiles && selectedFiles.length > 0) {
+        initializeWithSelectedFiles(selectedFiles);
+      } else {
+        initializeEmptyForm();
       }
     }
   }, [
@@ -782,23 +809,6 @@ const FileForm = ({
       </DialogContent>
     </Dialog>
   );
-
-  if (
-    (mode === "edit" || mode === "view" || isViewMode) &&
-    !hasInitializedData.current &&
-    (processedFileTypes.length === 0 || processedFileCabinets.length === 0)
-  ) {
-    return (
-      <Box
-        className="file-form-container"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box

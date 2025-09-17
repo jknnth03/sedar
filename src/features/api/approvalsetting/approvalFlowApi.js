@@ -17,18 +17,26 @@ const approvalFlowApi = sedarApi
 
           const queryParams = new URLSearchParams();
 
-          queryParams.append("pagination", pagination.toString());
-          queryParams.append("page", page.toString());
-          queryParams.append("per_page", per_page.toString());
+          // Only add pagination-related params if pagination is true
+          if (pagination === true) {
+            queryParams.append("pagination", "true");
+            queryParams.append("page", page.toString());
+            queryParams.append("per_page", per_page.toString());
+          } else {
+            queryParams.append("pagination", "none");
+          }
 
+          // Add status if provided
           if (status) {
             queryParams.append("status", status);
           }
 
+          // Add search if provided and not empty
           if (search && search.trim() !== "") {
             queryParams.append("search", search.trim());
           }
 
+          // Add any other parameters
           Object.entries(otherParams).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== "") {
               queryParams.append(key, value.toString());
@@ -47,6 +55,7 @@ const approvalFlowApi = sedarApi
         },
         providesTags: ["approvalFlows"],
       }),
+
       getSingleApprovalFlow: build.query({
         query: (approvalFlowId) => ({
           url: `approval-flows/${approvalFlowId}`,
@@ -57,6 +66,7 @@ const approvalFlowApi = sedarApi
           "approvalFlows",
         ],
       }),
+
       createApprovalFlow: build.mutation({
         query: (body) => ({
           url: "approval-flows",
@@ -65,6 +75,7 @@ const approvalFlowApi = sedarApi
         }),
         invalidatesTags: ["approvalFlows"],
       }),
+
       updateApprovalFlow: build.mutation({
         query: (body) => ({
           url: `approval-flows/${body?.id}`,
@@ -76,6 +87,7 @@ const approvalFlowApi = sedarApi
           "approvalFlows",
         ],
       }),
+
       deleteApprovalFlow: build.mutation({
         query: (flowId) => ({
           url: `approval-flows/${flowId}`,

@@ -316,10 +316,11 @@ const EmployeeHeader = ({
         </Box>
 
         <Box sx={{ flex: 1 }}>
+          {/* First Row */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
+              gridTemplateColumns: "repeat(3, 1fr)",
               gap: 3,
               fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
               mb: 3,
@@ -332,7 +333,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0.5,
+                  mb: 0,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -341,7 +342,7 @@ const EmployeeHeader = ({
               <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 500,
+                  fontWeight: 400,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -357,7 +358,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0.5,
+                  mb: 0,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -366,7 +367,7 @@ const EmployeeHeader = ({
               <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 500,
+                  fontWeight: 400,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -382,7 +383,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0.5,
+                  mb: 0,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -391,14 +392,24 @@ const EmployeeHeader = ({
               <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 500,
+                  fontWeight: 400,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
                 {getPosition()}
               </Box>
             </Box>
+          </Box>
 
+          {/* Second Row */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 3,
+              fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+              mb: 3,
+            }}>
             <Box>
               <Box
                 component="h3"
@@ -407,7 +418,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0.5,
+                  mb: 0,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -416,7 +427,7 @@ const EmployeeHeader = ({
               <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 500,
+                  fontWeight: 400,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -432,66 +443,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0.5,
-                  m: 0,
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                EMPLOYMENT TYPE
-              </Box>
-              <Box
-                sx={{
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: "#111827",
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                {getEmploymentType()}
-              </Box>
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 3,
-              fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-              mb: 2,
-            }}>
-            <Box>
-              <Box
-                component="h3"
-                sx={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
-                  mb: 0.5,
-                  m: 0,
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                ATTAINMENT
-              </Box>
-              <Box
-                sx={{
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: "#111827",
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                {getAttainmentLabel()}
-              </Box>
-            </Box>
-
-            <Box>
-              <Box
-                component="h3"
-                sx={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
-                  mb: 0.5,
+                  mb: 0,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -500,7 +452,7 @@ const EmployeeHeader = ({
               <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 500,
+                  fontWeight: 400,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -516,7 +468,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0.5,
+                  mb: 0,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -525,17 +477,16 @@ const EmployeeHeader = ({
               <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 500,
+                  fontWeight: 400,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
                 {getEmailAddress()}
               </Box>
             </Box>
-
-            <Box></Box>
           </Box>
 
+          {/* Address Row */}
           <Box>
             <Box
               component="h3"
@@ -544,7 +495,7 @@ const EmployeeHeader = ({
                 fontWeight: 600,
                 color: "#6b7280",
                 textTransform: "uppercase",
-                mb: 0.5,
+                mb: 0,
                 m: 0,
                 fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
               }}>
@@ -553,7 +504,7 @@ const EmployeeHeader = ({
             <Box
               sx={{
                 fontSize: "0.875rem",
-                fontWeight: 500,
+                fontWeight: 400,
                 color: "#111827",
                 fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
               }}>

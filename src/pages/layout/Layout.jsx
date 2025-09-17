@@ -5,12 +5,22 @@ import { Box } from "@mui/material";
 import "../layout/Layout.scss";
 
 const Layout = ({ children }) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(true); // Desktop sidebar state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false); // Mobile sidebar state
+
+  // Handle closing mobile sidebar when clicking backdrop
+  const handleCloseMobileSidebar = () => {
+    setMobileSidebarOpen(false);
+  };
 
   return (
     <Box className="layout_color">
       <Box sx={{ zIndex: 1300 }}>
-        <Sidebar open={open} />
+        <Sidebar
+          open={open}
+          mobileSidebarOpen={mobileSidebarOpen}
+          onCloseMobile={handleCloseMobileSidebar}
+        />
       </Box>
 
       <Box
@@ -21,7 +31,12 @@ const Layout = ({ children }) => {
           overflow: "hidden",
         }}>
         <Box sx={{ zIndex: 1000, position: "relative" }}>
-          <Appbar setOpen={setOpen} />
+          <Appbar
+            open={open} // ← Added this missing prop
+            setOpen={setOpen}
+            isMobileSidebarOpen={mobileSidebarOpen}
+            setMobileSidebarOpen={setMobileSidebarOpen}
+          />
         </Box>
 
         <Box className="layout_content">{children}</Box>

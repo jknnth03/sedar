@@ -5,7 +5,7 @@ import {
   CloudUpload as CloudUploadIcon,
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
-import { fileInputConfig } from "../../../schema/approver/formSubmissionSchema";
+import { fileInputConfig } from "../../../../schema/approver/formSubmissionSchema";
 
 const AttachmentField = ({
   selectedEntry,
