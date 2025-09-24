@@ -323,7 +323,7 @@ const ApprovalFlow = () => {
   const [deleteApprovalFlow] = useDeleteApprovalFlowMutation();
 
   const approvalFlowsList = useMemo(
-    () => approvalFlowsData?.result?.data || [],
+    () => approvalFlowsData?.result || [],
     [approvalFlowsData]
   );
 

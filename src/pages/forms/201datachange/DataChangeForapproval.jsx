@@ -17,7 +17,10 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetDataChangeSubmissionsQuery,
+  useGetDataChangeSubmissionDetailsQuery,
   useCreateDataChangeSubmissionMutation,
+  useUpdateDataChangeSubmissionMutation,
+  useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
@@ -49,13 +52,14 @@ const DataChangeForApproval = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
 
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [detailsRefetchTrigger, setDetailsRefetchTrigger] = useState(0);
 
   const methods = useForm({
     defaultValues: {
@@ -74,7 +78,7 @@ const DataChangeForApproval = () => {
       per_page: rowsPerPage,
       status: "active",
       pagination: 1,
-      approval_status: "pending", // Only show pending requests
+      approval_status: "pending",
     };
 
     return params;
@@ -91,7 +95,20 @@ const DataChangeForApproval = () => {
     skip: false,
   });
 
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    error: detailsError,
+    refetch: refetchDetails,
+  } = useGetDataChangeSubmissionDetailsQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
+  });
+
   const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
+  const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
+  const [resubmitDataChangeSubmission] =
+    useResubmitDataChangeSubmissionMutation();
 
   const submissionsList = useMemo(
     () => submissionsData?.result?.data || [],
@@ -99,64 +116,71 @@ const DataChangeForApproval = () => {
   );
 
   const handleRowClick = useCallback((submission) => {
-    console.log("Row clicked, submission:", submission);
-    console.log("Setting mode to view");
-
-    // Clear any existing state first
-    setModalOpen(false);
+    setModalMode("view");
+    setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
     setSelectedRowForMenu(null);
-
-    // Reset state completely
-    setSelectedSubmission(null);
-    setModalMode("view");
-
-    // Now set the correct state
-    setTimeout(() => {
-      setSelectedSubmission(submission);
-      setModalMode("view");
-      console.log("Mode set to view, opening modal");
-      setModalOpen(true);
-    }, 50);
+    setModalOpen(true);
   }, []);
 
   const handleEditSubmission = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
     setSelectedRowForMenu(null);
-    setSelectedSubmission(submission);
     setModalMode("edit");
     setModalOpen(true);
   }, []);
 
   const handleModalClose = useCallback(() => {
-    console.log("Modal closing");
     setModalOpen(false);
-    setSelectedSubmission(null);
-    setModalMode("view");
+    setSelectedSubmissionId(null);
+    // setModalMode("view");
     setModalLoading(false);
   }, []);
 
+  const handleRefreshDetails = useCallback(() => {
+    if (selectedSubmissionId && refetchDetails) {
+      refetchDetails();
+      setDetailsRefetchTrigger((prev) => prev + 1);
+    }
+  }, [selectedSubmissionId, refetchDetails]);
+
   const handleModalSave = useCallback(
-    async (submissionData, mode) => {
+    async (submissionData, mode, submissionId) => {
       setModalLoading(true);
       setIsLoading(true);
 
       try {
         if (mode === "create") {
           await createDataChangeSubmission(submissionData).unwrap();
+          enqueueSnackbar("Submission created successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        } else if (mode === "edit") {
+          await updateDataChangeSubmission({
+            id: submissionId,
+            body: submissionData,
+          }).unwrap();
+          enqueueSnackbar("Submission updated successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        } else if (mode === "resubmit") {
+          await resubmitDataChangeSubmission(submissionData).unwrap();
+          enqueueSnackbar("Submission resubmitted successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
         }
-
-        enqueueSnackbar(
-          `Submission ${
-            mode === "create" ? "created" : "updated"
-          } successfully!`,
-          { variant: "success", autoHideDuration: 2000 }
-        );
 
         refetch();
         handleModalClose();
       } catch (error) {
-        enqueueSnackbar("Failed to save submission. Please try again.", {
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to save submission. Please try again.";
+        enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
         });
@@ -165,7 +189,14 @@ const DataChangeForApproval = () => {
         setIsLoading(false);
       }
     },
-    [refetch, enqueueSnackbar, handleModalClose, createDataChangeSubmission]
+    [
+      refetch,
+      enqueueSnackbar,
+      handleModalClose,
+      createDataChangeSubmission,
+      updateDataChangeSubmission,
+      resubmitDataChangeSubmission,
+    ]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -192,6 +223,10 @@ const DataChangeForApproval = () => {
     setPage(1);
   }, []);
 
+  const handleModeChange = useCallback((newMode) => {
+    setModalMode(newMode);
+  }, []);
+
   const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
@@ -199,10 +234,12 @@ const DataChangeForApproval = () => {
       <Box
         sx={{
           width: "100%",
-          height: "100vh",
+          height: "100%",
+          minHeight: "calc(100vh - 180px)",
           display: "flex",
           flexDirection: "column",
           backgroundColor: "#fafafa",
+          position: "relative",
         }}>
         <Box
           sx={{
@@ -210,31 +247,74 @@ const DataChangeForApproval = () => {
             display: "flex",
             flexDirection: "column",
             backgroundColor: "white",
-            overflow: "auto", // Allow scrolling here
-            minHeight: 0, // Important for flex containers
+            minHeight: 0,
+            height: "100%",
           }}>
-          <DataChangeForapprovalTable
-            submissionsList={submissionsList}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery=""
-            showArchived={false}
-            hideStatusColumn={true} // New prop to hide status column
-            forApproval={true} // New prop to indicate this is for approval view
-          />
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              height: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}>
+            <Box
+              sx={{
+                flex: 1,
+                overflowY: "auto",
+                overflowX: "auto",
+                minHeight: "400px",
+                maxHeight: "calc(100vh - 250px)",
+                backgroundColor: "white",
+                "& .MuiTable-root": {
+                  minWidth: "100%",
+                },
+                "&::-webkit-scrollbar": {
+                  width: "8px",
+                  height: "8px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  backgroundColor: "#f1f1f1",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "#c1c1c1",
+                  borderRadius: "4px",
+                  "&:hover": {
+                    backgroundColor: "#a1a1a1",
+                  },
+                },
+              }}>
+              <DataChangeForapprovalTable
+                submissionsList={submissionsList}
+                isLoadingState={isLoadingState}
+                error={error}
+                handleRowClick={handleRowClick}
+                handleMenuOpen={handleMenuOpen}
+                handleMenuClose={handleMenuClose}
+                handleEditSubmission={handleEditSubmission}
+                menuAnchor={menuAnchor}
+                searchQuery=""
+                showArchived={false}
+                hideStatusColumn={true}
+                forApproval={true}
+              />
+            </Box>
+          </Box>
 
           <Box
             sx={{
               borderTop: "1px solid #e0e0e0",
               backgroundColor: "#f8f9fa",
               flexShrink: 0,
+              minHeight: "64px",
+              display: "flex",
+              alignItems: "center",
+              position: "sticky",
+              bottom: 0,
+              zIndex: 10,
               "& .MuiTablePagination-root": {
                 color: "#666",
+                width: "100%",
                 "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
                   {
                     fontSize: "14px",
@@ -263,6 +343,7 @@ const DataChangeForApproval = () => {
               onPageChange={handlePageChange}
               onRowsPerPageChange={handleRowsPerPageChange}
               sx={{
+                width: "100%",
                 "& .MuiTablePagination-toolbar": {
                   minHeight: "56px",
                   paddingLeft: "24px",
@@ -277,9 +358,11 @@ const DataChangeForApproval = () => {
           open={modalOpen}
           onClose={handleModalClose}
           mode={modalMode}
-          selectedEntry={selectedSubmission}
-          isLoading={modalLoading}
+          onModeChange={handleModeChange}
+          selectedEntry={submissionDetails}
+          isLoading={modalLoading || detailsLoading}
           onSave={handleModalSave}
+          onRefreshDetails={handleRefreshDetails}
         />
       </Box>
     </FormProvider>

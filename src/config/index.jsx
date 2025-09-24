@@ -47,6 +47,7 @@ import HowToRegIcon from "@mui/icons-material/HowToReg";
 import CloudSyncIcon from "@mui/icons-material/CloudSync";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
+import LowPriorityIcon from "@mui/icons-material/LowPriority";
 
 import NotificationBadge from "./NotificationBadge";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
@@ -650,6 +651,16 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "requisition",
           icon: (
             <TextSnippetIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+        },
+        MOVEMENTTYPES: {
+          name: "Movement Types",
+          path: "movementtypes",
+          icon: (
+            <LowPriorityIcon
               sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
             />
           ),

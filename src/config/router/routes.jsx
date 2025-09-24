@@ -46,6 +46,7 @@ import DataChangeReceiving from "../../pages/receiving/DataChangeReceiving";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
+import MovementTypes from "../../pages/extras/MovementTypes.jsx";
 
 export const ROUTES = [
   {
@@ -398,6 +399,14 @@ export const ROUTES = [
         element: <RequisitionTypes />,
         handle: {
           permission: CONSTANT.PAGES.EXTRAS.children.REQUISITION.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.EXTRAS.children.MOVEMENTTYPES.name,
+        path: CONSTANT.PAGES.EXTRAS.children.MOVEMENTTYPES.path,
+        element: <MovementTypes />,
+        handle: {
+          permission: CONSTANT.PAGES.EXTRAS.children.MOVEMENTTYPES.name,
         },
       },
       {

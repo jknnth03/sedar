@@ -610,7 +610,7 @@ const PendingRegistration = () => {
 
   const tabsData = [
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       component: (
         <PendingRegistrationForapproval
           searchQuery={debounceValue}
@@ -625,7 +625,7 @@ const PendingRegistration = () => {
       badgeCount: registrationCounts?.result?.pending || 0,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "AWAITING RESUBMISSION",
       component: (
         <PendingRegistrationAwaitingresubmission
           searchQuery={debounceValue}
@@ -640,7 +640,7 @@ const PendingRegistration = () => {
       badgeCount: registrationCounts?.result?.awaiting_resubmission || 0,
     },
     {
-      label: "Rejected",
+      label: "REJECTED",
       component: (
         <PendingRegistrationRejected
           searchQuery={debounceValue}
@@ -655,7 +655,7 @@ const PendingRegistration = () => {
       badgeCount: registrationCounts?.result?.rejected || 0,
     },
     {
-      label: "Cancelled",
+      label: "CANCELLED",
       component: (
         <PendingRegistrationCancelled
           searchQuery={debounceValue}

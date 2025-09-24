@@ -32,7 +32,7 @@ const Layout = ({ children }) => {
         }}>
         <Box sx={{ zIndex: 1000, position: "relative" }}>
           <Appbar
-            open={open} // ← Added this missing prop
+            open={open}
             setOpen={setOpen}
             isMobileSidebarOpen={mobileSidebarOpen}
             setMobileSidebarOpen={setMobileSidebarOpen}

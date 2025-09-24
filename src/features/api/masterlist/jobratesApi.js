@@ -21,8 +21,8 @@ const jobratesApi = sedarApi
       }),
 
       getAllJobRates: build.query({
-        query: () => ({
-          url: "job-rates", // Adjust if your API uses a different endpoint
+        query: (params) => ({
+          url: `job-rates?pagination=none&status=${params?.status || "active"}`,
         }),
         providesTags: ["jobrates"],
       }),

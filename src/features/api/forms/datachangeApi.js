@@ -55,7 +55,6 @@ const dataChangeApi = sedarApi
         providesTags: ["dataChangeSubmissions"],
       }),
 
-      // ADD THIS NEW ENDPOINT
       getDataChangeSubmissionDetails: build.query({
         query: (id) => ({
           url: `me/data-change-submissions/${id}`,
@@ -113,16 +112,49 @@ const dataChangeApi = sedarApi
         }),
         invalidatesTags: ["dataChangeSubmissions"],
       }),
+
+      updateDataChangeSubmission: build.mutation({
+        query: ({ id, body }) => {
+          if (body instanceof FormData) {
+            body.append("_method", "PATCH");
+          } else {
+            const formData = new FormData();
+            formData.append("_method", "PATCH");
+            Object.keys(body).forEach((key) => {
+              formData.append(key, body[key]);
+            });
+            body = formData;
+          }
+
+          return {
+            url: `form-submissions/${id}`,
+            method: "POST",
+            body,
+          };
+        },
+        invalidatesTags: ["dataChangeSubmissions"],
+      }),
+
+      resubmitDataChangeSubmission: build.mutation({
+        query: (body) => ({
+          url: "form-submissions/resubmit",
+          method: "POST",
+          body,
+        }),
+        invalidatesTags: ["dataChangeSubmissions"],
+      }),
     }),
   });
 
 export const {
   useGetDataChangeSubmissionsQuery,
   useLazyGetDataChangeSubmissionsQuery,
-  useGetDataChangeSubmissionDetailsQuery, // ADD THIS
-  useLazyGetDataChangeSubmissionDetailsQuery, // ADD THIS
+  useGetDataChangeSubmissionDetailsQuery,
+  useLazyGetDataChangeSubmissionDetailsQuery,
   useLazyGetAllDataChangeOptionsQuery,
   useCreateDataChangeSubmissionMutation,
+  useUpdateDataChangeSubmissionMutation,
+  useResubmitDataChangeSubmissionMutation,
 } = dataChangeApi;
 
 export default dataChangeApi;

@@ -6,8 +6,6 @@ const approvalForm = sedarApi
     endpoints: (build) => ({
       getApprovalForms: build.query({
         query: (params = {}) => {
-          console.log("getApprovalForms called with params:", params);
-
           const {
             pagination = true,
             page = 1,
@@ -37,8 +35,6 @@ const approvalForm = sedarApi
           const queryString = queryParams.toString();
           const url = queryString ? `forms?${queryString}` : "forms";
 
-          console.log("getApprovalForms Final URL:", url);
-
           return {
             url,
             method: "GET",
@@ -49,8 +45,6 @@ const approvalForm = sedarApi
 
       getAllApprovalForms: build.query({
         query: (params = {}) => {
-          console.log("getAllApprovalForms called with params:", params);
-
           const {
             pagination = "none",
             status = "active",
@@ -76,16 +70,12 @@ const approvalForm = sedarApi
           const queryString = queryParams.toString();
           const url = queryString ? `forms?${queryString}` : "forms";
 
-          console.log("getAllApprovalForms Final URL:", url);
-
           return {
             url,
             method: "GET",
           };
         },
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllApprovalForms):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: response.result.data };
@@ -146,7 +136,6 @@ const approvalForm = sedarApi
 
       getSingleApprovalForm: build.query({
         query: (approvalFormId) => {
-          console.log("getSingleApprovalForm called with ID:", approvalFormId);
           return {
             url: `forms/${approvalFormId}`,
             method: "GET",
@@ -160,7 +149,6 @@ const approvalForm = sedarApi
 
       createApprovalForm: build.mutation({
         query: (body) => {
-          console.log("createApprovalForm called with body:", body);
           return {
             url: "forms",
             method: "POST",
@@ -172,7 +160,6 @@ const approvalForm = sedarApi
 
       updateApprovalForm: build.mutation({
         query: (body) => {
-          console.log("updateApprovalForm called with body:", body);
           return {
             url: `forms/${body?.id}`,
             method: "PATCH",
@@ -187,7 +174,6 @@ const approvalForm = sedarApi
 
       deleteApprovalForm: build.mutation({
         query: (formId) => {
-          console.log("deleteApprovalForm called with ID:", formId);
           return {
             url: `forms/${formId}`,
             method: "DELETE",

@@ -53,12 +53,6 @@ import "../../../pages/GeneralTable.scss";
 import { useSnackbar } from "notistack";
 import useDebounce from "../../../hooks/useDebounce";
 import { CONSTANT } from "../../../config";
-import {
-  positionStyles,
-  getIconColor,
-  getLabelColor,
-  columnWidths,
-} from "./PositionStyles";
 
 const CustomSearchBar = ({
   searchQuery,

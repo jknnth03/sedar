@@ -17,9 +17,8 @@ import {
   DialogActions,
   Fade,
   Tooltip,
+  Chip,
   CircularProgress,
-  useMediaQuery,
-  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -30,11 +29,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import {
-  styles,
-  styledTabsConfig,
-  styledTabConfig,
-} from "./MrfMainContainerStyles";
+import { styles } from "./FormSubmissionStyles";
 import {
   useCreateFormSubmissionMutation,
   useGetMrfSubmissionsQuery,
@@ -50,9 +45,41 @@ import MrfCancelled from "./MrfCancelled";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import { format } from "date-fns";
 
-const StyledTabs = styled(Tabs)(({ theme }) => styledTabsConfig(theme));
+const StyledTabs = styled(Tabs)(({ theme }) => ({
+  backgroundColor: "#ffffff",
+  borderRadius: "0",
+  minHeight: 48,
+  "& .MuiTabs-indicator": {
+    backgroundColor: theme.palette.primary.main,
+    height: 3,
+  },
+  "& .MuiTabs-flexContainer": {
+    paddingLeft: 0,
+    paddingRight: 0,
+  },
+}));
 
-const StyledTab = styled(Tab)(({ theme }) => styledTabConfig(theme));
+const StyledTab = styled(Tab)(({ theme }) => ({
+  textTransform: "uppercase",
+  fontWeight: 600,
+  fontSize: "0.875rem",
+  minHeight: 48,
+  paddingTop: 12,
+  paddingBottom: 12,
+  paddingLeft: 20,
+  paddingRight: 20,
+  color: theme.palette.text.secondary,
+  "&.Mui-selected": {
+    color: theme.palette.primary.main,
+  },
+  "&:hover": {
+    color: theme.palette.primary.main,
+    backgroundColor: "rgba(33, 61, 112, 0.04)",
+  },
+  transition: theme.transitions.create(["color", "background-color"], {
+    duration: theme.transitions.duration.standard,
+  }),
+}));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -61,9 +88,27 @@ const TabPanel = ({ children, value, index, ...other }) => {
       hidden={value !== index}
       id={`mrf-tabpanel-${index}`}
       aria-labelledby={`mrf-tab-${index}`}
-      style={styles.tabPanel}
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        minWidth: 0,
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
       {...other}>
-      {value === index && <Box sx={styles.tabPanelBox}>{children}</Box>}
+      {value === index && (
+        <Box
+          sx={{
+            height: "100%",
+            overflow: "hidden",
+            minWidth: 0,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+          }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 };
@@ -143,7 +188,7 @@ const DateFilterDialog = ({
 
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={styles.datePickerContainer}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -196,12 +241,7 @@ const CustomSearchBar = ({
   onFilterClick,
   isLoading = false,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isVerySmall = useMediaQuery("(max-width:369px)");
-
   const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
-  const filterIconColor = hasActiveFilters ? "#1976d2" : "#666";
 
   const getFilterLabel = () => {
     if (dateFilters.startDate && dateFilters.endDate) {
@@ -220,143 +260,42 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: isVerySmall ? 1 : 1.5,
-        width: isMobile ? "100%" : "auto",
-      }}>
+    <Box sx={styles.searchBarContainer}>
       <Tooltip title="Click here to filter by date range" arrow>
-        {isVerySmall ? (
-          <IconButton
-            onClick={onFilterClick}
-            disabled={isLoading}
-            size="small"
-            sx={{
-              width: "36px",
-              height: "36px",
-              border: `1px solid ${hasActiveFilters ? "#1976d2" : "#ccc"}`,
-              borderRadius: "8px",
-              backgroundColor: hasActiveFilters
-                ? "rgba(25, 118, 210, 0.04)"
-                : "white",
-              color: filterIconColor,
-              transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: hasActiveFilters
-                  ? "rgba(25, 118, 210, 0.08)"
-                  : "#f5f5f5",
-                borderColor: hasActiveFilters ? "#1976d2" : "#1976d2",
-              },
-            }}>
-            <CalendarTodayIcon sx={{ fontSize: "18px" }} />
-          </IconButton>
-        ) : (
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={hasActiveFilters}
-                onChange={onFilterClick}
-                disabled={isLoading}
-                icon={<CalendarTodayIcon />}
-                checkedIcon={<CalendarTodayIcon />}
-                size="small"
-              />
-            }
-            label={
-              <Box sx={styles.filterLabelBox}>
-                <span>{getFilterLabel()}</span>
-              </Box>
-            }
-            sx={{
-              margin: 0,
-              border: `1px solid ${hasActiveFilters ? "#1976d2" : "#ccc"}`,
-              borderRadius: "8px",
-              paddingLeft: "8px",
-              paddingRight: "12px",
-              height: "36px",
-              backgroundColor: hasActiveFilters
-                ? "rgba(25, 118, 210, 0.04)"
-                : "white",
-              transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: hasActiveFilters
-                  ? "rgba(25, 118, 210, 0.08)"
-                  : "#f5f5f5",
-                borderColor: hasActiveFilters ? "#1976d2" : "#1976d2",
-              },
-              "& .MuiFormControlLabel-label": {
-                fontSize: "12px",
-                fontWeight: 600,
-                color: filterIconColor,
-                letterSpacing: "0.5px",
-              },
-              "& .MuiCheckbox-root": {
-                padding: "6px",
-                color: filterIconColor,
-                "&:hover": {
-                  backgroundColor: "rgba(25, 118, 210, 0.04)",
-                },
-              },
-            }}
-          />
-        )}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={hasActiveFilters}
+              onChange={onFilterClick}
+              disabled={isLoading}
+              icon={<CalendarTodayIcon />}
+              checkedIcon={<CalendarTodayIcon />}
+              size="small"
+            />
+          }
+          label={
+            <Box sx={styles.filterLabelBox}>
+              <span>{getFilterLabel()}</span>
+            </Box>
+          }
+          sx={styles.filterControlLabel(hasActiveFilters)}
+        />
       </Tooltip>
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search form..."}
+        placeholder="Search form..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
         InputProps={{
-          startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
-              }}
-            />
-          ),
+          startAdornment: <SearchIcon sx={styles.searchIcon(isLoading)} />,
           endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+            <CircularProgress size={16} sx={styles.searchProgress} />
           ),
-          sx: {
-            height: "36px",
-            width: isVerySmall ? "100%" : isMobile ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "#1976d2",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#1976d2",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
+          sx: styles.searchInputProps(isLoading),
         }}
-        sx={{
-          flex: isVerySmall || isMobile ? 1 : "0 0 auto",
-          "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
-        }}
+        sx={styles.searchTextField}
       />
     </Box>
   );
@@ -366,10 +305,6 @@ const MrfMainContainer = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
-
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
-  const isVerySmall = useMediaQuery("(max-width:369px)");
 
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -669,97 +604,42 @@ const MrfMainContainer = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={styles.mainContainer}>
-          <Box sx={styles.contentContainer}>
-            <Paper elevation={0} sx={styles.headerPaper}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: isMobile || isTablet ? "flex-start" : "center",
-                  justifyContent:
-                    isMobile || isTablet ? "flex-start" : "space-between",
-                  flexDirection: isMobile || isTablet ? "column" : "row",
-                  flexShrink: 0,
-                  minHeight: isMobile || isTablet ? "auto" : "72px",
-                  padding: isMobile
-                    ? "12px 14px"
-                    : isTablet
-                    ? "16px"
-                    : "16px 24px",
-                  backgroundColor: "white",
-                  borderBottom: "1px solid #e0e0e0",
-                  gap: isMobile || isTablet ? "16px" : "0",
-                }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                    width: isMobile || isTablet ? "100%" : "auto",
-                    justifyContent: "flex-start",
-                  }}>
-                  <Typography className="header">
-                    {isVerySmall ? "MANPOWER FORM" : "MANPOWER FORM"}
-                  </Typography>
+        <Box
+          sx={{
+            width: "100%",
+            height: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "#fafafa",
+            overflow: "hidden",
+            minWidth: 0,
+          }}>
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              minWidth: 0,
+            }}>
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: "8px 8px 0 0",
+                backgroundColor: "#ffffff",
+              }}>
+              <Box sx={styles.headerContainer}>
+                <Box sx={styles.headerLeftSection}>
+                  <Typography className="header">MANPOWER FORM</Typography>
                   <Fade in={!isLoading}>
-                    {isVerySmall ? (
-                      <IconButton
-                        onClick={handleAddNew}
-                        disabled={isLoading}
-                        sx={{
-                          backgroundColor: "#1976d2",
-                          color: "white",
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "8px",
-                          boxShadow: "0 2px 8px rgba(25, 118, 210, 0.2)",
-                          transition: "all 0.2s ease-in-out",
-                          "&:hover": {
-                            backgroundColor: "#1565c0",
-                            boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
-                            transform: "translateY(-1px)",
-                          },
-                          "&:disabled": {
-                            backgroundColor: "#ccc",
-                            boxShadow: "none",
-                          },
-                        }}>
-                        <AddIcon sx={{ fontSize: "18px" }} />
-                      </IconButton>
-                    ) : (
-                      <Button
-                        variant="contained"
-                        onClick={handleAddNew}
-                        startIcon={<AddIcon />}
-                        disabled={isLoading}
-                        sx={{
-                          backgroundColor: "#1976d2",
-                          height: isMobile ? "36px" : "38px",
-                          width: isMobile ? "auto" : "140px",
-                          minWidth: isMobile ? "100px" : "140px",
-                          padding: isMobile ? "0 16px" : "0 20px",
-                          textTransform: "uppercase",
-                          fontWeight: 600,
-                          fontSize: isMobile ? "12px" : "14px",
-                          borderRadius: "8px",
-                          boxShadow: "0 2px 8px rgba(25, 118, 210, 0.2)",
-                          transition: "all 0.2s ease-in-out",
-                          "& .MuiButton-startIcon": {
-                            marginRight: isMobile ? "4px" : "8px",
-                          },
-                          "&:hover": {
-                            backgroundColor: "#1565c0",
-                            boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
-                            transform: "translateY(-1px)",
-                          },
-                          "&:disabled": {
-                            backgroundColor: "#ccc",
-                            boxShadow: "none",
-                          },
-                        }}>
-                        CREATE
-                      </Button>
-                    )}
+                    <Button
+                      variant="contained"
+                      onClick={handleAddNew}
+                      startIcon={<AddIcon />}
+                      disabled={isLoading}
+                      sx={styles.createButton}>
+                      CREATE
+                    </Button>
                   </Fade>
                 </Box>
 
@@ -779,14 +659,7 @@ const MrfMainContainer = () => {
               aria-label="MRF management tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile
-              sx={{
-                "& .MuiTab-root": {
-                  fontSize: isVerySmall ? "11px" : "13px",
-                  minHeight: "56px",
-                  padding: isVerySmall ? "12px 8px" : "12px 16px",
-                },
-              }}>
+              allowScrollButtonsMobile>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
@@ -795,17 +668,18 @@ const MrfMainContainer = () => {
                       <Badge
                         badgeContent={tab.badgeCount}
                         color="error"
-                        sx={styles.badgeTab}>
-                        {isVerySmall && tab.label.length > 12
-                          ? tab.label
-                              .replace("Awaiting ", "")
-                              .replace("Resubmission", "Resub")
-                          : tab.label}
+                        sx={{
+                          "& .MuiBadge-badge": {
+                            fontSize: "0.55rem",
+                            minWidth: 14,
+                            height: 14,
+                            borderRadius: "50%",
+                            top: -2,
+                            right: -6,
+                          },
+                        }}>
+                        {tab.label}
                       </Badge>
-                    ) : isVerySmall && tab.label.length > 12 ? (
-                      tab.label
-                        .replace("Awaiting ", "")
-                        .replace("Resubmission", "Resub")
                     ) : (
                       tab.label
                     )
@@ -815,7 +689,15 @@ const MrfMainContainer = () => {
               ))}
             </StyledTabs>
 
-            <Box sx={styles.tabsContainer}>
+            <Box
+              sx={{
+                flex: 1,
+                overflow: "hidden",
+                minWidth: 0,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}>
               {tabsData.map((tab, index) => (
                 <TabPanel key={index} value={activeTab} index={index}>
                   {tab.component}
@@ -837,38 +719,113 @@ const MrfMainContainer = () => {
             maxWidth="xs"
             fullWidth
             PaperProps={{
-              sx: styles.confirmDialog,
+              sx: {
+                borderRadius: 3,
+                padding: 2,
+                boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+                textAlign: "center",
+              },
             }}>
-            <DialogTitle sx={styles.confirmDialogTitle}>
-              <Box sx={styles.confirmIconContainer}>
-                <Box sx={styles.confirmIcon}>
-                  <Typography sx={styles.confirmIconText}>?</Typography>
+            <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: 2,
+                }}>
+                <Box
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    backgroundColor: "#ff4400",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                  <Typography
+                    sx={{
+                      color: "white",
+                      fontSize: "30px",
+                      fontWeight: "normal",
+                    }}>
+                    ?
+                  </Typography>
                 </Box>
               </Box>
-              <Typography variant="h5" sx={styles.confirmTitle}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 600,
+                  color: "rgb(25, 45, 84)",
+                  marginBottom: 0,
+                }}>
                 Confirmation
               </Typography>
             </DialogTitle>
-            <DialogContent sx={styles.confirmDialogContent}>
-              <Typography variant="body1" sx={styles.confirmMessage}>
+            <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  marginBottom: 2,
+                  fontSize: "16px",
+                  color: "#333",
+                  fontWeight: 400,
+                }}>
                 Are you sure you want to create this manpower form?
               </Typography>
-              <Typography variant="body2" sx={styles.confirmSubMessage}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "14px",
+                  color: "#666",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}>
                 New Manpower Form
               </Typography>
             </DialogContent>
-            <DialogActions sx={styles.confirmDialogActions}>
+            <DialogActions
+              sx={{
+                justifyContent: "center",
+                padding: 0,
+                marginTop: 3,
+                gap: 2,
+              }}>
               <Button
                 onClick={() => setConfirmOpen(false)}
                 variant="outlined"
-                sx={styles.confirmCancelButton}
+                sx={{
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  borderColor: "#f44336",
+                  color: "#f44336",
+                  paddingX: 3,
+                  paddingY: 1,
+                  borderRadius: 2,
+                  "&:hover": {
+                    borderColor: "#d32f2f",
+                    backgroundColor: "rgba(244, 67, 54, 0.04)",
+                  },
+                }}
                 disabled={formIsLoading}>
                 CANCEL
               </Button>
               <Button
                 onClick={handleConfirmSave}
                 variant="contained"
-                sx={styles.confirmSubmitButton}
+                sx={{
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  backgroundColor: "#4caf50",
+                  paddingX: 3,
+                  paddingY: 1,
+                  borderRadius: 2,
+                  "&:hover": {
+                    backgroundColor: "#388e3c",
+                  },
+                }}
                 disabled={formIsLoading}>
                 {formIsLoading ? (
                   <CircularProgress size={20} color="inherit" />

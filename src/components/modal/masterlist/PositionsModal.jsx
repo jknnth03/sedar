@@ -37,9 +37,9 @@ import RequestorSequence from "./RequestorSequence";
 
 export default function PositionsModal({
   open,
-  handleClose,
+  onClose, // Fixed: Changed from handleClose to onClose
   refetch,
-  selectedPosition,
+  position, // Fixed: Changed from selectedPosition to position
   showArchived,
   edit,
 }) {
@@ -130,13 +130,20 @@ export default function PositionsModal({
     }
   }, [open, edit]);
 
+  // Fixed: Handle close function properly
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   const handleModeChange = (newMode) => {
     setCurrentMode(newMode);
   };
 
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
-    if (selectedPosition) {
+    if (position) {
       initializeFormData();
     }
   };
@@ -267,7 +274,7 @@ export default function PositionsModal({
 
         await updatePosition({
           formData: formDataToSend,
-          id: selectedPosition.id,
+          id: position.id,
         }).unwrap();
         enqueueSnackbar("Position updated successfully!", {
           variant: "success",
@@ -285,75 +292,81 @@ export default function PositionsModal({
     }
   };
 
+  // Fixed: Initialize form data properly
   const initializeFormData = () => {
-    if (selectedPosition && !isLoading && !isInitialized && open) {
+    if (
+      position &&
+      !isLoading &&
+      titlesList.length > 0 &&
+      employeesList.length > 0
+    ) {
+      console.log("Initializing form data with position:", position);
+
       let toolNames = [];
 
-      if (Array.isArray(selectedPosition.tools)) {
+      if (Array.isArray(position.tools)) {
         if (
-          selectedPosition.tools.length > 0 &&
-          typeof selectedPosition.tools[0] === "object" &&
-          selectedPosition.tools[0] !== null
+          position.tools.length > 0 &&
+          typeof position.tools[0] === "object" &&
+          position.tools[0] !== null
         ) {
-          toolNames = selectedPosition.tools
+          toolNames = position.tools
             .map((tool) => tool?.name || "")
             .filter(Boolean);
         } else if (
-          selectedPosition.tools.length > 0 &&
-          typeof selectedPosition.tools[0] === "number"
+          position.tools.length > 0 &&
+          typeof position.tools[0] === "number"
         ) {
-          toolNames = selectedPosition.tools
+          toolNames = position.tools
             .map((toolId) => {
               const tool = toolsList.find((t) => t.id === toolId);
               return tool?.name || "";
             })
             .filter(Boolean);
         } else if (
-          selectedPosition.tools.length > 0 &&
-          typeof selectedPosition.tools[0] === "string"
+          position.tools.length > 0 &&
+          typeof position.tools[0] === "string"
         ) {
-          toolNames = selectedPosition.tools;
+          toolNames = position.tools;
         }
       }
 
       let attachmentInfo = null;
-      if (selectedPosition.position_attachment) {
-        if (typeof selectedPosition.position_attachment === "string") {
+      if (position.position_attachment) {
+        if (typeof position.position_attachment === "string") {
           attachmentInfo = {
-            name: selectedPosition.position_attachment.split("/").pop(),
-            original: selectedPosition.position_attachment,
+            name: position.position_attachment.split("/").pop(),
+            original: position.position_attachment,
           };
-        } else if (typeof selectedPosition.position_attachment === "object") {
+        } else if (typeof position.position_attachment === "object") {
           attachmentInfo = {
-            ...selectedPosition.position_attachment,
+            ...position.position_attachment,
             original:
-              selectedPosition.position_attachment.url ||
-              selectedPosition.position_attachment.path ||
-              selectedPosition.position_attachment.original,
+              position.position_attachment.url ||
+              position.position_attachment.path ||
+              position.position_attachment.original,
           };
         }
       }
 
-      setFormData({
-        name: selectedPosition.name,
-        code: selectedPosition.code,
-        superior_name:
-          selectedPosition.superior?.id || selectedPosition.superior_id || null,
-        pay_frequency: selectedPosition.pay_frequency || "",
+      const newFormData = {
+        name: position.name,
+        code: position.code || "",
+        superior_name: position.superior?.id || position.superior_id || null,
+        pay_frequency: position.pay_frequency || "",
         tools: toolNames,
-        titles: selectedPosition.title_id || "",
-        schedule: selectedPosition.schedule_id || "",
-        team: selectedPosition.team_id || "",
-        charging:
-          selectedPosition.charging?.id || selectedPosition.charging_id || "",
+        titles: position.title?.id || position.title_id || "",
+        schedule: position.schedule?.id || position.schedule_id || "",
+        team: position.team?.id || position.team_id || "",
+        charging: position.charging?.id || position.charging_id || "",
         position_attachment: attachmentInfo,
-      });
+      };
 
-      if (
-        selectedPosition.requesters &&
-        Array.isArray(selectedPosition.requesters)
-      ) {
-        const requestorsList = selectedPosition.requesters.map((requestor) => {
+      console.log("Setting form data:", newFormData);
+      setFormData(newFormData);
+
+      if (position.requesters && Array.isArray(position.requesters)) {
+        const requestorsList = position.requesters.map((requestor) => {
           const employee = employeesList.find(
             (e) => e.id === requestor.employee_id
           );
@@ -383,14 +396,15 @@ export default function PositionsModal({
     }
   };
 
+  // Fixed: Reset and initialize properly when modal opens/closes
   useEffect(() => {
     if (open) {
       setIsInitialized(false);
       setErrors({});
       setErrorMessage(null);
-      setRequestorSequence([]);
 
-      if (!selectedPosition) {
+      if (!position) {
+        // Creating new position
         setFormData({
           titles: "",
           code: "",
@@ -405,18 +419,49 @@ export default function PositionsModal({
         setRequestorSequence([]);
         setIsInitialized(true);
       }
+    } else {
+      // Modal is closing - reset everything
+      setIsInitialized(false);
+      setRequestorSequence([]);
+      setFormData({
+        titles: "",
+        code: "",
+        superior_name: null,
+        pay_frequency: "",
+        tools: [],
+        schedule: "",
+        team: "",
+        charging: "",
+        position_attachment: null,
+      });
+      setErrors({});
+      setErrorMessage(null);
     }
-  }, [open, selectedPosition]);
+  }, [open, position]);
 
+  // Fixed: Initialize form data when all dependencies are ready
   useEffect(() => {
-    initializeFormData();
+    if (
+      open &&
+      position &&
+      !isInitialized &&
+      !isLoading &&
+      titlesList.length > 0 &&
+      employeesList.length > 0
+    ) {
+      initializeFormData();
+    }
   }, [
-    selectedPosition,
-    isLoading,
-    toolsList,
-    employeesList,
     open,
+    position,
     isInitialized,
+    isLoading,
+    titlesList,
+    employeesList,
+    toolsList,
+    schedulesList,
+    teamsList,
+    chargingList,
   ]);
 
   const getAttachmentDisplayName = () => {
@@ -524,7 +569,7 @@ export default function PositionsModal({
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <IconButton
-            onClick={handleClose}
+            onClick={handleClose} // Fixed: Now properly calls handleClose
             sx={{
               width: 32,
               height: 32,
@@ -881,8 +926,8 @@ export default function PositionsModal({
         )}
       </DialogContent>
 
+      {/* Fixed: Removed Cancel button since X icon is already present */}
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose}>Cancel</Button>
         {!isReadOnly && (
           <Button
             onClick={handleSubmit}

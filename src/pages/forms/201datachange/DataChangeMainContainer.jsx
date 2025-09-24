@@ -19,6 +19,8 @@ import {
   Tooltip,
   Chip,
   CircularProgress,
+  IconButton,
+  useMediaQuery,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -249,43 +251,144 @@ const CustomSearchBar = ({
   onFilterClick,
   isLoading = false,
 }) => {
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const hasActiveFilters = selectedFilters.length > 0;
   const iconColor = hasActiveFilters
     ? "rgba(0, 133, 49, 1)"
     : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={styles.searchBarContainer}>
-      <Tooltip title="Click here to filter by status" arrow>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={hasActiveFilters}
-              onChange={onFilterClick}
-              disabled={isLoading}
-              icon={<FilterListIcon sx={{ color: iconColor }} />}
-              checkedIcon={<FilterListIcon sx={{ color: iconColor }} />}
-              size="small"
-            />
-          }
-          label={
-            <Box sx={styles.filterLabelBox}>
-              <span>FILTER</span>
-              {hasActiveFilters && (
-                <Chip
-                  label={selectedFilters.length}
-                  size="small"
-                  sx={styles.filterCountChip}
-                />
-              )}
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
+      {isVerySmall ? (
+        <IconButton
+          onClick={onFilterClick}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <FilterListIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              {selectedFilters.length}
             </Box>
-          }
-          sx={styles.filterControlLabel(hasActiveFilters)}
-        />
-      </Tooltip>
+          )}
+        </IconButton>
+      ) : (
+        <Tooltip title="Click here to filter by status" arrow>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasActiveFilters}
+                onChange={onFilterClick}
+                disabled={isLoading}
+                icon={<FilterListIcon sx={{ color: iconColor }} />}
+                checkedIcon={<FilterListIcon sx={{ color: iconColor }} />}
+                size="small"
+              />
+            }
+            label={
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}>
+                <span>FILTER</span>
+                {hasActiveFilters && (
+                  <Chip
+                    label={selectedFilters.length}
+                    size="small"
+                    sx={{
+                      backgroundColor: "rgba(0, 133, 49, 1)",
+                      color: "white",
+                      height: "16px",
+                      fontSize: "10px",
+                      fontWeight: 600,
+                      "& .MuiChip-label": {
+                        padding: "0 4px",
+                      },
+                    }}
+                  />
+                )}
+              </Box>
+            }
+            sx={{
+              margin: 0,
+              border: `1px solid ${
+                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+              }`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
+          />
+        </Tooltip>
+      )}
 
       <TextField
-        placeholder="Search 201 data change..."
+        placeholder={isVerySmall ? "Search..." : "Search 201 data change..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
@@ -296,16 +399,50 @@ const CustomSearchBar = ({
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
-            <CircularProgress size={16} sx={styles.searchProgress} />
+            <CircularProgress
+              size={16}
+              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
+            />
           ),
-          sx: styles.searchInputProps(isLoading),
+          sx: {
+            height: "36px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={styles.searchTextField}
+        sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
+          "& .MuiInputBase-input": {
+            fontSize: isVerySmall ? "13px" : "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -313,6 +450,9 @@ const CustomSearchBar = ({
 
 const DataChangeMainContainer = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
@@ -326,8 +466,6 @@ const DataChangeMainContainer = () => {
   const [modalMode, setModalMode] = useState("create");
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null);
 
   const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
 
@@ -352,64 +490,55 @@ const DataChangeMainContainer = () => {
   const handleAddNew = useCallback(() => {
     setSelectedEntry(null);
     setModalMode("create");
+    methods.reset();
     setModalOpen(true);
-  }, []);
+  }, [methods]);
 
   const handleCloseModal = useCallback(() => {
     setModalOpen(false);
     setSelectedEntry(null);
     setModalMode("create");
+    setModalLoading(false);
     methods.reset();
-    setPendingFormData(null);
   }, [methods]);
 
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
 
-  const handleSave = useCallback(async (formData, mode) => {
-    setPendingFormData(formData);
-    setConfirmOpen(true);
-  }, []);
+  const handleSave = useCallback(
+    async (formData, mode) => {
+      setModalLoading(true);
 
-  const handleConfirmSave = useCallback(async () => {
-    if (!pendingFormData) return;
+      try {
+        const result = await createDataChangeSubmission(formData).unwrap();
 
-    setModalLoading(true);
-    setConfirmOpen(false);
+        enqueueSnackbar("201 data change created successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
 
-    try {
-      const result = await createDataChangeSubmission(pendingFormData).unwrap();
+        handleCloseModal();
+      } catch (error) {
+        let errorMessage =
+          "Failed to create 201 data change. Please try again.";
 
-      enqueueSnackbar("201 data change created successfully!", {
-        variant: "success",
-        autoHideDuration: 2000,
-      });
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
 
-      handleCloseModal();
-    } catch (error) {
-      let errorMessage = "Failed to create 201 data change. Please try again.";
-
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      } finally {
+        setModalLoading(false);
       }
-
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 3000,
-      });
-    } finally {
-      setModalLoading(false);
-      setPendingFormData(null);
-    }
-  }, [
-    pendingFormData,
-    createDataChangeSubmission,
-    enqueueSnackbar,
-    handleCloseModal,
-  ]);
+    },
+    [createDataChangeSubmission, enqueueSnackbar, handleCloseModal]
+  );
 
   const tabsData = [
     {
@@ -481,6 +610,8 @@ const DataChangeMainContainer = () => {
     };
   };
 
+  const isLoadingState = isLoading;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -501,33 +632,110 @@ const DataChangeMainContainer = () => {
             overflow: "hidden",
             minWidth: 0,
           }}>
-          <Paper elevation={0} sx={styles.paperHeader}>
-            <Box sx={styles.headerContainer}>
-              <Box sx={styles.headerLeftSection}>
-                <Typography className="header" sx={styles.headerTitle}>
-                  201 DATA CHANGE
-                </Typography>
-                <Fade in={!isLoading}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: isMobile || isTablet ? "flex-start" : "center",
+              justifyContent:
+                isMobile || isTablet ? "flex-start" : "space-between",
+              flexDirection: isMobile || isTablet ? "column" : "row",
+              flexShrink: 0,
+              minHeight: isMobile || isTablet ? "auto" : "72px",
+              padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
+              backgroundColor: "white",
+              borderBottom: "1px solid #e0e0e0",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              gap: isMobile || isTablet ? "16px" : "0",
+            }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+                width: isMobile || isTablet ? "100%" : "auto",
+                justifyContent: "flex-start",
+              }}>
+              <Typography
+                className="header"
+                sx={{
+                  fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
+                  fontWeight: 500,
+                  color: "rgb(33, 61, 112)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}>
+                {isVerySmall ? "DATA CHANGE" : "201 DATA CHANGE"}
+              </Typography>
+              <Fade in={!isLoadingState}>
+                {isVerySmall ? (
+                  <IconButton
+                    onClick={handleAddNew}
+                    disabled={isLoadingState}
+                    sx={{
+                      backgroundColor: "rgb(33, 61, 112)",
+                      color: "white",
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        backgroundColor: "rgb(25, 45, 84)",
+                        boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                        transform: "translateY(-1px)",
+                      },
+                      "&:disabled": {
+                        backgroundColor: "#ccc",
+                        boxShadow: "none",
+                      },
+                    }}>
+                    <AddIcon sx={{ fontSize: "18px" }} />
+                  </IconButton>
+                ) : (
                   <Button
                     variant="contained"
                     onClick={handleAddNew}
                     startIcon={<AddIcon />}
-                    disabled={isLoading}
-                    sx={styles.createButton}>
+                    disabled={isLoadingState}
+                    sx={{
+                      backgroundColor: "rgb(33, 61, 112)",
+                      height: isMobile ? "36px" : "38px",
+                      width: isMobile ? "auto" : "160px",
+                      minWidth: isMobile ? "120px" : "160px",
+                      padding: isMobile ? "0 16px" : "0 20px",
+                      textTransform: "none",
+                      fontWeight: 600,
+                      fontSize: isMobile ? "12px" : "14px",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                      transition: "all 0.2s ease-in-out",
+                      "& .MuiButton-startIcon": {
+                        marginRight: isMobile ? "4px" : "8px",
+                      },
+                      "&:hover": {
+                        backgroundColor: "rgb(25, 45, 84)",
+                        boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                        transform: "translateY(-1px)",
+                      },
+                      "&:disabled": {
+                        backgroundColor: "#ccc",
+                        boxShadow: "none",
+                      },
+                    }}>
                     CREATE
                   </Button>
-                </Fade>
-              </Box>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                selectedFilters={selectedFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoading}
-              />
+                )}
+              </Fade>
             </Box>
-          </Paper>
+
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              selectedFilters={selectedFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
 
           <StyledTabs
             value={activeTab}
@@ -586,55 +794,8 @@ const DataChangeMainContainer = () => {
           onFiltersChange={handleFiltersChange}
         />
 
-        <Dialog
-          open={confirmOpen}
-          onClose={() => setConfirmOpen(false)}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: styles.confirmDialog,
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box sx={styles.confirmDialogIconBox}>
-              <Box sx={styles.confirmDialogIcon}>
-                <Typography sx={styles.confirmDialogIconText}>?</Typography>
-              </Box>
-            </Box>
-            <Typography variant="h5" sx={styles.confirmDialogTitle}>
-              Confirmation
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={styles.confirmDialogContent}>
-            <Typography variant="body1" sx={styles.confirmDialogMessage}>
-              Are you sure you want to create this 201 data change?
-            </Typography>
-            <Typography variant="body2" sx={styles.confirmDialogSubmissionInfo}>
-              New 201 Data Change
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={styles.confirmDialogActions}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              sx={styles.confirmCancelButton}
-              disabled={modalLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleConfirmSave}
-              variant="contained"
-              sx={styles.confirmActionButton}
-              disabled={modalLoading}>
-              {modalLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                "CONFIRM"
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         <DataChangeModal
+          key={`${modalMode}-${selectedEntry?.id || "new"}`}
           open={modalOpen}
           onClose={handleCloseModal}
           onSave={handleSave}

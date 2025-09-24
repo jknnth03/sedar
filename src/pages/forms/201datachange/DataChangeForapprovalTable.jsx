@@ -19,7 +19,9 @@ import {
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import RestoreIcon from "@mui/icons-material/Restore";
+import CancelIcon from "@mui/icons-material/Cancel";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import DataChangeDialog from "./DataChangeDialog";
@@ -47,22 +49,16 @@ const DataChangeForApprovalTable = ({
     if (!employeeName) return "-";
     return (
       <Box>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "13px" }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
           {employeeName}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "14px" }}>
           {employeeCode || ""}
         </Typography>
       </Box>
-    );
-  };
-
-  const renderCharging = (chargingName) => {
-    if (!chargingName) return "-";
-    return (
-      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "13px" }}>
-        {chargingName}
-      </Typography>
     );
   };
 
@@ -79,114 +75,184 @@ const DataChangeForApprovalTable = ({
 
   const renderActivityLog = (submission) => {
     return (
-      <Tooltip title="View activity log" arrow>
+      <Tooltip title="Restore" arrow>
         <IconButton
           onClick={(e) => handleViewActivityClick(e, submission)}
+          size="small"
           sx={{
             color: "rgb(33, 61, 112)",
+            padding: "4px",
+            borderRadius: "6px",
+            transition: "all 0.2s ease",
             "&:hover": {
-              backgroundColor: "rgba(33, 61, 112, 0.08)",
+              backgroundColor: alpha("rgb(33, 61, 112)", 0.1),
+              transform: "translateY(-1px)",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
             },
           }}>
-          <VisibilityIcon sx={{ fontSize: "20px" }} />
+          <RestoreIcon sx={{ fontSize: "20px" }} />
         </IconButton>
       </Tooltip>
     );
   };
 
-  // Keep all submissions, just hide the status column
+  const totalColumns = 7;
 
-  // Total columns without status column
-  const totalColumns = 8;
-
-  // Define column styles - removed status column
-  const columnStyles = {
-    id: { width: "60px", minWidth: "60px" },
-    referenceNo: { width: "120px", minWidth: "120px" },
-    submissionTitle: { width: "350px", minWidth: "350px" }, // Slightly wider since we removed status column
-    employee: { width: "250px", minWidth: "250px" },
-    charging: { width: "320px", minWidth: "320px" }, // Slightly wider
-    history: { width: "80px", minWidth: "80px" },
-    dateRequested: { width: "130px", minWidth: "130px" },
-    actions: { width: "80px", minWidth: "80px" },
-  };
-
-  const cellContentStyles = {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  };
-
-  const tableContainerStyles = {
-    flex: 1,
-    overflowX: "auto",
-    overflowY: "auto",
-    backgroundColor: "#fafafa",
-    width: "100%",
-    minWidth: 0, // Important for flex children
-    "& .MuiTableCell-head": {
-      backgroundColor: "#f8f9fa",
-      fontWeight: 700,
-      fontSize: "14px",
-      color: "rgb(33, 61, 112)",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-      borderBottom: "2px solid #e0e0e0",
-      position: "sticky",
-      top: 0,
-      zIndex: 10,
-      height: "48px",
-      padding: "8px 16px",
-      whiteSpace: "nowrap", // Prevent header text wrapping
-    },
-    "& .MuiTableCell-body": {
-      fontSize: "13px",
-      color: "#333",
-      borderBottom: "1px solid #f0f0f0",
-      padding: "8px 16px",
-      height: "52px",
-      backgroundColor: "white",
-    },
-    "& .MuiTableRow-root": {
-      transition: "background-color 0.2s ease-in-out",
-      "&:hover": {
+  const styles = {
+    tableContainerStyles: {
+      flex: 1,
+      overflowX: "auto",
+      overflowY: "auto",
+      backgroundColor: "#fafafa",
+      width: "100%",
+      minWidth: 0,
+      "& .MuiTableCell-head": {
         backgroundColor: "#f8f9fa",
-        cursor: "pointer",
+        fontWeight: 700,
+        fontSize: "18px",
+        color: "rgb(33, 61, 112)",
+        textTransform: "uppercase",
+        letterSpacing: "0.5px",
+        borderBottom: "2px solid #e0e0e0",
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+        height: "48px",
+        padding: "8px 16px",
+        whiteSpace: "nowrap",
+      },
+      "& .MuiTableCell-body": {
+        fontSize: "16px",
+        color: "#333",
+        borderBottom: "1px solid #f0f0f0",
+        padding: "8px 16px",
+        height: "52px",
+        backgroundColor: "white",
+      },
+      "& .MuiTableRow-root": {
+        transition: "background-color 0.2s ease-in-out",
+        "&:hover": {
+          backgroundColor: "#f8f9fa",
+          cursor: "pointer",
+          "& .MuiTableCell-root": {
+            backgroundColor: "transparent",
+          },
+        },
+      },
+    },
+    columnStyles: {
+      id: { width: "80px", minWidth: "80px" },
+      referenceNo: { width: "150px", minWidth: "150px" },
+      movementType: { width: "200px", minWidth: "200px" },
+      employee: { width: "300px", minWidth: "300px" },
+      history: { width: "80px", minWidth: "80px" },
+      dateRequested: { width: "150px", minWidth: "150px" },
+      actions: { width: "80px", minWidth: "80px" },
+    },
+    cellContentStyles: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+    loadingCell: {
+      py: 4,
+      borderBottom: "none",
+    },
+    errorCell: {
+      py: 4,
+      borderBottom: "none",
+    },
+    noDataContainer: {
+      py: 8,
+      borderBottom: "none",
+      color: "#666",
+      fontSize: "16px",
+    },
+    noDataBox: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 2,
+    },
+    historyIconButton: (theme) => ({
+      color: theme.palette.primary.main,
+      padding: "4px",
+      borderRadius: "6px",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: alpha(theme.palette.primary.main, 0.1),
+        transform: "translateY(-1px)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      },
+    }),
+    actionIconButton: (theme) => ({
+      color: "rgb(33, 61, 112)",
+      padding: "4px",
+      borderRadius: "6px",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: alpha("rgb(33, 61, 112)", 0.08),
+        transform: "translateY(-1px)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      },
+    }),
+    actionMenu: (theme) => ({
+      "& .MuiPaper-root": {
+        borderRadius: "8px",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        minWidth: "120px",
+      },
+      "& .MuiMenuItem-root": {
+        fontSize: "0.875rem",
+        padding: "8px 16px",
+        transition: "all 0.2s ease",
+        "&:hover": {
+          backgroundColor: alpha(theme.palette.primary.main, 0.08),
+        },
+      },
+    }),
+    tableRowHover: (theme) => ({
+      cursor: "pointer",
+      "&:hover": {
+        backgroundColor: alpha(theme.palette.primary.main, 0.04),
         "& .MuiTableCell-root": {
           backgroundColor: "transparent",
         },
       },
-    },
+      transition: "background-color 0.2s ease",
+    }),
   };
 
   return (
     <>
-      <TableContainer sx={tableContainerStyles}>
+      <TableContainer sx={styles.tableContainerStyles}>
         <Table
           stickyHeader
           sx={{
-            minWidth: 1200, // Reduced from 1350 since we removed status column
+            minWidth: 1040,
             width: "max-content",
-            tableLayout: "fixed", // Force fixed layout for consistent column widths
+            tableLayout: "fixed",
           }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={columnStyles.id}>
+              <TableCell align="left" sx={styles.columnStyles.id}>
                 ID
               </TableCell>
-              <TableCell sx={columnStyles.referenceNo}>REFERENCE NO.</TableCell>
-              <TableCell sx={columnStyles.submissionTitle}>
-                SUBMISSION TITLE
+              <TableCell sx={styles.columnStyles.referenceNo}>
+                REFERENCE NO.
               </TableCell>
-              <TableCell sx={columnStyles.employee}>EMPLOYEE</TableCell>
-              <TableCell sx={columnStyles.charging}>CHARGING</TableCell>
-              <TableCell align="center" sx={columnStyles.history}>
+              <TableCell sx={styles.columnStyles.movementType}>
+                MOVEMENT TYPE
+              </TableCell>
+              <TableCell sx={styles.columnStyles.employee}>EMPLOYEE</TableCell>
+              <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
               </TableCell>
-              <TableCell sx={columnStyles.dateRequested}>
+              <TableCell sx={styles.columnStyles.dateRequested}>
                 DATE REQUESTED
               </TableCell>
-              <TableCell align="center" sx={columnStyles.actions}>
+              <TableCell align="center" sx={styles.columnStyles.actions}>
                 ACTIONS
               </TableCell>
             </TableRow>
@@ -194,7 +260,10 @@ const DataChangeForApprovalTable = ({
           <TableBody>
             {isLoadingState ? (
               <TableRow>
-                <TableCell colSpan={totalColumns} align="center" sx={{ py: 4 }}>
+                <TableCell
+                  colSpan={totalColumns}
+                  align="center"
+                  sx={styles.loadingCell}>
                   <CircularProgress
                     size={32}
                     sx={{ color: "rgb(33, 61, 112)" }}
@@ -203,7 +272,10 @@ const DataChangeForApprovalTable = ({
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={totalColumns} align="center" sx={{ py: 4 }}>
+                <TableCell
+                  colSpan={totalColumns}
+                  align="center"
+                  sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -213,88 +285,67 @@ const DataChangeForApprovalTable = ({
               submissionsList.map((submission) => (
                 <TableRow
                   key={submission.id}
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                      "& .MuiTableCell-root": {
-                        backgroundColor: "transparent",
-                      },
-                    },
-                    transition: "background-color 0.2s ease",
-                  }}>
-                  <TableCell
-                    align="left"
-                    onClick={() => handleRowClick(submission)}
-                    sx={columnStyles.id}>
+                  onClick={() => handleRowClick(submission)}
+                  sx={styles.tableRowHover(theme)}>
+                  <TableCell align="left" sx={styles.columnStyles.id}>
                     {submission.id}
                   </TableCell>
                   <TableCell
-                    onClick={() => handleRowClick(submission)}
                     sx={{
-                      ...columnStyles.referenceNo,
-                      ...cellContentStyles,
+                      ...styles.columnStyles.referenceNo,
+                      ...styles.cellContentStyles,
+                      fontWeight: 600,
                     }}>
-                    <Typography sx={{ fontWeight: 600, fontSize: "12px" }}>
-                      {submission.reference_number}
-                    </Typography>
+                    {submission.reference_number}
                   </TableCell>
                   <TableCell
-                    onClick={() => handleRowClick(submission)}
                     sx={{
-                      ...columnStyles.submissionTitle,
-                      ...cellContentStyles,
+                      ...styles.columnStyles.movementType,
+                      ...styles.cellContentStyles,
                     }}>
-                    <Typography sx={{ fontWeight: 600, fontSize: "13px" }}>
-                      {submission.submission_title}
-                    </Typography>
+                    {submission.action_type || "-"}
                   </TableCell>
                   <TableCell
-                    onClick={() => handleRowClick(submission)}
                     sx={{
-                      ...columnStyles.employee,
-                      ...cellContentStyles,
+                      ...styles.columnStyles.employee,
+                      ...styles.cellContentStyles,
                     }}>
                     {renderEmployee(
                       submission.employee_name,
                       submission.employee_code
                     )}
                   </TableCell>
-                  <TableCell
-                    onClick={() => handleRowClick(submission)}
-                    sx={{
-                      ...columnStyles.charging,
-                      ...cellContentStyles,
-                    }}>
-                    {renderCharging(submission.charging_name)}
-                  </TableCell>
-                  <TableCell align="center" sx={columnStyles.history}>
+                  <TableCell align="center" sx={styles.columnStyles.history}>
                     {renderActivityLog(submission)}
                   </TableCell>
                   <TableCell
-                    onClick={() => handleRowClick(submission)}
                     sx={{
-                      ...columnStyles.dateRequested,
-                      ...cellContentStyles,
+                      ...styles.columnStyles.dateRequested,
+                      ...styles.cellContentStyles,
                     }}>
-                    <Typography variant="body2" sx={{ fontSize: "12px" }}>
-                      {submission.date_requested
-                        ? dayjs(submission.date_requested).format("MMM D, YYYY")
-                        : "-"}
-                    </Typography>
+                    {submission.created_at
+                      ? dayjs(submission.created_at).format("MMM D, YYYY")
+                      : "-"}
                   </TableCell>
-                  <TableCell align="center" sx={columnStyles.actions}>
-                    <IconButton
-                      onClick={(e) => handleMenuOpen(e, submission)}
-                      size="small"
-                      sx={{
-                        color: "rgb(33, 61, 112)",
-                        "&:hover": {
-                          backgroundColor: "rgba(33, 61, 112, 0.04)",
-                        },
-                      }}>
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
+                  <TableCell align="center" sx={styles.columnStyles.actions}>
+                    <Tooltip title="Actions">
+                      <IconButton
+                        onClick={(e) => handleMenuOpen(e, submission)}
+                        size="small"
+                        sx={{
+                          color: "rgb(33, 61, 112)",
+                          padding: "4px",
+                          borderRadius: "6px",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            backgroundColor: alpha("rgb(33, 61, 112)", 0.08),
+                            transform: "translateY(-1px)",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                          },
+                        }}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                     <Menu
                       anchorEl={menuAnchor[submission.id]}
                       open={Boolean(menuAnchor[submission.id])}
@@ -307,20 +358,25 @@ const DataChangeForApprovalTable = ({
                         horizontal: "right",
                         vertical: "bottom",
                       }}
+                      PaperProps={{
+                        sx: styles.actionMenu(theme),
+                      }}
                       sx={{
                         zIndex: 10000,
                       }}>
-                      {submission.actions?.can_update && (
-                        <MenuItem
-                          onClick={() => {
-                            handleEditSubmission(submission);
-                            handleMenuClose(submission.id);
-                          }}
-                          sx={{ fontSize: "0.875rem" }}>
-                          <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                          Edit
-                        </MenuItem>
-                      )}
+                      <MenuItem
+                        onClick={() => {
+                          handleMenuClose(submission.id);
+                        }}
+                        sx={{
+                          color: "#d32f2f",
+                          "&:hover": {
+                            backgroundColor: alpha("#d32f2f", 0.08),
+                          },
+                        }}>
+                        <CancelIcon fontSize="small" sx={{ mr: 1 }} />
+                        Cancel Request
+                      </MenuItem>
                     </Menu>
                   </TableCell>
                 </TableRow>
@@ -330,19 +386,8 @@ const DataChangeForApprovalTable = ({
                 <TableCell
                   colSpan={totalColumns}
                   align="center"
-                  sx={{
-                    py: 8,
-                    borderBottom: "none",
-                    color: "#666",
-                    fontSize: "16px",
-                  }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 2,
-                    }}>
+                  sx={styles.noDataContainer}>
+                  <Box sx={styles.noDataBox}>
                     {CONSTANT.BUTTONS.NODATA.icon}
                     <Typography variant="h6" color="text.secondary">
                       No pending data change submissions found
