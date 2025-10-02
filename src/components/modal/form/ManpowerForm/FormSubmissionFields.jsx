@@ -109,7 +109,7 @@ const FormSubmissionFields = ({
     error: positionsError,
     isFetching: positionsFetching,
   } = useGetManpowerOptionsQuery(undefined, {
-    skip: isReadOnly,
+    skip: false,
   });
 
   const {
@@ -118,7 +118,7 @@ const FormSubmissionFields = ({
     error: jobLevelsError,
     isFetching: jobLevelsFetching,
   } = useGetAllJobLevelsQuery(undefined, {
-    skip: isReadOnly,
+    skip: false,
   });
 
   const {
@@ -127,7 +127,7 @@ const FormSubmissionFields = ({
     error: requisitionsError,
     isFetching: requisitionsFetching,
   } = useGetAllRequisitionsQuery(undefined, {
-    skip: isReadOnly,
+    skip: false,
   });
 
   const [
@@ -151,7 +151,6 @@ const FormSubmissionFields = ({
     },
     {
       skip:
-        isReadOnly ||
         !watchedRequisitionType ||
         watchedRequisitionType.name !== "REPLACEMENT DUE TO EMPLOYEE MOVEMENT",
     }
@@ -359,7 +358,6 @@ const FormSubmissionFields = ({
                   if (!option || !value) return false;
                   return option.id === value.id;
                 }}
-                readOnly={isReadOnly || isEditMode}
                 disablePortal
                 renderInput={(params) => (
                   <StyledTextField
@@ -377,7 +375,6 @@ const FormSubmissionFields = ({
                     InputProps={{
                       ...params.InputProps,
                       readOnly: isReadOnly || isEditMode,
-                      endAdornment: params.InputProps.endAdornment,
                     }}
                   />
                 )}
@@ -423,7 +420,6 @@ const FormSubmissionFields = ({
                   if (!option || !value) return false;
                   return option.id === value.id;
                 }}
-                readOnly={isReadOnly || isEditMode}
                 disablePortal
                 renderInput={(params) => (
                   <StyledTextField
@@ -441,7 +437,6 @@ const FormSubmissionFields = ({
                     InputProps={{
                       ...params.InputProps,
                       readOnly: isReadOnly || isEditMode,
-                      endAdornment: params.InputProps.endAdornment,
                     }}
                   />
                 )}
@@ -490,7 +485,6 @@ const FormSubmissionFields = ({
                     if (!option || !value) return false;
                     return option.id === value.id;
                   }}
-                  readOnly={isReadOnly || isEditMode}
                   disablePortal
                   renderInput={(params) => (
                     <StyledTextField
@@ -519,7 +513,6 @@ const FormSubmissionFields = ({
                       InputProps={{
                         ...params.InputProps,
                         readOnly: isReadOnly || isEditMode,
-                        endAdornment: params.InputProps.endAdornment,
                       }}
                     />
                   )}
@@ -558,7 +551,6 @@ const FormSubmissionFields = ({
                     if (!option || !value) return false;
                     return option.id === value.id;
                   }}
-                  readOnly={isReadOnly || isEditMode}
                   disablePortal
                   renderInput={(params) => (
                     <StyledTextField
@@ -583,7 +575,6 @@ const FormSubmissionFields = ({
                       InputProps={{
                         ...params.InputProps,
                         readOnly: isReadOnly || isEditMode,
-                        endAdornment: params.InputProps.endAdornment,
                       }}
                     />
                   )}
@@ -627,7 +618,6 @@ const FormSubmissionFields = ({
                     if (!option || !value) return false;
                     return option.id === value.id;
                   }}
-                  readOnly={isReadOnly}
                   disablePortal
                   renderInput={(params) => (
                     <StyledTextField
@@ -642,7 +632,6 @@ const FormSubmissionFields = ({
                       InputProps={{
                         ...params.InputProps,
                         readOnly: isReadOnly,
-                        endAdornment: params.InputProps.endAdornment,
                       }}
                     />
                   )}
@@ -681,7 +670,6 @@ const FormSubmissionFields = ({
                   if (!option || !value) return false;
                   return option.id === value.id;
                 }}
-                readOnly={isReadOnly}
                 disablePortal
                 renderInput={(params) => (
                   <StyledTextField
@@ -694,7 +682,6 @@ const FormSubmissionFields = ({
                     InputProps={{
                       ...params.InputProps,
                       readOnly: isReadOnly,
-                      endAdornment: params.InputProps.endAdornment,
                     }}
                   />
                 )}

@@ -101,7 +101,7 @@ export const pendingRegistrationStyles = {
 
   headerTitleText: {
     fontSize: "24px",
-    fontWeight: 700,
+    fontWeight: 500,
     color: "rgb(33, 61, 112)",
     letterSpacing: "0.5px",
   },

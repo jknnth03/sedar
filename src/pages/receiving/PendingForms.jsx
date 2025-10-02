@@ -348,7 +348,7 @@ const PendingForms = () => {
               className="header"
               sx={{
                 fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                fontWeight: 700,
+                fontWeight: 500,
                 color: "rgb(33, 61, 112)",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",

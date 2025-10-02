@@ -14,7 +14,6 @@ import {
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../manpowerform/FormSubmissionStyles";
 import {
   useGetDataChangeSubmissionsQuery,
   useGetDataChangeSubmissionDetailsQuery,
@@ -22,24 +21,29 @@ import {
   useUpdateDataChangeSubmissionMutation,
   useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
-import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
+import {
+  useCreateMdaMutation,
+  useUpdateMdaMutation,
+} from "../../../features/api/forms/mdaApi";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
+import DataChangeForApprovalTable from "../201datachange/DataChangeForapprovalTable";
 
-const DataChangeForApproval = ({
+const DataChangeForMDAProcessing = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
-  setQueryParams,
-  currentParams,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -55,10 +59,16 @@ const DataChangeForApproval = ({
   const [pendingFormData, setPendingFormData] = useState(null);
   const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
 
+  // MDA Modal states
+  const [mdaModalOpen, setMdaModalOpen] = useState(false);
+  const [mdaSubmissionId, setMdaSubmissionId] = useState(null);
+  const [selectedMdaSubmission, setSelectedMdaSubmission] = useState(null);
+
   const handleModalSuccessCallback = useCallback((successHandler) => {
     setModalSuccessHandler(() => successHandler);
   }, []);
 
+  // DataChange form methods
   const methods = useForm({
     defaultValues: {
       reason_for_change: "",
@@ -68,13 +78,40 @@ const DataChangeForApproval = ({
     },
   });
 
-  const queryParams = useMemo(() => {
+  // MDA form methods
+  const mdaFormMethods = useForm({
+    defaultValues: {
+      form_id: 5,
+      employee_movement_id: null,
+      employee_id: "",
+      employee_name: "",
+      employee_number: "",
+      effective_date: null,
+      action_type: "",
+      birth_date: null,
+      birth_place: "",
+      gender: "",
+      nationality: "",
+      address: "",
+      tin_number: "",
+      sss_number: "",
+      pag_ibig_number: "",
+      philhealth_number: "",
+      to_position_id: null,
+      to_position_title: "",
+      to_job_grade: "",
+      to_basic_salary: "",
+      to_training_allowance: "",
+    },
+  });
+
+  const apiQueryParams = useMemo(() => {
     return {
       page: 1,
       per_page: 10,
       status: "active",
       pagination: 1,
-      approval_status: "pending",
+      approval_status: "for_mda_processing",
     };
   }, []);
 
@@ -89,7 +126,7 @@ const DataChangeForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetDataChangeSubmissionsQuery(queryParams, {
+  } = useGetDataChangeSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -107,12 +144,19 @@ const DataChangeForApproval = ({
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
   const [resubmitDataChangeSubmission] =
     useResubmitDataChangeSubmissionMutation();
-  const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
+
+  // MDA mutations
+  const [createMda, { isLoading: isCreatingMda }] = useCreateMdaMutation();
+  const [updateMda, { isLoading: isUpdatingMda }] = useUpdateMdaMutation();
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
     let filtered = rawData;
+
+    filtered = filtered.filter(
+      (submission) => submission.status === "PENDING MDA CREATION"
+    );
 
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
@@ -157,24 +201,14 @@ const DataChangeForApproval = ({
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleResubmitSubmission = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setSelectedRowForMenu(null);
+    setSelectedSubmissionForAction(submission);
+    setModalMode("resubmit");
+    setModalOpen(true);
+  }, []);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -189,17 +223,93 @@ const DataChangeForApproval = ({
     }
   }, [selectedSubmissionId, refetchDetails]);
 
+  const handleCreateMDA = useCallback((submission) => {
+    console.log("Creating MDA for submission:", submission);
+
+    const submissionIdForPrefill = submission.submittable?.id || submission.id;
+
+    setMdaSubmissionId(submissionIdForPrefill);
+    setSelectedMdaSubmission(submission);
+    setMdaModalOpen(true);
+  }, []);
+
+  const handleMdaModalClose = useCallback(() => {
+    setMdaModalOpen(false);
+    setMdaSubmissionId(null);
+    setSelectedMdaSubmission(null);
+    mdaFormMethods.reset({
+      form_id: 5,
+      employee_movement_id: null,
+      employee_id: "",
+      employee_name: "",
+      employee_number: "",
+      effective_date: null,
+      action_type: "",
+      birth_date: null,
+      birth_place: "",
+      gender: "",
+      nationality: "",
+      address: "",
+      tin_number: "",
+      sss_number: "",
+      pag_ibig_number: "",
+      philhealth_number: "",
+      to_position_id: null,
+      to_position_title: "",
+      to_job_level: "",
+      to_basic_salary: "",
+      to_training_allowance: "",
+    });
+  }, [mdaFormMethods]);
+
+  const handleSaveMDA = useCallback(
+    async (data, mode) => {
+      try {
+        console.log("Saving MDA:", { data, mode });
+
+        if (mode === "create") {
+          const result = await createMda(data).unwrap();
+          enqueueSnackbar("MDA created successfully!", {
+            variant: "success",
+            autoHideDuration: 3000,
+          });
+          setMdaModalOpen(false);
+          mdaFormMethods.reset();
+          refetch(); // Refresh the submissions list
+        } else if (mode === "edit") {
+          const result = await updateMda({
+            id: selectedMdaSubmission.id,
+            data: data,
+          }).unwrap();
+          enqueueSnackbar("MDA updated successfully!", {
+            variant: "success",
+            autoHideDuration: 3000,
+          });
+          setMdaModalOpen(false);
+          refetch();
+        }
+      } catch (error) {
+        console.error("Error saving MDA:", error);
+        const errorMessage =
+          error?.data?.message || "Failed to save MDA. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      }
+    },
+    [
+      createMda,
+      updateMda,
+      selectedMdaSubmission,
+      refetch,
+      enqueueSnackbar,
+      mdaFormMethods,
+    ]
+  );
+
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
-      console.log("=== HANDLE MODAL SAVE DEBUG ===");
-      console.log("Mode:", mode);
-      console.log("Submission ID received:", submissionId);
-      console.log("submissionDetails:", submissionDetails);
-      console.log(
-        "submissionDetails.result.id:",
-        submissionDetails?.result?.id
-      );
-
       if (mode === "create") {
         setPendingFormData(submissionData);
         setConfirmAction("create");
@@ -209,12 +319,8 @@ const DataChangeForApproval = ({
 
       if (mode === "edit") {
         const submission =
-          submissionDetails?.result ||
+          submissionDetails ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        console.log("Found submission for edit:", submission);
-        console.log("Submission ID:", submission?.id);
-
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
         setConfirmAction("update");
@@ -224,9 +330,8 @@ const DataChangeForApproval = ({
 
       if (mode === "resubmit") {
         const submission =
-          submissionDetails?.result ||
+          submissionDetails ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
-
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
         setConfirmAction("resubmit");
@@ -284,7 +389,7 @@ const DataChangeForApproval = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -292,7 +397,7 @@ const DataChangeForApproval = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, queryParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -304,7 +409,7 @@ const DataChangeForApproval = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -312,7 +417,7 @@ const DataChangeForApproval = ({
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, queryParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -325,16 +430,7 @@ const DataChangeForApproval = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDataChangeSubmission(
-          selectedSubmissionForAction.id
-        ).unwrap();
-        enqueueSnackbar("Data change submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createDataChangeSubmission(pendingFormData).unwrap();
         enqueueSnackbar("Data change submission created successfully!", {
           variant: "success",
@@ -347,40 +443,17 @@ const DataChangeForApproval = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        console.log("=== UPDATE ACTION DEBUG ===");
-        console.log("Selected Submission ID:", selectedSubmissionForAction.id);
-        console.log(
-          "Pending Form Data Type:",
-          pendingFormData instanceof FormData
-            ? "FormData"
-            : typeof pendingFormData
-        );
-        console.log("Sending update with:", {
+        await updateDataChangeSubmission({
           id: selectedSubmissionForAction.id,
-          data: pendingFormData,
+          body: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("Data change submission updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
         });
-
-        try {
-          const result = await updateDataChangeSubmission({
-            id: selectedSubmissionForAction.id,
-            data: pendingFormData,
-          }).unwrap();
-
-          console.log("Update successful:", result);
-
-          enqueueSnackbar("Data change submission updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          handleModalClose();
-        } catch (updateError) {
-          console.error("=== UPDATE ERROR ===");
-          console.error("Error object:", updateError);
-          console.error("Error status:", updateError?.status);
-          console.error("Error data:", updateError?.data);
-          console.error("Error message:", updateError?.message);
-          throw updateError;
+        refetch();
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
         }
       } else if (confirmAction === "resubmit" && pendingFormData) {
         await resubmitDataChangeSubmission(pendingFormData).unwrap();
@@ -418,14 +491,7 @@ const DataChangeForApproval = ({
   }, []);
 
   const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "cancel") {
-      return (
-        <>
-          Are you sure you want to <strong>Cancel</strong> this Data Change
-          Request?
-        </>
-      );
-    } else if (confirmAction === "create") {
+    if (confirmAction === "create") {
       return (
         <>
           Are you sure you want to <strong>Create</strong> this Data Change
@@ -466,17 +532,25 @@ const DataChangeForApproval = ({
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
-      cancel: { color: "#ff4400", icon: "?" },
       create: { color: "#4caf50", icon: "+" },
       update: { color: "#2196f3", icon: "✎" },
       resubmit: { color: "#ff9800", icon: "↻" },
     };
 
-    const config = iconConfig[confirmAction] || iconConfig.cancel;
+    const config = iconConfig[confirmAction] || iconConfig.create;
     return config;
   }, [confirmAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
+
+  // Mock positions data - replace with actual API call
+  const positions = [
+    { id: 10, title: "JUNIOR DEVELOPER" },
+    { id: 11, title: "SENIOR DEVELOPER" },
+    { id: 12, title: "TEAM LEAD" },
+    { id: 13, title: "PROJECT MANAGER" },
+    // TODO: Fetch from positions API
+  ];
 
   return (
     <FormProvider {...methods}>
@@ -497,7 +571,7 @@ const DataChangeForApproval = ({
             flexDirection: "column",
             backgroundColor: "white",
           }}>
-          <DataChangeForapprovalTable
+          <DataChangeForApprovalTable
             submissionsList={paginatedSubmissions}
             isLoadingState={isLoadingState}
             error={error}
@@ -505,13 +579,14 @@ const DataChangeForApproval = ({
             handleMenuOpen={handleMenuOpen}
             handleMenuClose={handleMenuClose}
             handleEditSubmission={handleEditSubmission}
+            handleResubmitSubmission={handleResubmitSubmission}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
-            forApproval={true}
-            onCancel={handleCancelSubmission}
+            hideStatusColumn={false}
+            forMDAProcessing={true}
+            onCreateMDA={handleCreateMDA} // Add this prop
           />
 
           <Box
@@ -556,6 +631,7 @@ const DataChangeForApproval = ({
           </Box>
         </Box>
 
+        {/* DataChange Modal */}
         <DataChangeModal
           open={modalOpen}
           onClose={handleModalClose}
@@ -566,8 +642,26 @@ const DataChangeForApproval = ({
           onSave={handleModalSave}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}
+          onCreateMDA={handleCreateMDA}
         />
 
+        {/* MDA Modal */}
+        <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
+          <MDAFormModal
+            open={mdaModalOpen}
+            onClose={handleMdaModalClose}
+            onSave={handleSaveMDA}
+            selectedEntry={null}
+            isLoading={isCreatingMda || isUpdatingMda}
+            mode="create"
+            employeeMovements={[]}
+            positions={positions}
+            submissionId={mdaSubmissionId}
+            key={`mda-${mdaSubmissionId}-${mdaModalOpen}`} // Add this key
+          />
+        </FormProvider>
+
+        {/* Confirmation Dialog */}
         <Dialog
           open={confirmOpen}
           onClose={handleConfirmationCancel}
@@ -695,4 +789,4 @@ const DataChangeForApproval = ({
   );
 };
 
-export default DataChangeForApproval;
+export default DataChangeForMDAProcessing;

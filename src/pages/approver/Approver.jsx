@@ -38,7 +38,7 @@ import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import { useGetApproversQuery } from "../../features/api/approvalsetting/approverApi";
 import { CONSTANT } from "../../config";
-import ApproverModal from "../../components/modal/approvalSettings/ApproverModal";
+import ApproverModal from "../../components/modal/approvalsettings/ApproverModal";
 import {
   useCreateApproverMutation,
   useDeleteApproverMutation,

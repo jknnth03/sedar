@@ -24,22 +24,22 @@ import {
 } from "../../../features/api/forms/datachangeApi";
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 
-const DataChangeForApproval = ({
+const DataChangeAwaitingResubmission = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
-  setQueryParams,
-  currentParams,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -68,13 +68,13 @@ const DataChangeForApproval = ({
     },
   });
 
-  const queryParams = useMemo(() => {
+  const apiQueryParams = useMemo(() => {
     return {
       page: 1,
       per_page: 10,
       status: "active",
+      approval_status: "awaiting resubmission",
       pagination: 1,
-      approval_status: "pending",
     };
   }, []);
 
@@ -89,7 +89,7 @@ const DataChangeForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetDataChangeSubmissionsQuery(queryParams, {
+  } = useGetDataChangeSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -107,12 +107,15 @@ const DataChangeForApproval = ({
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
   const [resubmitDataChangeSubmission] =
     useResubmitDataChangeSubmissionMutation();
-  const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
-    let filtered = rawData;
+    let filtered = rawData.filter(
+      (item) =>
+        item.approval_status === "awaiting resubmission" ||
+        item.approval_status === "awaiting_resubmission"
+    );
 
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
@@ -157,25 +160,6 @@ const DataChangeForApproval = ({
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
-
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedSubmissionId(null);
@@ -191,15 +175,6 @@ const DataChangeForApproval = ({
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
-      console.log("=== HANDLE MODAL SAVE DEBUG ===");
-      console.log("Mode:", mode);
-      console.log("Submission ID received:", submissionId);
-      console.log("submissionDetails:", submissionDetails);
-      console.log(
-        "submissionDetails.result.id:",
-        submissionDetails?.result?.id
-      );
-
       if (mode === "create") {
         setPendingFormData(submissionData);
         setConfirmAction("create");
@@ -211,10 +186,6 @@ const DataChangeForApproval = ({
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        console.log("Found submission for edit:", submission);
-        console.log("Submission ID:", submission?.id);
-
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
         setConfirmAction("update");
@@ -226,7 +197,6 @@ const DataChangeForApproval = ({
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
-
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
         setConfirmAction("resubmit");
@@ -284,7 +254,7 @@ const DataChangeForApproval = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -292,7 +262,7 @@ const DataChangeForApproval = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, queryParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -304,7 +274,7 @@ const DataChangeForApproval = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -312,7 +282,7 @@ const DataChangeForApproval = ({
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, queryParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -325,16 +295,7 @@ const DataChangeForApproval = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDataChangeSubmission(
-          selectedSubmissionForAction.id
-        ).unwrap();
-        enqueueSnackbar("Data change submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createDataChangeSubmission(pendingFormData).unwrap();
         enqueueSnackbar("Data change submission created successfully!", {
           variant: "success",
@@ -347,41 +308,16 @@ const DataChangeForApproval = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        console.log("=== UPDATE ACTION DEBUG ===");
-        console.log("Selected Submission ID:", selectedSubmissionForAction.id);
-        console.log(
-          "Pending Form Data Type:",
-          pendingFormData instanceof FormData
-            ? "FormData"
-            : typeof pendingFormData
-        );
-        console.log("Sending update with:", {
+        await updateDataChangeSubmission({
           id: selectedSubmissionForAction.id,
           data: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("Data change submission updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
         });
-
-        try {
-          const result = await updateDataChangeSubmission({
-            id: selectedSubmissionForAction.id,
-            data: pendingFormData,
-          }).unwrap();
-
-          console.log("Update successful:", result);
-
-          enqueueSnackbar("Data change submission updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          handleModalClose();
-        } catch (updateError) {
-          console.error("=== UPDATE ERROR ===");
-          console.error("Error object:", updateError);
-          console.error("Error status:", updateError?.status);
-          console.error("Error data:", updateError?.data);
-          console.error("Error message:", updateError?.message);
-          throw updateError;
-        }
+        refetch();
+        handleModalClose();
       } else if (confirmAction === "resubmit" && pendingFormData) {
         await resubmitDataChangeSubmission(pendingFormData).unwrap();
         enqueueSnackbar("Data change submission resubmitted successfully!", {
@@ -418,14 +354,7 @@ const DataChangeForApproval = ({
   }, []);
 
   const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "cancel") {
-      return (
-        <>
-          Are you sure you want to <strong>Cancel</strong> this Data Change
-          Request?
-        </>
-      );
-    } else if (confirmAction === "create") {
+    if (confirmAction === "create") {
       return (
         <>
           Are you sure you want to <strong>Create</strong> this Data Change
@@ -466,13 +395,12 @@ const DataChangeForApproval = ({
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
-      cancel: { color: "#ff4400", icon: "?" },
       create: { color: "#4caf50", icon: "+" },
       update: { color: "#2196f3", icon: "✎" },
       resubmit: { color: "#ff9800", icon: "↻" },
     };
 
-    const config = iconConfig[confirmAction] || iconConfig.cancel;
+    const config = iconConfig[confirmAction] || iconConfig.create;
     return config;
   }, [confirmAction]);
 
@@ -511,7 +439,6 @@ const DataChangeForApproval = ({
             showArchived={false}
             hideStatusColumn={true}
             forApproval={true}
-            onCancel={handleCancelSubmission}
           />
 
           <Box
@@ -695,4 +622,4 @@ const DataChangeForApproval = ({
   );
 };
 
-export default DataChangeForApproval;
+export default DataChangeAwaitingResubmission;

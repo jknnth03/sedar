@@ -188,18 +188,56 @@ const formSubmissionApi = sedarApi
           method: "POST",
           body,
         }),
-        invalidatesTags: ["formSubmissions"],
+        invalidatesTags: ["formSubmissions", "mrfSubmissions"],
       }),
 
       updateFormSubmission: build.mutation({
-        query: ({ id, data }) => ({
-          url: `form-submissions/${id}`,
-          method: "POST",
-          body: data,
-        }),
+        query: ({ id, data }) => {
+          const formData = new FormData();
+
+          Object.keys(data).forEach((key) => {
+            if (data[key] !== undefined && data[key] !== null) {
+              if (Array.isArray(data[key])) {
+                data[key].forEach((item, index) => {
+                  if (typeof item === "object" && item !== null) {
+                    Object.keys(item).forEach((itemKey) => {
+                      if (
+                        item[itemKey] !== undefined &&
+                        item[itemKey] !== null
+                      ) {
+                        formData.append(
+                          `${key}[${index}][${itemKey}]`,
+                          item[itemKey]
+                        );
+                      }
+                    });
+                  } else {
+                    formData.append(`${key}[${index}]`, item);
+                  }
+                });
+              } else if (
+                typeof data[key] === "object" &&
+                !(data[key] instanceof File)
+              ) {
+                formData.append(key, JSON.stringify(data[key]));
+              } else {
+                formData.append(key, data[key]);
+              }
+            }
+          });
+
+          formData.append("_method", "PATCH");
+
+          return {
+            url: `form-submissions/${id}`,
+            method: "POST",
+            body: formData,
+          };
+        },
         invalidatesTags: (result, error, { id }) => [
           { type: "formSubmissions", id },
           "formSubmissions",
+          "mrfSubmissions",
         ],
       }),
 
@@ -211,6 +249,7 @@ const formSubmissionApi = sedarApi
         invalidatesTags: (result, error, submissionId) => [
           { type: "formSubmissions", id: submissionId },
           "formSubmissions",
+          "mrfSubmissions",
         ],
       }),
 
@@ -222,6 +261,7 @@ const formSubmissionApi = sedarApi
         invalidatesTags: (result, error, submissionId) => [
           { type: "formSubmissions", id: submissionId },
           "formSubmissions",
+          "mrfSubmissions",
         ],
       }),
 
@@ -233,6 +273,7 @@ const formSubmissionApi = sedarApi
         invalidatesTags: (result, error, submissionId) => [
           { type: "formSubmissions", id: submissionId },
           "formSubmissions",
+          "mrfSubmissions",
         ],
       }),
     }),

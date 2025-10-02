@@ -468,7 +468,9 @@ const JobRates = () => {
                   </TableCell>
                 )}
                 {!isMobile && (
-                  <TableCell align="left" sx={{ width: "120px" }}>
+                  <TableCell
+                    align="left"
+                    sx={{ width: "120px", whiteSpace: "nowrap" }}>
                     TOTAL SALARY
                   </TableCell>
                 )}

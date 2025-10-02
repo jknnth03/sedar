@@ -422,17 +422,17 @@ const Jobbands = () => {
             <TableHead>
               <TableRow>
                 <TableCell
-                  align="center"
+                  align="left"
                   sx={{ width: isVerySmall ? "40px" : "60px" }}>
                   ID
                 </TableCell>
                 <TableCell
-                  align="center"
+                  align="left"
                   sx={{ width: isMobile ? "120px" : "300px" }}>
                   JOB BAND
                 </TableCell>
                 <TableCell
-                  align="center"
+                  align="left"
                   sx={{ width: isVerySmall ? "60px" : "100px" }}>
                   CODE
                 </TableCell>
@@ -464,7 +464,7 @@ const Jobbands = () => {
               ) : jobbandList.length > 0 ? (
                 jobbandList.map((jobband) => (
                   <TableRow key={jobband.id}>
-                    <TableCell align="center">{jobband.id}</TableCell>
+                    <TableCell align="left">{jobband.id}</TableCell>
                     <TableCell
                       sx={{
                         width: isMobile ? "120px" : "300px",
@@ -473,12 +473,12 @@ const Jobbands = () => {
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                         fontWeight: 600,
-                        textAlign: "center",
+                        textAlign: "left",
                       }}>
                       {jobband.name}
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="left"
                       sx={{
                         fontFamily: "monospace",
                         fontSize: isVerySmall ? "10px" : "12px",

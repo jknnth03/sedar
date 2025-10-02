@@ -37,8 +37,8 @@ import ApprovalFlow from "../../pages/approver/ApprovalFlow.jsx";
 import ApprovalForm from "../../pages/approver/ApprovalForm.jsx";
 import SubmissionApproval from "../../pages/approver/submissionApproval/SubmissionApproval.jsx";
 import PendingForms from "../../pages/receiving/PendingForms.jsx";
-import Receiver from "../../pages/approver/Receiver.jsx";
-import Approver from "../../pages/approver/Approver.jsx";
+// import Receiver from "../../pages/approver/Receiver.jsx";
+// import Approver from "../../pages/approver/Approver.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approver/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
@@ -47,6 +47,8 @@ import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.js
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
+import DataChangeApproval from "../../pages/approver/dataChangeApproval/DataChangeApproval.jsx";
+import MDA from "../../pages/forms/mdaform/MDA.jsx";
 
 export const ROUTES = [
   {
@@ -109,22 +111,22 @@ export const ROUTES = [
             CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFLOW.name,
         },
       },
-      {
-        id: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.name,
-        path: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.path,
-        element: <Receiver />,
-        handle: {
-          permission: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.name,
-        },
-      },
-      {
-        id: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.name,
-        path: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.path,
-        element: <Approver />,
-        handle: {
-          permission: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.name,
-        },
-      },
+      // {
+      //   id: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.name,
+      //   path: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.path,
+      //   element: <Receiver />,
+      //   handle: {
+      //     permission: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.name,
+      //   },
+      // },
+      // {
+      //   id: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.name,
+      //   path: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.path,
+      //   element: <Approver />,
+      //   handle: {
+      //     permission: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.name,
+      //   },
+      // },
       {
         id: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.name,
         path: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.path,
@@ -140,6 +142,14 @@ export const ROUTES = [
         handle: {
           permission:
             CONSTANT.PAGES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.REQUEST.children.MDA.name,
+        path: CONSTANT.PAGES.REQUEST.children.MDA.path,
+        element: <MDA />,
+        handle: {
+          permission: CONSTANT.PAGES.REQUEST.children.MDA.name,
         },
       },
       {
@@ -173,6 +183,14 @@ export const ROUTES = [
         handle: {
           permission:
             CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.APPROVING.children.DATACHANGEAPPROVAL.name,
+        path: CONSTANT.PAGES.APPROVING.children.DATACHANGEAPPROVAL.path,
+        element: <DataChangeApproval />,
+        handle: {
+          permission: CONSTANT.PAGES.APPROVING.children.DATACHANGEAPPROVAL.name,
         },
       },
       {

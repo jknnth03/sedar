@@ -56,7 +56,7 @@ import {
 } from "../../features/api/approvalsetting/approvalFlowApi";
 import { CONSTANT } from "../../config";
 import dayjs from "dayjs";
-import ApprovalFlowModal from "../../components/modal/approvalSettings/approvalFlowModal";
+import ApprovalFlowModal from "../../components/modal/approvalsettings/approvalFlowModal";
 import {
   MainContainer,
   HeaderContainer,

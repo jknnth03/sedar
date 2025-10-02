@@ -52,6 +52,7 @@ import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import { format } from "date-fns";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -366,9 +367,24 @@ const PendingRegistration = () => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
 
-  const [activeTab, setActiveTab] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
+  const tabLabels = [
+    "ForApproval",
+    "AwaitingResubmission",
+    "Rejected",
+    "Cancelled",
+  ];
+
+  const getTabIndexFromParam = (tabParam) => {
+    const index = tabLabels.indexOf(tabParam);
+    return index >= 0 ? index : 0;
+  };
+
+  const initialTab = getTabIndexFromParam(currentParams?.tab);
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [searchQuery, setSearchQuery] = useState(currentParams?.q || "");
   const [dateFilters, setDateFilters] = useState({
     startDate: null,
     endDate: null,
@@ -397,6 +413,28 @@ const PendingRegistration = () => {
     });
 
   const debounceValue = useDebounce(searchQuery, 500);
+
+  useEffect(() => {
+    if (!currentParams?.tab) {
+      setQueryParams(
+        {
+          tab: tabLabels[initialTab],
+          q: searchQuery || "",
+        },
+        { retain: false }
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentParams?.tab) {
+      const tabIndex = getTabIndexFromParam(currentParams.tab);
+      setActiveTab(tabIndex);
+    }
+    if (currentParams?.q !== undefined) {
+      setSearchQuery(currentParams.q);
+    }
+  }, [currentParams?.tab, currentParams?.q]);
 
   const formatDateForAPI = (date) => {
     return date ? format(date, "yyyy-MM-dd") : null;
@@ -427,12 +465,28 @@ const PendingRegistration = () => {
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     setApiError(null);
+    setQueryParams(
+      {
+        tab: tabLabels[newValue],
+        q: searchQuery,
+      },
+      { retain: true }
+    );
   };
 
-  const handleSearchChange = useCallback((newSearchQuery) => {
-    setSearchQuery(newSearchQuery);
-    setApiError(null);
-  }, []);
+  const handleSearchChange = useCallback(
+    (newSearchQuery) => {
+      setSearchQuery(newSearchQuery);
+      setApiError(null);
+      setQueryParams(
+        {
+          q: newSearchQuery,
+        },
+        { retain: true }
+      );
+    },
+    [setQueryParams]
+  );
 
   const handleFilterClick = useCallback(() => {
     setFilterDialogOpen(true);

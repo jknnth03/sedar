@@ -213,7 +213,7 @@ const Roles = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [viewPermissionsOpen, setViewPermissionsOpen] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   const [isLoading, setIsLoading] = useState(false);
@@ -290,18 +290,27 @@ const Roles = () => {
   };
 
   const handleEditClick = () => {
+    setIsViewMode(false);
     setModalOpen(true);
     handleMenuClose();
   };
 
+  const handleViewPermissionsClick = (role) => {
+    setSelectedRole(role);
+    setIsViewMode(true);
+    setModalOpen(true);
+  };
+
   const handleAddClick = () => {
     setSelectedRole(null);
+    setIsViewMode(false);
     setModalOpen(true);
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
     setSelectedRole(null);
+    setIsViewMode(false);
   };
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -593,10 +602,7 @@ const Roles = () => {
                                 backgroundColor: "#e0e0e0",
                               },
                             }}
-                            onClick={() => {
-                              setSelectedRole(role);
-                              setViewPermissionsOpen(true);
-                            }}>
+                            onClick={() => handleViewPermissionsClick(role)}>
                             <VisibilityIcon
                               sx={{
                                 color: "rgb(33, 61, 112)",
@@ -827,58 +833,13 @@ const Roles = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={viewPermissionsOpen}
-        onClose={() => setViewPermissionsOpen(false)}
-        maxWidth="sm"
-        fullWidth>
-        <DialogTitle style={{ backgroundColor: "rgb(233, 246, 255)" }}>
-          <Typography
-            variant={isMobile ? "body1" : "h6"}
-            style={{ fontWeight: "bold" }}>
-            Access Permissions
-          </Typography>
-        </DialogTitle>
-        <DialogContent style={{ backgroundColor: "white" }}>
-          {selectedRole?.access_permissions?.length ? (
-            <div style={{ paddingTop: "1rem" }}>
-              {selectedRole.access_permissions.map((perm, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    borderBottom: "1px solid #ccc",
-                    padding: "0.5rem 0",
-                  }}>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontSize: isMobile ? "14px" : "16px" }}>
-                    {perm}
-                  </Typography>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Typography sx={{ fontSize: isMobile ? "14px" : "16px" }}>
-              No permissions assigned to this role.
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "right", pb: 2, pr: 2 }}>
-          <Button
-            onClick={() => setViewPermissionsOpen(false)}
-            variant="contained"
-            sx={{ fontSize: isMobile ? "12px" : "14px" }}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {modalOpen && (
         <RolesModal
           open={modalOpen}
           handleClose={handleModalClose}
           selectedRole={selectedRole}
           refetch={refetch}
+          isViewMode={isViewMode}
         />
       )}
     </>

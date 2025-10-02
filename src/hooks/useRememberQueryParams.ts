@@ -17,10 +17,8 @@ export const useRememberQueryParams = (): [
   (paramKey?: string | string[]) => void
 ] => {
   const [searchParams, setSearchParams] = useSearchParams();
-  // Convert searchParams to a regular object
   const currentParams = Object.fromEntries(searchParams.entries());
 
-  // Function to set query parameters
   const setQueryParams: SetQueryParamsAction = (
     params,
     config = { retain: false }
@@ -39,15 +37,12 @@ export const useRememberQueryParams = (): [
 
     setSearchParams(newParams);
   };
-  // Function to remove query parameters - now handles no arguments
   const removeQueryParams = (paramKey?: string | string[]) => {
     if (!paramKey) {
-      // Actually clear all parameters when called with no arguments
       setSearchParams({});
       return;
     }
 
-    // Convert searchParams to a plain object
     const newParams = Object.fromEntries(searchParams.entries());
 
     const keysToRemove = Array.isArray(paramKey) ? paramKey : [paramKey];

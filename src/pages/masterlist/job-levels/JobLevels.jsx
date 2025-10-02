@@ -427,27 +427,27 @@ const JobLevels = () => {
             <TableHead>
               <TableRow>
                 <TableCell
-                  align="center"
+                  align="left"
                   sx={{ width: isVerySmall ? "40px" : "60px" }}>
                   ID
                 </TableCell>
                 <TableCell
-                  align="center"
-                  sx={{ width: isMobile ? "80px" : "120px" }}>
+                  align="left"
+                  sx={{ width: isMobile ? "80px" : "80px" }}>
                   LEVEL
                 </TableCell>
                 <TableCell
-                  align="center"
-                  sx={{ width: isVerySmall ? "60px" : "80px" }}>
+                  align="left"
+                  sx={{ width: isVerySmall ? "80px" : "80px" }}>
                   CODE
                 </TableCell>
                 {!isMobile && (
-                  <TableCell align="center" sx={{ width: "140px" }}>
+                  <TableCell align="left" sx={{ width: "140px" }}>
                     SALARY STRUCTURE
                   </TableCell>
                 )}
                 {!isMobile && (
-                  <TableCell align="center" sx={{ width: "140px" }}>
+                  <TableCell align="left" sx={{ width: "140px" }}>
                     PAY FREQUENCY
                   </TableCell>
                 )}
@@ -479,9 +479,9 @@ const JobLevels = () => {
               ) : joblevelList.length > 0 ? (
                 joblevelList.map((joblevel) => (
                   <TableRow key={joblevel.id}>
-                    <TableCell align="center">{joblevel.id}</TableCell>
+                    <TableCell align="left">{joblevel.id}</TableCell>
                     <TableCell
-                      align="center"
+                      align="left"
                       sx={{
                         width: isMobile ? "80px" : "120px",
                         minWidth: isMobile ? "60px" : "100px",
@@ -493,7 +493,7 @@ const JobLevels = () => {
                       {joblevel.name}
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="left"
                       sx={{
                         fontFamily: "monospace",
                         fontSize: isVerySmall ? "10px" : "12px",
@@ -502,7 +502,7 @@ const JobLevels = () => {
                     </TableCell>
                     {!isMobile && (
                       <TableCell
-                        align="center"
+                        align="left"
                         sx={{
                           width: "140px",
                           minWidth: "120px",
@@ -515,7 +515,7 @@ const JobLevels = () => {
                     )}
                     {!isMobile && (
                       <TableCell
-                        align="center"
+                        align="left"
                         sx={{
                           width: "140px",
                           minWidth: "120px",

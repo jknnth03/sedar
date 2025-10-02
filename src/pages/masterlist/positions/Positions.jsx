@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
-  Paper,
   Typography,
   Table,
   TableBody,
@@ -20,9 +19,6 @@ import {
   Button,
   Chip,
   Tooltip,
-  ListItemText,
-  ListItem,
-  List,
   Box,
   Link,
   TextField,
@@ -30,12 +26,12 @@ import {
   FormControlLabel,
   useMediaQuery,
   useTheme,
+  Fade,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import RestoreIcon from "@mui/icons-material/Restore";
-import HelpIcon from "@mui/icons-material/Help";
 import AddIcon from "@mui/icons-material/Add";
 import ShareLocationIcon from "@mui/icons-material/ShareLocation";
 import SearchIcon from "@mui/icons-material/Search";
@@ -49,10 +45,16 @@ import PositionsModal from "../../../components/modal/masterlist/PositionsModal"
 import PositionDialog from "./PositionDialog";
 import CoaDialog from "./CoaDialog";
 import "../../../pages/GeneralStyle.scss";
-import "../../../pages/GeneralTable.scss";
 import { useSnackbar } from "notistack";
 import useDebounce from "../../../hooks/useDebounce";
-import { CONSTANT } from "../../../config";
+import {
+  positionStyles,
+  searchBarStyles,
+  tableStyles,
+  headerStyles,
+  mainContainerStyles,
+  contentContainerStyles,
+} from "./PositionStyles";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -64,32 +66,17 @@ const CustomSearchBar = ({
   const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
-  const archivedIconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
+  const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
+  const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
-    <Box
-      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
-      className="search-bar-container">
+    <Box sx={searchBarStyles.container} className="search-bar-container">
       {isVerySmall ? (
         <IconButton
           onClick={() => setShowArchived(!showArchived)}
           disabled={isLoading}
           size="small"
-          sx={{
-            width: "36px",
-            height: "36px",
-            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-            borderRadius: "8px",
-            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-            color: archivedIconColor,
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              backgroundColor: showArchived
-                ? "rgba(211, 47, 47, 0.08)"
-                : "#f5f5f5",
-              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-            },
-          }}>
+          sx={searchBarStyles.archivedIconButton(showArchived)}>
           <ArchiveIcon sx={{ fontSize: "18px" }} />
         </IconButton>
       ) : (
@@ -99,35 +86,13 @@ const CustomSearchBar = ({
               checked={showArchived}
               onChange={(e) => setShowArchived(e.target.checked)}
               disabled={isLoading}
-              icon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
-              checkedIcon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
+              icon={<ArchiveIcon sx={{ color: iconColor }} />}
+              checkedIcon={<ArchiveIcon sx={{ color: iconColor }} />}
               size="small"
             />
           }
           label="ARCHIVED"
-          className="archived-checkbox"
-          sx={{
-            margin: 0,
-            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-            borderRadius: "8px",
-            paddingLeft: "8px",
-            paddingRight: "12px",
-            height: "36px",
-            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              backgroundColor: showArchived
-                ? "rgba(211, 47, 47, 0.08)"
-                : "#f5f5f5",
-              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-            },
-            "& .MuiFormControlLabel-label": {
-              fontSize: "12px",
-              fontWeight: 600,
-              color: archivedIconColor,
-              letterSpacing: "0.5px",
-            },
-          }}
+          sx={searchBarStyles.archivedCheckbox(showArchived)}
         />
       )}
 
@@ -153,38 +118,10 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
           },
         }}
-        sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
-          "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
-        }}
+        sx={searchBarStyles.searchTextField(isVerySmall, isLoading)}
       />
     </Box>
   );
@@ -195,6 +132,7 @@ const Positions = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -209,20 +147,27 @@ const Positions = () => {
   const [toolsDialogOpen, setToolsDialogOpen] = useState(false);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [requestorsDialogOpen, setRequestorsDialogOpen] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
+  const [isLoading, setIsLoading] = useState(false);
+
   const debounceValue = useDebounce(searchQuery, 500);
+
+  const queryParams = useMemo(
+    () => ({
+      search: debounceValue,
+      page,
+      per_page: rowsPerPage,
+      status: showArchived ? "inactive" : "active",
+    }),
+    [debounceValue, page, rowsPerPage, showArchived]
+  );
 
   const {
     data: positions,
-    isLoading,
+    isLoading: queryLoading,
     isFetching,
     refetch,
-  } = useGetPositionsQuery({
-    search: debounceValue,
-    page,
-    per_page: rowsPerPage,
-    status: showArchived ? "inactive" : "active",
-  });
+    error,
+  } = useGetPositionsQuery(queryParams);
 
   const [archivePosition] = useDeletePositionMutation();
 
@@ -259,28 +204,31 @@ const Positions = () => {
     return null;
   };
 
-  const handleMenuOpen = (event, positionId) => {
+  const handleMenuOpen = useCallback((event, position) => {
     event.stopPropagation();
-    setMenuAnchor({ [positionId]: event.currentTarget });
-  };
+    setMenuAnchor((prev) => ({ ...prev, [position.id]: event.currentTarget }));
+  }, []);
 
-  const handleMenuClose = (positionId) => {
-    setMenuAnchor((prev) => {
-      const { [positionId]: _, ...rest } = prev;
-      return rest;
-    });
-  };
+  const handleMenuClose = useCallback((positionId) => {
+    setMenuAnchor((prev) => ({ ...prev, [positionId]: null }));
+  }, []);
 
-  const handleArchiveRestoreClick = (position) => {
-    handleMenuClose(position.id);
-    setTimeout(() => {
+  const handleArchiveRestoreClick = useCallback(
+    (position, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
       setSelectedPosition(position);
       setConfirmOpen(true);
-    }, 200);
-  };
+      handleMenuClose(position.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedPosition) return;
+
+    setIsLoading(true);
     try {
       await archivePosition(selectedPosition.id).unwrap();
       enqueueSnackbar(
@@ -289,8 +237,6 @@ const Positions = () => {
           : "Position archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
-      setConfirmOpen(false);
-      setSelectedPosition(null);
       refetch();
     } catch (error) {
       enqueueSnackbar(
@@ -300,21 +246,28 @@ const Positions = () => {
           autoHideDuration: 2000,
         }
       );
+    } finally {
+      setConfirmOpen(false);
+      setSelectedPosition(null);
+      setIsLoading(false);
     }
   };
 
-  const handleAddPosition = () => {
+  const handleAddPosition = useCallback(() => {
     setSelectedPosition({});
     setEdit(false);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (position) => {
-    setSelectedPosition(position);
-    setEdit(true);
-    setModalOpen(true);
-    handleMenuClose(position.id);
-  };
+  const handleEditClick = useCallback(
+    (position) => {
+      setSelectedPosition(position);
+      setEdit(true);
+      setModalOpen(true);
+      handleMenuClose(position.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleRowClick = (position) => {
     setSelectedPosition(position);
@@ -363,101 +316,57 @@ const Positions = () => {
     setRequestorsDialogOpen(false);
   };
 
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const renderStatusChip = useCallback((position) => {
+    const isActive = !position.deleted_at;
+
+    return (
+      <Chip
+        label={isActive ? "ACTIVE" : "ARCHIVED"}
+        size="small"
+        sx={positionStyles.statusChip(position.deleted_at)}
+      />
+    );
+  }, []);
+
+  const isLoadingState = queryLoading || isFetching || isLoading;
+
   return (
     <>
-      <Box
-        sx={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
-        }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: isMobile || isTablet ? "flex-start" : "center",
-            justifyContent:
-              isMobile || isTablet ? "flex-start" : "space-between",
-            flexDirection: isMobile || isTablet ? "column" : "row",
-            flexShrink: 0,
-            minHeight: isMobile || isTablet ? "auto" : "72px",
-            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
-            backgroundColor: "white",
-            borderBottom: "1px solid #e0e0e0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            gap: isMobile || isTablet ? "16px" : "0",
-          }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-              width: isMobile || isTablet ? "100%" : "auto",
-              justifyContent: "flex-start",
-            }}>
+      <Box sx={mainContainerStyles}>
+        <Box sx={headerStyles.container}>
+          <Box sx={headerStyles.titleContainer}>
             <Typography className="header">
               {isVerySmall ? "POSITIONS" : "POSITIONS"}
             </Typography>
+
             {isVerySmall ? (
               <IconButton
                 onClick={handleAddPosition}
-                disabled={isLoading}
-                sx={{
-                  backgroundColor: "rgb(33, 61, 112)",
-                  color: "white",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: "rgb(25, 45, 84)",
-                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
-                }}>
+                disabled={isLoadingState}
+                sx={headerStyles.addIconButton}>
                 <AddIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             ) : (
-              <Button
-                variant="contained"
-                onClick={handleAddPosition}
-                startIcon={<AddIcon />}
-                disabled={isLoading}
-                className="create-button"
-                sx={{
-                  backgroundColor: "rgb(33, 61, 112)",
-                  height: isMobile ? "36px" : "38px",
-                  width: isMobile ? "auto" : "140px",
-                  minWidth: isMobile ? "100px" : "140px",
-                  padding: isMobile ? "0 16px" : "0 20px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: isMobile ? "12px" : "14px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "& .MuiButton-startIcon": {
-                    marginRight: isMobile ? "4px" : "8px",
-                  },
-                  "&:hover": {
-                    backgroundColor: "rgb(25, 45, 84)",
-                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
-                }}>
-                CREATE
-              </Button>
+              <Fade in={!isLoadingState}>
+                <Button
+                  variant="contained"
+                  onClick={handleAddPosition}
+                  startIcon={<AddIcon />}
+                  disabled={isLoadingState}
+                  className="create-button"
+                  sx={headerStyles.addButton}>
+                  CREATE
+                </Button>
+              </Fade>
             )}
           </Box>
 
@@ -466,245 +375,150 @@ const Positions = () => {
             setSearchQuery={handleSearchChange}
             showArchived={showArchived}
             setShowArchived={handleChangeArchived}
-            isLoading={isLoading || isFetching}
+            isLoading={isLoadingState}
           />
         </Box>
 
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-            margin: isMobile ? "8px" : "16px",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}>
-          <TableContainer
-            sx={{
-              flex: 1,
-              overflow: "auto",
-              "& .MuiTable-root": {
-                minWidth: isMobile ? "800px" : "100%",
-              },
-            }}>
-            <Table stickyHeader>
+        <Box sx={contentContainerStyles}>
+          <TableContainer sx={tableStyles.container}>
+            <Table stickyHeader sx={{ minWidth: isMobile ? 800 : 1400 }}>
               <TableHead>
                 <TableRow>
                   <TableCell
                     align="left"
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "60px",
-                      maxWidth: "80px",
-                      width: "70px",
+                      width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                      minWidth: isVerySmall
+                        ? "40px"
+                        : isMobile
+                        ? "50px"
+                        : "60px",
                     }}>
                     ID
                   </TableCell>
                   <TableCell
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "100px",
-                      maxWidth: "120px",
-                      width: "110px",
+                      width: isVerySmall ? "70px" : isMobile ? "80px" : "100px",
+                      minWidth: isVerySmall
+                        ? "70px"
+                        : isMobile
+                        ? "80px"
+                        : "100px",
                     }}>
                     CODE
                   </TableCell>
                   <TableCell
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "150px",
-                      maxWidth: "200px",
-                      width: "180px",
+                      width: isMobile ? "120px" : "180px",
+                      minWidth: isMobile ? "120px" : "180px",
                     }}>
                     NAME
                   </TableCell>
                   <TableCell
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "120px",
-                      maxWidth: "150px",
-                      width: "130px",
+                      width: isMobile ? "100px" : "130px",
+                      minWidth: isMobile ? "100px" : "130px",
                     }}>
                     CHARGING
                   </TableCell>
                   <TableCell
                     align="center"
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "80px",
-                      maxWidth: "100px",
-                      width: "90px",
+                      width: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
+                      minWidth: isVerySmall
+                        ? "50px"
+                        : isMobile
+                        ? "60px"
+                        : "70px",
                     }}>
                     COA
                   </TableCell>
                   <TableCell
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "120px",
-                      maxWidth: "150px",
-                      width: "140px",
+                      width: isMobile ? "100px" : "140px",
+                      minWidth: isMobile ? "100px" : "140px",
                     }}>
                     SUPERIOR
                   </TableCell>
                   <TableCell
                     align="center"
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "110px",
-                      maxWidth: "130px",
-                      width: "120px",
+                      width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
+                      minWidth: isVerySmall
+                        ? "60px"
+                        : isMobile
+                        ? "70px"
+                        : "80px",
                     }}>
-                    REQUESTORS
+                    REQ
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "120px",
-                      maxWidth: "140px",
-                      width: "130px",
-                    }}>
-                    PAY FREQUENCY
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "100px",
-                      maxWidth: "120px",
-                      width: "110px",
-                    }}>
-                    SCHEDULE
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "90px",
-                      maxWidth: "110px",
-                      width: "100px",
-                    }}>
-                    TEAM
-                  </TableCell>
+                  {!isMobile && (
+                    <>
+                      <TableCell
+                        sx={{
+                          width: "160px",
+                          minWidth: "160px",
+                        }}>
+                        PAY FREQUENCY
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          width: "110px",
+                          minWidth: "110px",
+                        }}>
+                        SCHEDULE
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          width: "100px",
+                          minWidth: "100px",
+                        }}>
+                        TEAM
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell
                     align="center"
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "80px",
-                      maxWidth: "100px",
-                      width: "90px",
+                      width: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
+                      minWidth: isVerySmall
+                        ? "50px"
+                        : isMobile
+                        ? "60px"
+                        : "70px",
                     }}>
                     TOOLS
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "120px",
-                      maxWidth: "150px",
-                      width: "135px",
-                    }}>
-                    ATTACHMENTS
-                  </TableCell>
+                  {!isMobile && (
+                    <TableCell
+                      sx={{
+                        width: "135px",
+                        minWidth: "135px",
+                      }}>
+                      ATTACHMENTS
+                    </TableCell>
+                  )}
                   <TableCell
                     align="center"
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "90px",
-                      maxWidth: "110px",
-                      width: "100px",
+                      width: isVerySmall ? "70px" : isMobile ? "80px" : "90px",
+                      minWidth: isVerySmall
+                        ? "70px"
+                        : isMobile
+                        ? "80px"
+                        : "90px",
                     }}>
                     STATUS
                   </TableCell>
                   <TableCell
                     align="center"
                     sx={{
-                      backgroundColor: "#f8f9fa",
-                      fontWeight: 700,
-                      fontSize: isMobile ? "11px" : "12px",
-                      color: "rgb(33, 61, 112)",
-                      letterSpacing: "0.5px",
-                      borderBottom: "2px solid #e0e0e0",
-                      padding: isMobile ? "8px 12px" : "12px 16px",
-                      minWidth: "80px",
-                      maxWidth: "100px",
-                      width: "90px",
+                      width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
+                      minWidth: isVerySmall
+                        ? "60px"
+                        : isMobile
+                        ? "70px"
+                        : "80px",
                     }}>
                     ACTION
                   </TableCell>
@@ -712,19 +526,27 @@ const Positions = () => {
               </TableHead>
 
               <TableBody>
-                {isLoading || isFetching ? (
+                {isLoadingState ? (
                   <TableRow>
                     <TableCell
-                      colSpan={14}
+                      colSpan={isMobile ? 9 : 14}
                       align="center"
-                      sx={{
-                        padding: "40px 20px",
-                        borderBottom: "none",
-                      }}>
+                      sx={{ py: 4 }}>
                       <CircularProgress
                         size={32}
                         sx={{ color: "rgb(33, 61, 112)" }}
                       />
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={isMobile ? 9 : 14}
+                      align="center"
+                      sx={{ py: 4 }}>
+                      <Typography color="error">
+                        Error loading data: {error.message || "Unknown error"}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 ) : positionList.length > 0 ? (
@@ -732,62 +554,33 @@ const Positions = () => {
                     <TableRow
                       key={position.id}
                       onClick={() => handleRowClick(position)}
-                      sx={{
-                        cursor: "pointer",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgba(33, 61, 112, 0.04)",
-                        },
-                        "&:nth-of-type(even)": {
-                          backgroundColor: "#fafafa",
-                        },
-                        "&:nth-of-type(even):hover": {
-                          backgroundColor: "rgba(33, 61, 112, 0.04)",
-                        },
-                      }}>
-                      <TableCell
-                        align="left"
-                        sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                        }}>
-                        {position.id}
-                      </TableCell>
+                      sx={tableStyles.rowHover(theme)}>
+                      <TableCell align="left">{position.id}</TableCell>
                       <TableCell
                         sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "120px",
-                          whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontSize: isVerySmall ? "10px" : "12px",
+                          color: "#666",
+                          fontFamily: "monospace",
                         }}>
                         {position.code}
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          fontWeight: 600,
-                          maxWidth: "200px",
-                          whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontWeight: 600,
                         }}>
                         {position.title?.name || "—"}
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "150px",
-                          whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}>
                         {position.charging?.name || "—"}
                       </TableCell>
@@ -799,27 +592,22 @@ const Positions = () => {
                               handleOpenCoaDialog(position);
                             }}
                             size="small"
-                            sx={{
-                              color: "rgb(33, 61, 112)",
-                              "&:hover": {
-                                backgroundColor: "rgba(33, 61, 112, 0.1)",
-                              },
-                            }}>
-                            <ShareLocationIcon sx={{ fontSize: "20px" }} />
+                            sx={positionStyles.actionIconButton}>
+                            <ShareLocationIcon
+                              sx={{
+                                fontSize: isVerySmall ? "16px" : "18px",
+                              }}
+                            />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "150px",
-                          whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}>
-                        {position.superior?.name || "—"}
+                        {position.superior?.full_name || "—"}
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="View Requestors">
@@ -829,52 +617,43 @@ const Positions = () => {
                               handleOpenRequestorsDialog(position);
                             }}
                             size="small"
-                            sx={{
-                              color: "rgb(33, 61, 112)",
-                              "&:hover": {
-                                backgroundColor: "rgba(33, 61, 112, 0.1)",
-                              },
-                            }}>
-                            <VisibilityIcon sx={{ fontSize: "20px" }} />
+                            sx={positionStyles.actionIconButton}>
+                            <VisibilityIcon
+                              sx={{
+                                fontSize: isVerySmall ? "16px" : "18px",
+                              }}
+                            />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "140px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}>
-                        {position.pay_frequency?.name || "—"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "120px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}>
-                        {position.schedule?.name || "—"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "110px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}>
-                        {position.team?.name || "—"}
-                      </TableCell>
+                      {!isMobile && (
+                        <>
+                          <TableCell
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {position.pay_frequency || "—"}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {position.schedule?.name || "—"}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {position.team?.name || "—"}
+                          </TableCell>
+                        </>
+                      )}
                       <TableCell align="center">
                         <Tooltip title="View Tools">
                           <IconButton
@@ -883,70 +662,48 @@ const Positions = () => {
                               handleOpenToolsDialog(position);
                             }}
                             size="small"
-                            sx={{
-                              color: "rgb(33, 61, 112)",
-                              "&:hover": {
-                                backgroundColor: "rgba(33, 61, 112, 0.1)",
-                              },
-                            }}>
-                            <HomeRepairServiceIcon sx={{ fontSize: "20px" }} />
+                            sx={positionStyles.actionIconButton}>
+                            <HomeRepairServiceIcon
+                              sx={{
+                                fontSize: isVerySmall ? "16px" : "18px",
+                              }}
+                            />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: isMobile ? "12px" : "13px",
-                          padding: isMobile ? "8px 12px" : "12px 16px",
-                          color: "#333",
-                          maxWidth: "150px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}>
-                        {getDisplayFileName(position) ? (
-                          <Link
-                            href={position.position_attachment}
-                            target="_blank"
-                            rel="noopener"
-                            onClick={(e) => e.stopPropagation()}
-                            sx={{
-                              color: "rgb(33, 61, 112)",
-                              textDecoration: "none",
-                              "&:hover": {
-                                textDecoration: "underline",
-                              },
-                            }}>
-                            {getDisplayFileName(position)}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
+                      {!isMobile && (
+                        <TableCell
+                          sx={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                          {getDisplayFileName(position) ? (
+                            <Link
+                              href={position.position_attachment}
+                              target="_blank"
+                              rel="noopener"
+                              onClick={(e) => e.stopPropagation()}
+                              sx={positionStyles.attachmentLink}>
+                              {getDisplayFileName(position)}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell align="center">
                         <Chip
                           label={position.deleted_at ? "ARCHIVED" : "ACTIVE"}
                           size="small"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: "11px",
-                            backgroundColor: position.deleted_at
-                              ? "rgba(211, 47, 47, 0.1)"
-                              : "rgba(76, 175, 80, 0.1)",
-                            color: position.deleted_at ? "#d32f2f" : "#2e7d32",
-                            minWidth: "70px",
-                          }}
+                          sx={positionStyles.statusChip(position.deleted_at)}
                         />
                       </TableCell>
                       <TableCell align="center">
                         <IconButton
-                          onClick={(e) => handleMenuOpen(e, position.id)}
+                          onClick={(e) => handleMenuOpen(e, position)}
                           size="small"
-                          sx={{
-                            color: "rgb(33, 61, 112)",
-                            "&:hover": {
-                              backgroundColor: "rgba(33, 61, 112, 0.1)",
-                            },
-                          }}>
+                          sx={positionStyles.actionIconButton}>
                           <MoreVertIcon sx={{ fontSize: "20px" }} />
                         </IconButton>
                         <Menu
@@ -985,14 +742,9 @@ const Positions = () => {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={14}
+                      colSpan={isMobile ? 9 : 14}
                       align="center"
-                      sx={{
-                        padding: "40px 20px",
-                        borderBottom: "none",
-                        color: "#666",
-                        fontSize: "14px",
-                      }}>
+                      sx={positionStyles.emptyRow}>
                       No positions found
                     </TableCell>
                   </TableRow>
@@ -1007,24 +759,9 @@ const Positions = () => {
             count={positions?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              "& .MuiTablePagination-toolbar": {
-                minHeight: "52px",
-                padding: "0 16px",
-              },
-              "& .MuiTablePagination-selectLabel": {
-                fontSize: "13px",
-              },
-              "& .MuiTablePagination-displayedRows": {
-                fontSize: "13px",
-              },
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            sx={positionStyles.tablePagination}
           />
         </Box>
       </Box>
@@ -1072,38 +809,28 @@ const Positions = () => {
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
         fullWidth>
-        <DialogTitle sx={{ fontWeight: 600, padding: "20px 24px 16px" }}>
+        <DialogTitle sx={positionStyles.dialogTitle}>
           {selectedPosition?.deleted_at
             ? "Restore Position"
             : "Archive Position"}
         </DialogTitle>
-        <DialogContent sx={{ padding: "0 24px 8px" }}>
+        <DialogContent sx={positionStyles.dialogContent}>
           <Typography>
             Are you sure you want to{" "}
             {selectedPosition?.deleted_at ? "restore" : "archive"} this
             position?
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ padding: "16px 24px 20px" }}>
+        <DialogActions sx={positionStyles.dialogActions}>
           <Button
             onClick={() => setConfirmOpen(false)}
-            sx={{ color: "#666", fontWeight: 600 }}>
+            sx={positionStyles.cancelButton}>
             Cancel
           </Button>
           <Button
             onClick={handleArchiveRestoreConfirm}
             variant="contained"
-            sx={{
-              backgroundColor: selectedPosition?.deleted_at
-                ? "#2e7d32"
-                : "#d32f2f",
-              fontWeight: 600,
-              "&:hover": {
-                backgroundColor: selectedPosition?.deleted_at
-                  ? "#1b5e20"
-                  : "#b71c1c",
-              },
-            }}>
+            sx={positionStyles.confirmButton(selectedPosition?.deleted_at)}>
             {selectedPosition?.deleted_at ? "Restore" : "Archive"}
           </Button>
         </DialogActions>

@@ -31,19 +31,21 @@ import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import {
-  useCreateDataChangeSubmissionMutation,
-  useUpdateDataChangeSubmissionMutation,
-} from "../../../features/api/forms/datachangeApi";
+
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
-import DataChangeForapproval from "./DataChangeForapproval";
-import DataChangeRejected from "./DataChangeRejected";
-import DataChangeAwaitingResubmission from "./DataChangeAwaitingResubmission";
-import DataChangeCompleted from "./DataChangeCompleted";
+import DataChangeForMDAProcessing from "./DataChangeForMDAProcessing";
+import MDAForApproval from "./MDAForApproval";
+import MDARejected from "./MDARejected";
+import MDAAwaitingResubmission from "./MDAAwaitingResubmission";
+import MDAApproved from "./MDAApproved";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
+import {
+  useCreateMdaMutation,
+  useUpdateMdaMutation,
+} from "../../../features/api/forms/mdaApi";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -86,8 +88,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`datachange-tabpanel-${index}`}
-      aria-labelledby={`datachange-tab-${index}`}
+      id={`mda-tabpanel-${index}`}
+      aria-labelledby={`mda-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -403,7 +405,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search 201 data change..."}
+        placeholder={isVerySmall ? "Search..." : "Search MDA..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -463,7 +465,7 @@ const CustomSearchBar = ({
   );
 };
 
-const DataChangeMainContainer = () => {
+const MDA = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -474,17 +476,19 @@ const DataChangeMainContainer = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForApproval",
-    1: "Rejected",
-    2: "AwaitingResubmission",
-    3: "ForMDAProcessing",
+    0: "ForMDAProcessing",
+    1: "ForApproval",
+    2: "Rejected",
+    3: "AwaitingResubmission",
+    4: "Approved",
   };
 
   const reverseTabMap = {
-    ForApproval: 0,
-    Rejected: 1,
-    AwaitingResubmission: 2,
-    ForMDAProcessing: 3,
+    ForMDAProcessing: 0,
+    ForApproval: 1,
+    Rejected: 2,
+    AwaitingResubmission: 3,
+    Approved: 4,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -502,8 +506,8 @@ const DataChangeMainContainer = () => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
 
-  const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
-  const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
+  const [createMDASubmission] = useCreateMdaMutation();
+  const [updateMDASubmission] = useUpdateMdaMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -574,19 +578,19 @@ const DataChangeMainContainer = () => {
             throw new Error("Entry ID is required for updating");
           }
 
-          result = await updateDataChangeSubmission({
+          result = await updateMDASubmission({
             id: entryId,
             data: formData,
           }).unwrap();
 
-          enqueueSnackbar("201 data change updated successfully!", {
+          enqueueSnackbar("MDA updated successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
-          result = await createDataChangeSubmission(formData).unwrap();
+          result = await createMDASubmission(formData).unwrap();
 
-          enqueueSnackbar("201 data change created successfully!", {
+          enqueueSnackbar("MDA created successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -598,8 +602,8 @@ const DataChangeMainContainer = () => {
 
         let errorMessage =
           mode === "edit"
-            ? "Failed to update 201 data change. Please try again."
-            : "Failed to create 201 data change. Please try again.";
+            ? "Failed to update MDA. Please try again."
+            : "Failed to create MDA. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -616,8 +620,8 @@ const DataChangeMainContainer = () => {
       }
     },
     [
-      createDataChangeSubmission,
-      updateDataChangeSubmission,
+      createMDASubmission,
+      updateMDASubmission,
       enqueueSnackbar,
       handleCloseModal,
     ]
@@ -625,9 +629,23 @@ const DataChangeMainContainer = () => {
 
   const tabsData = [
     {
+      label: "For MDA Processing",
+      component: (
+        <DataChangeForMDAProcessing
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
       label: "For Approval",
       component: (
-        <DataChangeForapproval
+        <MDAForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -641,7 +659,7 @@ const DataChangeMainContainer = () => {
     {
       label: "Rejected",
       component: (
-        <DataChangeRejected
+        <MDARejected
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -655,7 +673,7 @@ const DataChangeMainContainer = () => {
     {
       label: "Awaiting Resubmission",
       component: (
-        <DataChangeAwaitingResubmission
+        <MDAAwaitingResubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -667,9 +685,9 @@ const DataChangeMainContainer = () => {
       badgeCount: null,
     },
     {
-      label: "Completed",
+      label: "Approved",
       component: (
-        <DataChangeCompleted
+        <MDAApproved
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -684,8 +702,8 @@ const DataChangeMainContainer = () => {
 
   const a11yProps = (index) => {
     return {
-      id: `datachange-tab-${index}`,
-      "aria-controls": `datachange-tabpanel-${index}`,
+      id: `mda-tab-${index}`,
+      "aria-controls": `mda-tabpanel-${index}`,
     };
   };
 
@@ -746,68 +764,8 @@ const DataChangeMainContainer = () => {
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}>
-                  {isVerySmall ? "DATA CHANGE" : "201 DATA CHANGE"}
+                  {isVerySmall ? "MDA" : "Master Data Authority"}
                 </Typography>
-                <Fade in={!isLoadingState}>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "160px",
-                        minWidth: isMobile ? "120px" : "160px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      CREATE
-                    </Button>
-                  )}
-                </Fade>
               </Box>
 
               <CustomSearchBar
@@ -822,7 +780,7 @@ const DataChangeMainContainer = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="Data change submissions tabs"
+              aria-label="MDA submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -891,4 +849,4 @@ const DataChangeMainContainer = () => {
   );
 };
 
-export default DataChangeMainContainer;
+export default MDA;

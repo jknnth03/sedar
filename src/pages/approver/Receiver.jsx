@@ -38,7 +38,7 @@ import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import { useGetReceiversQuery } from "../../features/api/approvalsetting/receiverApi";
 import { CONSTANT } from "../../config";
-import ReceiverModal from "../../components/modal/approvalSettings/ReceiverModal";
+import ReceiverModal from "../../components/modal/approvalsettings/ReceiverModal";
 import {
   useCreateReceiverMutation,
   useDeleteReceiverMutation,

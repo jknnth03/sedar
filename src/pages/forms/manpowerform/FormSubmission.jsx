@@ -344,11 +344,8 @@ const FormSubmission = ({ searchQuery, startDate, endDate }) => {
 
       switch (confirmAction) {
         case "update":
-          if (pendingFormData && selectedSubmission) {
-            result = await updateSubmission({
-              id: selectedSubmission.id,
-              data: pendingFormData,
-            }).unwrap();
+          if (pendingFormData) {
+            result = await updateSubmission(pendingFormData).unwrap();
           }
           break;
         case "resubmit":

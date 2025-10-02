@@ -484,39 +484,36 @@ const FormContent = ({
         }
       }
     } else if (currentMode === "edit" && selectedEntry?.id) {
-      const submissionData = {
-        id: selectedEntry.id,
-        data: {
-          form_id: 1,
-        },
-      };
+      const updateData = {};
+
+      updateData.form_id = 1;
 
       if (data.position_id?.id) {
-        submissionData.data.position_id = data.position_id.id;
+        updateData.position_id = data.position_id.id;
       }
 
       if (data.job_level_id?.id) {
-        submissionData.data.job_level_id = data.job_level_id.id;
+        updateData.job_level_id = data.job_level_id.id;
       }
 
       if (data.employment_type && data.employment_type.trim() !== "") {
-        submissionData.data.employment_type = data.employment_type;
+        updateData.employment_type = data.employment_type;
       }
 
       if (data.expected_salary) {
-        submissionData.data.expected_salary = data.expected_salary;
+        updateData.expected_salary = data.expected_salary;
       }
 
       if (data.requisition_type_id?.id) {
-        submissionData.data.requisition_type_id = data.requisition_type_id.id;
+        updateData.requisition_type_id = data.requisition_type_id.id;
       }
 
       if (data.justification && data.justification.trim() !== "") {
-        submissionData.data.justification = data.justification;
+        updateData.justification = data.justification;
       }
 
       if (data.remarks && data.remarks.trim() !== "") {
-        submissionData.data.remarks = data.remarks;
+        updateData.remarks = data.remarks;
       }
 
       if (
@@ -524,54 +521,51 @@ const FormContent = ({
         !isAdditionalManpower() &&
         !isReplacementDueToEmployeeMovement()
       ) {
-        submissionData.data.employee_to_be_replaced_id =
+        updateData.employee_to_be_replaced_id =
           data.employee_to_be_replaced_id.id;
       }
 
       if (isReplacementDueToEmployeeMovement()) {
         if (data.movement_employee_id?.id) {
-          submissionData.data.employee_id = data.movement_employee_id.id;
+          updateData.employee_id = data.movement_employee_id.id;
         }
 
         if (data.movement_new_position_id?.id) {
-          submissionData.data.new_position_id =
-            data.movement_new_position_id.id;
+          updateData.new_position_id = data.movement_new_position_id.id;
         }
 
         if (
           data.movement_reason_for_change &&
           data.movement_reason_for_change.trim() !== ""
         ) {
-          submissionData.data.reason_for_change =
-            data.movement_reason_for_change;
+          updateData.reason_for_change = data.movement_reason_for_change;
         }
 
-        submissionData.data.is_developmental_assignment =
-          data.movement_is_da || false;
+        updateData.is_developmental_assignment = data.movement_is_da || false;
 
         if (data.movement_is_da) {
           const formattedStartDate = formatDateForPayload(
             data.movement_da_start_date
           );
           if (formattedStartDate) {
-            submissionData.data.movement_da_start_date = formattedStartDate;
+            updateData.movement_da_start_date = formattedStartDate;
           }
 
           const formattedEndDate = formatDateForPayload(
             data.movement_da_end_date
           );
           if (formattedEndDate) {
-            submissionData.data.movement_da_end_date = formattedEndDate;
+            updateData.movement_da_end_date = formattedEndDate;
           }
         }
       }
 
       if (selectedFile && selectedFile instanceof File) {
-        submissionData.data.manpower_form_attachment = selectedFile;
+        updateData.manpower_form_attachment = selectedFile;
       }
 
       if (onSave) {
-        onSave(submissionData, currentMode);
+        onSave({ id: selectedEntry.id, data: updateData }, currentMode);
       }
     }
   };

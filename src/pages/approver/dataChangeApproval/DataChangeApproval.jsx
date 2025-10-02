@@ -23,14 +23,15 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetMySubmissionApprovalsQuery,
-  useApproveSubmissionMutation,
-  useRejectSubmissionMutation,
-} from "../../../features/api/approvalsetting/submissionApprovalApi";
+  useGetMyDataChangeApprovalsQuery,
+  useGetDataChangeApprovalByIdQuery,
+  useApproveDataChangeMutation,
+  useRejectDataChangeMutation,
+} from "../../../features/api/approving/dataChangeApproval.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "./SubmissionApprovalStyles.jsx";
-import SubmissionDetailsDialog from "./SubmissionDetailsDialog.jsx";
+import { createSubmissionApprovalStyles } from "../submissionApproval/SubmissionApprovalStyles.jsx";
+import DataChangeApprovalDialog from "./DataChangeApprovalDialog.jsx";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -61,7 +62,7 @@ const CustomSearchBar = ({
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       <TextField
         placeholder={
-          isVerySmall ? "Search..." : "Search Submission Approvals..."
+          isVerySmall ? "Search..." : "Search Data Change Approvals..."
         }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
@@ -119,7 +120,7 @@ const CustomSearchBar = ({
   );
 };
 
-const SubmissionApproval = () => {
+const DataChangeApproval = () => {
   const theme = useTheme();
   const styles = createSubmissionApprovalStyles(theme);
   const { enqueueSnackbar } = useSnackbar();
@@ -131,6 +132,7 @@ const SubmissionApproval = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedApprovalId, setSelectedApprovalId] = useState(null);
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
     submission: null,
@@ -144,16 +146,17 @@ const SubmissionApproval = () => {
 
   const debounceValue = useDebounce(searchQuery, 500);
 
-  const [approveSubmission, { isLoading: approveLoading }] =
-    useApproveSubmissionMutation();
-  const [rejectSubmission, { isLoading: rejectLoading }] =
-    useRejectSubmissionMutation();
+  const [approveDataChange, { isLoading: approveLoading }] =
+    useApproveDataChangeMutation();
+  const [rejectDataChange, { isLoading: rejectLoading }] =
+    useRejectDataChangeMutation();
 
   const queryParams = useMemo(() => {
     const params = {
       page,
       per_page: rowsPerPage,
       status: "active",
+      approval_status: "pending",
       pagination: true,
     };
 
@@ -165,19 +168,24 @@ const SubmissionApproval = () => {
   }, [debounceValue, page, rowsPerPage]);
 
   const {
-    data: submissionApprovalsData,
+    data: dataChangeApprovalsData,
     isLoading: queryLoading,
     isFetching,
     refetch,
     error,
-  } = useGetMySubmissionApprovalsQuery(queryParams, {
+  } = useGetMyDataChangeApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const submissionApprovalsList = useMemo(
-    () => submissionApprovalsData?.result?.data || [],
-    [submissionApprovalsData]
+  const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
+    useGetDataChangeApprovalByIdQuery(selectedApprovalId, {
+      skip: !selectedApprovalId,
+    });
+
+  const dataChangeApprovalsList = useMemo(
+    () => dataChangeApprovalsData?.result?.data || [],
+    [dataChangeApprovalsData]
   );
 
   const handleSearchChange = useCallback((newSearchQuery) => {
@@ -185,10 +193,11 @@ const SubmissionApproval = () => {
     setPage(1);
   }, []);
 
-  const handleRowClick = useCallback((submission) => {
+  const handleRowClick = useCallback((approval) => {
+    setSelectedApprovalId(approval.id);
     setDetailsDialog({
       open: true,
-      submission,
+      submission: approval,
     });
   }, []);
 
@@ -211,20 +220,21 @@ const SubmissionApproval = () => {
           reason,
         };
 
-        await approveSubmission(payload).unwrap();
-        enqueueSnackbar("Submission approved successfully!", {
+        await approveDataChange(payload).unwrap();
+        enqueueSnackbar("Data change approved successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
         refetch();
       } catch (error) {
         enqueueSnackbar(
-          error?.data?.message || "Failed to approve submission",
+          error?.data?.message || "Failed to approve data change",
           { variant: "error" }
         );
       }
     },
-    [detailsDialog, approveSubmission, enqueueSnackbar, refetch]
+    [detailsDialog, approveDataChange, enqueueSnackbar, refetch]
   );
 
   const handleReject = useCallback(
@@ -237,28 +247,33 @@ const SubmissionApproval = () => {
           reason,
         };
 
-        await rejectSubmission(payload).unwrap();
-        enqueueSnackbar("Submission returned successfully!", {
+        await rejectDataChange(payload).unwrap();
+        enqueueSnackbar("Data change returned successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
         refetch();
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to return submission", {
-          variant: "error",
-        });
+        enqueueSnackbar(
+          error?.data?.message || "Failed to return data change",
+          {
+            variant: "error",
+          }
+        );
       }
     },
-    [detailsDialog, rejectSubmission, enqueueSnackbar, refetch]
+    [detailsDialog, rejectDataChange, enqueueSnackbar, refetch]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
     setDetailsDialog({ open: false, submission: null });
+    setSelectedApprovalId(null);
   }, []);
 
   const renderStatusChip = useCallback(
-    (submission) => {
-      const status = submission?.status?.toLowerCase() || "pending";
+    (approval) => {
+      const status = approval?.status?.toLowerCase() || "pending";
       return (
         <Chip
           label={status.toUpperCase()}
@@ -306,7 +321,7 @@ const SubmissionApproval = () => {
               width: isMobile || isTablet ? "100%" : "auto",
               justifyContent: "flex-start",
             }}>
-            <Typography className="header">PENDING APPROVAL</Typography>
+            <Typography className="header">DATA CHANGE APPROVAL</Typography>
           </Box>
 
           <CustomSearchBar
@@ -400,7 +415,7 @@ const SubmissionApproval = () => {
                         ? "200px"
                         : "250px",
                     }}>
-                    POSITION
+                    EMPLOYEE NAME
                   </TableCell>
                   <TableCell
                     sx={{
@@ -415,7 +430,7 @@ const SubmissionApproval = () => {
                         ? "180px"
                         : "220px",
                     }}>
-                    {isVerySmall ? "REQ TYPE" : "REQUISITION TYPE"}
+                    {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -432,21 +447,6 @@ const SubmissionApproval = () => {
                     }}>
                     {isVerySmall ? "REQ BY" : "REQUESTED BY"}
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isVerySmall
-                        ? "100px"
-                        : isMobile
-                        ? "140px"
-                        : "180px",
-                      minWidth: isVerySmall
-                        ? "100px"
-                        : isMobile
-                        ? "140px"
-                        : "180px",
-                    }}>
-                    {isVerySmall ? "DEPT" : "DEPARTMENT"}
-                  </TableCell>
                   {!isMobile && (
                     <TableCell
                       align="center"
@@ -460,15 +460,15 @@ const SubmissionApproval = () => {
                   <TableCell
                     sx={{
                       width: isVerySmall
-                        ? "100px"
-                        : isMobile
                         ? "120px"
-                        : "150px",
+                        : isMobile
+                        ? "140px"
+                        : "170px",
                       minWidth: isVerySmall
-                        ? "100px"
-                        : isMobile
                         ? "120px"
-                        : "150px",
+                        : isMobile
+                        ? "140px"
+                        : "170px",
                     }}>
                     {isVerySmall ? "DATE" : "DATE CREATED"}
                   </TableCell>
@@ -478,7 +478,7 @@ const SubmissionApproval = () => {
                 {isLoadingState ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isMobile ? 7 : 8}
+                      colSpan={isMobile ? 6 : 7}
                       align="center"
                       sx={{ py: 4 }}>
                       <CircularProgress
@@ -490,7 +490,7 @@ const SubmissionApproval = () => {
                 ) : error ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isMobile ? 7 : 8}
+                      colSpan={isMobile ? 6 : 7}
                       align="center"
                       sx={{ py: 4 }}>
                       <Typography
@@ -500,27 +500,26 @@ const SubmissionApproval = () => {
                       </Typography>
                     </TableCell>
                   </TableRow>
-                ) : submissionApprovalsList.length > 0 ? (
-                  submissionApprovalsList.map((submission) => {
-                    const submissionData = submission.submission || submission;
+                ) : dataChangeApprovalsList.length > 0 ? (
+                  dataChangeApprovalsList.map((approval) => {
                     return (
                       <TableRow
-                        key={submission.id}
-                        onClick={() => handleRowClick(submission)}
+                        key={approval.id}
+                        onClick={() => handleRowClick(approval)}
                         sx={{
                           cursor: "pointer",
                           "&:hover": {
                             backgroundColor: "#f8f9fa",
                           },
                         }}>
-                        <TableCell align="left">{submissionData.id}</TableCell>
+                        <TableCell align="left">{approval.id}</TableCell>
                         <TableCell
                           sx={{
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}>
-                          {submissionData.form_details?.reference_number || "-"}
+                          {approval.reference_number || "-"}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -529,8 +528,7 @@ const SubmissionApproval = () => {
                             whiteSpace: "nowrap",
                             fontWeight: 600,
                           }}>
-                          {submissionData.form_details?.position?.title?.name ||
-                            "Unknown Position"}
+                          {approval.employee_name || "-"}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -538,8 +536,7 @@ const SubmissionApproval = () => {
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}>
-                          {submissionData.form_details?.requisition_type
-                            ?.name || "-"}
+                          {approval.movement_type || "-"}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -547,26 +544,16 @@ const SubmissionApproval = () => {
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}>
-                          {submissionData.requested_by?.full_name ||
-                            submissionData.requested_by?.first_name ||
-                            "Unknown"}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>
-                          {submissionData.charging?.department_name || "-"}
+                          {approval.requested_by || "-"}
                         </TableCell>
                         {!isMobile && (
                           <TableCell align="center">
-                            {renderStatusChip(submission)}
+                            {renderStatusChip(approval)}
                           </TableCell>
                         )}
                         <TableCell>
-                          {submissionData.created_at
-                            ? dayjs(submissionData.created_at).format(
+                          {approval.created_at
+                            ? dayjs(approval.created_at).format(
                                 isVerySmall ? "M/D/YY" : "MMM D, YYYY"
                               )
                             : "-"}
@@ -577,11 +564,10 @@ const SubmissionApproval = () => {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={isMobile ? 7 : 8}
+                      colSpan={isMobile ? 6 : 7}
                       align="center"
                       sx={{
                         py: 8,
-                        borderBottom: "none",
                         color: "#666",
                         fontSize: isMobile ? "14px" : "16px",
                       }}>
@@ -591,7 +577,7 @@ const SubmissionApproval = () => {
                           variant="h6"
                           color="text.secondary"
                           sx={{ fontSize: isVerySmall ? "14px" : "16px" }}>
-                          No submission approvals found
+                          No data change approvals found
                         </Typography>
                         <Typography
                           variant="body2"
@@ -599,7 +585,7 @@ const SubmissionApproval = () => {
                           sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
                           {searchQuery
                             ? `No results for "${searchQuery}"`
-                            : "No active submissions"}
+                            : "No active data changes"}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -611,7 +597,6 @@ const SubmissionApproval = () => {
 
           <Box
             sx={{
-              borderTop: "1px solid #e0e0e0",
               backgroundColor: "#f8f9fa",
               flexShrink: 0,
               "& .MuiTablePagination-root": {
@@ -638,7 +623,7 @@ const SubmissionApproval = () => {
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={submissionApprovalsData?.result?.total || 0}
+              count={dataChangeApprovalsData?.result?.total || 0}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}
@@ -653,13 +638,13 @@ const SubmissionApproval = () => {
           </Box>
         </Box>
 
-        <SubmissionDetailsDialog
+        <DataChangeApprovalDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
-          submission={detailsDialog.submission}
+          approval={selectedApprovalData?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReject={handleReject}
-          isLoading={approveLoading || rejectLoading}
+          isLoading={approveLoading || rejectLoading || selectedApprovalLoading}
           styles={styles}
         />
       </Box>
@@ -667,4 +652,4 @@ const SubmissionApproval = () => {
   );
 };
 
-export default SubmissionApproval;
+export default DataChangeApproval;

@@ -25,27 +25,33 @@ export const UploadBox = styled(Box)(({ theme }) => ({
   },
 }));
 
-export const AttachmentBox = styled(Box)(({ theme, hasFile }) => ({
+export const AttachmentBox = styled(Box)(({ theme, hasFile, isReadOnly }) => ({
   border: hasFile ? "2px solid #ddd" : "2px dashed #ddd",
   borderRadius: 8,
   padding: "16px",
   textAlign: "center",
-  cursor: "pointer",
+  cursor: isReadOnly ? "default" : "pointer",
   transition: "all 0.3s ease",
   backgroundColor: hasFile ? "#fff" : "#fafafa",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  "&:hover": {
-    borderColor: "#1976d2",
-    backgroundColor: hasFile ? "#f9f9f9" : "#f0f7ff",
-  },
+  "&:hover": !isReadOnly
+    ? {
+        borderColor: "#1976d2",
+        backgroundColor: hasFile ? "#f9f9f9" : "#f0f7ff",
+      }
+    : {},
 }));
 
 export const gridItemStyles = {
   xs12sm6: {
     minWidth: "405px",
     maxWidth: "405px",
+  },
+  attachmentFullWidth: {
+    minWidth: "826px",
+    maxWidth: "826px",
   },
 };
 
@@ -97,7 +103,7 @@ export const attachmentBoxContentStyles = {
 
 export const attachmentBoxMainStyles = {
   width: "100%",
-  minWidth: "824px",
+  minWidth: "100%",
 };
 
 export const uploadIconStyles = {
@@ -117,7 +123,6 @@ export const uploadIconNoFileStyles = {
 
 export const buttonStyles = {
   addLine: {
-    ml: 2,
     textTransform: "none",
     fontSize: "0.75rem",
     px: 2,

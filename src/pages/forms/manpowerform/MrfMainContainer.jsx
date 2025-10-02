@@ -44,6 +44,7 @@ import MrfReceived from "./MrfReceived";
 import MrfCancelled from "./MrfCancelled";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import { format } from "date-fns";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -305,9 +306,27 @@ const MrfMainContainer = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
 
-  const [activeTab, setActiveTab] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
+  const tabLabels = [
+    "ForApproval",
+    "AwaitingResubmission",
+    "Rejected",
+    "ForReceiving",
+    "Returned",
+    "Received",
+    "Cancelled",
+  ];
+
+  const getTabIndexFromParam = (tabParam) => {
+    const index = tabLabels.indexOf(tabParam);
+    return index >= 0 ? index : 0;
+  };
+
+  const initialTab = getTabIndexFromParam(currentParams?.tab);
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [searchQuery, setSearchQuery] = useState(currentParams?.q || "");
   const [dateFilters, setDateFilters] = useState({
     startDate: null,
     endDate: null,
@@ -327,6 +346,28 @@ const MrfMainContainer = () => {
     useGetMrfSubmissionsCountsQuery();
 
   const debounceValue = useDebounce(searchQuery, 500);
+
+  useEffect(() => {
+    if (!currentParams?.tab) {
+      setQueryParams(
+        {
+          tab: tabLabels[initialTab],
+          q: searchQuery || "",
+        },
+        { retain: false }
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentParams?.tab) {
+      const tabIndex = getTabIndexFromParam(currentParams.tab);
+      setActiveTab(tabIndex);
+    }
+    if (currentParams?.q !== undefined) {
+      setSearchQuery(currentParams.q);
+    }
+  }, [currentParams?.tab, currentParams?.q]);
 
   const formatDateForAPI = (date) => {
     return date ? format(date, "yyyy-MM-dd") : null;
@@ -354,11 +395,27 @@ const MrfMainContainer = () => {
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+    setQueryParams(
+      {
+        tab: tabLabels[newValue],
+        q: searchQuery,
+      },
+      { retain: true }
+    );
   };
 
-  const handleSearchChange = useCallback((newSearchQuery) => {
-    setSearchQuery(newSearchQuery);
-  }, []);
+  const handleSearchChange = useCallback(
+    (newSearchQuery) => {
+      setSearchQuery(newSearchQuery);
+      setQueryParams(
+        {
+          q: newSearchQuery,
+        },
+        { retain: true }
+      );
+    },
+    [setQueryParams]
+  );
 
   const handleFilterClick = useCallback(() => {
     setFilterDialogOpen(true);

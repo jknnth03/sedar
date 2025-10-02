@@ -45,7 +45,7 @@ import {
 } from "../../features/api/approvalsetting/approvalFormApi";
 import { CONSTANT } from "../../config";
 import dayjs from "dayjs";
-import ApprovalFormModal from "../../components/modal/approvalSettings/ApprovalFormModal";
+import ApprovalFormModal from "../../components/modal/approvalsettings/ApprovalFormModal";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);

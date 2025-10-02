@@ -48,8 +48,8 @@ import CloudSyncIcon from "@mui/icons-material/CloudSync";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import LowPriorityIcon from "@mui/icons-material/LowPriority";
-
-import NotificationBadge from "./NotificationBadge";
+import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
 import moduleApi from "../features/api/usermanagement/dashboardApi";
 import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
@@ -236,26 +236,26 @@ export const createEnhancedModules = (dashboardData = {}) => {
           ),
           icon_on: null,
         },
-        RECEIVER: {
-          name: "Receiver",
-          path: "receiver",
-          icon: (
-            <RecordVoiceOverIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
-          icon_on: null,
-        },
-        APPROVER: {
-          name: "Approver",
-          path: "approver",
-          icon: (
-            <HowToRegIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
-          icon_on: null,
-        },
+        // RECEIVER: {
+        //   name: "Receiver",
+        //   path: "receiver",
+        //   icon: (
+        //     <RecordVoiceOverIcon
+        //       sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+        //     />
+        //   ),
+        //   icon_on: null,
+        // },
+        // APPROVER: {
+        //   name: "Approver",
+        //   path: "approver",
+        //   icon: (
+        //     <HowToRegIcon
+        //       sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+        //     />
+        //   ),
+        //   icon_on: null,
+        // },
       },
     },
 
@@ -276,7 +276,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
       notificationCount: counts.pendingApprovals,
       children: {
         SUBMISSIONAPPROVAL: {
-          name: "MRF Approval",
+          name: "MRF",
           path: "submissionapproval",
           icon: (
             <TaskIcon
@@ -287,10 +287,21 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.manpowerFormApprovals,
         },
         REGISTRATIONAPPROVAL: {
-          name: "Registration Approval",
+          name: "Registration",
           path: "registrationapproval",
           icon: (
             <HowToRegIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: counts.registrationApprovals,
+        },
+        DATACHANGEAPPROVAL: {
+          name: "Data Change",
+          path: "datachangeapproval",
+          icon: (
+            <PublishedWithChangesIcon
               sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
             />
           ),
@@ -333,6 +344,17 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "datachangemaincontainer",
           icon: (
             <CloudSyncIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: counts.rejectedDataChanges,
+        },
+        MDA: {
+          name: "Master Data Authority",
+          path: "mda",
+          icon: (
+            <CreateNewFolderIcon
               sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
             />
           ),
