@@ -5,7 +5,14 @@ const pendingApi = sedarApi
   .injectEndpoints({
     endpoints: (build) => ({
       getPendingEmployees: build.query({
-        query: (params = {}) => {
+        query: (params) => {
+          if (typeof params === "number" || typeof params === "string") {
+            return {
+              url: `form-submissions/${params}`,
+              method: "GET",
+            };
+          }
+
           const {
             pagination = true,
             page = 1,
@@ -16,7 +23,7 @@ const pendingApi = sedarApi
             date_from,
             date_to,
             ...otherParams
-          } = params;
+          } = params || {};
 
           const queryParams = new URLSearchParams();
 
@@ -107,10 +114,10 @@ const pendingApi = sedarApi
       }),
 
       updateFormSubmission: build.mutation({
-        query: (body) => ({
-          url: `form-submissions/${body?.id}`,
+        query: ({ id, body }) => ({
+          url: `form-submissions/${id}`,
           method: "POST",
-          body: body?.data,
+          body: body,
         }),
         invalidatesTags: ["pending"],
       }),

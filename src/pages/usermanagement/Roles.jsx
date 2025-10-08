@@ -491,16 +491,6 @@ const Roles = () => {
                 height: isMobile ? "48px" : "52px",
                 backgroundColor: "white",
               },
-              "& .MuiTableRow-root": {
-                transition: "background-color 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: "#f8f9fa",
-                  cursor: "pointer",
-                  "& .MuiTableCell-root": {
-                    backgroundColor: "transparent",
-                  },
-                },
-              },
             }}>
             <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1000 }}>
               <TableHead>

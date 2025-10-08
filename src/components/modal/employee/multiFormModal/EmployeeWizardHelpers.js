@@ -183,6 +183,8 @@ export const initializeFormData = (initialData) => {
       image_data_url: "",
       image_url: "",
       region_id: null,
+      birth_place: "",
+      nationality: "",
       employment_types: [
         {
           id: generateUniqueId(),
@@ -210,6 +212,8 @@ export const initializeFormData = (initialData) => {
     prefix: initialData?.general_info?.prefix || null,
     id_number: initialData?.general_info?.id_number || "",
     birth_date: formatDateForForm(initialData?.general_info?.birth_date),
+    birth_place: initialData?.general_info?.birth_place || "",
+    nationality: initialData?.general_info?.nationality || "",
     gender: initialData?.general_info?.gender || "",
     civil_status: initialData?.general_info?.civil_status || "",
     religion: initialData?.general_info?.religion || null,

@@ -192,41 +192,51 @@ const formSubmissionApi = sedarApi
       }),
 
       updateFormSubmission: build.mutation({
-        query: ({ id, data }) => {
+        query: ({ id, body, data }) => {
+          if (body && body instanceof FormData) {
+            return {
+              url: `form-submissions/${id}`,
+              method: "POST",
+              body: body,
+            };
+          }
+
           const formData = new FormData();
 
-          Object.keys(data).forEach((key) => {
-            if (data[key] !== undefined && data[key] !== null) {
-              if (Array.isArray(data[key])) {
-                data[key].forEach((item, index) => {
-                  if (typeof item === "object" && item !== null) {
-                    Object.keys(item).forEach((itemKey) => {
-                      if (
-                        item[itemKey] !== undefined &&
-                        item[itemKey] !== null
-                      ) {
-                        formData.append(
-                          `${key}[${index}][${itemKey}]`,
-                          item[itemKey]
-                        );
-                      }
-                    });
-                  } else {
-                    formData.append(`${key}[${index}]`, item);
-                  }
-                });
-              } else if (
-                typeof data[key] === "object" &&
-                !(data[key] instanceof File)
-              ) {
-                formData.append(key, JSON.stringify(data[key]));
-              } else {
-                formData.append(key, data[key]);
+          if (data && typeof data === "object") {
+            Object.keys(data).forEach((key) => {
+              if (data[key] !== undefined && data[key] !== null) {
+                if (Array.isArray(data[key])) {
+                  data[key].forEach((item, index) => {
+                    if (typeof item === "object" && item !== null) {
+                      Object.keys(item).forEach((itemKey) => {
+                        if (
+                          item[itemKey] !== undefined &&
+                          item[itemKey] !== null
+                        ) {
+                          formData.append(
+                            `${key}[${index}][${itemKey}]`,
+                            item[itemKey]
+                          );
+                        }
+                      });
+                    } else {
+                      formData.append(`${key}[${index}]`, item);
+                    }
+                  });
+                } else if (
+                  typeof data[key] === "object" &&
+                  !(data[key] instanceof File)
+                ) {
+                  formData.append(key, JSON.stringify(data[key]));
+                } else {
+                  formData.append(key, data[key]);
+                }
               }
-            }
-          });
+            });
 
-          formData.append("_method", "PATCH");
+            formData.append("_method", "PATCH");
+          }
 
           return {
             url: `form-submissions/${id}`,

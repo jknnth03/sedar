@@ -17,7 +17,7 @@ import img from "../../assets/business.png";
 import workImg from "../../assets/Work.png";
 import { CONSTANT } from "../../config";
 import { useDispatch } from "react-redux";
-import { setToken } from "../../features/slice/authSlice";
+import { setCredentials } from "../../features/slice/authSlice";
 import { useLoginMutation } from "../../features/api/authApi";
 import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
@@ -72,12 +72,10 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (shouldFetchDashboard && dashboardData && !dashboardLoading) {
-      console.log("Dashboard data loaded:", dashboardData);
       setShouldFetchDashboard(false);
     }
 
     if (shouldFetchDashboard && dashboardError) {
-      console.error("Dashboard fetch error:", dashboardError);
       setShouldFetchDashboard(false);
     }
   }, [dashboardData, dashboardError, dashboardLoading, shouldFetchDashboard]);
@@ -89,9 +87,16 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       const res = await login(data).unwrap();
+
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res.user));
-      dispatch(setToken(res.token));
+
+      dispatch(
+        setCredentials({
+          user: res.user,
+          token: res.token,
+        })
+      );
 
       setShouldFetchDashboard(true);
 
@@ -143,7 +148,6 @@ const LoginPage = () => {
           zIndex: 1,
         },
       }}>
-      {/* Geometric shapes background */}
       <Box
         sx={{
           position: "absolute",
@@ -184,7 +188,6 @@ const LoginPage = () => {
         }}
       />
 
-      {/* Main container */}
       <Box
         sx={{
           background: "rgba(255, 255, 255, 0.95)",
@@ -198,7 +201,6 @@ const LoginPage = () => {
           position: "relative",
           zIndex: 3,
         }}>
-        {/* Left side - Illustration */}
         <Box
           sx={{
             flex: 1,
@@ -213,7 +215,6 @@ const LoginPage = () => {
               display: "none",
             },
           }}>
-          {/* Work illustration covering full area */}
           <img
             src={workImg}
             alt="Work Illustration"
@@ -226,7 +227,6 @@ const LoginPage = () => {
           />
         </Box>
 
-        {/* Right side - Login Form */}
         <Box
           className="login-form-container"
           sx={{
@@ -239,7 +239,6 @@ const LoginPage = () => {
             position: "relative",
             paddingTop: "120px",
           }}>
-          {/* Logo on left, WELCOME centered */}
           <Box
             sx={{
               marginBottom: "40px",
@@ -274,7 +273,6 @@ const LoginPage = () => {
             </Typography>
           </Box>
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
             <TextField
               {...register("username")}
@@ -349,7 +347,6 @@ const LoginPage = () => {
               }}
             />
 
-            {/* Login button aligned to center (same as WELCOME) */}
             <Box
               sx={{
                 display: "flex",
@@ -381,7 +378,6 @@ const LoginPage = () => {
             </Box>
           </form>
 
-          {/* MIS Logo and text positioned closer to login button, aligned with WELCOME */}
           <Box
             sx={{
               position: "absolute",

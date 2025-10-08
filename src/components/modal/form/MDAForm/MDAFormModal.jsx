@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import {
   Dialog,
   DialogTitle,
@@ -9,11 +9,8 @@ import {
   Typography,
   IconButton,
   Box,
-  Grid,
-  TextField,
   CircularProgress,
   Tooltip,
-  Autocomplete,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -24,9 +21,25 @@ import {
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { useLazyGetMdaPrefillQuery } from "../../../../features/api/forms/mdaApi";
+import MDAFormModalFields from "./MDAFormModalFields";
+import {
+  dialogTitleStyles,
+  titleBoxStyles,
+  descriptionIconStyles,
+  titleTypographyStyles,
+  editIconButtonStyles,
+  editIconStyles,
+  cancelEditIconButtonStyles,
+  editOffIconStyles,
+  closeIconButtonStyles,
+  closeIconStyles,
+  dialogContentStyles,
+  lastUpdatedBoxStyles,
+  dialogActionsStyles,
+  saveButtonStyles,
+} from "./MDAFornModal.styles";
 
 const MDAFormModal = ({
   open = false,
@@ -39,25 +52,15 @@ const MDAFormModal = ({
   positions = [],
   submissionId = null,
 }) => {
-  const {
-    control,
-    formState: { errors },
-    setValue,
-    watch,
-    reset,
-    handleSubmit,
-  } = useFormContext();
+  const { setValue, reset, handleSubmit } = useFormContext();
 
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [selectedMovementId, setSelectedMovementId] = useState(null);
+  const [movementType, setMovementType] = useState("");
 
-  const watchedMovementId = watch("employee_movement_id");
-
-  const [
-    triggerPrefill,
-    { data: prefillData, isLoading: isPrefillLoading, refetch },
-  ] = useLazyGetMdaPrefillQuery();
+  const [triggerPrefill, { data: prefillData, isLoading: isPrefillLoading }] =
+    useLazyGetMdaPrefillQuery();
 
   useEffect(() => {
     if (open && currentMode === "create" && submissionId) {
@@ -82,46 +85,74 @@ const MDAFormModal = ({
           birth_date: null,
           birth_place: "",
           gender: "",
+          civil_status: "",
           nationality: "",
           address: "",
           tin_number: "",
           sss_number: "",
           pag_ibig_number: "",
           philhealth_number: "",
+          from_position_id: null,
+          from_position_title: "",
+          from_department: "",
+          from_sub_unit: "",
+          from_job_level: "",
+          from_schedule: "",
+          from_job_rate: "",
+          from_allowance: "",
           to_position_id: null,
           to_position_title: "",
+          to_department: "",
+          to_sub_unit: "",
           to_job_level: "",
-          to_basic_salary: "",
-          to_training_allowance: "",
+          to_schedule: "",
+          to_job_rate: "",
+          to_allowance: "",
         });
       } else if (selectedEntry && (mode === "view" || mode === "edit")) {
-        reset({
-          form_id: selectedEntry.form_id || 5,
-          employee_movement_id: selectedEntry.employee_movement_id || null,
-          employee_id: selectedEntry.employee_id || "",
-          employee_name: selectedEntry.employee_name || "",
-          employee_number: selectedEntry.employee_number || "",
-          effective_date: selectedEntry.effective_date
-            ? dayjs(selectedEntry.effective_date)
+        const dataSource = selectedEntry.submittable || selectedEntry;
+        const fromDetails = dataSource.from_details || {};
+        const toDetails = dataSource.to_details || {};
+        const formData = {
+          form_id: selectedEntry.form?.id || 5,
+          employee_movement_id: dataSource.id || null,
+          employee_id: dataSource.employee_id || "",
+          employee_name: dataSource.employee_name || "",
+          employee_number: dataSource.employee_number || "",
+          effective_date: dataSource.effective_date
+            ? dayjs(dataSource.effective_date)
             : null,
-          action_type: selectedEntry.action_type || "",
-          birth_date: selectedEntry.birth_date
-            ? dayjs(selectedEntry.birth_date)
+          action_type: dataSource.movement_type || "",
+          birth_date: dataSource.birth_date
+            ? dayjs(dataSource.birth_date)
             : null,
-          birth_place: selectedEntry.birth_place || "",
-          gender: selectedEntry.gender || "",
-          nationality: selectedEntry.nationality || "",
-          address: selectedEntry.address || "",
-          tin_number: selectedEntry.tin_number || "",
-          sss_number: selectedEntry.sss_number || "",
-          pag_ibig_number: selectedEntry.pag_ibig_number || "",
-          philhealth_number: selectedEntry.philhealth_number || "",
-          to_position_id: selectedEntry.to_position_id || null,
-          to_position_title: selectedEntry.to_position_title || "",
-          to_job_level: selectedEntry.to_job_level || "",
-          to_basic_salary: selectedEntry.to_basic_salary || "",
-          to_training_allowance: selectedEntry.to_training_allowance || "",
-        });
+          birth_place: dataSource.birth_place || "",
+          gender: dataSource.gender || "",
+          civil_status: dataSource.civil_status || "",
+          nationality: dataSource.nationality || "",
+          address: dataSource.address || "",
+          tin_number: dataSource.tin_number || "",
+          sss_number: dataSource.sss_number || "",
+          pag_ibig_number: dataSource.pag_ibig_number || "",
+          philhealth_number: dataSource.philhealth_number || "",
+          from_position_id: fromDetails.position_id || null,
+          from_position_title: fromDetails.position_title || "",
+          from_department: fromDetails.department || "",
+          from_sub_unit: fromDetails.sub_unit || "",
+          from_job_level: fromDetails.job_level || "",
+          from_schedule: fromDetails.schedule || "",
+          from_job_rate: fromDetails.job_rate || "",
+          from_allowance: fromDetails.allowance || "",
+          to_position_id: toDetails.position_id || null,
+          to_position_title: toDetails.position_title || "",
+          to_department: toDetails.department || "",
+          to_sub_unit: toDetails.sub_unit || "",
+          to_job_level: toDetails.job_level || "",
+          to_schedule: toDetails.schedule || "",
+          to_job_rate: toDetails.job_rate || "",
+          to_allowance: toDetails.allowance || "",
+        };
+        reset(formData);
       }
     }
   }, [open, mode, selectedEntry, reset]);
@@ -129,6 +160,9 @@ const MDAFormModal = ({
   useEffect(() => {
     if (prefillData?.result && currentMode === "create") {
       const data = prefillData.result;
+
+      setMovementType(data.movement_type || "");
+
       setValue("employee_movement_id", data.employee_movement_id || null);
       setValue("employee_id", data.employee_id || "");
       setValue("employee_name", data.employee_name || "");
@@ -141,6 +175,7 @@ const MDAFormModal = ({
       setValue("birth_date", data.birth_date ? dayjs(data.birth_date) : null);
       setValue("birth_place", data.birth_place || "");
       setValue("gender", data.gender || "");
+      setValue("civil_status", data.civil_status || "");
       setValue("nationality", data.nationality || "");
       setValue("address", data.address || "");
       setValue("tin_number", data.tin_number || "");
@@ -148,9 +183,26 @@ const MDAFormModal = ({
       setValue("pag_ibig_number", data.pag_ibig_number || "");
       setValue("philhealth_number", data.philhealth_number || "");
 
+      if (data.from) {
+        setValue("from_position_id", data.from.position_id || null);
+        setValue("from_position_title", data.from.position_title || "");
+        setValue("from_department", data.from.department || "");
+        setValue("from_sub_unit", data.from.sub_unit || "");
+        setValue("from_job_level", data.from.job_level || "");
+        setValue("from_schedule", data.from.schedule || "");
+        setValue("from_job_rate", data.from.job_rate || "");
+        setValue("from_allowance", data.from.allowance || "");
+      }
+
       if (data.to) {
         setValue("to_position_id", data.to.position_id || null);
         setValue("to_position_title", data.to.position_title || "");
+        setValue("to_department", data.to.department || "");
+        setValue("to_sub_unit", data.to.sub_unit || "");
+        setValue("to_job_level", data.to.job_level || "");
+        setValue("to_schedule", data.to.schedule || "");
+        setValue("to_job_rate", data.to.job_rate || "");
+        setValue("to_allowance", data.to.allowance || "");
       }
     }
   }, [prefillData, currentMode, setValue]);
@@ -162,32 +214,46 @@ const MDAFormModal = ({
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
     if (selectedEntry) {
+      const dataSource = selectedEntry.submittable || selectedEntry;
+      const fromDetails = dataSource.from_details || {};
+      const toDetails = dataSource.to_details || {};
+
       reset({
-        form_id: selectedEntry.form_id || 5,
-        employee_movement_id: selectedEntry.employee_movement_id || null,
-        employee_id: selectedEntry.employee_id || "",
-        employee_name: selectedEntry.employee_name || "",
-        employee_number: selectedEntry.employee_number || "",
-        effective_date: selectedEntry.effective_date
-          ? dayjs(selectedEntry.effective_date)
+        form_id: selectedEntry.form?.id || 5,
+        employee_movement_id: dataSource.id || null,
+        employee_id: dataSource.employee_id || "",
+        employee_name: dataSource.employee_name || "",
+        employee_number: dataSource.employee_number || "",
+        effective_date: dataSource.effective_date
+          ? dayjs(dataSource.effective_date)
           : null,
-        action_type: selectedEntry.action_type || "",
-        birth_date: selectedEntry.birth_date
-          ? dayjs(selectedEntry.birth_date)
-          : null,
-        birth_place: selectedEntry.birth_place || "",
-        gender: selectedEntry.gender || "",
-        nationality: selectedEntry.nationality || "",
-        address: selectedEntry.address || "",
-        tin_number: selectedEntry.tin_number || "",
-        sss_number: selectedEntry.sss_number || "",
-        pag_ibig_number: selectedEntry.pag_ibig_number || "",
-        philhealth_number: selectedEntry.philhealth_number || "",
-        to_position_id: selectedEntry.to_position_id || null,
-        to_position_title: selectedEntry.to_position_title || "",
-        to_job_level: selectedEntry.to_job_level || "",
-        to_basic_salary: selectedEntry.to_basic_salary || "",
-        to_training_allowance: selectedEntry.to_training_allowance || "",
+        action_type: dataSource.movement_type || "",
+        birth_date: dataSource.birth_date ? dayjs(dataSource.birth_date) : null,
+        birth_place: dataSource.birth_place || "",
+        gender: dataSource.gender || "",
+        civil_status: dataSource.civil_status || "",
+        nationality: dataSource.nationality || "",
+        address: dataSource.address || "",
+        tin_number: dataSource.tin_number || "",
+        sss_number: dataSource.sss_number || "",
+        pag_ibig_number: dataSource.pag_ibig_number || "",
+        philhealth_number: dataSource.philhealth_number || "",
+        from_position_id: fromDetails.position_id || null,
+        from_position_title: fromDetails.position_title || "",
+        from_department: fromDetails.department || "",
+        from_sub_unit: fromDetails.sub_unit || "",
+        from_job_level: fromDetails.job_level || "",
+        from_schedule: fromDetails.schedule || "",
+        from_job_rate: fromDetails.job_rate || "",
+        from_allowance: fromDetails.allowance || "",
+        to_position_id: toDetails.position_id || null,
+        to_position_title: toDetails.position_title || "",
+        to_department: toDetails.department || "",
+        to_sub_unit: toDetails.sub_unit || "",
+        to_job_level: toDetails.job_level || "",
+        to_schedule: toDetails.schedule || "",
+        to_job_rate: toDetails.job_rate || "",
+        to_allowance: toDetails.allowance || "",
       });
     }
   };
@@ -195,6 +261,7 @@ const MDAFormModal = ({
   const onSubmit = async (data) => {
     const formattedData = {
       ...data,
+      movement_type: data.action_type,
       effective_date: data.effective_date
         ? dayjs(data.effective_date).format("YYYY-MM-DD")
         : null,
@@ -216,6 +283,7 @@ const MDAFormModal = ({
     setCurrentMode(mode);
     setOriginalMode(mode);
     setSelectedMovementId(null);
+    setMovementType("");
     if (submissionId) {
       triggerPrefill(submissionId);
     }
@@ -225,7 +293,9 @@ const MDAFormModal = ({
   const getModalTitle = () => {
     switch (currentMode) {
       case "create":
-        return "CREATE MDA FORM";
+        return movementType
+          ? `CREATE MDA FORM - ${movementType.toUpperCase()}`
+          : "CREATE MDA FORM";
       case "view":
         return "VIEW MDA FORM";
       case "edit":
@@ -239,620 +309,116 @@ const MDAFormModal = ({
   const isCreate = currentMode === "create";
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
+  const showLoadingState = isPrefillLoading && isCreate && submissionId;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Dialog
         open={open}
         onClose={handleClose}
-        maxWidth={false}
+        maxWidth="xl"
+        fullWidth
         PaperProps={{
           sx: {
-            minHeight: "80vh",
-            maxHeight: "90vh",
-            width: "770px",
-            maxWidth: "770px",
+            width: "90vw",
+            maxWidth: "1100px",
+            height: "90vh",
+            maxHeight: "900px",
           },
         }}>
-        <DialogTitle
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            pb: 1,
-            backgroundColor: "#fff",
-          }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <DescriptionIcon sx={{ color: "rgb(33, 61, 112)" }} />
-            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+        <DialogTitle sx={dialogTitleStyles}>
+          <Box sx={titleBoxStyles}>
+            <DescriptionIcon sx={descriptionIconStyles} />
+            <Typography variant="h6" component="div" sx={titleTypographyStyles}>
               {getModalTitle()}
             </Typography>
             {isViewMode && (
               <Tooltip title="EDIT MDA" arrow placement="top">
-                <IconButton
-                  onClick={() => handleModeChange("edit")}
-                  disabled={isLoading}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    padding: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgba(0, 136, 32, 0.08)",
-                      transform: "scale(1.1)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                  }}>
-                  <EditIcon
-                    sx={{
-                      fontSize: "20px",
-                      "& path": {
-                        fill: isLoading
-                          ? "rgba(0, 0, 0, 0.26)"
-                          : "rgba(0, 136, 32, 1)",
-                      },
-                    }}
-                  />
-                </IconButton>
+                <span>
+                  <IconButton
+                    onClick={() => handleModeChange("edit")}
+                    disabled={isLoading}
+                    size="small"
+                    sx={editIconButtonStyles}>
+                    <EditIcon sx={editIconStyles(isLoading)} />
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
             {isEditMode && originalMode === "view" && (
               <Tooltip title="CANCEL EDIT">
-                <IconButton
-                  onClick={handleCancelEdit}
-                  disabled={isLoading}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    padding: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgba(235, 0, 0, 0.08)",
-                      transform: "scale(1.1)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                  }}>
-                  <EditOffIcon
-                    sx={{
-                      fontSize: "20px",
-                      "& path": {
-                        fill: "rgba(235, 0, 0, 1)",
-                      },
-                    }}
-                  />
-                </IconButton>
+                <span>
+                  <IconButton
+                    onClick={handleCancelEdit}
+                    disabled={isLoading}
+                    size="small"
+                    sx={cancelEditIconButtonStyles}>
+                    <EditOffIcon sx={editOffIconStyles} />
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
           </Box>
 
-          <IconButton
-            onClick={handleClose}
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              backgroundColor: "#fff",
-              "&:hover": {
-                backgroundColor: "#f5f5f5",
-              },
-              transition: "all 0.2s ease-in-out",
-            }}>
-            <CloseIcon
-              sx={{
-                fontSize: "18px",
-                color: "#333",
-              }}
-            />
+          <IconButton onClick={handleClose} sx={closeIconButtonStyles}>
+            <CloseIcon sx={closeIconStyles} />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ backgroundColor: "#ffffffff", pt: 2 }}>
-          {!isCreate && selectedEntry && selectedEntry.updated_at && (
-            <Box
-              sx={{ mb: 2, p: 1, backgroundColor: "#e3f2fd", borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Last Updated:{" "}
-                {dayjs(selectedEntry.updated_at).format("MMM DD, YYYY HH:mm")}
-              </Typography>
-            </Box>
-          )}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogContent sx={dialogContentStyles}>
+            {showLoadingState ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: "400px",
+                  gap: 2,
+                }}>
+                <CircularProgress size={48} />
+                <Typography variant="body1" color="text.secondary">
+                  Loading employee data...
+                </Typography>
+              </Box>
+            ) : (
+              <MDAFormModalFields
+                isCreate={isCreate}
+                isReadOnly={isReadOnly}
+                submissionId={submissionId}
+                employeeMovements={employeeMovements}
+                isPrefillLoading={isPrefillLoading}
+                setSelectedMovementId={setSelectedMovementId}
+              />
+            )}
+          </DialogContent>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Grid container spacing={2}>
-              {isCreate && !submissionId && (
-                <Grid item xs={12}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      mb: 2,
-                      fontWeight: 600,
-                      color: "rgb(33, 61, 112)",
-                    }}>
-                    SELECT EMPLOYEE MOVEMENT
-                  </Typography>
-                  <Controller
-                    name="employee_movement_id"
-                    control={control}
-                    rules={{ required: "Employee Movement is required" }}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <Autocomplete
-                        {...field}
-                        options={employeeMovements}
-                        getOptionLabel={(option) =>
-                          option.employee_name
-                            ? `${option.employee_name} - ${
-                                option.action_type || "N/A"
-                              }`
-                            : ""
-                        }
-                        value={
-                          employeeMovements.find((m) => m.id === value) || null
-                        }
-                        onChange={(_, newValue) => {
-                          onChange(newValue?.id || null);
-                          setSelectedMovementId(newValue?.id || null);
-                        }}
-                        loading={isPrefillLoading}
-                        disabled={isReadOnly}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Employee Movement *"
-                            error={!!errors.employee_movement_id}
-                            helperText={errors.employee_movement_id?.message}
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {isPrefillLoading ? (
-                                    <CircularProgress size={20} />
-                                  ) : null}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
-                      />
-                    )}
-                  />
-                </Grid>
-              )}
-
-              <Grid item xs={12} sx={{ paddingTop: 3 }}>
-                <Grid container spacing={1.6}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="employee_name"
-                      control={control}
-                      rules={{ required: "Employee name is required" }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Employee Name *"
-                          fullWidth
-                          error={!!errors.employee_name}
-                          helperText={errors.employee_name?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="employee_id"
-                      control={control}
-                      rules={{ required: "Employee name is required" }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Employee ID #"
-                          fullWidth
-                          error={!!errors.employee_id}
-                          helperText={errors.employee_id?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="employee_number"
-                      control={control}
-                      rules={{ required: "Employee number is required" }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Employee Number *"
-                          fullWidth
-                          error={!!errors.employee_number}
-                          helperText={errors.employee_number?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="effective_date"
-                      control={control}
-                      rules={{ required: "Effective date is required" }}
-                      render={({ field }) => (
-                        <DatePicker
-                          {...field}
-                          label="Effective Date *"
-                          disabled={isReadOnly || isCreate}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: !!errors.effective_date,
-                              helperText: errors.effective_date?.message,
-                            },
-                          }}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="action_type"
-                      control={control}
-                      rules={{ required: "Action type is required" }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Action Type *"
-                          fullWidth
-                          error={!!errors.action_type}
-                          helperText={errors.action_type?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="birth_date"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          {...field}
-                          label="Birth Date"
-                          disabled={isReadOnly || isCreate}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: !!errors.birth_date,
-                              helperText: errors.birth_date?.message,
-                            },
-                          }}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="birth_place"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Birth Place"
-                          fullWidth
-                          error={!!errors.birth_place}
-                          helperText={errors.birth_place?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="gender"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Gender"
-                          fullWidth
-                          error={!!errors.gender}
-                          helperText={errors.gender?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="nationality"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Nationality"
-                          fullWidth
-                          error={!!errors.nationality}
-                          helperText={errors.nationality?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "704px", maxWidth: "704px" }}>
-                    <Controller
-                      name="address"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Address"
-                          fullWidth
-                          multiline
-                          rows={2}
-                          error={!!errors.address}
-                          helperText={errors.address?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="tin_number"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="TIN Number"
-                          fullWidth
-                          error={!!errors.tin_number}
-                          helperText={errors.tin_number?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="sss_number"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="SSS Number"
-                          fullWidth
-                          error={!!errors.sss_number}
-                          helperText={errors.sss_number?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="pag_ibig_number"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Pag-IBIG Number"
-                          fullWidth
-                          error={!!errors.pag_ibig_number}
-                          helperText={errors.pag_ibig_number?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="philhealth_number"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="PhilHealth Number"
-                          fullWidth
-                          error={!!errors.philhealth_number}
-                          helperText={errors.philhealth_number?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="to_job_level"
-                      control={control}
-                      rules={{ required: "Job level is required" }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Job level *"
-                          fullWidth
-                          error={!!errors.to_job_level}
-                          helperText={errors.to_job_level?.message}
-                          disabled={isReadOnly || isCreate}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="to_basic_salary"
-                      control={control}
-                      rules={{
-                        required: "Basic salary is required",
-                        pattern: {
-                          value: /^\d+(\.\d{1,2})?$/,
-                          message: "Please enter a valid amount",
-                        },
-                      }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Basic Salary *"
-                          fullWidth
-                          type="number"
-                          error={!!errors.to_basic_salary}
-                          helperText={errors.to_basic_salary?.message}
-                          disabled={isReadOnly}
-                          inputProps={{
-                            step: "0.01",
-                            min: "0",
-                          }}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={4}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                    <Controller
-                      name="to_training_allowance"
-                      control={control}
-                      rules={{
-                        pattern: {
-                          value: /^\d+(\.\d{1,2})?$/,
-                          message: "Please enter a valid amount",
-                        },
-                      }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Training Allowance"
-                          fullWidth
-                          type="number"
-                          error={!!errors.to_training_allowance}
-                          helperText={errors.to_training_allowance?.message}
-                          disabled={isReadOnly}
-                          inputProps={{
-                            step: "0.01",
-                            min: "0",
-                          }}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          </form>
-        </DialogContent>
-
-        <DialogActions
-          sx={{
-            px: 3,
-            py: 2,
-            backgroundColor: "#fff",
-          }}>
-          {!isReadOnly && (
-            <Button
-              onClick={handleSubmit(onSubmit)}
-              variant="contained"
-              disabled={isLoading || isPrefillLoading}
-              startIcon={
-                isLoading ? (
-                  <CircularProgress size={16} />
-                ) : currentMode === "create" ? (
-                  <AddIcon />
-                ) : (
-                  <EditIcon />
-                )
-              }
-              sx={{
-                backgroundColor: "#4CAF50 !important",
-                color: "white !important",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                px: 3,
-                py: 1,
-                borderRadius: "8px",
-                border: "none !important",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                "&:hover": {
-                  backgroundColor: "#45a049 !important",
-                  border: "none !important",
-                },
-                "&:disabled": {
-                  backgroundColor: "#cccccc !important",
-                  color: "#666666 !important",
-                  border: "none !important",
-                },
-              }}>
-              {isLoading
-                ? "Saving..."
-                : currentMode === "create"
-                ? "Create"
-                : "Update"}
-            </Button>
-          )}
-        </DialogActions>
+          <DialogActions sx={dialogActionsStyles}>
+            {!isReadOnly && !showLoadingState && (
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isLoading}
+                startIcon={
+                  isLoading ? (
+                    <CircularProgress size={16} />
+                  ) : currentMode === "create" ? (
+                    <AddIcon />
+                  ) : (
+                    <EditIcon />
+                  )
+                }
+                sx={saveButtonStyles}>
+                {isLoading
+                  ? "Saving..."
+                  : currentMode === "create"
+                  ? "Create"
+                  : "Update"}
+              </Button>
+            )}
+          </DialogActions>
+        </form>
       </Dialog>
     </LocalizationProvider>
   );

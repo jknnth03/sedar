@@ -63,12 +63,18 @@ const PendingGeneralInformationForm = ({
     },
   ] = useLazyGetAllManpowerQuery();
 
-  const isReadOnly = mode === "view" || isViewMode;
+  const canEdit = selectedGeneral?.actions?.can_edit !== false;
+  const isReadOnly = mode === "view" || isViewMode || !canEdit;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
-      if (mode === "view" || isViewMode || dropdownsLoaded[dropdownName])
+      if (
+        mode === "view" ||
+        isViewMode ||
+        dropdownsLoaded[dropdownName] ||
+        !canEdit
+      )
         return;
 
       const fetchParams = { page: 1, per_page: 1000, status: "active" };
@@ -98,6 +104,7 @@ const PendingGeneralInformationForm = ({
       triggerApprovalForms,
       mode,
       isViewMode,
+      canEdit,
     ]
   );
 
@@ -114,10 +121,13 @@ const PendingGeneralInformationForm = ({
   };
 
   const religions = useMemo(() => {
-    if ((mode === "view" || isViewMode) && selectedGeneral?.religion) {
+    if (
+      (mode === "view" || isViewMode || !canEdit) &&
+      selectedGeneral?.religion
+    ) {
       return [selectedGeneral.religion];
     }
-    if (mode === "edit" && selectedGeneral?.religion) {
+    if (mode === "edit" && selectedGeneral?.religion && canEdit) {
       const existingReligion = selectedGeneral.religion;
       const apiReligions = normalizeApiData(religionsData);
 
@@ -136,13 +146,16 @@ const PendingGeneralInformationForm = ({
       return apiReligions;
     }
     return normalizeApiData(religionsData);
-  }, [mode, isViewMode, religionsData, selectedGeneral?.religion]);
+  }, [mode, isViewMode, religionsData, selectedGeneral?.religion, canEdit]);
 
   const prefixes = useMemo(() => {
-    if ((mode === "view" || isViewMode) && selectedGeneral?.prefix) {
+    if (
+      (mode === "view" || isViewMode || !canEdit) &&
+      selectedGeneral?.prefix
+    ) {
       return [selectedGeneral.prefix];
     }
-    if (mode === "edit" && selectedGeneral?.prefix) {
+    if (mode === "edit" && selectedGeneral?.prefix && canEdit) {
       const existingPrefix = selectedGeneral.prefix;
       const apiPrefixes = normalizeApiData(prefixesData);
 
@@ -161,13 +174,16 @@ const PendingGeneralInformationForm = ({
       return apiPrefixes;
     }
     return normalizeApiData(prefixesData);
-  }, [mode, isViewMode, prefixesData, selectedGeneral?.prefix]);
+  }, [mode, isViewMode, prefixesData, selectedGeneral?.prefix, canEdit]);
 
   const referrers = useMemo(() => {
-    if ((mode === "view" || isViewMode) && selectedGeneral?.referred_by) {
+    if (
+      (mode === "view" || isViewMode || !canEdit) &&
+      selectedGeneral?.referred_by
+    ) {
       return [selectedGeneral.referred_by];
     }
-    if (mode === "edit" && selectedGeneral?.referred_by) {
+    if (mode === "edit" && selectedGeneral?.referred_by && canEdit) {
       const existingReferrer = selectedGeneral.referred_by;
       const apiGenerals = normalizeApiData(generalsData);
 
@@ -200,13 +216,16 @@ const PendingGeneralInformationForm = ({
       return true;
     });
     return filtered;
-  }, [mode, isViewMode, generalsData, selectedGeneral]);
+  }, [mode, isViewMode, generalsData, selectedGeneral, canEdit]);
 
   const approvalForms = useMemo(() => {
-    if ((mode === "view" || isViewMode) && selectedGeneral?.submission_title) {
+    if (
+      (mode === "view" || isViewMode || !canEdit) &&
+      selectedGeneral?.submission_title
+    ) {
       return [selectedGeneral.submission_title];
     }
-    if (mode === "edit" && selectedGeneral?.submission_title) {
+    if (mode === "edit" && selectedGeneral?.submission_title && canEdit) {
       const existingForm = selectedGeneral.submission_title;
       const apiForms = normalizeApiData(approvalFormsData);
 
@@ -227,7 +246,13 @@ const PendingGeneralInformationForm = ({
       return apiForms;
     }
     return normalizeApiData(approvalFormsData);
-  }, [mode, isViewMode, approvalFormsData, selectedGeneral?.submission_title]);
+  }, [
+    mode,
+    isViewMode,
+    approvalFormsData,
+    selectedGeneral?.submission_title,
+    canEdit,
+  ]);
 
   const civilStatusOptions = [
     "SINGLE",
@@ -259,6 +284,12 @@ const PendingGeneralInformationForm = ({
       {mode !== "view" && !isViewMode && hasErrors && (
         <Alert severity="error" sx={{ mb: 1 }}>
           Error loading dropdown data. Please try again.
+        </Alert>
+      )}
+
+      {mode === "edit" && !canEdit && (
+        <Alert severity="warning" sx={{ mb: 1 }}>
+          You do not have permission to edit this record.
         </Alert>
       )}
 
@@ -629,7 +660,87 @@ const PendingGeneralInformationForm = ({
             )}
           />
         </Grid>
+        <Grid
+          item
+          xs={12}
+          sm={4}
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
+          <Controller
+            name="birthplace"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label={
+                  <>
+                    Birthplace <span style={{ color: "red" }}>*</span>
+                  </>
+                }
+                variant="outlined"
+                fullWidth
+                disabled={isFieldDisabled}
+                error={!!errors.birthplace}
+                helperText={
+                  errors.birthplace?.message ||
+                  (!field.value ? "Birthplace is required." : "")
+                }
+                InputProps={{
+                  readOnly: isReadOnly,
+                }}
+                sx={{
+                  width: "100%",
+                  position: "relative",
+                  "& .MuiFormHelperText-root": {
+                    position: "absolute",
+                    bottom: "-20px",
+                    marginTop: "0px",
+                  },
+                }}
+              />
+            )}
+          />
+        </Grid>
 
+        <Grid
+          item
+          xs={12}
+          sm={4}
+          sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
+          <Controller
+            name="nationality"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label={
+                  <>
+                    Nationality <span style={{ color: "red" }}>*</span>
+                  </>
+                }
+                variant="outlined"
+                fullWidth
+                disabled={isFieldDisabled}
+                error={!!errors.nationality}
+                helperText={
+                  errors.nationality?.message ||
+                  (!field.value ? "Nationality is required." : "")
+                }
+                InputProps={{
+                  readOnly: isReadOnly,
+                }}
+                sx={{
+                  width: "100%",
+                  position: "relative",
+                  "& .MuiFormHelperText-root": {
+                    position: "absolute",
+                    bottom: "-20px",
+                    marginTop: "0px",
+                  },
+                }}
+              />
+            )}
+          />
+        </Grid>
         <Grid
           item
           xs={12}

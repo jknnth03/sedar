@@ -10,6 +10,7 @@ import {
   IconButton,
   CircularProgress,
   Tooltip,
+  Skeleton,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -141,8 +142,10 @@ const DataChangeModal = ({
   const [employeeData, setEmployeeData] = useState(null);
   const [editingEntryId, setEditingEntryId] = useState(null);
 
-  const [triggerGetEmployee, { data: fetchedEmployeeData }] =
-    useLazyGetAllDataChangeEmployeeQuery();
+  const [
+    triggerGetEmployee,
+    { data: fetchedEmployeeData, isLoading: isLoadingEmployee },
+  ] = useLazyGetAllDataChangeEmployeeQuery();
 
   useEffect(() => {
     if (open && selectedEntry?.result?.id) {
@@ -310,6 +313,7 @@ const DataChangeModal = ({
       }, 100);
     }
   };
+
   useEffect(() => {
     if (open) {
       setCurrentMode(mode);
@@ -491,6 +495,7 @@ const DataChangeModal = ({
   ]);
 
   const isProcessing = isLoading || isUpdating;
+  const isLoadingData = isLoadingEmployee && !formInitialized;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -597,31 +602,42 @@ const DataChangeModal = ({
           </StyledDialogContent>
 
           <StyledDialogActions>
-            {currentMode === "view" && shouldShowCreateMDAButton() && (
-              <Button
-                onClick={handleCreateMDAClick}
-                variant="contained"
-                disabled={isProcessing}
-                startIcon={
-                  isProcessing ? <CircularProgress size={16} /> : <AddIcon />
-                }
-                sx={{
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  "&:hover": {
-                    backgroundColor: "#45a049",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "rgba(76, 175, 80, 0.3)",
-                    color: "rgba(255, 255, 255, 0.5)",
-                  },
-                  mr: 2,
-                }}>
-                {isProcessing ? "Processing..." : "Create MDA Form"}
-              </Button>
+            {currentMode === "view" && isLoadingData && (
+              <Skeleton
+                variant="rectangular"
+                width={200}
+                height={44}
+                sx={{ borderRadius: "8px", mr: 2 }}
+              />
             )}
+
+            {currentMode === "view" &&
+              !isLoadingData &&
+              shouldShowCreateMDAButton() && (
+                <Button
+                  onClick={handleCreateMDAClick}
+                  variant="contained"
+                  disabled={isProcessing}
+                  startIcon={
+                    isProcessing ? <CircularProgress size={16} /> : <AddIcon />
+                  }
+                  sx={{
+                    backgroundColor: "#4CAF50",
+                    color: "white",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    "&:hover": {
+                      backgroundColor: "#45a049",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "rgba(76, 175, 80, 0.3)",
+                      color: "rgba(255, 255, 255, 0.5)",
+                    },
+                    mr: 2,
+                  }}>
+                  {isProcessing ? "Processing..." : "Create MDA Form"}
+                </Button>
+              )}
 
             {currentMode === "view" &&
               selectedEntry?.result?.status !== "PENDING MDA CREATION" && (

@@ -95,6 +95,8 @@ export const transformPendingEmployeeData = (formData) => {
   safeAppendWithValidation("prefix_id", extractId(formData.prefix));
   safeAppend("id_number", formData.id_number);
   safeAppend("birth_date", formData.birth_date);
+  safeAppend("birth_place", formData.birth_place);
+  safeAppend("nationality", formData.nationality);
   safeAppendWithValidation("religion_id", extractId(formData.religion));
   safeAppend("civil_status", formData.civil_status);
   safeAppend("gender", formData.gender);
@@ -222,6 +224,51 @@ export const transformPendingEmployeeData = (formData) => {
   safeAppend("mobile_number_remarks", formData.mobile_number_remarks);
   safeAppend("contact_remarks", formData.contact_remarks);
 
+  if (formData.files && Array.isArray(formData.files)) {
+    formData.files.forEach((file, index) => {
+      if (file && typeof file === "object") {
+        if (file.id) {
+          const fileId = typeof file.id === "object" ? file.id.id : file.id;
+          if (fileId && !isNaN(parseInt(fileId))) {
+            transformedData.append(`files[${index}][id]`, parseInt(fileId));
+          }
+        }
+
+        const fileTypeId = extractId(file.file_type_id || file.file_type);
+        if (fileTypeId && !isNaN(parseInt(fileTypeId))) {
+          transformedData.append(
+            `files[${index}][file_type_id]`,
+            parseInt(fileTypeId)
+          );
+        }
+
+        const fileCabinetId = extractId(
+          file.file_cabinet_id || file.file_cabinet
+        );
+        if (fileCabinetId && !isNaN(parseInt(fileCabinetId))) {
+          transformedData.append(
+            `files[${index}][file_cabinet_id]`,
+            parseInt(fileCabinetId)
+          );
+        }
+
+        if (file.file_description) {
+          transformedData.append(
+            `files[${index}][file_description]`,
+            file.file_description
+          );
+        }
+
+        if (file.file_attachment && file.file_attachment instanceof File) {
+          transformedData.append(
+            `files[${index}][file_attachment]`,
+            file.file_attachment
+          );
+        }
+      }
+    });
+  }
+
   return transformedData;
 };
 
@@ -324,7 +371,7 @@ export const enhancedProcessFormSubmission = async ({
   try {
     const result = await updateFormSubmission({
       id: submissionIdToUse,
-      data: transformedData,
+      body: transformedData,
     }).unwrap();
 
     if (onSubmitProp) {
@@ -354,7 +401,7 @@ export const getSubmissionId = (initialData) => {
 
 export const getActualData = (fetchedData, initialData) => {
   if (fetchedData) {
-    return fetchedData;
+    return fetchedData.result || fetchedData;
   }
 
   if (

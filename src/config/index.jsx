@@ -42,7 +42,6 @@ import TaskIcon from "@mui/icons-material/Task";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import MarkAsUnreadIcon from "@mui/icons-material/MarkAsUnread";
-import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import CloudSyncIcon from "@mui/icons-material/CloudSync";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -53,6 +52,7 @@ import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
 import moduleApi from "../features/api/usermanagement/dashboardApi";
 import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
+import BorderColorIcon from "@mui/icons-material/BorderColor";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -157,6 +157,16 @@ export const createEnhancedModules = (dashboardData = {}) => {
           ),
           icon_on: null,
           notificationCount: counts.pendingRegistrations,
+        },
+        ENABLEEDIT: {
+          name: "Enable Edit",
+          path: "enableedit",
+          icon: (
+            <BorderColorIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
         },
       },
     },

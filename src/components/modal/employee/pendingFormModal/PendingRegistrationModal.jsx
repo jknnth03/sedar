@@ -57,15 +57,13 @@ import {
   getActualData,
   createInitialState,
   shouldInitializeForm,
-  shouldEnableEditButton,
   shouldEnableResubmitButton,
   resetModalState,
-  handleSuccessAndClose,
-  handleFormSubmission,
   handleEditModeToggle,
   createLoadingDialog,
   createErrorDialog,
   createNotificationConfig,
+  transformPendingEmployeeData,
 } from "./PendingRegistrationUtils.jsx";
 import moduleApi from "../../../../features/api/usermanagement/dashboardApi.js";
 import mainApi from "../../../../features/api/employee/mainApi.js";
@@ -138,14 +136,9 @@ const PendingRegistrationModal = ({
   const isViewOrEditMode = isViewMode || isEditMode;
   const isDisabled = isSubmitting || blockAllInteractions;
 
-  // Custom function to check if editing should be enabled based on current_step_number
   const shouldEnableEditBasedOnStep = useCallback((data) => {
     if (!data) return false;
-
-    // Get the current_step_number from the data
-    const currentStepNumber = data.current_step_number || 1;
-
-    // Only disable editing when current_step_number is 2 and above
+    const currentStepNumber = data?.current_step_number || 1;
     return currentStepNumber < 2;
   }, []);
 
@@ -160,13 +153,6 @@ const PendingRegistrationModal = ({
         formData,
         "Initial Form Data"
       );
-
-      if (validationResults.fixes.length > 0) {
-        console.log("Applied form data fixes:", validationResults.fixes);
-      }
-      if (validationResults.warnings.length > 0) {
-        console.warn("Form data warnings:", validationResults.warnings);
-      }
 
       return fixedData;
     },
@@ -226,7 +212,6 @@ const PendingRegistrationModal = ({
         }, 500);
       }, 1500);
     } catch (error) {
-      console.error("Resubmit failed:", error);
       setSubmissionResult({
         type: "error",
         message: "Failed to resubmit registration. Please try again.",
@@ -386,7 +371,6 @@ const PendingRegistrationModal = ({
   };
 
   const handleEditClick = () => {
-    // Use the new step-based edit logic instead of the imported function
     const editButtonEnabled =
       shouldEnableEditBasedOnStep(actualData) && !isSubmitting;
     if (isDisabled || !editButtonEnabled) return;
@@ -413,7 +397,9 @@ const PendingRegistrationModal = ({
   };
 
   const onSubmit = async (data) => {
-    if (isDisabled) return;
+    if (isDisabled) {
+      return;
+    }
 
     const { fixedData, validationResults } = validateAndFixFormData(
       data,
@@ -428,27 +414,60 @@ const PendingRegistrationModal = ({
       return;
     }
 
-    await handleFormSubmission(
-      fixedData,
-      submissionId,
-      actualData,
-      updateFormSubmission,
-      onSubmitProp,
-      currentMode,
-      onRefetch,
-      refetchQueries,
-      setIsProcessing,
-      setSubmissionResult,
-      setBlockAllInteractions,
-      setIsClosing,
-      handleClose,
-      autoCloseAfterUpdate,
-      dispatch
-    );
+    setIsProcessing(true);
+    setSubmissionResult(null);
+
+    try {
+      const transformedData = transformPendingEmployeeData(fixedData);
+
+      const result = await updateFormSubmission({
+        id: submissionId,
+        body: transformedData,
+      }).unwrap();
+
+      dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
+      dispatch(mainApi.util.invalidateTags(["employees"]));
+      dispatch(moduleApi.util.invalidateTags(["dashboard"]));
+
+      setSubmissionResult({
+        type: "success",
+        message: "Pending registration updated successfully!",
+      });
+
+      if (onSubmitProp) {
+        await onSubmitProp(result);
+      }
+
+      if (onRefetch) {
+        await onRefetch();
+      }
+
+      if (autoCloseAfterUpdate) {
+        setTimeout(() => {
+          setIsClosing(true);
+          setTimeout(() => {
+            handleClose();
+          }, 500);
+        }, 1500);
+      }
+    } catch (error) {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "Failed to update pending registration. Please try again.";
+      setSubmissionResult({
+        type: "error",
+        message: errorMessage,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleUpdateAtStep = async () => {
-    if (isDisabled) return;
+    if (isDisabled) {
+      return;
+    }
 
     const stepValid = await validateCurrentStep(activeStep, getValues);
 
@@ -461,34 +480,20 @@ const PendingRegistrationModal = ({
     }
 
     const currentData = getValues();
+
     const { fixedData } = validateAndFixFormData(currentData, "Update Data");
+
     setPendingUpdateData(fixedData);
     setShowUpdateConfirmDialog(true);
   };
 
   const handleConfirmUpdate = async () => {
-    if (!pendingUpdateData || isDisabled) return;
+    if (!pendingUpdateData || isDisabled) {
+      return;
+    }
 
     setShowUpdateConfirmDialog(false);
-
-    await handleFormSubmission(
-      pendingUpdateData,
-      submissionId,
-      actualData,
-      updateFormSubmission,
-      onSubmitProp,
-      currentMode,
-      onRefetch,
-      refetchQueries,
-      setIsProcessing,
-      setSubmissionResult,
-      setBlockAllInteractions,
-      setIsClosing,
-      handleClose,
-      autoCloseAfterUpdate,
-      dispatch
-    );
-
+    await onSubmit(pendingUpdateData);
     setPendingUpdateData(null);
   };
 

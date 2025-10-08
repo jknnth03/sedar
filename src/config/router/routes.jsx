@@ -37,8 +37,6 @@ import ApprovalFlow from "../../pages/approver/ApprovalFlow.jsx";
 import ApprovalForm from "../../pages/approver/ApprovalForm.jsx";
 import SubmissionApproval from "../../pages/approver/submissionApproval/SubmissionApproval.jsx";
 import PendingForms from "../../pages/receiving/PendingForms.jsx";
-// import Receiver from "../../pages/approver/Receiver.jsx";
-// import Approver from "../../pages/approver/Approver.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approver/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
@@ -49,6 +47,7 @@ import Evaluation from "../../pages/evaluation/Evaluation.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
 import DataChangeApproval from "../../pages/approver/dataChangeApproval/DataChangeApproval.jsx";
 import MDA from "../../pages/forms/mdaform/MDA.jsx";
+import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdit.jsx";
 
 export const ROUTES = [
   {
@@ -111,22 +110,6 @@ export const ROUTES = [
             CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFLOW.name,
         },
       },
-      // {
-      //   id: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.name,
-      //   path: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.path,
-      //   element: <Receiver />,
-      //   handle: {
-      //     permission: CONSTANT.PAGES.APPROVALSETTINGS.children.RECEIVER.name,
-      //   },
-      // },
-      // {
-      //   id: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.name,
-      //   path: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.path,
-      //   element: <Approver />,
-      //   handle: {
-      //     permission: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVER.name,
-      //   },
-      // },
       {
         id: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.name,
         path: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.path,
@@ -443,6 +426,14 @@ export const ROUTES = [
         handle: {
           permission:
             CONSTANT.PAGES.EMPLOYEES.children.PENDINGREGISTRATION.name,
+        },
+      },
+      {
+        id: CONSTANT.PAGES.EMPLOYEES.children.ENABLEEDIT.name,
+        path: CONSTANT.PAGES.EMPLOYEES.children.ENABLEEDIT.path,
+        element: <EnableEdit />,
+        handle: {
+          permission: CONSTANT.PAGES.EMPLOYEES.children.ENABLEEDIT.name,
         },
       },
     ],

@@ -72,7 +72,7 @@ const mdaApi = sedarApi
           formData.append("_method", "PATCH");
 
           return {
-            url: `form-submissions/${id}/data-change`,
+            url: `form-submissions/${id}`,
             method: "POST",
             body: formData,
           };

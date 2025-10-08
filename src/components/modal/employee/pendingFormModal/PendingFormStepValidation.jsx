@@ -4,7 +4,6 @@ import {
 } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import { STEPS } from "../../employee/multiFormModal/EmployeeWizardHelpers.js";
 
-// Step field mappings
 export const STEP_FIELD_MAP = {
   0: [
     "first_name",
@@ -13,6 +12,8 @@ export const STEP_FIELD_MAP = {
     "prefix",
     "id_number",
     "birth_date",
+    "birth_place",
+    "nationality",
     "gender",
     "civil_status",
     "religion",
@@ -67,7 +68,6 @@ export const STEP_FIELD_MAP = {
   8: [],
 };
 
-// Fields that need to be converted from number to object
 export const FIELDS_TO_CONVERT_TO_OBJECT = [
   "region_id",
   "province_id",
@@ -86,11 +86,12 @@ export const FIELDS_TO_CONVERT_TO_OBJECT = [
   "bank",
 ];
 
-// Required fields for validation
 export const REQUIRED_STRING_FIELDS = [
   "first_name",
   "last_name",
   "birth_date",
+  "birth_place",
+  "nationality",
   "gender",
   "civil_status",
 ];
@@ -112,21 +113,17 @@ export const REQUIRED_ADDRESS_FIELDS = [
   "barangay_id",
 ];
 
-// Helper function to extract value from different field formats
 const extractFieldValue = (data, fieldName) => {
   const value = data[fieldName];
 
-  // If it's already a simple value (string, number)
   if (typeof value === "string" || typeof value === "number") {
     return value;
   }
 
-  // If it's an object with id property
   if (value && typeof value === "object" && value.id !== undefined) {
     return value.id;
   }
 
-  // Check for alternative field names (without _id suffix)
   if (fieldName.endsWith("_id")) {
     const alternateField = fieldName.replace("_id", "");
     const alternateValue = data[alternateField];
@@ -150,24 +147,19 @@ const extractFieldValue = (data, fieldName) => {
   return value;
 };
 
-// Enhanced validation function that handles different data structures
 const validateFieldValue = (value, fieldName) => {
-  // Handle null, undefined, or empty string
   if (value === null || value === undefined || value === "") {
     return false;
   }
 
-  // Handle numbers (including 0)
   if (typeof value === "number") {
     return true;
   }
 
-  // Handle strings
   if (typeof value === "string") {
     return value.trim() !== "";
   }
 
-  // Handle objects with id
   if (typeof value === "object" && value.id !== undefined) {
     return value.id !== null && value.id !== undefined && value.id !== "";
   }
@@ -175,7 +167,6 @@ const validateFieldValue = (value, fieldName) => {
   return false;
 };
 
-// Get which step a field belongs to
 export const getFieldStep = (fieldPath) => {
   for (const [step, fields] of Object.entries(STEP_FIELD_MAP)) {
     if (fields.some((field) => fieldPath.includes(field))) {
@@ -185,7 +176,6 @@ export const getFieldStep = (fieldPath) => {
   return -1;
 };
 
-// Validate and fix form data
 export const validateAndFixFormData = (data, label = "Form Data") => {
   const fixedData = { ...data };
   const validationResults = {
@@ -197,7 +187,6 @@ export const validateAndFixFormData = (data, label = "Form Data") => {
     fieldDetails: {},
   };
 
-  // Fix employment types
   if (
     !fixedData.employment_types ||
     !Array.isArray(fixedData.employment_types) ||
@@ -215,7 +204,6 @@ export const validateAndFixFormData = (data, label = "Form Data") => {
     validationResults.fixes.push("Added default REGULAR employment type");
   }
 
-  // Handle attachment warning
   if (
     fixedData.attainment_attachment &&
     typeof fixedData.attainment_attachment === "string"
@@ -225,7 +213,6 @@ export const validateAndFixFormData = (data, label = "Form Data") => {
     );
   }
 
-  // Convert fields to objects
   FIELDS_TO_CONVERT_TO_OBJECT.forEach((field) => {
     if (fixedData[field] && typeof fixedData[field] === "number") {
       fixedData[field] = { id: fixedData[field] };
@@ -236,13 +223,11 @@ export const validateAndFixFormData = (data, label = "Form Data") => {
   return { fixedData, validationResults };
 };
 
-// Create custom validation schema
 export const createCustomValidationSchema = (mode = "edit") => {
   return {
     validate: (data) => {
       const errors = [];
 
-      // Validate required string fields
       REQUIRED_STRING_FIELDS.forEach((field) => {
         const value = extractFieldValue(data, field);
         if (!validateFieldValue(value, field)) {
@@ -250,7 +235,6 @@ export const createCustomValidationSchema = (mode = "edit") => {
         }
       });
 
-      // Validate required ID fields
       REQUIRED_ID_FIELDS.forEach((field) => {
         const value = extractFieldValue(data, field);
         if (!validateFieldValue(value, field)) {
@@ -258,7 +242,6 @@ export const createCustomValidationSchema = (mode = "edit") => {
         }
       });
 
-      // Validate employment types
       if (
         !data.employment_types ||
         !Array.isArray(data.employment_types) ||
@@ -267,7 +250,6 @@ export const createCustomValidationSchema = (mode = "edit") => {
         errors.push("employment_types must have at least one entry");
       }
 
-      // Validate attainment attachment
       if (!data.attainment_attachment) {
         errors.push("attainment_attachment is required");
       } else if (typeof data.attainment_attachment === "string") {
@@ -286,68 +268,41 @@ export const createCustomValidationSchema = (mode = "edit") => {
   };
 };
 
-// Enhanced step validation with better field extraction
 export const validateCurrentStep = async (stepIndex, getValues) => {
   try {
     const currentData = getValues();
-    console.log("=== Step Validation Debug ===");
-    console.log("Step:", stepIndex);
-    console.log("Current form data:", currentData);
-
-    // Special validation for address step with enhanced field checking
     if (stepIndex === 1) {
-      console.log("Validating address step...");
       const addressErrors = [];
 
       for (const field of REQUIRED_ADDRESS_FIELDS) {
         const value = extractFieldValue(currentData, field);
-        console.log(`Address field ${field}:`, value, "Type:", typeof value);
-
         if (!validateFieldValue(value, field)) {
           addressErrors.push(field);
         }
       }
-
       if (addressErrors.length > 0) {
-        console.log(
-          `Address validation failed for fields: ${addressErrors.join(", ")}`
-        );
         return false;
       }
-
-      console.log("Address validation passed");
       return true;
     }
 
-    // For other steps, check required fields based on step
     if (stepIndex === 0) {
-      console.log("Validating general info step...");
       const generalErrors = [];
 
       for (const field of REQUIRED_STRING_FIELDS) {
         const value = extractFieldValue(currentData, field);
-        console.log(`General field ${field}:`, value, "Type:", typeof value);
-
         if (!validateFieldValue(value, field)) {
           generalErrors.push(field);
         }
       }
 
       if (generalErrors.length > 0) {
-        console.log(
-          `General info validation failed for fields: ${generalErrors.join(
-            ", "
-          )}`
-        );
         return false;
       }
-
-      console.log("General info validation passed");
       return true;
     }
 
     if (stepIndex === 2) {
-      console.log("Validating position step...");
       const positionErrors = [];
       const positionRequiredFields = [
         "position_id",
@@ -357,25 +312,17 @@ export const validateCurrentStep = async (stepIndex, getValues) => {
 
       for (const field of positionRequiredFields) {
         const value = extractFieldValue(currentData, field);
-        console.log(`Position field ${field}:`, value, "Type:", typeof value);
-
         if (!validateFieldValue(value, field)) {
           positionErrors.push(field);
         }
       }
 
       if (positionErrors.length > 0) {
-        console.log(
-          `Position validation failed for fields: ${positionErrors.join(", ")}`
-        );
         return false;
       }
-
-      console.log("Position validation passed");
       return true;
     }
 
-    // For other steps that don't have specific required field validation
     if (
       stepIndex === 3 ||
       stepIndex === 4 ||
@@ -383,16 +330,10 @@ export const validateCurrentStep = async (stepIndex, getValues) => {
       stepIndex === 6 ||
       stepIndex === 7
     ) {
-      console.log(
-        `Step ${stepIndex} validation passed (no specific validation)`
-      );
       return true;
     }
 
-    // Fallback to schema validation for complex steps
     const transformedData = { ...currentData };
-
-    // Extract IDs from objects for schema validation
     FIELDS_TO_CONVERT_TO_OBJECT.forEach((field) => {
       const value = extractFieldValue(currentData, field);
       if (value !== null && value !== undefined) {
@@ -400,20 +341,15 @@ export const validateCurrentStep = async (stepIndex, getValues) => {
       }
     });
 
-    console.log("Transformed data for schema validation:", transformedData);
-
     const stepSchema = getStepValidationSchema(stepIndex);
     await stepSchema.validate(transformedData, { abortEarly: false });
-    console.log("Schema validation passed");
     return true;
   } catch (error) {
-    console.log("Validation error:", error);
     console.log("Error details:", error.inner || error.message);
     return false;
   }
 };
 
-// Generate error message from validation errors
 export const generateErrorMessage = (error) => {
   let errorMessage = "Failed to update pending registration. Please try again.";
 
@@ -458,7 +394,6 @@ export const generateErrorMessage = (error) => {
   return errorMessage;
 };
 
-// Handle step navigation logic
 export const handleStepNavigation = async (
   direction,
   currentStep,
@@ -485,7 +420,6 @@ export const handleStepNavigation = async (
 
   const stepValid = await validateCurrentStep(currentStep, getValues);
   if (!stepValid) {
-    // More specific error messages based on step
     let errorMessage = "Please fill in all required fields to continue.";
 
     if (currentStep === 0) {
@@ -509,7 +443,6 @@ export const handleStepNavigation = async (
   return true;
 };
 
-// Create form error handler
 export const createFormErrorHandler = (setSubmissionResult) => {
   return (errors) => {
     let errorMessage = "Please fill in all required fields to continue.";
@@ -525,7 +458,6 @@ export const createFormErrorHandler = (setSubmissionResult) => {
   };
 };
 
-// Create stepper configuration
 export const createStepperConfig = (
   activeStep,
   isViewMode,

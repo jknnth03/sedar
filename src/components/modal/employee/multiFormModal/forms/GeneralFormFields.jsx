@@ -132,7 +132,7 @@ const GeneralFormFields = ({
   };
 
   return (
-    <Grid container spacing={0.1}>
+    <Grid container spacing={0.2}>
       <Grid
         size={{ xs: 12, md: 4 }}
         sx={{ minWidth: "730px", maxWidth: "730px", pr: 1 }}>
@@ -660,6 +660,74 @@ const GeneralFormFields = ({
               InputLabelProps={{ shrink: true }}
               InputProps={{ readOnly: isReadOnly }}
               inputProps={{ max: getMaxBirthDate() }}
+              sx={{
+                width: "100%",
+                position: "relative",
+                "& .MuiFormHelperText-root": {
+                  position: "absolute",
+                  bottom: "-20px",
+                  marginTop: "0px",
+                },
+              }}
+            />
+          )}
+        />
+      </Grid>
+
+      <Grid
+        size={{ xs: 12, md: 4 }}
+        sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+        <Controller
+          name="birth_place"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label={
+                <>
+                  Birthplace <span style={{ color: "red" }}>*</span>
+                </>
+              }
+              variant="outlined"
+              fullWidth
+              disabled={isFieldDisabled}
+              error={!!errors.birth_place}
+              helperText={errors.birth_place?.message}
+              InputProps={{ readOnly: isReadOnly }}
+              sx={{
+                width: "100%",
+                position: "relative",
+                "& .MuiFormHelperText-root": {
+                  position: "absolute",
+                  bottom: "-20px",
+                  marginTop: "0px",
+                },
+              }}
+            />
+          )}
+        />
+      </Grid>
+
+      <Grid
+        size={{ xs: 12, md: 4 }}
+        sx={{ minWidth: "367px", maxWidth: "367px", pr: 1 }}>
+        <Controller
+          name="nationality"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label={
+                <>
+                  Nationality <span style={{ color: "red" }}>*</span>
+                </>
+              }
+              variant="outlined"
+              fullWidth
+              disabled={isFieldDisabled}
+              error={!!errors.nationality}
+              helperText={errors.nationality?.message}
+              InputProps={{ readOnly: isReadOnly }}
               sx={{
                 width: "100%",
                 position: "relative",

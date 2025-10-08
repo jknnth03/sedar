@@ -230,6 +230,10 @@ const DataChangeModalFields = ({
               currentEmployeeData.schedule ||
               watchedEmployee.schedule ||
               "N/A",
+            job_rate:
+              submittable.from_position?.job_rate ||
+              currentEmployeeData.job_rate ||
+              watchedEmployee.job_rate,
           };
 
           setValue("employee_id", updatedEmployeeData, {
@@ -469,7 +473,43 @@ const DataChangeModalFields = ({
                   SUB UNIT
                 </Typography>
                 {isLoadingEmployeeData ? (
-                  <Skeleton variant="text" width="65%" height={24} />
+                  <Skeleton
+                    variant="text"
+                    width="65%"
+                    height={24}
+                    sx={{ marginBottom: 2.5 }}
+                  />
+                ) : (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      color: "#1a1a1a",
+                      marginBottom: 2.5,
+                    }}>
+                    {watchedEmployee.sub_unit ||
+                      selectedEntry?.result?.submittable?.from_position
+                        ?.charging?.sub_unit_name ||
+                      "N/A"}
+                  </Typography>
+                )}
+
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "rgb(33, 61, 112)",
+                    marginBottom: 1.5,
+                    fontSize: "11px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}>
+                  JOB RATE
+                </Typography>
+                {isLoadingEmployeeData ? (
+                  <Skeleton variant="text" width="60%" height={24} />
                 ) : (
                   <Typography
                     variant="body2"
@@ -479,10 +519,21 @@ const DataChangeModalFields = ({
                       lineHeight: 1.3,
                       color: "#1a1a1a",
                     }}>
-                    {watchedEmployee.sub_unit ||
-                      selectedEntry?.result?.submittable?.from_position
-                        ?.charging?.sub_unit_name ||
-                      "N/A"}
+                    {watchedEmployee.job_rate
+                      ? `₱${watchedEmployee.job_rate.toLocaleString("en-PH", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : selectedEntry?.result?.submittable?.from_position
+                          ?.job_rate
+                      ? `₱${selectedEntry.result.submittable.from_position.job_rate.toLocaleString(
+                          "en-PH",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}`
+                      : "N/A"}
                   </Typography>
                 )}
               </Box>

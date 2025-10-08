@@ -25,6 +25,7 @@ import {
   Edit as EditIcon,
   EditOff,
 } from "@mui/icons-material";
+import { useSelector } from "react-redux";
 import "./Employee.scss";
 
 import { createFlattenedEmployeeSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
@@ -41,7 +42,6 @@ import {
 import { getDefaultValues } from "./EmployeeUtils.js";
 import EmployeeWizardActions from "./EmployeeWizardActions.jsx";
 
-// Import all logic from the single consolidation file
 import {
   useEmployeeWizardLogic,
   useEmploymentTypeHandler,
@@ -50,7 +50,6 @@ import {
   getEmployeeFullName,
 } from "./EmployeeWizardLogic.js";
 
-// Import step components directly
 import AddressForm from "./forms/AddressForm.jsx";
 import PositionForm from "./forms/PositionForm.jsx";
 import EmploymentTypeForm from "./forms/EmploymentTypesForm.jsx";
@@ -72,7 +71,20 @@ const EmployeeWizardForm = ({
   refetchQueries,
   autoCloseAfterUpdate = true,
 }) => {
-  // All state management consolidated
+  const fullAuthState = useSelector((state) => state.auth);
+
+  const userPermissions = useSelector((state) => {
+    if (state.auth?.user?.access_permissions) {
+      return state.auth.user.access_permissions;
+    }
+    if (state.auth?.user?.role?.access_permissions) {
+      return state.auth.user.role.access_permissions;
+    }
+    return [];
+  });
+
+  const hasEnableEditPermission = userPermissions.includes("Enable Edit");
+
   const wizardLogic = useEmployeeWizardLogic(
     mode,
     initialStep,
@@ -97,21 +109,19 @@ const EmployeeWizardForm = ({
     resetState,
   } = wizardLogic;
 
-  // API mutations
   const [createEmployee, { isLoading: isCreating }] =
     useCreateEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdating }] =
     useUpdateEmployeeMutation();
 
-  // Computed values
   const isSubmitting = (isCreating || isUpdating || isProcessing) && !isClosing;
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
   const isCreateMode = currentMode === "create";
   const isViewOrEditMode = isViewMode || isEditMode;
   const isDisabled = isSubmitting || blockAllInteractions;
+  const canEdit = hasEnableEditPermission;
 
-  // Form setup
   const methods = useForm({
     defaultValues: getDefaultValues({ mode, initialData }),
     resolver: yupResolver(createFlattenedEmployeeSchema()),
@@ -127,10 +137,10 @@ const EmployeeWizardForm = ({
     setValue,
     clearErrors,
     getValues,
+    setError,
     formState: { errors },
   } = methods;
 
-  // Custom hooks for specific logic
   const handleEmploymentTypeChange = useEmploymentTypeHandler(setValue);
 
   const handleClose = () => {
@@ -155,6 +165,7 @@ const EmployeeWizardForm = ({
     handleClose,
     autoCloseAfterUpdate,
     getValues,
+    setError,
   });
 
   const { handleNext, handleBack, handleStepClick } = useStepNavigation(
@@ -166,7 +177,6 @@ const EmployeeWizardForm = ({
     getValues
   );
 
-  // Form initialization effect
   useEffect(() => {
     if (!open) {
       resetState();
@@ -212,7 +222,6 @@ const EmployeeWizardForm = ({
     }
   }, [open, initialData, mode, initialStep, reset, getValues]);
 
-  // Employment type watcher
   useEffect(() => {
     if (!isFormInitialized || isDisabled) return;
 
@@ -229,9 +238,8 @@ const EmployeeWizardForm = ({
     return () => subscription.unsubscribe();
   }, [watch, handleEmploymentTypeChange, isFormInitialized, isDisabled]);
 
-  // Mode switching handlers
   const handleEditClick = () => {
-    if (isDisabled) return;
+    if (isDisabled || !canEdit) return;
     setCurrentMode("edit");
     setSubmissionResult(null);
   };
@@ -244,7 +252,6 @@ const EmployeeWizardForm = ({
     clearErrors();
   };
 
-  // Step components
   const stepComponents = {
     0: GeneralForm,
     1: AddressForm,
@@ -269,7 +276,6 @@ const EmployeeWizardForm = ({
     );
   };
 
-  // Loading state
   if (!isFormInitialized && open) {
     return (
       <Dialog open={open} maxWidth="lg" fullWidth>
@@ -320,27 +326,42 @@ const EmployeeWizardForm = ({
             <Typography variant="h5">{getDialogTitle(currentMode)}</Typography>
 
             {isViewMode && (
-              <Tooltip title="EDIT EMPLOYEE">
-                <IconButton
-                  onClick={handleEditClick}
-                  disabled={isDisabled}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    padding: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgba(0, 136, 32, 0.08)",
-                      transform: "scale(1.1)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                  }}>
-                  <EditIcon
+              <Tooltip
+                title={
+                  canEdit
+                    ? "EDIT EMPLOYEE"
+                    : "EDITING NOT ALLOWED - ENABLE EDIT PERMISSION REQUIRED"
+                }>
+                <span>
+                  <IconButton
+                    onClick={handleEditClick}
+                    disabled={isDisabled || !canEdit}
+                    size="small"
                     sx={{
-                      fontSize: "20px",
-                      "& path": { fill: "rgba(0, 136, 32, 1)" },
-                    }}
-                  />
-                </IconButton>
+                      ml: 1,
+                      padding: "8px",
+                      "&:hover": canEdit
+                        ? {
+                            backgroundColor: "rgba(0, 136, 32, 0.08)",
+                            transform: "scale(1.1)",
+                            transition: "all 0.2s ease-in-out",
+                          }
+                        : {},
+                      opacity: canEdit ? 1 : 0.5,
+                      cursor: canEdit ? "pointer" : "not-allowed",
+                    }}>
+                    <EditIcon
+                      sx={{
+                        fontSize: "20px",
+                        "& path": {
+                          fill: canEdit
+                            ? "rgba(0, 136, 32, 1)"
+                            : "rgba(158, 158, 158, 1)",
+                        },
+                      }}
+                    />
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
 
@@ -394,7 +415,6 @@ const EmployeeWizardForm = ({
 
       <DialogContent className="employee-wizard-content">
         <Box className="employee-wizard-content__inner">
-          {/* Result Messages */}
           {submissionResult && (
             <Fade in={true} timeout={300}>
               <Box
@@ -432,7 +452,6 @@ const EmployeeWizardForm = ({
             </Fade>
           )}
 
-          {/* Stepper */}
           <Stepper
             activeStep={activeStep}
             alternativeLabel
@@ -455,7 +474,6 @@ const EmployeeWizardForm = ({
             ))}
           </Stepper>
 
-          {/* Form Content */}
           <FormProvider {...methods}>
             <Box
               className="employee-wizard-content__form-container"

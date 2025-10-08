@@ -1,16 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   createFlattenedEmployeeSchema,
   getStepValidationSchema,
 } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import { transformEmployeeData } from "./EmployeeDataTransformer.js";
-import {
-  STEPS,
-  initializeFormData,
-  getDialogTitle,
-  triggerRefetch,
-} from "./EmployeeWizardHelpers.js";
-import { getDefaultValues } from "./EmployeeUtils.js";
+import { STEPS, triggerRefetch } from "./EmployeeWizardHelpers.js";
 
 import AddressForm from "./forms/AddressForm.jsx";
 import PositionForm from "./forms/PositionForm.jsx";
@@ -75,7 +69,6 @@ export const transformEmploymentTypesForAPI = (employmentTypes) => {
   });
 };
 
-// Field to step mapping
 export const getFieldStep = (fieldPath) => {
   const stepFieldMap = {
     0: [
@@ -147,7 +140,6 @@ export const getFieldStep = (fieldPath) => {
   return -1;
 };
 
-// Employee name utility
 export const getEmployeeFullName = (data) => {
   if (!data) return "";
 
@@ -165,7 +157,6 @@ export const getEmployeeFullName = (data) => {
   return parts.join(" ").trim();
 };
 
-// Main wizard logic hook
 export const useEmployeeWizardLogic = (
   mode,
   initialStep,
@@ -220,7 +211,6 @@ export const useEmployeeWizardLogic = (
   };
 };
 
-// Employment type change handler
 export const useEmploymentTypeHandler = (setValue) => {
   return useCallback(
     (employmentTypes) => {
@@ -258,7 +248,6 @@ export const useEmploymentTypeHandler = (setValue) => {
   );
 };
 
-// Form submission logic
 export const useFormSubmission = ({
   isDisabled,
   isCreateMode,
@@ -276,7 +265,33 @@ export const useFormSubmission = ({
   handleClose,
   autoCloseAfterUpdate,
   getValues,
+  setError,
 }) => {
+  const handleBackendValidationErrors = (error) => {
+    const errorData = error?.data || error?.response?.data;
+
+    if (errorData?.errors) {
+      const { errors, message } = errorData;
+
+      Object.entries(errors).forEach(([fieldName, errorMessages]) => {
+        setError(fieldName, {
+          type: "backend",
+          message: Array.isArray(errorMessages)
+            ? errorMessages[0]
+            : errorMessages,
+        });
+      });
+
+      const errorCount = Object.keys(errors).length;
+      return (
+        message ||
+        `Please fix ${errorCount} validation error${errorCount > 1 ? "s" : ""}`
+      );
+    }
+
+    return null;
+  };
+
   const processSubmission = async (data, isUpdate = false) => {
     const fullSchema = createFlattenedEmployeeSchema();
     await fullSchema.validate(data, { abortEarly: false });
@@ -302,7 +317,9 @@ export const useFormSubmission = ({
     }
 
     if (onSubmitProp) await onSubmitProp(transformedData, currentMode, result);
+
     await triggerRefetch(onRefetch, refetchQueries);
+
     return result;
   };
 
@@ -346,21 +363,28 @@ export const useFormSubmission = ({
 
     try {
       await processSubmission(data, !isCreateMode);
+
       setSubmissionResult({
         type: "success",
         message: `Employee ${
           isCreateMode ? "created" : "updated"
         } successfully!`,
       });
+
       setBlockAllInteractions(true);
       setIsClosing(true);
-      setTimeout(() => handleClose(), 1000);
+
+      setTimeout(() => handleClose(), 1500);
     } catch (error) {
+      const backendErrorMessage = handleBackendValidationErrors(error);
+
       const errorMessage =
+        backendErrorMessage ||
         formatValidationErrors(error) ||
         `Failed to ${
           isCreateMode ? "create" : "update"
         } employee. Please try again.`;
+
       setSubmissionResult({ type: "error", message: errorMessage });
     } finally {
       setIsProcessing(false);
@@ -387,14 +411,18 @@ export const useFormSubmission = ({
       if (autoCloseAfterUpdate) {
         setBlockAllInteractions(true);
         setIsClosing(true);
-        setTimeout(() => handleClose(), 1000);
+        setTimeout(() => handleClose(), 1500);
       } else {
         setTimeout(() => setSubmissionResult(null), 3000);
       }
     } catch (error) {
+      const backendErrorMessage = handleBackendValidationErrors(error);
+
       const errorMessage =
+        backendErrorMessage ||
         formatValidationErrors(error) ||
         "Failed to update employee. Please try again.";
+
       setSubmissionResult({ type: "error", message: errorMessage });
     } finally {
       setIsProcessing(false);
@@ -416,7 +444,6 @@ export const useFormSubmission = ({
   return { processSubmission, onSubmit, handleUpdateAtStep, onError };
 };
 
-// Step navigation logic
 export const useStepNavigation = (
   activeStep,
   setActiveStep,

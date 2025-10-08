@@ -18,27 +18,20 @@ const rolesApi = sedarApi
       getShowRoles: build.query({
         query: (params = {}) => {
           const url = `roles?pagination=1&page=${params.page || 1}&per_page=${
-            params.rowsPerPage || params.per_page || 5 // Now accepts both rowsPerPage and per_page
+            params.rowsPerPage || params.per_page || 5
           }&search=${params.searchQuery || params.search || ""}&status=${
             params.status || "active"
           }`;
-
-          // Add this console.log to see what URL is being constructed
-          console.log("API URL:", url);
-          console.log("Params received:", params);
-
           return {
             url: url,
             method: "GET",
           };
         },
         transformResponse: (response) => {
-          console.log("API Response:", response); // Add this to see the actual response
           return response.result ? response.result : [];
         },
         providesTags: ["roles"],
       }),
-
       getAllShowRoles: build.query({
         query: (params = {}) => ({
           url: `roles?pagination=none&status=${
@@ -51,7 +44,6 @@ const rolesApi = sedarApi
         },
         providesTags: ["roles"],
       }),
-
       updateRole: build.mutation({
         query: ({ id, ...body }) => ({
           url: `roles/${id}`,
@@ -63,7 +55,6 @@ const rolesApi = sedarApi
         }),
         invalidatesTags: ["roles"],
       }),
-
       deleteRole: build.mutation({
         query: (id) => ({
           url: `roles/${id}`,

@@ -11,37 +11,26 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Fade,
   Tooltip,
-  Chip,
   CircularProgress,
-  FormGroup,
-  TablePagination,
   Alert,
   useMediaQuery,
   IconButton,
+  Fade,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
-import HelpIcon from "@mui/icons-material/Help";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "../../pages/forms/manpowerform/FormSubmissionStyles";
 import {
   pendingRegistrationStyles,
   StyledTabs,
   StyledTab,
 } from "./PendingRegistrationStyles";
-import { useGetPendingEmployeesQuery } from "../../features/api/employee/pendingApi";
 import {
   useLazyGetSingleEmployeeQuery,
   useGetEmployeeRegistrationCountsQuery,
@@ -51,8 +40,14 @@ import PendingRegistrationAwaitingresubmission from "./PendingRegistrationAwaiti
 import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/employeeWizardForm.jsx";
+import {
+  DateFilterDialog,
+  ConfirmationDialog,
+} from "./PendingRegistrationDialog";
 import { format } from "date-fns";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -90,125 +85,6 @@ const useDebounce = (value, delay) => {
   }, [value, delay]);
 
   return debouncedValue;
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth={!isMobile}
-      fullScreen={isMobile}
-      PaperProps={{
-        sx: {
-          ...pendingRegistrationStyles.filterDialog,
-          ...(isMobile && pendingRegistrationStyles.filterDialogMobile),
-        },
-      }}>
-      <DialogTitle>
-        <Box sx={pendingRegistrationStyles.filterDialogTitle}>
-          <Box sx={pendingRegistrationStyles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={pendingRegistrationStyles.filterIcon} />
-            <Typography
-              variant="h6"
-              sx={{
-                ...pendingRegistrationStyles.filterDialogTitleText,
-                ...(isMobile &&
-                  pendingRegistrationStyles.filterDialogTitleTextMobile),
-              }}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={pendingRegistrationStyles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent
-        sx={pendingRegistrationStyles.filterDialogContent(isMobile)}>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={pendingRegistrationStyles.datePickerContainer(isMobile)}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions
-        sx={pendingRegistrationStyles.filterDialogActions(isMobile)}>
-        <Box sx={pendingRegistrationStyles.dialogActionsContainer}>
-          <Box sx={pendingRegistrationStyles.dialogButtonsContainer(isMobile)}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={pendingRegistrationStyles.cancelButton(isMobile)}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={pendingRegistrationStyles.applyFiltersButton(isMobile)}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
-  );
 };
 
 const CustomSearchBar = ({
@@ -367,8 +243,7 @@ const PendingRegistration = () => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
-  const [currentParams, setQueryParams, removeQueryParams] =
-    useRememberQueryParams();
+  const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabLabels = [
     "ForApproval",
@@ -403,14 +278,25 @@ const PendingRegistration = () => {
     useState(null);
   const [pendingEmployeeData, setPendingEmployeeData] = useState(null);
 
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createModalMode, setCreateModalMode] = useState("create");
+  const [editData, setEditData] = useState(null);
+
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
-  const { data: registrationCounts, isLoading: countsLoading } =
-    useGetEmployeeRegistrationCountsQuery(undefined, {
+  const { data: registrationCounts } = useGetEmployeeRegistrationCountsQuery(
+    undefined,
+    {
       refetchOnMountOrArgChange: true,
       refetchOnFocus: true,
       refetchOnReconnect: true,
-    });
+    }
+  );
+
+  const { data: dashboardData, isLoading: isDashboardLoading } =
+    useShowDashboardQuery();
+
+  const openMrfsCount = dashboardData?.result?.employees?.open_mrfs || 0;
 
   const debounceValue = useDebounce(searchQuery, 500);
 
@@ -524,7 +410,6 @@ const PendingRegistration = () => {
         setModalMode("view");
         setModalOpen(true);
       } catch (error) {
-        console.error("Failed to load employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 3000,
@@ -558,7 +443,6 @@ const PendingRegistration = () => {
 
       handleCloseModal();
     } catch (error) {
-      console.error("Save error:", error);
       let errorMessage =
         "Failed to process employee registration. Please try again.";
 
@@ -580,7 +464,6 @@ const PendingRegistration = () => {
 
   const handleApiError = useCallback(
     (error) => {
-      console.error("API Error:", error);
       setApiError(error);
 
       if (error?.status === 401) {
@@ -603,64 +486,47 @@ const PendingRegistration = () => {
     setActiveTab((prev) => prev);
   }, []);
 
-  const getConfirmationMessage = useCallback(() => {
-    if (!confirmAction)
-      return "Are you sure you want to proceed with this action?";
+  const handleOpenCreateModal = useCallback((mode = "create", data = null) => {
+    setCreateModalMode(mode);
+    setEditData(data);
+    setCreateModalOpen(true);
+  }, []);
 
-    if (confirmAction === "approve") {
-      return "Are you sure you want to approve this employee registration?";
-    }
-    if (confirmAction === "reject") {
-      return "Are you sure you want to reject this employee registration?";
-    }
+  const handleCloseCreateModal = useCallback(() => {
+    setCreateModalOpen(false);
+    setCreateModalMode("create");
+    setEditData(null);
+  }, []);
 
-    return "Are you sure you want to proceed with this action?";
-  }, [confirmAction]);
+  const handleCreateSubmit = useCallback(
+    async (data, mode) => {
+      setIsLoading(true);
 
-  const getConfirmationTitle = useCallback(() => {
-    if (!confirmAction) return "Confirmation";
+      try {
+        if (mode === "create") {
+          enqueueSnackbar("Employee created successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        } else {
+          enqueueSnackbar("Employee updated successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        }
 
-    const titles = {
-      approve: "Confirm Approval",
-      reject: "Confirm Rejection",
-    };
-
-    return titles[confirmAction] || "Confirmation";
-  }, [confirmAction]);
-
-  const getConfirmButtonColor = useCallback(() => {
-    if (!confirmAction) return "primary";
-
-    const colors = {
-      approve: "success",
-      reject: "error",
-    };
-
-    return colors[confirmAction] || "primary";
-  }, [confirmAction]);
-
-  const getConfirmButtonText = useCallback(() => {
-    if (!confirmAction) return "Confirm";
-
-    const texts = {
-      approve: "Approve",
-      reject: "Reject",
-    };
-
-    return texts[confirmAction] || "Confirm";
-  }, [confirmAction]);
-
-  const getEmployeeDisplayName = useCallback(() => {
-    return (
-      selectedEmployeeForAction?.full_name ||
-      selectedEmployeeForAction?.name ||
-      "Employee"
-    );
-  }, [selectedEmployeeForAction]);
-
-  const getEmployeeId = useCallback(() => {
-    return selectedEmployeeForAction?.id || "Unknown";
-  }, [selectedEmployeeForAction]);
+        handleCloseCreateModal();
+      } catch (error) {
+        enqueueSnackbar(`Failed to ${mode} employee. Please try again.`, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [enqueueSnackbar, handleCloseCreateModal]
+  );
 
   const tabsData = [
     {
@@ -755,9 +621,92 @@ const PendingRegistration = () => {
                     pendingRegistrationStyles.headerTitleTextMobile),
                   ...(isVerySmall &&
                     pendingRegistrationStyles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
                 }}>
-                {isVerySmall ? "PENDING REGS" : "PENDING REGISTRATIONS"}
+                {isVerySmall ? "REGSTR" : "REGISTRATIONS"}
               </Typography>
+
+              <Fade in={!isLoading}>
+                <Badge
+                  badgeContent={openMrfsCount}
+                  color="error"
+                  anchorOrigin={{
+                    vertical: "top",
+                    horizontal: "right",
+                  }}
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      backgroundColor: "#ff4444",
+                      color: "white",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      minWidth: "18px",
+                      height: "18px",
+                      transform: "translate(50%, -50%)",
+                      border: "2px solid white",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+                    },
+                  }}>
+                  {isVerySmall ? (
+                    <IconButton
+                      onClick={() => handleOpenCreateModal("create")}
+                      disabled={isLoading}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        color: "white",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      <AddIcon sx={{ fontSize: "18px" }} />
+                    </IconButton>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={() => handleOpenCreateModal("create")}
+                      startIcon={<AddIcon />}
+                      disabled={isLoading}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        height: isMobile ? "36px" : "38px",
+                        width: isMobile ? "auto" : "140px",
+                        minWidth: isMobile ? "100px" : "140px",
+                        padding: isMobile ? "0 16px" : "0 20px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "12px" : "14px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          marginRight: isMobile ? "4px" : "8px",
+                        },
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      CREATE
+                    </Button>
+                  )}
+                </Badge>
+              </Fade>
             </Box>
 
             <CustomSearchBar
@@ -853,63 +802,14 @@ const PendingRegistration = () => {
             onDateFiltersChange={handleDateFiltersChange}
           />
 
-          <Dialog
+          <ConfirmationDialog
             open={confirmOpen}
             onClose={() => setConfirmOpen(false)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{
-              sx: pendingRegistrationStyles.confirmDialog,
-            }}>
-            <DialogTitle sx={pendingRegistrationStyles.confirmTitle}>
-              <Box sx={pendingRegistrationStyles.confirmIconContainer}>
-                <Box sx={pendingRegistrationStyles.confirmIcon}>
-                  <Typography sx={pendingRegistrationStyles.confirmIconText}>
-                    ?
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography
-                variant="h5"
-                sx={pendingRegistrationStyles.confirmTitle}>
-                {getConfirmationTitle()}
-              </Typography>
-            </DialogTitle>
-            <DialogContent sx={pendingRegistrationStyles.confirmContent}>
-              <Typography
-                variant="body1"
-                sx={pendingRegistrationStyles.confirmMessage}>
-                {getConfirmationMessage()}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={pendingRegistrationStyles.confirmEmployeeInfo}>
-                {getEmployeeDisplayName()} - ID: {getEmployeeId()}
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={pendingRegistrationStyles.confirmActions}>
-              <Button
-                onClick={() => setConfirmOpen(false)}
-                variant="outlined"
-                sx={pendingRegistrationStyles.confirmCancelButton}
-                disabled={modalLoading}>
-                CANCEL
-              </Button>
-              <Button
-                onClick={handleConfirmSave}
-                variant="contained"
-                sx={pendingRegistrationStyles.confirmActionButton(
-                  getConfirmButtonColor()
-                )}
-                disabled={modalLoading}>
-                {modalLoading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  getConfirmButtonText()
-                )}
-              </Button>
-            </DialogActions>
-          </Dialog>
+            onConfirm={handleConfirmSave}
+            confirmAction={confirmAction}
+            selectedEmployeeForAction={selectedEmployeeForAction}
+            modalLoading={modalLoading}
+          />
 
           <PendingRegistrationModal
             open={modalOpen}
@@ -919,6 +819,14 @@ const PendingRegistration = () => {
             isLoading={modalLoading}
             mode={modalMode}
             onModeChange={handleModeChange}
+          />
+
+          <EmployeeWizardForm
+            open={createModalOpen}
+            onClose={handleCloseCreateModal}
+            mode={createModalMode}
+            initialData={editData}
+            onSubmit={handleCreateSubmit}
           />
         </Box>
       </FormProvider>

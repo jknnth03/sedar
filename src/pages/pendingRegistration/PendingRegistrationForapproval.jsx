@@ -78,7 +78,7 @@ const PendingRegistrationForapproval = ({
       page,
       per_page: rowsPerPage,
       pagination: true,
-      approval_status: "pending", // Changed from 'status' to 'approval_status' and use lowercase
+      approval_status: "pending",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -164,31 +164,6 @@ const PendingRegistrationForapproval = ({
     return rejectableStatuses.includes(currentStatus?.toUpperCase());
   }, []);
 
-  const canEditEmployee = useCallback((employee) => {
-    if (!employee) return false;
-
-    if (employee.actions && typeof employee.actions.can_edit === "boolean") {
-      return employee.actions.can_edit;
-    }
-
-    if (employee.actions && typeof employee.actions.can_update === "boolean") {
-      return employee.actions.can_update;
-    }
-
-    const editableStatuses = [
-      "PENDING",
-      "pending",
-      "AWAITING_RESUBMISSION",
-      "awaiting_resubmission",
-      "RETURNED",
-      "returned",
-      "REJECTED",
-      "rejected",
-    ];
-    const currentStatus = employee?.approval_status || employee?.status;
-    return editableStatuses.includes(currentStatus?.toLowerCase());
-  }, []);
-
   const handleSearchChange = useCallback((newSearchQuery) => {
     setLocalSearchQuery(newSearchQuery);
     setPage(1);
@@ -201,7 +176,6 @@ const PendingRegistrationForapproval = ({
         const submittableId = employee?.submittable?.id;
 
         if (!submittableId) {
-          console.warn("No submittable ID found for employee:", employee);
           throw new Error("Submittable ID not found for this record");
         }
 
@@ -210,7 +184,6 @@ const PendingRegistrationForapproval = ({
         setModalMode("view");
         setModalOpen(true);
       } catch (error) {
-        console.error("Error loading employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 3000,
@@ -223,34 +196,6 @@ const PendingRegistrationForapproval = ({
       }
     },
     [getSingleEmployee, enqueueSnackbar]
-  );
-
-  const handleEditEmployee = useCallback(
-    (employee) => {
-      if (canEditEmployee(employee)) {
-        const submittableId = employee?.submittable?.id;
-        if (!submittableId) {
-          enqueueSnackbar("Submittable ID not found for this employee.", {
-            variant: "error",
-            autoHideDuration: 3000,
-          });
-          return;
-        }
-
-        setSelectedEmployee({ ...employee, editId: submittableId });
-        setModalMode("edit");
-        setModalOpen(true);
-      } else {
-        enqueueSnackbar(
-          "This employee registration cannot be edited in its current status.",
-          {
-            variant: "warning",
-            autoHideDuration: 3000,
-          }
-        );
-      }
-    },
-    [canEditEmployee, enqueueSnackbar]
   );
 
   const handleModalClose = useCallback(() => {
@@ -367,18 +312,6 @@ const PendingRegistrationForapproval = ({
         event.stopPropagation();
       }
 
-      if (action === "edit" && !canEditEmployee(employee)) {
-        enqueueSnackbar(
-          "This employee registration cannot be edited in its current status.",
-          {
-            variant: "warning",
-            autoHideDuration: 3000,
-          }
-        );
-        handleMenuClose(employee.id);
-        return;
-      }
-
       if (action === "approve" && !canApproveEmployee(employee)) {
         enqueueSnackbar(
           "This employee cannot be approved in its current status.",
@@ -408,13 +341,7 @@ const PendingRegistrationForapproval = ({
       setConfirmOpen(true);
       handleMenuClose(employee.id);
     },
-    [
-      handleMenuClose,
-      canEditEmployee,
-      canApproveEmployee,
-      canRejectEmployee,
-      enqueueSnackbar,
-    ]
+    [handleMenuClose, canApproveEmployee, canRejectEmployee, enqueueSnackbar]
   );
 
   const handleActionConfirm = async () => {
@@ -466,8 +393,6 @@ const PendingRegistrationForapproval = ({
       refetch();
       handleModalClose();
     } catch (error) {
-      console.error("Action failed:", error);
-
       let errorMessage = "Action failed. Please try again.";
 
       if (confirmAction === "update") {
@@ -592,14 +517,12 @@ const PendingRegistrationForapproval = ({
             error={error}
             searchQuery={effectiveSearchQuery}
             handleRowClick={handleRowClick}
-            handleEditSubmission={handleEditEmployee}
             handleActionClick={handleActionClick}
             handleMenuOpen={handleMenuOpen}
             handleMenuClose={handleMenuClose}
             menuAnchor={menuAnchor}
             canApproveEmployee={canApproveEmployee}
             canRejectEmployee={canRejectEmployee}
-            canEditEmployee={canEditEmployee}
             onApprove={handleApproveEmployee}
             onReject={handleRejectEmployee}
             paginationData={paginationData}
@@ -762,7 +685,6 @@ const PendingRegistrationForapproval = ({
           canReject={
             selectedEmployee ? canRejectEmployee(selectedEmployee) : false
           }
-          canEdit={selectedEmployee ? canEditEmployee(selectedEmployee) : false}
           onRefetch={refetch}
         />
       </Box>

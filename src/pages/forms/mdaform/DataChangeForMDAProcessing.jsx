@@ -58,8 +58,6 @@ const DataChangeForMDAProcessing = ({
     useState(null);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
-
-  // MDA Modal states
   const [mdaModalOpen, setMdaModalOpen] = useState(false);
   const [mdaSubmissionId, setMdaSubmissionId] = useState(null);
   const [selectedMdaSubmission, setSelectedMdaSubmission] = useState(null);
@@ -68,7 +66,6 @@ const DataChangeForMDAProcessing = ({
     setModalSuccessHandler(() => successHandler);
   }, []);
 
-  // DataChange form methods
   const methods = useForm({
     defaultValues: {
       reason_for_change: "",
@@ -78,7 +75,6 @@ const DataChangeForMDAProcessing = ({
     },
   });
 
-  // MDA form methods
   const mdaFormMethods = useForm({
     defaultValues: {
       form_id: 5,
@@ -107,13 +103,15 @@ const DataChangeForMDAProcessing = ({
 
   const apiQueryParams = useMemo(() => {
     return {
-      page: 1,
-      per_page: 10,
+      page: page,
+      per_page: rowsPerPage,
       status: "active",
       pagination: 1,
-      approval_status: "for_mda_processing",
+      approval_status: "PENDING MDA CREATION",
+      search: searchQuery || "",
+      view_mode: "hr",
     };
-  }, []);
+  }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
     const newPage = 1;
@@ -144,8 +142,6 @@ const DataChangeForMDAProcessing = ({
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
   const [resubmitDataChangeSubmission] =
     useResubmitDataChangeSubmissionMutation();
-
-  // MDA mutations
   const [createMda, { isLoading: isCreatingMda }] = useCreateMdaMutation();
   const [updateMda, { isLoading: isUpdatingMda }] = useUpdateMdaMutation();
 
@@ -224,8 +220,6 @@ const DataChangeForMDAProcessing = ({
   }, [selectedSubmissionId, refetchDetails]);
 
   const handleCreateMDA = useCallback((submission) => {
-    console.log("Creating MDA for submission:", submission);
-
     const submissionIdForPrefill = submission.submittable?.id || submission.id;
 
     setMdaSubmissionId(submissionIdForPrefill);
@@ -265,8 +259,6 @@ const DataChangeForMDAProcessing = ({
   const handleSaveMDA = useCallback(
     async (data, mode) => {
       try {
-        console.log("Saving MDA:", { data, mode });
-
         if (mode === "create") {
           const result = await createMda(data).unwrap();
           enqueueSnackbar("MDA created successfully!", {
@@ -275,7 +267,7 @@ const DataChangeForMDAProcessing = ({
           });
           setMdaModalOpen(false);
           mdaFormMethods.reset();
-          refetch(); // Refresh the submissions list
+          refetch();
         } else if (mode === "edit") {
           const result = await updateMda({
             id: selectedMdaSubmission.id,
@@ -543,13 +535,11 @@ const DataChangeForMDAProcessing = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
-  // Mock positions data - replace with actual API call
   const positions = [
     { id: 10, title: "JUNIOR DEVELOPER" },
     { id: 11, title: "SENIOR DEVELOPER" },
     { id: 12, title: "TEAM LEAD" },
     { id: 13, title: "PROJECT MANAGER" },
-    // TODO: Fetch from positions API
   ];
 
   return (
@@ -586,7 +576,7 @@ const DataChangeForMDAProcessing = ({
             showArchived={false}
             hideStatusColumn={false}
             forMDAProcessing={true}
-            onCreateMDA={handleCreateMDA} // Add this prop
+            onCreateMDA={handleCreateMDA}
           />
 
           <Box
@@ -645,7 +635,6 @@ const DataChangeForMDAProcessing = ({
           onCreateMDA={handleCreateMDA}
         />
 
-        {/* MDA Modal */}
         <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
           <MDAFormModal
             open={mdaModalOpen}
@@ -657,11 +646,10 @@ const DataChangeForMDAProcessing = ({
             employeeMovements={[]}
             positions={positions}
             submissionId={mdaSubmissionId}
-            key={`mda-${mdaSubmissionId}-${mdaModalOpen}`} // Add this key
+            key={`mda-${mdaSubmissionId}-${mdaModalOpen}`}
           />
         </FormProvider>
 
-        {/* Confirmation Dialog */}
         <Dialog
           open={confirmOpen}
           onClose={handleConfirmationCancel}

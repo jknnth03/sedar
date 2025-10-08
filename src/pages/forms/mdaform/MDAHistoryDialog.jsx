@@ -1,23 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
-  DialogActions,
   Typography,
   Box,
   IconButton,
   Tooltip,
   Paper,
-  Button,
-  TextField,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -29,307 +19,27 @@ import PrintIcon from "@mui/icons-material/Print";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import dayjs from "dayjs";
-import { format } from "date-fns";
-import { pendingRegistrationStyles } from "./PendingRegistrationStyles";
 
-// Date Filter Dialog Component
-export const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Dialog
-        open={open}
-        onClose={onClose}
-        maxWidth="xs"
-        fullWidth={!isMobile}
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            ...pendingRegistrationStyles.filterDialog,
-            ...(isMobile && pendingRegistrationStyles.filterDialogMobile),
-          },
-        }}>
-        <DialogTitle>
-          <Box sx={pendingRegistrationStyles.filterDialogTitle}>
-            <Box sx={pendingRegistrationStyles.filterDialogTitleLeft}>
-              <CalendarTodayIcon sx={pendingRegistrationStyles.filterIcon} />
-              <Typography
-                variant="h6"
-                sx={{
-                  ...pendingRegistrationStyles.filterDialogTitleText,
-                  ...(isMobile &&
-                    pendingRegistrationStyles.filterDialogTitleTextMobile),
-                }}>
-                FILTER BY DATE
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={handleClear}
-              disabled={!hasFilters}
-              sx={pendingRegistrationStyles.selectAllButton}>
-              Clear All
-            </Button>
-          </Box>
-        </DialogTitle>
-
-        <DialogContent
-          sx={pendingRegistrationStyles.filterDialogContent(isMobile)}>
-          <Box sx={pendingRegistrationStyles.datePickerContainer(isMobile)}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </DialogContent>
-
-        <DialogActions
-          sx={pendingRegistrationStyles.filterDialogActions(isMobile)}>
-          <Box sx={pendingRegistrationStyles.dialogActionsContainer}>
-            <Box
-              sx={pendingRegistrationStyles.dialogButtonsContainer(isMobile)}>
-              <Button
-                onClick={onClose}
-                variant="outlined"
-                sx={pendingRegistrationStyles.cancelButton(isMobile)}>
-                CANCEL
-              </Button>
-              <Button
-                onClick={handleApply}
-                variant="contained"
-                sx={pendingRegistrationStyles.applyFiltersButton(isMobile)}>
-                APPLY FILTERS
-              </Button>
-            </Box>
-          </Box>
-        </DialogActions>
-      </Dialog>
-    </LocalizationProvider>
-  );
-};
-
-// Confirmation Dialog Component
-export const ConfirmationDialog = ({
-  open,
-  onClose,
-  onConfirm,
-  confirmAction,
-  selectedEmployeeForAction,
-  modalLoading,
-}) => {
-  const getConfirmationMessage = () => {
-    if (!confirmAction)
-      return "Are you sure you want to proceed with this action?";
-
-    if (confirmAction === "approve") {
-      return "Are you sure you want to approve this employee registration?";
-    }
-    if (confirmAction === "reject") {
-      return "Are you sure you want to reject this employee registration?";
-    }
-
-    return "Are you sure you want to proceed with this action?";
-  };
-
-  const getConfirmationTitle = () => {
-    if (!confirmAction) return "Confirmation";
-
-    const titles = {
-      approve: "Confirm Approval",
-      reject: "Confirm Rejection",
-    };
-
-    return titles[confirmAction] || "Confirmation";
-  };
-
-  const getConfirmButtonColor = () => {
-    if (!confirmAction) return "primary";
-
-    const colors = {
-      approve: "success",
-      reject: "error",
-    };
-
-    return colors[confirmAction] || "primary";
-  };
-
-  const getConfirmButtonText = () => {
-    if (!confirmAction) return "Confirm";
-
-    const texts = {
-      approve: "Approve",
-      reject: "Reject",
-    };
-
-    return texts[confirmAction] || "Confirm";
-  };
-
-  const getEmployeeDisplayName = () => {
-    return (
-      selectedEmployeeForAction?.full_name ||
-      selectedEmployeeForAction?.name ||
-      "Employee"
-    );
-  };
-
-  const getEmployeeId = () => {
-    return selectedEmployeeForAction?.id || "Unknown";
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: pendingRegistrationStyles.confirmDialog,
-      }}>
-      <DialogTitle sx={pendingRegistrationStyles.confirmTitle}>
-        <Box sx={pendingRegistrationStyles.confirmIconContainer}>
-          <Box sx={pendingRegistrationStyles.confirmIcon}>
-            <Typography sx={pendingRegistrationStyles.confirmIconText}>
-              ?
-            </Typography>
-          </Box>
-        </Box>
-        <Typography variant="h5" sx={pendingRegistrationStyles.confirmTitle}>
-          {getConfirmationTitle()}
-        </Typography>
-      </DialogTitle>
-      <DialogContent sx={pendingRegistrationStyles.confirmContent}>
-        <Typography
-          variant="body1"
-          sx={pendingRegistrationStyles.confirmMessage}>
-          {getConfirmationMessage()}
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={pendingRegistrationStyles.confirmEmployeeInfo}>
-          {getEmployeeDisplayName()} - ID: {getEmployeeId()}
-        </Typography>
-      </DialogContent>
-      <DialogActions sx={pendingRegistrationStyles.confirmActions}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={pendingRegistrationStyles.confirmCancelButton}
-          disabled={modalLoading}>
-          CANCEL
-        </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
-          sx={pendingRegistrationStyles.confirmActionButton(
-            getConfirmButtonColor()
-          )}
-          disabled={modalLoading}>
-          {modalLoading ? (
-            <CircularProgress size={20} color="inherit" />
-          ) : (
-            getConfirmButtonText()
-          )}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
-// Activity History Dialog Component
-const ActivityHistoryDialog = ({
+const MDAHistoryDialog = ({
   historyDialogOpen,
   onHistoryDialogClose,
-  selectedRegistrationHistory,
+  selectedMdaHistory,
 }) => {
-  const getFullName = (registration) => {
-    if (registration?.submittable?.employee_name) {
-      return registration.submittable.employee_name;
-    }
-
-    if (registration?.submittable?.general_info?.full_name) {
-      const fullName = registration.submittable.general_info.full_name;
-      const statusWords = [
-        "REJECTED",
-        "APPROVED",
-        "PENDING",
-        "AWAITING",
-        "RESUBMISSION",
-        "SUBMITTED",
-        "RETURNED",
-        "CANCELLED",
-      ];
-      let cleanName = fullName;
-
-      statusWords.forEach((status) => {
-        const regex = new RegExp(`\\s+${status}\\s*$`, "i");
-        cleanName = cleanName.replace(regex, "");
-      });
-
-      return cleanName.trim();
-    }
-
-    const user = registration?.requested_by;
-    if (user?.full_name) return user.full_name;
-    const firstName = user?.first_name || "";
-    const lastName = user?.last_name || "";
-    if (firstName || lastName) return `${firstName} ${lastName}`.trim();
-    return user?.username || "N/A";
+  const getEmployeeName = (mda) => {
+    return mda?.employee_name || "N/A";
   };
 
-  const getEmployeeCode = (registration) => {
-    return (
-      registration?.submittable?.general_info?.employee_code ||
-      registration?.submittable?.employee_code ||
-      registration?.charging?.code ||
-      (registration?.id ? `EMP-${registration.id}` : "N/A")
-    );
+  const getEmployeeNumber = (mda) => {
+    return mda?.employee_number || "N/A";
+  };
+
+  const getReferenceNumber = (mda) => {
+    return mda?.reference_number || "N/A";
+  };
+
+  const getMovementType = (mda) => {
+    return mda?.movement_type || "N/A";
   };
 
   const getStatusColor = (status) => {
@@ -386,6 +96,7 @@ const ActivityHistoryDialog = ({
       case "pending":
       case "in progress":
       case "awaiting resubmission":
+      case "upcoming":
         IconComponent = HourglassEmptyIcon;
         break;
       case "cancelled":
@@ -530,11 +241,21 @@ const ActivityHistoryDialog = ({
                 </Typography>
               )}
 
+              {activity?.context && activity?.context?.step && (
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#888", fontSize: "12px", mb: 1 }}>
+                  Step {activity.context.step}, Round {activity.context.round}
+                </Typography>
+              )}
+
               <Typography
                 variant="body2"
                 sx={{ color: "#999", fontSize: "13px" }}>
                 {activity?.timestamp
                   ? dayjs(activity.timestamp).format("MMM D, YYYY • h:mm A")
+                  : activity?.event_type?.toLowerCase() === "upcoming"
+                  ? "Pending"
                   : ""}
               </Typography>
             </Box>
@@ -569,9 +290,9 @@ const ActivityHistoryDialog = ({
   };
 
   if (
-    !selectedRegistrationHistory ||
-    !selectedRegistrationHistory.activity_log ||
-    !Array.isArray(selectedRegistrationHistory.activity_log)
+    !selectedMdaHistory ||
+    !selectedMdaHistory.activity_log ||
+    !Array.isArray(selectedMdaHistory.activity_log)
   ) {
     return null;
   }
@@ -623,7 +344,7 @@ const ActivityHistoryDialog = ({
                 mr: 2,
               }}
             />
-            ACTIVITY LOGS
+            MDA ACTIVITY LOGS
             <TimelineIcon sx={{ color: "#FF4500", fontSize: 24, ml: 0.5 }} />
           </Typography>
 
@@ -646,12 +367,12 @@ const ActivityHistoryDialog = ({
                   mb: 1,
                   fontSize: "14px",
                 }}>
-                Full Name
+                Employee Name
               </Typography>
               <Typography
                 variant="body1"
                 sx={{ color: "#666", fontSize: "16px" }}>
-                {getFullName(selectedRegistrationHistory)}
+                {getEmployeeName(selectedMdaHistory)}
               </Typography>
             </Box>
 
@@ -666,16 +387,16 @@ const ActivityHistoryDialog = ({
                   mb: 1,
                   fontSize: "14px",
                 }}>
-                ID NUMBER
+                Employee Number
               </Typography>
               <Typography
                 variant="body1"
                 sx={{ color: "#666", fontSize: "16px" }}>
-                {getEmployeeCode(selectedRegistrationHistory)}
+                {getEmployeeNumber(selectedMdaHistory)}
               </Typography>
             </Box>
 
-            <Box sx={{ flex: 0.4 }}>
+            <Box sx={{ flex: 1, mr: 3 }}>
               <Typography
                 variant="h6"
                 sx={{
@@ -686,53 +407,92 @@ const ActivityHistoryDialog = ({
                   mb: 1,
                   fontSize: "14px",
                 }}>
-                Date Created
+                Reference Number
               </Typography>
               <Typography
                 variant="body1"
                 sx={{ color: "#666", fontSize: "16px" }}>
-                {selectedRegistrationHistory?.created_at
-                  ? dayjs(selectedRegistrationHistory.created_at).format(
-                      "MMM D, YYYY"
-                    )
-                  : "N/A"}
+                {getReferenceNumber(selectedMdaHistory)}
+              </Typography>
+            </Box>
+
+            <Box sx={{ flex: 0.8 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 600,
+                  color: "rgb(33, 61, 112)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.3px",
+                  mb: 1,
+                  fontSize: "14px",
+                }}>
+                Movement Type
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ color: "#666", fontSize: "16px" }}>
+                {getMovementType(selectedMdaHistory)}
               </Typography>
             </Box>
           </Box>
 
+          <Box sx={{ pl: 3, mb: 3 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: "rgb(33, 61, 112)",
+                textTransform: "uppercase",
+                letterSpacing: "0.3px",
+                mb: 1,
+                fontSize: "14px",
+              }}>
+              Effective Date
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ color: "#666", fontSize: "16px" }}>
+              {selectedMdaHistory?.effective_date
+                ? dayjs(selectedMdaHistory.effective_date).format("MMM D, YYYY")
+                : "N/A"}
+            </Typography>
+          </Box>
+
           <Box sx={{ pl: 2 }}>
-            {selectedRegistrationHistory.activity_log.map((activity, index) => (
-              <Box
-                key={index}
-                sx={{
-                  mb:
-                    index ===
-                    selectedRegistrationHistory.activity_log.length - 1
-                      ? 0
-                      : 2,
-                }}>
-                <TimelineStep
-                  activity={activity}
-                  index={index}
-                  isLast={
-                    index ===
-                    selectedRegistrationHistory.activity_log.length - 1
-                  }
-                  isCompleted={true}
-                />
-              </Box>
-            ))}
+            {selectedMdaHistory.activity_log
+              .slice()
+              .reverse()
+              .map((activity, index) => (
+                <Box
+                  key={activity.id || index}
+                  sx={{
+                    mb:
+                      index === selectedMdaHistory.activity_log.length - 1
+                        ? 0
+                        : 2,
+                  }}>
+                  <TimelineStep
+                    activity={activity}
+                    index={index}
+                    isLast={
+                      index === selectedMdaHistory.activity_log.length - 1
+                    }
+                    isCompleted={true}
+                  />
+                </Box>
+              ))}
           </Box>
         </Box>
 
-        {selectedRegistrationHistory.activity_log.length === 0 && (
+        {selectedMdaHistory.activity_log.length === 0 && (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <AssignmentIcon sx={{ fontSize: 64, color: "#ccc", mb: 2 }} />
             <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
               No Timeline History Available
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              This registration doesn't have any recorded activities yet.
+              This MDA submission doesn't have any recorded activities yet.
             </Typography>
           </Box>
         )}
@@ -741,4 +501,4 @@ const ActivityHistoryDialog = ({
   );
 };
 
-export default ActivityHistoryDialog;
+export default MDAHistoryDialog;

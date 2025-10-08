@@ -10,6 +10,8 @@ export const getPendingValues = ({ mode, initialData }) => {
       prefix: null,
       id_number: "",
       birth_date: "",
+      birth_place: "",
+      nationality: "",
       religion: null,
       civil_status: "",
       gender: "",
@@ -117,6 +119,8 @@ export const getPendingValues = ({ mode, initialData }) => {
           .toISOString()
           .split("T")[0]
       : "",
+    birth_place: initialData.general_info?.birth_place || "",
+    nationality: initialData.general_info?.nationality || "",
     religion: initialData.general_info?.religion || null,
     civil_status: initialData.general_info?.civil_status || "",
     gender: initialData.general_info?.gender || "",

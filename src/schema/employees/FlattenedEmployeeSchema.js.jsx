@@ -282,6 +282,8 @@ export const createFlattenedEmployeeSchema = () => {
         }
         return age >= 18;
       }),
+    birth_place: yup.string().required("Birthplace is required."),
+    nationality: yup.string().required("Nationality is required."),
     gender: yup.string().required("Gender is required."),
     civil_status: yup.string().required("Civil Status is required."),
     religion: yup
@@ -717,6 +719,8 @@ export const getStepValidationSchema = (stepIndex) => {
           }
           return age >= 18;
         }),
+      birth_place: yup.string().required("Birthplace is required."),
+      nationality: yup.string().required("Nationality is required."),
       gender: yup.string().required("Gender is required."),
       civil_status: yup.string().required("Civil Status is required."),
       religion: yup

@@ -372,7 +372,7 @@ function EmployeeInformation() {
           <Typography className="header">
             {isVerySmall ? "EMPLOYEE INFO" : "EMPLOYEE INFORMATION"}
           </Typography>
-          <Fade in={!isLoading}>
+          {/* <Fade in={!isLoading}>
             <Badge
               badgeContent={openMrfsCount}
               color="error"
@@ -392,9 +392,9 @@ function EmployeeInformation() {
                   border: "2px solid white",
                   boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
                 },
-              }}>
-              {/* CREATE Button - Show only icon for very small screens */}
-              {isVerySmall ? (
+              }}> */}
+          {/* CREATE Button - Show only icon for very small screens */}
+          {/* {isVerySmall ? (
                 <IconButton
                   onClick={() => handleOpenModal("create")}
                   disabled={isLoading}
@@ -452,9 +452,9 @@ function EmployeeInformation() {
                   }}>
                   CREATE
                 </Button>
-              )}
-            </Badge>
-          </Fade>
+              )} */}
+          {/* </Badge>
+          </Fade> */}
         </Box>
 
         <CustomSearchBar
