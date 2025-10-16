@@ -206,7 +206,7 @@ const FileFormTable = ({
                 render={({ field: controllerField, fieldState }) => (
                   <TextField
                     {...controllerField}
-                    label="File Description"
+                    label="File Description (optional)"
                     variant="outlined"
                     fullWidth
                     disabled={isFieldDisabled}
@@ -308,8 +308,8 @@ const FileFormTable = ({
                           : watchedFiles?.[index]?.existing_file_name
                           ? `${getFileName(
                               watchedFiles[index].existing_file_name
-                            )} - Replace file (optional)`
-                          : "Choose file (optional)"}
+                            )} - Replace file *`
+                          : "Choose file *"}
                       </Button>
                     </label>
 

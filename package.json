@@ -21,6 +21,7 @@
     "axios": "^1.8.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "html2pdf.js": "^0.12.1",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.479.0",
     "moment": "^2.30.1",

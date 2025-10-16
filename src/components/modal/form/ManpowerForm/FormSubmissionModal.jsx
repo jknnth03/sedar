@@ -854,7 +854,7 @@ const FormSubmissionModal = ({
   const methods = useForm({
     defaultValues: formSubmissionDefaultValues,
     resolver: yupResolver(createFormSubmissionSchema(mode, hasExistingFile)),
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
   useEffect(() => {

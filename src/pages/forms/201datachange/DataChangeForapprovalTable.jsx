@@ -120,8 +120,8 @@ const DataChangeForApprovalTable = ({
         label: "AWAITING APPROVAL",
       },
       "pending mda creation": {
-        color: "#ff6f00",
-        bgColor: "#fff3e0",
+        color: "#f57c00",
+        bgColor: "#fff8e1",
         label: "PENDING MDA CREATION",
       },
     };
@@ -149,8 +149,8 @@ const DataChangeForApprovalTable = ({
     setSelectedDataChangeHistory(null);
   };
 
-  const handleCancelRequest = (submission) => {
-    if (onCancel && submission) {
+  const handleCancelClick = (submission) => {
+    if (onCancel) {
       onCancel(submission.id);
     }
     handleMenuClose(submission.id);
@@ -315,7 +315,7 @@ const DataChangeForApprovalTable = ({
                           <MenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleCancelRequest(submission);
+                              handleCancelClick(submission);
                             }}
                             disabled={!canCancelSubmission(submission)}
                             sx={

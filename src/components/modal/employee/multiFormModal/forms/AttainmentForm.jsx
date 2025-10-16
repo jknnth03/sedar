@@ -347,25 +347,49 @@ const AttainmentForm = forwardRef(
       return null;
     };
 
+    const isValidAttachmentFilename = (filename) => {
+      if (!filename) return false;
+      if (typeof filename !== "string") return false;
+
+      const lowerFilename = filename.toLowerCase().trim();
+      const invalidStrings = [
+        "no attachment attached",
+        "no file attached",
+        "no attachment",
+        "no file",
+        "",
+      ];
+
+      return !invalidStrings.includes(lowerFilename);
+    };
+
     useEffect(() => {
       if (
         (mode === "edit" || mode === "view") &&
         selectedAttainment &&
         !hasInitializedData.current
       ) {
-        const attainmentData =
+        let attainmentData =
           selectedAttainment.attainment_info || selectedAttainment;
-        const currentValues = getValues();
 
-        console.log("Initializing form with attainment data:", attainmentData);
+        if (
+          selectedAttainment.attainments &&
+          Array.isArray(selectedAttainment.attainments) &&
+          selectedAttainment.attainments.length > 0
+        ) {
+          attainmentData = selectedAttainment.attainments[0];
+        }
+
+        const currentValues = getValues();
 
         if (!currentValues.employee_id) {
           setValue(
             "employee_id",
-            extractFieldValue(attainmentData, [
+            extractFieldValue(selectedAttainment, [
               "employee_id",
               "emp_id",
               "employee.id",
+              "id",
             ])
           );
         }
@@ -478,13 +502,20 @@ const AttainmentForm = forwardRef(
           "url",
         ]);
 
-        console.log("Attachment filename:", attachmentFilename);
-        console.log("Attachment URL:", attachmentUrl);
+        const hasValidAttachment =
+          isValidAttachmentFilename(attachmentFilename);
 
         setValue("attainment_attachment", null);
-
-        setValue("existing_attachment_filename", attachmentFilename || null);
-        setValue("existing_attachment_url", attachmentUrl || null);
+        setValue("attachment_filename", null);
+        setValue(
+          "existing_attachment_filename",
+          hasValidAttachment ? attachmentFilename : null
+        );
+        setValue(
+          "existing_attachment_url",
+          hasValidAttachment ? attachmentUrl : null
+        );
+        setValue("id", hasValidAttachment ? attainmentData.id : null);
 
         setErrorMessage(null);
         hasInitializedData.current = true;
@@ -574,15 +605,6 @@ const AttainmentForm = forwardRef(
       }
     };
 
-    const handleFileRemove = () => {
-      setValue("attainment_attachment", null);
-      const fileInput = document.getElementById("attainment-file-input");
-      if (fileInput) {
-        fileInput.value = "";
-      }
-      setErrorMessage(null);
-    };
-
     const isFormValid = () => {
       const requiredFields = [
         "program_id",
@@ -659,13 +681,12 @@ const AttainmentForm = forwardRef(
         setValue("institution", "");
         setValue("attainment_remarks", "");
         setValue("attainment_attachment", null);
+        setValue("attachment_filename", null);
         setValue("existing_attachment_filename", null);
         setValue("existing_attachment_url", null);
+        setValue("id", null);
         setErrorMessage(null);
-        const fileInput = document.getElementById("attainment-file-input");
-        if (fileInput) {
-          fileInput.value = "";
-        }
+        hasInitializedData.current = false;
       },
       validateForm,
       setErrorMessage,
@@ -719,7 +740,6 @@ const AttainmentForm = forwardRef(
           watchedValues={watchedValues}
           handleDropdownFocus={handleDropdownFocus}
           handleFileChange={handleFileChange}
-          handleFileRemove={handleFileRemove}
           getOptionLabel={getOptionLabel}
           selectedAttainment={selectedAttainment}
         />

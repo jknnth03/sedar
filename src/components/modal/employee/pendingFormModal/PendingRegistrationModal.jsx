@@ -162,8 +162,7 @@ const PendingRegistrationModal = ({
   const methods = useForm({
     defaultValues: getPendingValues({ mode, initialData: null }),
     resolver: yupResolver(createFlattenedEmployeeSchema()),
-    mode: "onChange",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
     shouldUnregister: false,
   });
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useDispatch } from "react-redux";
 import {
   Table,
   TableBody,
@@ -32,6 +33,9 @@ import {
 import NoDataGIF from "../../assets/no-data.gif";
 import PendingRegistrationDialog from "./PendingRegistrationDialog";
 import { useCancelFormSubmissionMutation } from "../../features/api/approvalsetting/formSubmissionApi";
+import pendingApi from "../../features/api/employee/pendingApi";
+import mainApi from "../../features/api/employee/mainApi";
+import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import dayjs from "dayjs";
 import HistoryIcon from "@mui/icons-material/History";
 
@@ -47,8 +51,9 @@ const PendingRegistrationForapprovalTable = ({
   onPageChange,
   onRowsPerPageChange,
   onRefetch,
-  statusFilter = null, // Optional prop to filter by specific status
+  statusFilter = null,
 }) => {
+  const dispatch = useDispatch();
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedRegistrationHistory, setSelectedRegistrationHistory] =
@@ -63,7 +68,6 @@ const PendingRegistrationForapprovalTable = ({
   const [cancelFormSubmission, { isLoading: isCancelling }] =
     useCancelFormSubmissionMutation();
 
-  // Apply optional status filter, otherwise use all data from pendingList
   const filteredPendingList = statusFilter
     ? pendingList.filter(
         (registration) =>
@@ -104,9 +108,7 @@ const PendingRegistrationForapprovalTable = ({
 
   const handleCancelRequest = async (registration) => {
     if (!shouldEnableCancelButton(registration)) return;
-
     handleMenuClose();
-
     setPendingCancelRegistration(registration);
     setShowCancelConfirmDialog(true);
   };
@@ -123,10 +125,15 @@ const PendingRegistrationForapprovalTable = ({
         pendingCancelRegistration?.submission_id;
       await cancelFormSubmission(submissionId).unwrap();
 
+      dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
+      dispatch(mainApi.util.invalidateTags(["employees"]));
+      dispatch(moduleApi.util.invalidateTags(["dashboard"]));
+
       if (onRefetch) {
         onRefetch();
       }
     } catch (error) {
+      console.error("Failed to cancel registration:", error);
     } finally {
       setIsProcessing(false);
       setPendingCancelRegistration(null);

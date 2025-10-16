@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import {
   Paper,
   Typography,
@@ -19,6 +20,9 @@ import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import { useGetPendingEmployeesQuery } from "../../features/api/employee/pendingApi";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
+import pendingApi from "../../features/api/employee/pendingApi";
+import mainApi from "../../features/api/employee/mainApi";
+import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import PendingRegistrationForappovalTable from "./PendingRegistrationForapprovalTable";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
@@ -45,6 +49,7 @@ const PendingRegistrationForapproval = ({
   startDate,
   endDate,
 }) => {
+  const dispatch = useDispatch();
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -389,6 +394,10 @@ const PendingRegistrationForapproval = ({
           autoHideDuration: 2000,
         });
       }
+
+      dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
+      dispatch(mainApi.util.invalidateTags(["employees"]));
+      dispatch(moduleApi.util.invalidateTags(["dashboard"]));
 
       refetch();
       handleModalClose();

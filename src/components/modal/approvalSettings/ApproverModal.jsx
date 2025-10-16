@@ -57,7 +57,7 @@ const ApproverModal = ({
     defaultValues: {
       user_id: "",
     },
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
   useEffect(() => {

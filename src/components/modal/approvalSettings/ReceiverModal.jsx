@@ -42,7 +42,6 @@ const ReceiverModal = ({
   const { enqueueSnackbar } = useSnackbar();
   const [localLoading, setLocalLoading] = useState(false);
 
-  // Fetch users data
   const {
     data: usersData,
     isLoading: isUsersLoading,
@@ -58,14 +57,12 @@ const ReceiverModal = ({
     defaultValues: {
       user_id: "",
     },
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
-  // Reset form when modal opens/closes or selectedEntry changes
   useEffect(() => {
     if (open) {
       if (selectedEntry && mode === "view") {
-        // Fixed: Use the receiver's ID directly since the selectedEntry IS the user/receiver
         const userId = selectedEntry.id || "";
         console.log(
           "Setting user_id for view mode:",
@@ -74,7 +71,7 @@ const ReceiverModal = ({
           selectedEntry
         );
         reset({
-          user_id: userId.toString(), // Convert to string to match select value type
+          user_id: userId.toString(),
         });
       } else {
         reset({

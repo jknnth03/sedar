@@ -31,6 +31,7 @@ const DataChangeAwaitingResubmission = ({
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
+  onCancel,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -113,8 +114,9 @@ const DataChangeAwaitingResubmission = ({
 
     let filtered = rawData.filter(
       (item) =>
-        item.approval_status === "awaiting resubmission" ||
-        item.approval_status === "awaiting_resubmission"
+        item.status?.toUpperCase() === "AWAITING RESUBMISSION" ||
+        item.status?.toLowerCase() === "awaiting resubmission" ||
+        item.status?.toLowerCase() === "awaiting_resubmission"
     );
 
     if (dateFilters && filterDataByDate) {
@@ -439,6 +441,7 @@ const DataChangeAwaitingResubmission = ({
             showArchived={false}
             hideStatusColumn={true}
             forApproval={true}
+            onCancel={onCancel}
           />
 
           <Box

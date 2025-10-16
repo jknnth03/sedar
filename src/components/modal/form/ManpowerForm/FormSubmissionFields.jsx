@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
   Grid,
@@ -243,14 +237,17 @@ const FormSubmissionFields = ({
     );
   };
 
+  const isAdditionalManpowerType = () => {
+    return watchedRequisitionType?.name === "ADDITIONAL MANPOWER";
+  };
+
   useEffect(() => {
     if (
       !isReadOnly &&
       !employeesDataFetched &&
       watchedPositionId?.id &&
       watchedRequisitionType?.id &&
-      watchedRequisitionType.name !== "ADDITIONAL MANPOWER" &&
-      watchedRequisitionType.name !== "REPLACEMENT DUE TO EMPLOYEE MOVEMENT"
+      watchedRequisitionType.name !== "ADDITIONAL MANPOWER"
     ) {
       triggerEmployees({
         position_id: watchedPositionId.id,
@@ -267,6 +264,7 @@ const FormSubmissionFields = ({
     employeesDataFetched,
     triggerEmployees,
     selectedEntry?.id,
+    setEmployeesDataFetched,
   ]);
 
   const handleFileViewerOpen = () => {
@@ -351,6 +349,7 @@ const FormSubmissionFields = ({
                   isEditMode ||
                   isDropdownDisabledWrapper("requisition")
                 }
+                readOnly={isReadOnly || isEditMode}
                 options={safeRequisitionsOptions}
                 loading={requisitionsLoading || requisitionsFetching}
                 getOptionLabel={(option) => safeStringRender(option?.name)}
@@ -372,10 +371,6 @@ const FormSubmissionFields = ({
                         isEditMode
                       ) || {}
                     }
-                    InputProps={{
-                      ...params.InputProps,
-                      readOnly: isReadOnly || isEditMode,
-                    }}
                   />
                 )}
                 noOptionsText={
@@ -411,6 +406,7 @@ const FormSubmissionFields = ({
                   !watchedRequisitionType ||
                   isDropdownDisabledWrapper("position")
                 }
+                readOnly={isReadOnly || isEditMode}
                 options={safePositionsOptions}
                 loading={positionsLoading || positionsFetching}
                 getOptionLabel={(option) =>
@@ -434,10 +430,6 @@ const FormSubmissionFields = ({
                         isEditMode
                       ) || {}
                     }
-                    InputProps={{
-                      ...params.InputProps,
-                      readOnly: isReadOnly || isEditMode,
-                    }}
                   />
                 )}
                 noOptionsText={
@@ -453,75 +445,9 @@ const FormSubmissionFields = ({
         </Grid>
 
         <Grid item xs={12} md={6}>
-          {watchedRequisitionType?.name ===
-          "REPLACEMENT DUE TO EMPLOYEE MOVEMENT" ? (
+          {isReplacementDueToEmployeeMovementType() ? (
             <Controller
               name="movement_employee_id"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly && !isEditMode) {
-                      onChange(item);
-                    }
-                  }}
-                  onOpen={() => handleDropdownOpenWrapper("allEmployees")}
-                  onClose={handleDropdownClose}
-                  value={value || null}
-                  disabled={
-                    isReadOnly ||
-                    isEditMode ||
-                    !watchedRequisitionType ||
-                    isDropdownDisabledWrapper("allEmployees")
-                  }
-                  options={safeAllEmployeesOptions}
-                  loading={allEmployeesLoading || allEmployeesFetching}
-                  getOptionLabel={(option) =>
-                    safeStringRender(
-                      option?.full_name || option?.name || option?.employee_name
-                    )
-                  }
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  disablePortal
-                  renderInput={(params) => (
-                    <StyledTextField
-                      {...params}
-                      label="Select Employee"
-                      required={true}
-                      error={!!errors.movement_employee_id}
-                      helperText={
-                        getErrorMessage(errors.movement_employee_id) ||
-                        (!watchedRequisitionType
-                          ? "Please select Requisition Type first"
-                          : "") ||
-                        (safeAllEmployeesOptions.length === 0 &&
-                        !allEmployeesLoading &&
-                        !allEmployeesFetching &&
-                        watchedRequisitionType
-                          ? "No employees available"
-                          : "")
-                      }
-                      sx={
-                        formStyles?.autocompleteTextField?.(
-                          isReadOnly,
-                          isEditMode
-                        ) || {}
-                      }
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly || isEditMode,
-                      }}
-                    />
-                  )}
-                />
-              )}
-            />
-          ) : watchedRequisitionType?.name !== "ADDITIONAL MANPOWER" ? (
-            <Controller
-              name="employee_to_be_replaced_id"
               control={control}
               render={({ field: { onChange, value } }) => (
                 <Autocomplete
@@ -540,6 +466,83 @@ const FormSubmissionFields = ({
                     !watchedRequisitionType ||
                     isDropdownDisabledWrapper("employee")
                   }
+                  readOnly={isReadOnly || isEditMode}
+                  options={safeEmployeesOptions}
+                  loading={employeesLoading || employeesFetching}
+                  getOptionLabel={(option) =>
+                    safeStringRender(
+                      option?.full_name || option?.name || option?.employee_name
+                    )
+                  }
+                  isOptionEqualToValue={(option, value) => {
+                    if (!option || !value) return false;
+                    return option.id === value.id;
+                  }}
+                  disablePortal
+                  renderInput={(params) => (
+                    <StyledTextField
+                      {...params}
+                      label="Select Employee"
+                      required={true}
+                      error={!!errors.movement_employee_id}
+                      helperText={
+                        getErrorMessage(errors.movement_employee_id) ||
+                        (!watchedPositionId || !watchedRequisitionType
+                          ? "Please select Position and Requisition Type first"
+                          : "") ||
+                        (safeEmployeesOptions.length === 0 &&
+                        !employeesLoading &&
+                        !employeesFetching &&
+                        watchedPositionId &&
+                        watchedRequisitionType
+                          ? "No employees available"
+                          : "")
+                      }
+                      sx={
+                        formStyles?.autocompleteTextField?.(
+                          isReadOnly,
+                          isEditMode
+                        ) || {}
+                      }
+                    />
+                  )}
+                  noOptionsText={
+                    employeesLoading || employeesFetching
+                      ? "Loading employees..."
+                      : !watchedPositionId || !watchedRequisitionType
+                      ? "Select position and requisition type first"
+                      : "No employees found"
+                  }
+                />
+              )}
+            />
+          ) : (
+            <Controller
+              name="employee_to_be_replaced_id"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <Autocomplete
+                  onChange={(event, item) => {
+                    if (
+                      !isReadOnly &&
+                      !isEditMode &&
+                      !isAdditionalManpowerType()
+                    ) {
+                      onChange(item);
+                    }
+                  }}
+                  onOpen={() => handleDropdownOpenWrapper("employee")}
+                  onClose={handleDropdownClose}
+                  value={value || null}
+                  disabled={
+                    isReadOnly ||
+                    isEditMode ||
+                    isAdditionalManpowerType() ||
+                    !watchedPositionId ||
+                    !watchedRequisitionType ||
+                    isDropdownDisabledWrapper("employee")
+                  }
+                  readOnly={isReadOnly || isEditMode}
                   options={safeEmployeesOptions}
                   loading={employeesLoading || employeesFetching}
                   getOptionLabel={(option) =>
@@ -556,26 +559,26 @@ const FormSubmissionFields = ({
                     <StyledTextField
                       {...params}
                       label="Employee to be Replaced"
-                      required={true}
+                      required={!isAdditionalManpowerType()}
                       error={!!errors.employee_to_be_replaced_id}
                       helperText={
-                        getErrorMessage(errors.employee_to_be_replaced_id) ||
-                        (!watchedPositionId || !watchedRequisitionType
-                          ? "Please select Position and Requisition Type first"
-                          : "") ||
-                        (safeEmployeesOptions.length === 0 &&
-                        !employeesLoading &&
-                        !employeesFetching &&
-                        watchedPositionId &&
-                        watchedRequisitionType
-                          ? "No employees available for replacement"
-                          : "")
+                        isAdditionalManpowerType()
+                          ? "Not required for Additional Manpower"
+                          : getErrorMessage(
+                              errors.employee_to_be_replaced_id
+                            ) ||
+                            (!watchedPositionId || !watchedRequisitionType
+                              ? "Please select Position and Requisition Type first"
+                              : "") ||
+                            (safeEmployeesOptions.length === 0 &&
+                            !employeesLoading &&
+                            !employeesFetching &&
+                            watchedPositionId &&
+                            watchedRequisitionType
+                              ? "No employees available for replacement"
+                              : "")
                       }
                       sx={formStyles?.textField?.() || {}}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly || isEditMode,
-                      }}
                     />
                   )}
                   noOptionsText={
@@ -588,7 +591,7 @@ const FormSubmissionFields = ({
                 />
               )}
             />
-          ) : null}
+          )}
         </Grid>
 
         {shouldShowMovementFields() && (
@@ -609,6 +612,7 @@ const FormSubmissionFields = ({
                   disabled={
                     isReadOnly || isDropdownDisabledWrapper("movementPosition")
                   }
+                  readOnly={isReadOnly}
                   options={safePositionsOptions}
                   loading={positionsLoading || positionsFetching}
                   getOptionLabel={(option) =>
@@ -629,10 +633,6 @@ const FormSubmissionFields = ({
                         errors.movement_new_position_id
                       )}
                       sx={formStyles?.textField?.(isReadOnly) || {}}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
                     />
                   )}
                   noOptionsText={
@@ -663,6 +663,7 @@ const FormSubmissionFields = ({
                 onClose={handleDropdownClose}
                 value={value || null}
                 disabled={isReadOnly || isDropdownDisabledWrapper("jobLevel")}
+                readOnly={isReadOnly}
                 options={safeJobLevelsOptions}
                 loading={jobLevelsLoading || jobLevelsFetching}
                 getOptionLabel={(option) => safeStringRender(option?.label)}
@@ -679,10 +680,6 @@ const FormSubmissionFields = ({
                     error={!!errors.job_level_id}
                     helperText={getErrorMessage(errors.job_level_id)}
                     sx={formStyles?.textField?.(isReadOnly) || {}}
-                    InputProps={{
-                      ...params.InputProps,
-                      readOnly: isReadOnly,
-                    }}
                   />
                 )}
                 noOptionsText={

@@ -83,10 +83,10 @@ const Address = ({
       search: debounceValue,
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
+      // status: showArchived ? "inactive" : "active",
       statuses: selectedStatuses,
     }),
-    [debounceValue, page, rowsPerPage, showArchived, selectedStatuses]
+    [debounceValue, page, rowsPerPage, selectedStatuses]
   );
 
   const {

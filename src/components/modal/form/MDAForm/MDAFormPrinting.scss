@@ -1,0 +1,367 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.mda-page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  font-family: Arial, sans-serif;
+}
+
+.mda-print-padding {
+  padding: 1.25rem;
+}
+
+.mda-document-container {
+  max-width: 100%;
+  margin: 0 auto;
+  background-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  min-height: calc(100vh - 2.5rem);
+}
+
+.mda-header {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  border: 1px solid #000;
+  margin-bottom: 0;
+  align-items: stretch;
+}
+
+.mda-logo-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.mda-logo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mda-logo-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.mda-title-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.mda-main-title {
+  font-size: 1.5rem;
+  font-weight: 750;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+.mda-top-info {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+  border-top: none;
+}
+
+.mda-info-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 140px 200px;
+  align-items: stretch;
+}
+
+.mda-info-cell {
+  padding: 0.5rem 0.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+}
+
+.mda-info-cell.label-cell {
+  border-right: 1px solid #000;
+  font-weight: 600;
+}
+
+.mda-info-cell.value-cell {
+  border-right: 1px solid #000;
+}
+
+.mda-info-cell.label-cell-right {
+  border-right: 1px solid #000;
+  font-weight: 600;
+}
+
+.mda-employee-name {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+
+.mda-name-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+}
+
+.mda-name-label {
+  padding: 0.5rem 0.5rem;
+  font-size: 0.85rem;
+  border-right: 1px solid #000;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.mda-name-value {
+  padding: 0.5rem 0.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+}
+
+.mda-section-header {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  padding: 0.4rem;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+}
+
+.mda-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  font-size: 0.78rem;
+}
+
+.mda-table td,
+.mda-table th {
+  border: 1px solid #000;
+  padding: 0.45rem 0.45rem;
+}
+
+.mda-label-col {
+  width: 15%;
+  font-weight: 600;
+}
+
+.mda-value-col {
+  width: 35%;
+}
+
+.mda-action-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  font-size: 0.78rem;
+}
+
+.mda-action-table td {
+  border: 1px solid #000000;
+  padding: 0.45rem 0.45rem;
+  border-bottom: none;
+}
+
+.mda-effective-date-row {
+  border-top: 1px solid #000;
+}
+
+.mda-effective-date-label {
+  font-weight: 600;
+}
+
+.mda-effective-date-value {
+  text-align: left;
+}
+
+.mda-checkbox-cell {
+  width: 1%;
+  text-align: center;
+  padding: 0.45rem 0.1rem;
+  vertical-align: middle;
+}
+
+.mda-action-label {
+  width: 10%;
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+}
+.MuiDialog-root MuiModal-root css-1424xw8-MuiModal-root-MuiDialog-root {
+  opacity: 0;
+}
+.mda-checkbox-cell input[type="checkbox"] {
+  width: 16px;
+  height: 24px;
+  cursor: pointer;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.mda-org-table {
+  thead tr th {
+    font-weight: bold;
+    text-align: center;
+    padding: 0.45rem;
+  }
+
+  .mda-org-header-label {
+    width: 35%;
+    text-align: left;
+  }
+
+  .mda-org-header-from,
+  .mda-org-header-to {
+    width: 32.5%;
+  }
+
+  .mda-org-label {
+    font-weight: 600;
+    background-color: #f9f9f9;
+    width: 35%;
+  }
+
+  .mda-org-value {
+    text-align: left;
+    width: 32.5%;
+  }
+}
+
+.mda-signatories {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+  padding: 1.2rem 0.7rem 0.7rem 0.7rem;
+}
+
+.mda-signatory-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+.mda-signatory-block {
+  text-align: left;
+}
+
+.mda-signatory-label {
+  font-size: 0.78rem;
+}
+
+.mda-signatory-line {
+  border-top: 1px solid #000;
+  margin: 1.5rem 0 0.2rem 0;
+}
+
+.mda-signatory-name {
+  font-size: 0.78rem;
+  min-height: 5rem;
+}
+
+.mda-footer {
+  margin-top: 0.4rem;
+  padding: 0.35rem 0;
+  font-size: 0.68rem;
+  color: #666;
+  text-align: left;
+
+  p {
+    margin: 0;
+  }
+}
+
+.print-button {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  background-color: #2563eb;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: Arial, sans-serif;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0.3in;
+  }
+
+  html,
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  button,
+  .print-button {
+    display: none !important;
+  }
+
+  .mda-page-container {
+    background: white !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  .mda-print-padding {
+    padding: 0 !important;
+  }
+
+  .mda-document-container {
+    box-shadow: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+    transform: scale(0.92);
+    transform-origin: top center;
+  }
+
+  .mda-header,
+  .mda-top-info,
+  .mda-employee-name,
+  .mda-section-header,
+  .mda-table,
+  .mda-action-table,
+  .mda-effective-date-row,
+  .mda-signatories {
+    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

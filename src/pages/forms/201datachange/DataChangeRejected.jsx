@@ -25,6 +25,7 @@ import {
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const DataChangeRejected = ({
   searchQuery,
@@ -107,6 +108,7 @@ const DataChangeRejected = ({
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
   const [resubmitDataChangeSubmission] =
     useResubmitDataChangeSubmissionMutation();
+  const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
@@ -155,6 +157,25 @@ const DataChangeRejected = ({
     setModalMode("edit");
     setModalOpen(true);
   }, []);
+
+  const handleCancelSubmission = useCallback(
+    async (submissionId) => {
+      const submission = filteredSubmissions.find(
+        (sub) => sub.id === submissionId
+      );
+      if (submission) {
+        setSelectedSubmissionForAction(submission);
+        setConfirmAction("cancel");
+        setConfirmOpen(true);
+      } else {
+        enqueueSnackbar("Submission not found. Please try again.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [filteredSubmissions, enqueueSnackbar]
+  );
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -291,7 +312,16 @@ const DataChangeRejected = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "cancel" && selectedSubmissionForAction) {
+        await cancelDataChangeSubmission(
+          selectedSubmissionForAction.id
+        ).unwrap();
+        enqueueSnackbar("Data change submission cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+      } else if (confirmAction === "create" && pendingFormData) {
         await createDataChangeSubmission(pendingFormData).unwrap();
         enqueueSnackbar("Data change submission created successfully!", {
           variant: "success",
@@ -350,7 +380,14 @@ const DataChangeRejected = ({
   }, []);
 
   const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "create") {
+    if (confirmAction === "cancel") {
+      return (
+        <>
+          Are you sure you want to <strong>Cancel</strong> this Data Change
+          Request?
+        </>
+      );
+    } else if (confirmAction === "create") {
       return (
         <>
           Are you sure you want to <strong>Create</strong> this Data Change
@@ -391,6 +428,7 @@ const DataChangeRejected = ({
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
+      cancel: { color: "#ff4400", icon: "?" },
       create: { color: "#4caf50", icon: "+" },
       update: { color: "#2196f3", icon: "✎" },
       resubmit: { color: "#ff9800", icon: "↻" },
@@ -435,6 +473,7 @@ const DataChangeRejected = ({
             showArchived={false}
             hideStatusColumn={true}
             forApproval={true}
+            onCancel={handleCancelSubmission}
           />
 
           <Box

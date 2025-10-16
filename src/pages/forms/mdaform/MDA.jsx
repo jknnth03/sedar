@@ -41,11 +41,13 @@ import MDAForApproval from "./MDAForApproval";
 import MDARejected from "./MDARejected";
 import MDAAwaitingResubmission from "./MDAAwaitingResubmission";
 import MDAApproved from "./MDAApproved";
+import MDACancelled from "./MDACancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import {
   useCreateMdaMutation,
   useUpdateMdaMutation,
 } from "../../../features/api/forms/mdaApi";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -481,6 +483,7 @@ const MDA = () => {
     2: "Rejected",
     3: "AwaitingResubmission",
     4: "Approved",
+    5: "Cancelled",
   };
 
   const reverseTabMap = {
@@ -489,6 +492,7 @@ const MDA = () => {
     Rejected: 2,
     AwaitingResubmission: 3,
     Approved: 4,
+    Cancelled: 5,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -508,6 +512,7 @@ const MDA = () => {
 
   const [createMDASubmission] = useCreateMdaMutation();
   const [updateMDASubmission] = useUpdateMdaMutation();
+  const [cancelMDASubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -565,6 +570,42 @@ const MDA = () => {
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
+
+  const handleCancel = useCallback(
+    async (entryId, cancellationReason) => {
+      try {
+        await cancelMDASubmission({
+          id: entryId,
+          cancellation_reason: cancellationReason,
+        }).unwrap();
+
+        enqueueSnackbar("MDA cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error in handleCancel:", error);
+
+        let errorMessage = "Failed to cancel MDA. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelMDASubmission, enqueueSnackbar]
+  );
 
   const handleSave = useCallback(
     async (formData, mode, entryId) => {
@@ -638,6 +679,7 @@ const MDA = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -652,6 +694,7 @@ const MDA = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -666,6 +709,7 @@ const MDA = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -680,6 +724,7 @@ const MDA = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -688,6 +733,21 @@ const MDA = () => {
       label: "Approved",
       component: (
         <MDAApproved
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "Cancelled",
+      component: (
+        <MDACancelled
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}

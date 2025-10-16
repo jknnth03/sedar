@@ -45,7 +45,6 @@ const mainApi = sedarApi
           const {
             pagination = true,
             page = 1,
-            per_page = 10,
             status = "active",
             search,
             ...otherParams
@@ -55,7 +54,6 @@ const mainApi = sedarApi
 
           if (pagination) queryParams.append("pagination", pagination);
           if (page) queryParams.append("page", page);
-          if (per_page) queryParams.append("per_page", per_page);
           if (status) queryParams.append("status", status);
           if (search) queryParams.append("search", search);
 

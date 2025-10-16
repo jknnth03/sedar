@@ -72,18 +72,33 @@ const EmployeeWizardForm = ({
   autoCloseAfterUpdate = true,
 }) => {
   const fullAuthState = useSelector((state) => state.auth);
+  const [hasEnableEditPermission, setHasEnableEditPermission] =
+    React.useState(false);
 
-  const userPermissions = useSelector((state) => {
-    if (state.auth?.user?.access_permissions) {
-      return state.auth.user.access_permissions;
-    }
-    if (state.auth?.user?.role?.access_permissions) {
-      return state.auth.user.role.access_permissions;
-    }
-    return [];
-  });
+  React.useEffect(() => {
+    const checkPermission = () => {
+      const storedRole = localStorage.getItem("userRole");
 
-  const hasEnableEditPermission = userPermissions.includes("Enable Edit");
+      if (storedRole) {
+        try {
+          const roleData = JSON.parse(storedRole);
+          const perms = roleData.accessPermissions || [];
+          setHasEnableEditPermission(perms.includes("Enable Edit"));
+          return;
+        } catch (error) {
+          console.error("Error parsing user role:", error);
+        }
+      }
+
+      const reduxPerms =
+        fullAuthState?.user?.access_permissions ||
+        fullAuthState?.user?.role?.access_permissions ||
+        [];
+      setHasEnableEditPermission(reduxPerms.includes("Enable Edit"));
+    };
+
+    checkPermission();
+  }, [fullAuthState, open]);
 
   const wizardLogic = useEmployeeWizardLogic(
     mode,
@@ -125,8 +140,7 @@ const EmployeeWizardForm = ({
   const methods = useForm({
     defaultValues: getDefaultValues({ mode, initialData }),
     resolver: yupResolver(createFlattenedEmployeeSchema()),
-    mode: "onChange",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
     shouldUnregister: false,
   });
 

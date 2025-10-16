@@ -17,7 +17,6 @@ const MenuItem = ({
 }) => {
   const renderContent = () => {
     if (sidebarOpen) {
-      // When sidebar is open, show badge next to text
       return (
         <NotificationBadge
           count={notificationCount}
@@ -29,7 +28,6 @@ const MenuItem = ({
         </NotificationBadge>
       );
     } else {
-      // When sidebar is closed, show badge on icon
       return (
         <Box className={`icon ${active ? "active-icon" : ""}`}>
           <NotificationBadge count={notificationCount} position="icon">
@@ -40,7 +38,6 @@ const MenuItem = ({
     }
   };
 
-  // If sidebar is open but we want to preserve original typography
   if (sidebarOpen) {
     return (
       <Box
@@ -84,7 +81,6 @@ const MenuItem = ({
     );
   }
 
-  // When sidebar is closed, show badge on icon
   return (
     <Box
       className={`liststyle ${className} ${active ? "active" : ""}`}

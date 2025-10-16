@@ -766,43 +766,53 @@ const Positions = () => {
         </Box>
       </Box>
 
-      <PositionsModal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedPosition(null);
-        }}
-        edit={edit}
-        position={selectedPosition}
-        refetch={refetch}
-      />
+      {modalOpen && (
+        <PositionsModal
+          open={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedPosition(null);
+          }}
+          edit={edit}
+          position={selectedPosition}
+          refetch={refetch}
+        />
+      )}
 
-      <CoaDialog
-        open={coaDialogOpen}
-        onClose={handleCloseCoaDialog}
-        position={selectedPosition}
-      />
+      {coaDialogOpen && (
+        <CoaDialog
+          open={coaDialogOpen}
+          onClose={handleCloseCoaDialog}
+          position={selectedPosition}
+        />
+      )}
 
-      <PositionDialog
-        open={toolsDialogOpen}
-        onClose={handleCloseToolsDialog}
-        position={selectedPosition}
-        type="tools"
-      />
+      {toolsDialogOpen && (
+        <PositionDialog
+          open={toolsDialogOpen}
+          onClose={handleCloseToolsDialog}
+          position={selectedPosition}
+          type="tools"
+        />
+      )}
 
-      <PositionDialog
-        open={positionDialogOpen}
-        onClose={handleClosePositionDialog}
-        position={selectedPosition}
-        type="position"
-      />
+      {positionDialogOpen && (
+        <PositionDialog
+          open={positionDialogOpen}
+          onClose={handleClosePositionDialog}
+          position={selectedPosition}
+          type="position"
+        />
+      )}
 
-      <PositionDialog
-        open={requestorsDialogOpen}
-        onClose={handleCloseRequestorsDialog}
-        position={selectedPosition}
-        type="requestors"
-      />
+      {requestorsDialogOpen && (
+        <PositionDialog
+          open={requestorsDialogOpen}
+          onClose={handleCloseRequestorsDialog}
+          position={selectedPosition}
+          type="requestors"
+        />
+      )}
 
       <Dialog
         open={confirmOpen}

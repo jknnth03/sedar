@@ -34,12 +34,13 @@ import { CONSTANT } from "../../../config";
 import { useGetAllShowToolsQuery } from "../../../features/api/extras/toolsApi";
 import { useGetAllOneRdfQuery } from "../../../features/api/masterlist/realonerdfApi";
 import RequestorSequence from "./RequestorSequence";
+import { styles, getEditIconStyle } from "./PositionModalStyles";
 
 export default function PositionsModal({
   open,
-  onClose, // Fixed: Changed from handleClose to onClose
+  onClose,
   refetch,
-  position, // Fixed: Changed from selectedPosition to position
+  position,
   showArchived,
   edit,
 }) {
@@ -130,7 +131,6 @@ export default function PositionsModal({
     }
   }, [open, edit]);
 
-  // Fixed: Handle close function properly
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -292,7 +292,6 @@ export default function PositionsModal({
     }
   };
 
-  // Fixed: Initialize form data properly
   const initializeFormData = () => {
     if (
       position &&
@@ -396,7 +395,6 @@ export default function PositionsModal({
     }
   };
 
-  // Fixed: Reset and initialize properly when modal opens/closes
   useEffect(() => {
     if (open) {
       setIsInitialized(false);
@@ -404,7 +402,6 @@ export default function PositionsModal({
       setErrorMessage(null);
 
       if (!position) {
-        // Creating new position
         setFormData({
           titles: "",
           code: "",
@@ -420,7 +417,6 @@ export default function PositionsModal({
         setIsInitialized(true);
       }
     } else {
-      // Modal is closing - reset everything
       setIsInitialized(false);
       setRequestorSequence([]);
       setFormData({
@@ -439,7 +435,6 @@ export default function PositionsModal({
     }
   }, [open, position]);
 
-  // Fixed: Initialize form data when all dependencies are ready
   useEffect(() => {
     if (
       open &&
@@ -498,17 +493,10 @@ export default function PositionsModal({
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          pb: 1,
-          backgroundColor: "#fff",
-        }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <WorkOutlineIcon sx={{ color: "rgb(33, 61, 112)" }} />
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+      <DialogTitle sx={styles.dialogTitle}>
+        <Box sx={styles.titleContainer}>
+          <WorkOutlineIcon sx={styles.titleIcon} />
+          <Typography variant="h6" component="div" sx={styles.titleText}>
             {getModalTitle()}
           </Typography>
           {isViewMode && (
@@ -517,25 +505,8 @@ export default function PositionsModal({
                 onClick={() => handleModeChange("edit")}
                 disabled={isLoading}
                 size="small"
-                sx={{
-                  ml: 1,
-                  padding: "8px",
-                  "&:hover": {
-                    backgroundColor: "rgba(0, 136, 32, 0.08)",
-                    transform: "scale(1.1)",
-                    transition: "all 0.2s ease-in-out",
-                  },
-                }}>
-                <EditIcon
-                  sx={{
-                    fontSize: "20px",
-                    "& path": {
-                      fill: isLoading
-                        ? "rgba(0, 0, 0, 0.26)"
-                        : "rgba(0, 136, 32, 1)",
-                    },
-                  }}
-                />
+                sx={styles.editButton}>
+                <EditIcon sx={getEditIconStyle(isLoading)} />
               </IconButton>
             </Tooltip>
           )}
@@ -545,54 +516,23 @@ export default function PositionsModal({
                 onClick={handleCancelEdit}
                 disabled={isLoading}
                 size="small"
-                sx={{
-                  ml: 1,
-                  padding: "8px",
-                  "&:hover": {
-                    backgroundColor: "rgba(235, 0, 0, 0.08)",
-                    transform: "scale(1.1)",
-                    transition: "all 0.2s ease-in-out",
-                  },
-                }}>
-                <EditOffIcon
-                  sx={{
-                    fontSize: "20px",
-                    "& path": {
-                      fill: "rgba(235, 0, 0, 1)",
-                    },
-                  }}
-                />
+                sx={styles.cancelEditButton}>
+                <EditOffIcon sx={styles.cancelEditIcon} />
               </IconButton>
             </Tooltip>
           )}
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton
-            onClick={handleClose} // Fixed: Now properly calls handleClose
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              backgroundColor: "#fff",
-              "&:hover": {
-                backgroundColor: "#f5f5f5",
-              },
-              transition: "all 0.2s ease-in-out",
-            }}>
-            <CloseIcon
-              sx={{
-                fontSize: "18px",
-                color: "#333",
-              }}
-            />
+        <Box sx={styles.actionsContainer}>
+          <IconButton onClick={handleClose} sx={styles.closeButton}>
+            <CloseIcon sx={styles.closeIcon} />
           </IconButton>
         </Box>
       </DialogTitle>
 
       {errorMessage && (
         <DialogContentText dividers>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={styles.alertContainer}>
             {errorMessage}
           </Alert>
         </DialogContentText>
@@ -600,21 +540,13 @@ export default function PositionsModal({
 
       <DialogContent>
         {isLoading ? (
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            padding={4}>
+          <Box sx={styles.loadingContainer}>
             <CircularProgress />
           </Box>
         ) : (
           <Box>
-            <Box
-              display="grid"
-              gridTemplateColumns="1fr 1fr"
-              gap={1.5}
-              sx={{ paddingTop: "14px" }}>
-              <Box gridColumn="span 2">
+            <Box sx={styles.formGrid}>
+              <Box sx={styles.fullWidthColumn}>
                 <Autocomplete
                   options={titlesList}
                   getOptionLabel={(option) => option?.name || ""}
@@ -798,51 +730,38 @@ export default function PositionsModal({
                 }}
               />
 
-              <Box sx={{ gridColumn: "span 2" }}>
-                <Box sx={{ position: "relative" }}>
-                  <TextField
-                    fullWidth
-                    label="Position Attachment"
-                    value={getAttachmentDisplayName()}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      readOnly: true,
-                      endAdornment: (
-                        <Button
-                          component="label"
-                          variant="outlined"
-                          size="large"
-                          disabled={isReadOnly}
-                          sx={{ ml: 1, minWidth: "120px" }}>
-                          {getAttachmentDisplayName()
-                            ? "Change"
-                            : "Attach File Here"}
-                          <input
-                            hidden
-                            type="file"
-                            onChange={handleFileChange}
-                          />
-                        </Button>
-                      ),
-                    }}
-                    error={errors.position_attachment}
-                    helperText={
-                      errors.position_attachment
-                        ? "Attachment is required"
-                        : null
-                    }
-                    required={currentMode !== true && currentMode !== "edit"}
-                    sx={{
-                      "& .MuiInputBase-input": {
-                        cursor: "default",
-                        caretColor: "transparent",
-                      },
-                    }}
-                  />
-                </Box>
+              <Box sx={styles.fullWidthColumn}>
+                <TextField
+                  fullWidth
+                  label="Position Attachment"
+                  value={getAttachmentDisplayName()}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{
+                    readOnly: true,
+                    endAdornment: (
+                      <Button
+                        component="label"
+                        variant="outlined"
+                        size="large"
+                        disabled={isReadOnly}
+                        sx={styles.attachmentButton}>
+                        {getAttachmentDisplayName()
+                          ? "Change"
+                          : "Attach File Here"}
+                        <input hidden type="file" onChange={handleFileChange} />
+                      </Button>
+                    ),
+                  }}
+                  error={errors.position_attachment}
+                  helperText={
+                    errors.position_attachment ? "Attachment is required" : null
+                  }
+                  required={currentMode !== true && currentMode !== "edit"}
+                  sx={styles.attachmentField}
+                />
               </Box>
 
-              <Box gridColumn="span 2">
+              <Box sx={styles.fullWidthColumn}>
                 <Autocomplete
                   multiple
                   options={toolsList}
@@ -926,8 +845,7 @@ export default function PositionsModal({
         )}
       </DialogContent>
 
-      {/* Fixed: Removed Cancel button since X icon is already present */}
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions sx={styles.dialogActions}>
         {!isReadOnly && (
           <Button
             onClick={handleSubmit}

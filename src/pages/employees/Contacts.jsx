@@ -81,9 +81,9 @@ const Contacts = ({
       search: debounceValue,
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
+      // status: showArchived ? "inactive" : "active",
     }),
-    [debounceValue, page, rowsPerPage, showArchived]
+    [debounceValue, page, rowsPerPage]
   );
 
   const {

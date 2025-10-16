@@ -49,14 +49,15 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import LowPriorityIcon from "@mui/icons-material/LowPriority";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import MonitorIcon from "@mui/icons-material/Monitor";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
 import moduleApi from "../features/api/usermanagement/dashboardApi";
 import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
+import VerifiedIcon from "@mui/icons-material/Verified";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
-
   dispatch(formSubmissionApi.util.invalidateTags(["mrfSubmissions"]));
   dispatch(formSubmissionApi.util.invalidateTags(["formSubmissions"]));
 };
@@ -77,9 +78,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     pendingApprovals:
       (apiResult.approval?.manpower_form || 0) +
-      (apiResult.approval?.registration_approval || 0),
+      (apiResult.approval?.registration_approval || 0) +
+      (apiResult.approval?.data_change_approval || 0) +
+      (apiResult.approval?.mda_approval || 0),
     manpowerFormApprovals: apiResult.approval?.manpower_form || 0,
     registrationApprovals: apiResult.approval?.registration_approval || 0,
+    dataChangeApprovals: apiResult.approval?.data_change_approval || 0,
+    mdaApprovals: apiResult.approval?.mda_approval || 0,
 
     pendingReceiving:
       (apiResult.receiving?.pending_mrfs || 0) +
@@ -87,8 +92,14 @@ export const createEnhancedModules = (dashboardData = {}) => {
     pendingMrfReceiving: apiResult.receiving?.pending_mrfs || 0,
     pendingDataChangeReceiving: apiResult.receiving?.pending_data_changes || 0,
 
-    rejectedReturnedSubmissions: apiResult.requisition?.manpower_form || 0,
-    rejectedDataChanges: apiResult.requisition?.["201_data_change"] || 0,
+    rejectedReturnedSubmissions:
+      (apiResult.requisition?.manpower_form_rejected || 0) +
+      (apiResult.requisition?.manpower_form_returned || 0),
+    manpowerFormTotal: apiResult.requisition?.manpower_form || 0,
+    dataChangeTotal: apiResult.requisition?.data_change || 0,
+    dataChangeRejected: apiResult.requisition?.data_change_rejected || 0,
+    dataChangeForMdaProcessing:
+      apiResult.requisition?.data_change_for_mda_processing || 0,
   };
 
   return {
@@ -246,26 +257,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           ),
           icon_on: null,
         },
-        // RECEIVER: {
-        //   name: "Receiver",
-        //   path: "receiver",
-        //   icon: (
-        //     <RecordVoiceOverIcon
-        //       sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-        //     />
-        //   ),
-        //   icon_on: null,
-        // },
-        // APPROVER: {
-        //   name: "Approver",
-        //   path: "approver",
-        //   icon: (
-        //     <HowToRegIcon
-        //       sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-        //     />
-        //   ),
-        //   icon_on: null,
-        // },
       },
     },
 
@@ -316,7 +307,18 @@ export const createEnhancedModules = (dashboardData = {}) => {
             />
           ),
           icon_on: null,
-          notificationCount: counts.registrationApprovals,
+          notificationCount: counts.dataChangeApprovals,
+        },
+        MDAAPPROVAL: {
+          name: "MDA",
+          path: "mdaapproval",
+          icon: (
+            <VerifiedIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: counts.mdaApprovals,
         },
       },
     },
@@ -335,8 +337,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         />
       ),
       icon_on: null,
-      notificationCount:
-        counts.rejectedReturnedSubmissions + counts.rejectedDataChanges,
+      notificationCount: counts.manpowerFormTotal + counts.dataChangeTotal,
       children: {
         MRFMAINCONTAINER: {
           name: "Manpower Form",
@@ -347,7 +348,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
             />
           ),
           icon_on: null,
-          notificationCount: counts.rejectedReturnedSubmissions,
+          notificationCount: counts.manpowerFormTotal,
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
@@ -358,18 +359,69 @@ export const createEnhancedModules = (dashboardData = {}) => {
             />
           ),
           icon_on: null,
-          notificationCount: counts.rejectedDataChanges,
+          notificationCount: counts.dataChangeTotal,
         },
-        MDA: {
+        MASTERDATAAUTHORITY: {
           name: "Master Data Authority",
-          path: "mda",
+          path: "masterdataauthority",
           icon: (
             <CreateNewFolderIcon
               sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
             />
           ),
           icon_on: null,
-          notificationCount: counts.rejectedDataChanges,
+          notificationCount: counts.dataChangeForMdaProcessing,
+        },
+      },
+    },
+    REQUESTMONITORING: {
+      name: "Request Monitoring",
+      path: "/requestmonitoring",
+      icon: (
+        <MonitorIcon
+          sx={{
+            marginRight: "5px",
+            marginLeft: "6px",
+            width: "23px",
+            height: "23px",
+          }}
+        />
+      ),
+      icon_on: null,
+      notificationCount: 0,
+      children: {
+        MRFMONITORING: {
+          name: "MRF (HR)",
+          path: "mrfmonitoring",
+          icon: (
+            <MarkEmailReadIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: 0,
+        },
+        DATACHANGEMONITORING: {
+          name: "Data Change (HR)",
+          path: "datachangemonitoring",
+          icon: (
+            <CloudSyncIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: 0,
+        },
+        MDAMONITORING: {
+          name: "MDA (HR)",
+          path: "mdamonitoring",
+          icon: (
+            <VerifiedIcon
+              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
+            />
+          ),
+          icon_on: null,
+          notificationCount: 0,
         },
       },
     },
@@ -387,8 +439,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         />
       ),
       icon_on: null,
-      notificationCount:
-        counts.rejectedReturnedSubmissions + counts.rejectedDataChanges,
+      notificationCount: 0,
       children: {
         KPI: {
           name: "KPI",
@@ -399,7 +450,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
             />
           ),
           icon_on: null,
-          notificationCount: counts.rejectedReturnedSubmissions,
+          notificationCount: 0,
         },
       },
     },

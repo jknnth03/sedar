@@ -348,9 +348,8 @@ const FormSubmissionTable = ({
               <Box sx={styles.timelineActorInfo}>
                 <Typography variant="body1" sx={styles.timelineActorName}>
                   {activity.full_name ||
-                    (activity.actor
-                      ? activity.actor.full_name
-                      : activity.user
+                    activity.actor?.full_name ||
+                    (activity.user
                       ? `${activity.user.last_name}, ${activity.user.first_name}`
                       : "") ||
                     "System"}

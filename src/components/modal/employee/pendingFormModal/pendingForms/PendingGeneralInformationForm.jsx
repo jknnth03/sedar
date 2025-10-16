@@ -666,7 +666,7 @@ const PendingGeneralInformationForm = ({
           sm={4}
           sx={{ minWidth: "373px", maxWidth: "373px", pr: 1 }}>
           <Controller
-            name="birthplace"
+            name="birth_place"
             control={control}
             render={({ field }) => (
               <TextField
@@ -679,9 +679,9 @@ const PendingGeneralInformationForm = ({
                 variant="outlined"
                 fullWidth
                 disabled={isFieldDisabled}
-                error={!!errors.birthplace}
+                error={!!errors.birth_place}
                 helperText={
-                  errors.birthplace?.message ||
+                  errors.birth_place?.message ||
                   (!field.value ? "Birthplace is required." : "")
                 }
                 InputProps={{

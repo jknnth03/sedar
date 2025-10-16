@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   TextField,
@@ -7,22 +7,15 @@ import {
   FormControl,
   FormHelperText,
   Button,
-  IconButton,
   Autocomplete,
   Typography,
   Dialog,
   DialogTitle,
   DialogContent,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
-import {
-  CloudUpload,
-  Delete,
-  AttachFile,
-  Visibility,
-  Download,
-  Close,
-} from "@mui/icons-material";
+import { Close, AttachFile } from "@mui/icons-material";
 
 import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsEmpApi";
 
@@ -40,7 +33,6 @@ const AttainmentFormFields = ({
   watchedValues,
   handleDropdownFocus,
   handleFileChange,
-  handleFileRemove,
   getOptionLabel,
   selectedAttainment,
 }) => {
@@ -48,32 +40,42 @@ const AttainmentFormFields = ({
     control,
     formState: { errors },
     setValue,
-    watch,
   } = useFormContext();
 
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [currentAttachmentId, setCurrentAttachmentId] = useState(null);
   const [currentFileName, setCurrentFileName] = useState("");
   const [fileUrl, setFileUrl] = useState(null);
+  const [isNewFile, setIsNewFile] = useState(false);
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
+  const fileUrlRef = useRef(null);
 
-  const {
-    data: attachmentData,
-    isLoading: isLoadingAttachment,
-    error: attachmentError,
-  } = useGetAttainmentAttachmentQuery(currentAttachmentId, {
-    skip:
-      !fileViewerOpen ||
-      !currentAttachmentId ||
-      currentAttachmentId === "undefined",
-  });
+  const { data: attachmentData, isLoading: isLoadingAttachment } =
+    useGetAttainmentAttachmentQuery(currentAttachmentId, {
+      skip: !currentAttachmentId || isNewFile,
+    });
 
-  React.useEffect(() => {
-    if (attachmentData) {
+  useEffect(() => {
+    if (attachmentData && !isNewFile && currentAttachmentId && fileViewerOpen) {
+      if (fileUrlRef.current) {
+        URL.revokeObjectURL(fileUrlRef.current);
+      }
+
       const url = URL.createObjectURL(attachmentData);
+      fileUrlRef.current = url;
       setFileUrl(url);
-      return () => URL.revokeObjectURL(url);
+      setIsPreparingFile(false);
     }
-  }, [attachmentData]);
+  }, [attachmentData, isNewFile, currentAttachmentId, fileViewerOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (fileUrlRef.current) {
+        URL.revokeObjectURL(fileUrlRef.current);
+        fileUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const getAttachmentData = () => {
     const attachmentUrl =
@@ -130,10 +132,17 @@ const AttainmentFormFields = ({
     const attachmentData = getAttachmentData();
 
     if (attachmentData.isNewFile) {
-      const fileUrl = URL.createObjectURL(watchedValues.attainment_attachment);
-      setFileUrl(fileUrl);
+      setIsPreparingFile(true);
+      if (fileUrlRef.current) {
+        URL.revokeObjectURL(fileUrlRef.current);
+      }
+      const url = URL.createObjectURL(watchedValues.attainment_attachment);
+      fileUrlRef.current = url;
+      setFileUrl(url);
       setCurrentFileName(watchedValues.attainment_attachment.name);
+      setIsNewFile(true);
       setFileViewerOpen(true);
+      setTimeout(() => setIsPreparingFile(false), 100);
       return;
     }
 
@@ -142,118 +151,141 @@ const AttainmentFormFields = ({
       !isNaN(attachmentData.id) &&
       attachmentData.id > 0
     ) {
-      setCurrentAttachmentId(attachmentData.id);
+      setIsPreparingFile(true);
+      setIsNewFile(false);
+      setFileUrl(null);
       setCurrentFileName(attachmentData.filename);
+      setCurrentAttachmentId(attachmentData.id);
       setFileViewerOpen(true);
     }
-  }, [watchedValues, selectedAttainment]);
+  }, [watchedValues]);
 
   const handleFileViewerClose = useCallback(() => {
     setFileViewerOpen(false);
+
+    if (fileUrlRef.current) {
+      URL.revokeObjectURL(fileUrlRef.current);
+      fileUrlRef.current = null;
+    }
+
+    setFileUrl(null);
     setCurrentAttachmentId(null);
     setCurrentFileName("");
+    setIsNewFile(false);
+    setIsPreparingFile(false);
   }, []);
-
-  const handleFileDownload = useCallback(async () => {
-    const attachmentData = getAttachmentData();
-
-    if (attachmentData.isNewFile) {
-      const url = URL.createObjectURL(watchedValues.attainment_attachment);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download =
-        watchedValues.attainment_attachment.name || attachmentData.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      return;
-    }
-
-    if (attachmentData && fileUrl) {
-      const link = document.createElement("a");
-      link.href = fileUrl;
-      link.download = attachmentData.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  }, [watchedValues, attachmentData, fileUrl]);
 
   const currentYear = new Date().getFullYear();
 
   const getEnhancedOptionLabel = (item, type) => {
     if (!item) return "";
-
     if (getOptionLabel && typeof getOptionLabel === "function") {
       return getOptionLabel(item, type);
     }
-
     if (item.name) return item.name;
     if (item.label) return item.label;
     if (item.id) return `${type} ${item.id}`;
-
     return "";
   };
 
   const getDisplayFilename = () => {
     if (
       watchedValues?.attachment_filename &&
-      watchedValues.attachment_filename.toLowerCase() !== "dummy.pdf"
+      watchedValues.attachment_filename.toLowerCase() !==
+        "no attachment attached"
     ) {
       return watchedValues.attachment_filename;
     }
-
     if (
       watchedValues?.existing_attachment_filename &&
-      watchedValues.existing_attachment_filename.toLowerCase() !== "dummy.pdf"
+      watchedValues.existing_attachment_filename.toLowerCase() !==
+        "no attachment attached"
     ) {
       return watchedValues.existing_attachment_filename;
     }
-
     if (watchedValues?.attainment_attachment?.name) {
       return watchedValues.attainment_attachment.name;
     }
-
     if (watchedValues?.attainment_attachment instanceof File) {
       return watchedValues.attainment_attachment.name;
     }
-
-    return "dummy.pdf";
+    return "No attachment attached";
   };
 
   const hasExistingFile = () => {
-    if (watchedValues?.attainment_attachment) return true;
+    if (watchedValues?.attainment_attachment instanceof File) return true;
 
     if (
-      watchedValues?.attachment_filename &&
-      watchedValues.attachment_filename.toLowerCase() !== "dummy.pdf"
+      selectedAttainment?.attachment_url ||
+      selectedAttainment?.attachment_filename
     ) {
+      const filename = selectedAttainment.attachment_filename;
+      if (filename && typeof filename === "string" && filename.trim()) {
+        const lowerFilename = filename.toLowerCase().trim();
+        if (
+          lowerFilename !== "no attachment attached" &&
+          lowerFilename !== "no file attached" &&
+          lowerFilename !== "no attachment" &&
+          lowerFilename !== "no file"
+        ) {
+          return true;
+        }
+      }
+    }
+
+    const filename =
+      watchedValues?.attachment_filename ||
+      watchedValues?.existing_attachment_filename;
+
+    if (filename && typeof filename === "string" && filename.trim()) {
+      const lowerFilename = filename.toLowerCase().trim();
+      if (
+        lowerFilename === "no attachment attached" ||
+        lowerFilename === "no file attached" ||
+        lowerFilename === "no attachment" ||
+        lowerFilename === "no file"
+      ) {
+        return false;
+      }
       return true;
     }
 
+    const attachmentUrl =
+      watchedValues?.attachment_url || watchedValues?.existing_attachment_url;
+
     if (
-      watchedValues?.existing_attachment_filename &&
-      watchedValues.existing_attachment_filename.toLowerCase() !== "dummy.pdf"
+      attachmentUrl &&
+      typeof attachmentUrl === "string" &&
+      attachmentUrl.trim()
     ) {
+      const lowerUrl = attachmentUrl.toLowerCase().trim();
+      if (
+        lowerUrl === "no attachment attached" ||
+        lowerUrl === "no file attached" ||
+        lowerUrl === "no attachment" ||
+        lowerUrl === "no file"
+      ) {
+        return false;
+      }
       return true;
     }
 
-    const attachmentData = getAttachmentData();
-    return !!attachmentData.id;
+    return false;
   };
 
   const getFileName = (filename) => {
     if (!filename) {
       if (
         watchedValues?.attachment_filename &&
-        watchedValues.attachment_filename.toLowerCase() !== "dummy.pdf"
+        watchedValues.attachment_filename.toLowerCase() !==
+          "no attachment attached"
       ) {
         return watchedValues.attachment_filename;
       }
       if (
         watchedValues?.existing_attachment_filename &&
-        watchedValues.existing_attachment_filename.toLowerCase() !== "dummy.pdf"
+        watchedValues.existing_attachment_filename.toLowerCase() !==
+          "no attachment attached"
       ) {
         return watchedValues.existing_attachment_filename;
       }
@@ -263,7 +295,7 @@ const AttainmentFormFields = ({
       if (watchedValues?.attainment_attachment instanceof File) {
         return watchedValues.attainment_attachment.name;
       }
-      return "dummy.pdf";
+      return "No attachment attached";
     }
     return filename.split("/").pop() || filename;
   };
@@ -327,7 +359,7 @@ const AttainmentFormFields = ({
           height: "calc(90vh - 140px)",
           overflow: "hidden",
         }}>
-        {isLoadingAttachment ? (
+        {isLoadingAttachment || isPreparingFile ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -337,20 +369,6 @@ const AttainmentFormFields = ({
             <CircularProgress size={48} />
             <Typography variant="body1" sx={{ mt: 2, color: "text.secondary" }}>
               Loading attachment...
-            </Typography>
-          </Box>
-        ) : attachmentError ? (
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            height="100%"
-            flexDirection="column">
-            <Typography variant="h6" color="error" gutterBottom>
-              Error loading attachment
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Unable to load the attachment. Please try again.
             </Typography>
           </Box>
         ) : (
@@ -743,196 +761,191 @@ const AttainmentFormFields = ({
           sm={3}
           sx={{ minWidth: "1102px", maxWidth: "1102px" }}>
           <Box sx={{ display: "flex", flexDirection: "column" }}>
-            <Box
-              onClick={
-                hasExistingFile() && isReadOnly
-                  ? handleFileViewerOpen
-                  : undefined
-              }
-              sx={{
-                border: "1px dotted",
-                borderColor: errors.attainment_attachment
-                  ? "error.main"
-                  : "#ccc",
-                borderRadius: 1,
-                p: 1.5,
-                backgroundColor: "#fff",
-                width: "1094px",
-                minHeight: "60px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                cursor: hasExistingFile() && isReadOnly ? "pointer" : "default",
-                transition: "all 0.2s ease-in-out",
-                "&:hover":
-                  hasExistingFile() && isReadOnly
-                    ? {
-                        borderColor: "#1976d2",
-                        backgroundColor: "#f8f9fa",
-                      }
-                    : {},
-              }}>
-              {hasExistingFile() ? (
-                <>
+            {!isReadOnly ? (
+              <>
+                {hasExistingFile() ? (
                   <Box
-                    sx={{ display: "flex", flexDirection: "column", flex: 1 }}>
+                    sx={{
+                      border: "2px solid",
+                      borderColor: errors.attainment_attachment
+                        ? "error.main"
+                        : "#1976d2",
+                      borderRadius: 1,
+                      p: 2,
+                      backgroundColor: "#f0f7ff",
+                      width: "1094px",
+                      minHeight: "60px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}>
                     <Typography
                       variant="body1"
                       sx={{
-                        color: "#333",
+                        color: "#1976d2",
                         fontWeight: 600,
                         textAlign: "left",
                         wordBreak: "break-word",
-                        textTransform: "uppercase",
-                        fontSize: "0.875rem",
-                        mb: 0.5,
+                        fontSize: "0.95rem",
+                        flex: 1,
                       }}>
                       {getFileName(getDisplayFilename())}
                     </Typography>
 
-                    {isReadOnly && (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#666",
-                          fontSize: "0.75rem",
-                          textAlign: "left",
-                        }}>
-                        CLICK ANYWHERE INSIDE THE BOX TO VIEW ATTACHMENT
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {!isReadOnly ? (
                     <Box sx={{ display: "flex", gap: 1 }}>
                       <Button
-                        variant="outlined"
-                        size="small"
+                        variant="contained"
+                        size="medium"
                         disabled={isLoading}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFileViewerOpen();
-                        }}
+                        onClick={handleFileViewerOpen}
                         sx={{
                           textTransform: "none",
-                          borderColor: "#ccc",
-                          color: "#666",
+                          backgroundColor: "#1976d2",
+                          color: "#fff",
+                          fontWeight: 600,
+                          px: 3,
                           "&:hover": {
-                            borderColor: "#1976d2",
-                            color: "#1976d2",
+                            backgroundColor: "#1565c0",
                           },
                         }}>
-                        VIEW FILE
+                        View File
                       </Button>
 
                       <input
                         accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                         style={{ display: "none" }}
-                        id="attainment-file-input"
+                        id="attainment-file-input-replace"
                         type="file"
                         onChange={handleInternalFileChange}
                         disabled={isLoading}
                       />
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        disabled={isLoading}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          document
-                            .getElementById("attainment-file-input")
-                            .click();
-                        }}
-                        sx={{
-                          textTransform: "none",
-                          borderColor: "#ccc",
-                          color: "#666",
-                          "&:hover": {
+                      <label htmlFor="attainment-file-input-replace">
+                        <Button
+                          variant="outlined"
+                          size="medium"
+                          component="span"
+                          disabled={isLoading}
+                          sx={{
+                            textTransform: "none",
                             borderColor: "#1976d2",
                             color: "#1976d2",
-                          },
-                        }}>
-                        REPLACE FILE
-                      </Button>
+                            fontWeight: 600,
+                            px: 3,
+                            "&:hover": {
+                              borderColor: "#1565c0",
+                              backgroundColor: "#f0f7ff",
+                            },
+                          }}>
+                          Replace File
+                        </Button>
+                      </label>
                     </Box>
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  {!isReadOnly ? (
-                    <>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          flex: 1,
-                        }}>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            color: "#666",
-                            fontWeight: 500,
-                            textAlign: "left",
-                            fontSize: "0.875rem",
-                            mb: 0.5,
-                          }}>
-                          NO FILE SELECTED
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "#999",
-                            fontSize: "0.75rem",
-                            textAlign: "left",
-                          }}>
-                          SUPPORTED FORMATS: PDF, DOC, DOCX, JPG, PNG
-                        </Typography>
-                      </Box>
-
-                      <input
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        style={{ display: "none" }}
-                        id="attainment-file-input-new"
-                        type="file"
-                        onChange={handleInternalFileChange}
-                        disabled={isLoading}
-                      />
+                  </Box>
+                ) : (
+                  <>
+                    <input
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      style={{ display: "none" }}
+                      id="attainment-file-input"
+                      type="file"
+                      onChange={handleInternalFileChange}
+                      disabled={isLoading}
+                    />
+                    <label htmlFor="attainment-file-input" style={{ flex: 1 }}>
                       <Button
                         variant="outlined"
-                        size="small"
+                        component="span"
                         disabled={isLoading}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          document
-                            .getElementById("attainment-file-input-new")
-                            .click();
-                        }}
                         sx={{
+                          height: "60px",
+                          width: "1094px",
+                          borderRadius: 1,
+                          borderWidth: 2,
+                          borderStyle: "dashed",
+                          borderColor: errors.attainment_attachment
+                            ? "error.main"
+                            : "#1976d2",
+                          color: errors.attainment_attachment
+                            ? "error.main"
+                            : "#1976d2",
+                          backgroundColor: "#fff",
                           textTransform: "none",
-                          borderColor: "#ccc",
-                          color: "#666",
+                          justifyContent: "flex-start",
+                          padding: "0 20px",
                           "&:hover": {
-                            borderColor: "#1976d2",
-                            color: "#1976d2",
+                            borderColor: errors.attainment_attachment
+                              ? "error.dark"
+                              : "#1565c0",
+                            backgroundColor: "#f0f7ff",
                           },
                         }}>
-                        CHOOSE FILE
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            width: "100%",
+                          }}>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: "#1976d2",
+                              fontWeight: 600,
+                              fontSize: "0.95rem",
+                              mb: 0.5,
+                            }}>
+                            No File Selected
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#666",
+                              fontSize: "0.8rem",
+                            }}>
+                            Supported formats: PDF, DOC, DOCX, JPG, PNG
+                          </Typography>
+                        </Box>
                       </Button>
-                    </>
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "#666",
-                        fontSize: "0.875rem",
-                        fontWeight: 500,
-                      }}>
-                      NO ATTACHMENT AVAILABLE
-                    </Typography>
-                  )}
-                </>
-              )}
-            </Box>
+                    </label>
+                  </>
+                )}
+              </>
+            ) : (
+              <Box
+                sx={{
+                  border: "2px solid #e0e0e0",
+                  borderRadius: 1,
+                  p: 2,
+                  backgroundColor: "#fafafa",
+                  width: "1094px",
+                  minHeight: "60px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                {hasExistingFile() ? (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: "#666",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                    }}>
+                    {getFileName(getDisplayFilename())}
+                  </Typography>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#999",
+                      fontSize: "0.9rem",
+                      fontWeight: 500,
+                    }}>
+                    No attachment available
+                  </Typography>
+                )}
+              </Box>
+            )}
 
             {errors.attainment_attachment && (
               <FormHelperText error sx={{ mt: 0.5 }}>

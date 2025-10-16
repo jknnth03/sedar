@@ -23,7 +23,7 @@ const BasicInfoSection = ({ submissionData }) => {
   const [fileUrl, setFileUrl] = useState(null);
   const [currentFileId, setCurrentFileId] = useState(null);
   const [fileName, setFileName] = useState("");
-  const [fileType, setFileType] = useState(""); // "attainment" or "file"
+  const [fileType, setFileType] = useState("");
 
   const {
     data: attachmentData,
@@ -240,13 +240,13 @@ const BasicInfoSection = ({ submissionData }) => {
       fileId !== "undefined" &&
       fileId !== "null" &&
       fileId !== null &&
-      filename
+      filename &&
+      attainment?.attainment_attachment_filename
     );
   };
 
   return (
     <>
-      {/* 1. GENERAL INFORMATION */}
       <SectionContainer title="GENERAL INFORMATION">
         <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
           <InfoField
@@ -276,7 +276,6 @@ const BasicInfoSection = ({ submissionData }) => {
         </Box>
       </SectionContainer>
 
-      {/* 2. ADDRESS */}
       <SectionContainer title="ADDRESS">
         <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
           <InfoField
@@ -303,7 +302,6 @@ const BasicInfoSection = ({ submissionData }) => {
         </Box>
       </SectionContainer>
 
-      {/* 3. EMPLOYEE POSITION */}
       <SectionContainer title="EMPLOYEE POSITION">
         <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
           <InfoField
@@ -336,7 +334,6 @@ const BasicInfoSection = ({ submissionData }) => {
         </Box>
       </SectionContainer>
 
-      {/* 4. EMPLOYMENT TYPES */}
       <SectionContainer title="EMPLOYMENT TYPES">
         {getEmploymentTypes().map((empType, index) => (
           <Box
@@ -362,7 +359,6 @@ const BasicInfoSection = ({ submissionData }) => {
         ))}
       </SectionContainer>
 
-      {/* 5. ATTAINMENT */}
       <SectionContainer title="ATTAINMENT">
         {getAttainments().map((attainment, index) => (
           <Box
@@ -382,12 +378,7 @@ const BasicInfoSection = ({ submissionData }) => {
                 value={attainment.degree?.name || "N/A"}
               />
             </Box>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 6,
-                mb: hasAttainmentFile(attainment) ? 2 : 0,
-              }}>
+            <Box sx={{ display: "flex", gap: 6, mb: 2 }}>
               <InfoField
                 label="ACADEMIC YEAR"
                 value={
@@ -403,86 +394,106 @@ const BasicInfoSection = ({ submissionData }) => {
               />
             </Box>
 
-            {/* Supporting Document for this attainment */}
-            {hasAttainmentFile(attainment) && (
-              <Box
-                sx={{
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 2,
-                  p: 2,
-                  backgroundColor: "#fafafa",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mt: 1,
-                }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <AttachFileIcon sx={{ color: "#666", fontSize: 24 }} />
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        color: "#333",
-                        mb: 0.5,
-                      }}>
-                      {getDisplayFilename(attainment)}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#666",
-                        fontSize: "12px",
-                      }}>
-                      Supporting document
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <IconButton
-                    size="small"
-                    onClick={() =>
-                      handleFileViewerOpen(
-                        getAttainmentFileId(attainment),
-                        getDisplayFilename(attainment),
-                        "attainment"
-                      )
-                    }
+            <Box
+              sx={{
+                border: "1px solid #e0e0e0",
+                borderRadius: 2,
+                p: 2,
+                backgroundColor: hasAttainmentFile(attainment)
+                  ? "#fafafa"
+                  : "#f5f5f5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mt: 1,
+                opacity: hasAttainmentFile(attainment) ? 1 : 0.6,
+              }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <AttachFileIcon
+                  sx={{
+                    color: hasAttainmentFile(attainment) ? "#666" : "#999",
+                    fontSize: 24,
+                  }}
+                />
+                <Box>
+                  <Typography
                     sx={{
-                      backgroundColor: "#e3f2fd",
-                      color: "#1976d2",
-                      "&:hover": {
-                        backgroundColor: "#bbdefb",
-                      },
-                    }}
-                    title="View file">
-                    <VisibilityIcon fontSize="small" />
-                  </IconButton>
-                  {fileUrl &&
-                    currentFileId === getAttainmentFileId(attainment) && (
-                      <IconButton
-                        size="small"
-                        onClick={handleFileDownload}
-                        sx={{
-                          backgroundColor: "#e8f5e8",
-                          color: "#2e7d32",
-                          "&:hover": {
-                            backgroundColor: "#c8e6c9",
-                          },
-                        }}
-                        title="Download file">
-                        <DownloadIcon fontSize="small" />
-                      </IconButton>
-                    )}
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: hasAttainmentFile(attainment) ? "#333" : "#999",
+                      mb: 0.5,
+                    }}>
+                    {hasAttainmentFile(attainment)
+                      ? getDisplayFilename(attainment)
+                      : "No attachment attached"}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "#666",
+                      fontSize: "12px",
+                    }}>
+                    Supporting document
+                  </Typography>
                 </Box>
               </Box>
-            )}
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <IconButton
+                  size="small"
+                  disabled={!hasAttainmentFile(attainment)}
+                  onClick={() =>
+                    handleFileViewerOpen(
+                      getAttainmentFileId(attainment),
+                      getDisplayFilename(attainment),
+                      "attainment"
+                    )
+                  }
+                  sx={{
+                    backgroundColor: hasAttainmentFile(attainment)
+                      ? "#e3f2fd"
+                      : "#e0e0e0",
+                    color: hasAttainmentFile(attainment) ? "#1976d2" : "#999",
+                    "&:hover": {
+                      backgroundColor: hasAttainmentFile(attainment)
+                        ? "#bbdefb"
+                        : "#e0e0e0",
+                    },
+                    "&.Mui-disabled": {
+                      backgroundColor: "#e0e0e0",
+                      color: "#999",
+                    },
+                  }}
+                  title={
+                    hasAttainmentFile(attainment)
+                      ? "View file"
+                      : "No file available"
+                  }>
+                  <VisibilityIcon fontSize="small" />
+                </IconButton>
+                {fileUrl &&
+                  hasAttainmentFile(attainment) &&
+                  currentFileId === getAttainmentFileId(attainment) && (
+                    <IconButton
+                      size="small"
+                      onClick={handleFileDownload}
+                      sx={{
+                        backgroundColor: "#e8f5e8",
+                        color: "#2e7d32",
+                        "&:hover": {
+                          backgroundColor: "#c8e6c9",
+                        },
+                      }}
+                      title="Download file">
+                      <DownloadIcon fontSize="small" />
+                    </IconButton>
+                  )}
+              </Box>
+            </Box>
           </Box>
         ))}
       </SectionContainer>
 
-      {/* 6. ACCOUNT */}
       <SectionContainer title="ACCOUNT">
         <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
           <InfoField
@@ -512,7 +523,6 @@ const BasicInfoSection = ({ submissionData }) => {
         </Box>
       </SectionContainer>
 
-      {/* 7. CONTACT */}
       <SectionContainer title="CONTACT">
         <Box sx={{ display: "flex", gap: 6 }}>
           <InfoField
@@ -526,7 +536,6 @@ const BasicInfoSection = ({ submissionData }) => {
         </Box>
       </SectionContainer>
 
-      {/* FILES - Additional Files (keeping this section for other files) */}
       {getFiles().length > 0 && (
         <SectionContainer title="FILES">
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -589,7 +598,6 @@ const BasicInfoSection = ({ submissionData }) => {
         </SectionContainer>
       )}
 
-      {/* File Viewer Dialog */}
       <Dialog
         open={fileViewerOpen}
         onClose={handleFileViewerClose}

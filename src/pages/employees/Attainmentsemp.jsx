@@ -94,7 +94,7 @@ const Attainmentsemp = ({
     const params = {
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
+      // status: showArchived ? "inactive" : "active",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -102,7 +102,7 @@ const Attainmentsemp = ({
     }
 
     return params;
-  }, [page, rowsPerPage, showArchived, debounceValue]);
+  }, [page, rowsPerPage, debounceValue]);
 
   const {
     data: apiResponse,

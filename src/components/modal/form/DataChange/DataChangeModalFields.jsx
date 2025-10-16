@@ -206,10 +206,6 @@ const DataChangeModalFields = ({
         if (currentEmployeeData) {
           const updatedEmployeeData = {
             ...watchedEmployee,
-            employee_name:
-              currentEmployeeData.employee_name ||
-              currentEmployeeData.full_name ||
-              watchedEmployee.employee_name,
             position_title:
               submittable.from_position?.title?.name ||
               currentEmployeeData.position_title ||
@@ -230,10 +226,6 @@ const DataChangeModalFields = ({
               currentEmployeeData.schedule ||
               watchedEmployee.schedule ||
               "N/A",
-            job_rate:
-              submittable.from_position?.job_rate ||
-              currentEmployeeData.job_rate ||
-              watchedEmployee.job_rate,
           };
 
           setValue("employee_id", updatedEmployeeData, {
@@ -265,10 +257,6 @@ const DataChangeModalFields = ({
 
     if (values.to_position_id?.id) {
       formData.append("to_position_id", values.to_position_id.id);
-    }
-
-    if (values.to_job_rate) {
-      formData.append("to_job_rate", values.to_job_rate);
     }
 
     if (values.attachments && Array.isArray(values.attachments)) {
@@ -318,41 +306,6 @@ const DataChangeModalFields = ({
                   sx={{
                     fontWeight: "bold",
                     color: "rgb(33, 61, 112)",
-                    marginBottom: 1,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  FULL NAME
-                </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="80%"
-                    height={24}
-                    sx={{ marginBottom: 2 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2,
-                    }}>
-                    {watchedEmployee.employee_name ||
-                      watchedEmployee.full_name ||
-                      "N/A"}
-                  </Typography>
-                )}
-
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
                     marginBottom: 1.5,
                     fontSize: "11px",
                     textTransform: "uppercase",
@@ -383,7 +336,6 @@ const DataChangeModalFields = ({
                       "N/A"}
                   </Typography>
                 )}
-
                 <Typography
                   variant="subtitle2"
                   sx={{
@@ -493,47 +445,6 @@ const DataChangeModalFields = ({
                       selectedEntry?.result?.submittable?.from_position
                         ?.charging?.sub_unit_name ||
                       "N/A"}
-                  </Typography>
-                )}
-
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  JOB RATE
-                </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton variant="text" width="60%" height={24} />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                    }}>
-                    {watchedEmployee.job_rate
-                      ? `₱${watchedEmployee.job_rate.toLocaleString("en-PH", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : selectedEntry?.result?.submittable?.from_position
-                          ?.job_rate
-                      ? `₱${selectedEntry.result.submittable.from_position.job_rate.toLocaleString(
-                          "en-PH",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}`
-                      : "N/A"}
                   </Typography>
                 )}
               </Box>
@@ -745,7 +656,8 @@ const DataChangeModalFields = ({
                           {...params}
                           label={
                             <span>
-                              Position <span style={labelWithRequired}>*</span>
+                              Position to{" "}
+                              <span style={labelWithRequired}>*</span>
                             </span>
                           }
                           error={!!errors.to_position_id}
@@ -782,47 +694,6 @@ const DataChangeModalFields = ({
                       )}
                     />
                   </FormControl>
-                )}
-              />
-            )}
-          </Grid>
-
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
-            {isLoadingEmployeeData ? (
-              <Skeleton variant="rounded" width="100%" height={56} />
-            ) : (
-              <Controller
-                name="to_job_rate"
-                control={control}
-                rules={{
-                  required: "Job Rate is required",
-                  pattern: {
-                    value: /^[0-9]+\.?[0-9]*$/,
-                    message: "Job Rate must be a valid number",
-                  },
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={
-                      <span>
-                        Job Rate <span style={labelWithRequired}>*</span>
-                      </span>
-                    }
-                    fullWidth
-                    error={!!errors.to_job_rate}
-                    helperText={errors.to_job_rate?.message}
-                    disabled={isLoading || isReadOnly}
-                    sx={textFieldStyles.outlinedInput}
-                    type="number"
-                    inputProps={{
-                      step: "0.01",
-                      min: "0",
-                    }}
-                    InputLabelProps={{
-                      shrink: !!field.value || field.value === 0,
-                    }}
-                  />
                 )}
               />
             )}

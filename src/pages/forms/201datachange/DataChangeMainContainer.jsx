@@ -35,6 +35,7 @@ import {
   useCreateDataChangeSubmissionMutation,
   useUpdateDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
@@ -43,6 +44,7 @@ import DataChangeForapproval from "./DataChangeForapproval";
 import DataChangeRejected from "./DataChangeRejected";
 import DataChangeAwaitingResubmission from "./DataChangeAwaitingResubmission";
 import DataChangeCompleted from "./DataChangeCompleted";
+import DataChangeCancelled from "./DataChangeCancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
@@ -478,6 +480,7 @@ const DataChangeMainContainer = () => {
     1: "Rejected",
     2: "AwaitingResubmission",
     3: "ForMDAProcessing",
+    4: "Cancelled",
   };
 
   const reverseTabMap = {
@@ -485,6 +488,7 @@ const DataChangeMainContainer = () => {
     Rejected: 1,
     AwaitingResubmission: 2,
     ForMDAProcessing: 3,
+    Cancelled: 4,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -504,6 +508,7 @@ const DataChangeMainContainer = () => {
 
   const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
+  const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -562,6 +567,38 @@ const DataChangeMainContainer = () => {
     setModalMode(newMode);
   }, []);
 
+  const handleCancel = useCallback(
+    async (entryId, cancellationReason = "") => {
+      try {
+        await cancelDataChangeSubmission(entryId).unwrap();
+
+        enqueueSnackbar("201 data change cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        return true;
+      } catch (error) {
+        let errorMessage =
+          "Failed to cancel 201 data change. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelDataChangeSubmission, enqueueSnackbar]
+  );
+
   const handleSave = useCallback(
     async (formData, mode, entryId) => {
       setModalLoading(true);
@@ -594,8 +631,6 @@ const DataChangeMainContainer = () => {
 
         handleCloseModal();
       } catch (error) {
-        console.error("Error in handleSave:", error);
-
         let errorMessage =
           mode === "edit"
             ? "Failed to update 201 data change. Please try again."
@@ -634,6 +669,7 @@ const DataChangeMainContainer = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -648,6 +684,7 @@ const DataChangeMainContainer = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -662,6 +699,7 @@ const DataChangeMainContainer = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
       badgeCount: null,
@@ -670,6 +708,21 @@ const DataChangeMainContainer = () => {
       label: "Completed",
       component: (
         <DataChangeCompleted
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "Cancelled",
+      component: (
+        <DataChangeCancelled
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}

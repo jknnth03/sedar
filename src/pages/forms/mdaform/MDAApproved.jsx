@@ -44,6 +44,7 @@ const MDAApproved = ({
     return {
       page: page,
       per_page: rowsPerPage,
+      status: "active",
       approval_status: "APPROVED",
       pagination: true,
       search: searchQuery || "",
@@ -224,6 +225,7 @@ const MDAApproved = ({
             handleMenuClose={handleMenuClose}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
+            statusFilter="APPROVED"
             forApproval={false}
           />
 

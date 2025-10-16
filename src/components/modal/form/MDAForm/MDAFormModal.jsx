@@ -17,13 +17,19 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
   Description as DescriptionIcon,
+  Send as SendIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import { useLazyGetMdaPrefillQuery } from "../../../../features/api/forms/mdaApi";
+import {
+  useLazyGetMdaPrefillQuery,
+  useLazyGetSingleMdaSubmissionQuery,
+} from "../../../../features/api/forms/mdaApi";
 import MDAFormModalFields from "./MDAFormModalFields";
+import MDAFormPrinting from "./MDAFormPrinting";
 import {
   dialogTitleStyles,
   titleBoxStyles,
@@ -45,6 +51,7 @@ const MDAFormModal = ({
   open = false,
   onClose,
   onSave,
+  onResubmit,
   selectedEntry = null,
   isLoading = false,
   mode = "create",
@@ -58,9 +65,65 @@ const MDAFormModal = ({
   const [originalMode, setOriginalMode] = useState(mode);
   const [selectedMovementId, setSelectedMovementId] = useState(null);
   const [movementType, setMovementType] = useState("");
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+  const [showResubmitConfirmation, setShowResubmitConfirmation] =
+    useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [isConfirmingUpdate, setIsConfirmingUpdate] = useState(false);
+  const [isConfirmingResubmit, setIsConfirmingResubmit] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [printData, setPrintData] = useState(null);
+  const [isPrintLoading, setIsPrintLoading] = useState(false);
 
   const [triggerPrefill, { data: prefillData, isLoading: isPrefillLoading }] =
     useLazyGetMdaPrefillQuery();
+  const [triggerGetSubmission] = useLazyGetSingleMdaSubmissionQuery();
+
+  useEffect(() => {
+    if (open && selectedEntry) {
+      const entryId = selectedEntry.result?.id || selectedEntry.id;
+      setEditingEntryId(entryId);
+    }
+  }, [open, selectedEntry]);
+
+  const shouldEnableEditButton = () => {
+    const status = selectedEntry?.result?.status || selectedEntry?.status;
+    if (status === "APPROVED" || status === "CANCELLED") {
+      return false;
+    }
+
+    const actions =
+      selectedEntry?.result?.actions ||
+      selectedEntry?.actions ||
+      selectedEntry?.result?.submittable?.actions;
+
+    const canUpdate = actions?.can_update === true;
+
+    return canUpdate;
+  };
+
+  const shouldEnableResubmitButton = () => {
+    const status = selectedEntry?.result?.status || selectedEntry?.status;
+    if (status === "APPROVED" || status === "CANCELLED") {
+      return false;
+    }
+
+    const actions =
+      selectedEntry?.result?.actions ||
+      selectedEntry?.actions ||
+      selectedEntry?.result?.submittable?.actions;
+
+    const canResubmit = actions?.can_resubmit === true;
+
+    return canResubmit;
+  };
+
+  const shouldShowPrintButton = () => {
+    const status = selectedEntry?.result?.status || selectedEntry?.status;
+    return status === "APPROVED";
+  };
 
   useEffect(() => {
     if (open && currentMode === "create" && submissionId) {
@@ -270,12 +333,115 @@ const MDAFormModal = ({
         : null,
     };
 
-    if (onSave) {
-      await onSave(formattedData, currentMode);
-      if (submissionId) {
-        triggerPrefill(submissionId);
+    if (currentMode === "edit") {
+      setPendingFormData(formattedData);
+      setShowUpdateConfirmation(true);
+    } else {
+      if (onSave) {
+        await onSave(formattedData, currentMode);
+        if (submissionId) {
+          triggerPrefill(submissionId);
+        }
       }
     }
+  };
+
+  const handleConfirmUpdate = async () => {
+    setIsConfirmingUpdate(true);
+    try {
+      if (onSave && pendingFormData) {
+        await onSave(pendingFormData, currentMode);
+        if (submissionId) {
+          triggerPrefill(submissionId);
+        }
+        setShowUpdateConfirmation(false);
+        setPendingFormData(null);
+      }
+    } catch (error) {
+      console.error("Update failed:", error);
+    } finally {
+      setIsConfirmingUpdate(false);
+    }
+  };
+
+  const handleCancelUpdate = () => {
+    setShowUpdateConfirmation(false);
+    setPendingFormData(null);
+  };
+
+  const handleResubmitClick = () => {
+    setShowResubmitConfirmation(true);
+  };
+
+  const handleConfirmResubmit = async () => {
+    if (!editingEntryId) {
+      const fallbackId = selectedEntry?.result?.id || selectedEntry?.id;
+
+      if (!fallbackId) {
+        alert("No submission ID found. Please close and reopen the modal.");
+        return;
+      }
+
+      setEditingEntryId(fallbackId);
+    }
+
+    if (!onResubmit || typeof onResubmit !== "function") {
+      alert("Resubmit function not available. Please refresh the page.");
+      return;
+    }
+
+    const idToUse =
+      editingEntryId || selectedEntry?.result?.id || selectedEntry?.id;
+
+    setIsConfirmingResubmit(true);
+    try {
+      setIsUpdating(true);
+      await onResubmit(idToUse);
+      setShowResubmitConfirmation(false);
+      handleClose();
+    } catch (error) {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "An error occurred while resubmitting.";
+      alert(`${errorMessage} Please try again.`);
+    } finally {
+      setIsUpdating(false);
+      setIsConfirmingResubmit(false);
+    }
+  };
+
+  const handleCancelResubmit = () => {
+    setShowResubmitConfirmation(false);
+  };
+
+  const handlePrintClick = async () => {
+    try {
+      setIsPrintLoading(true);
+      const submissionId = selectedEntry?.result?.id || selectedEntry?.id;
+
+      if (!submissionId) {
+        alert("Submission ID not found");
+        setIsPrintLoading(false);
+        return;
+      }
+
+      const response = await triggerGetSubmission(submissionId).unwrap();
+
+      if (response) {
+        setPrintData(response);
+        setShowPrintDialog(true);
+      }
+    } catch (error) {
+      alert("Failed to fetch submission data. Please try again.");
+    } finally {
+      setIsPrintLoading(false);
+    }
+  };
+
+  const handleClosePrintDialog = () => {
+    setShowPrintDialog(false);
+    setPrintData(null);
   };
 
   const handleClose = () => {
@@ -284,6 +450,16 @@ const MDAFormModal = ({
     setOriginalMode(mode);
     setSelectedMovementId(null);
     setMovementType("");
+    setShowUpdateConfirmation(false);
+    setShowResubmitConfirmation(false);
+    setPendingFormData(null);
+    setIsUpdating(false);
+    setEditingEntryId(null);
+    setIsConfirmingUpdate(false);
+    setIsConfirmingResubmit(false);
+    setShowPrintDialog(false);
+    setPrintData(null);
+    setIsPrintLoading(false);
     if (submissionId) {
       triggerPrefill(submissionId);
     }
@@ -305,25 +481,35 @@ const MDAFormModal = ({
     }
   };
 
+  const showResubmitButton = () => {
+    const isViewMode = currentMode === "view";
+    const status = selectedEntry?.result?.status || selectedEntry?.status;
+    return isViewMode && status !== "APPROVED" && status !== "CANCELLED";
+  };
+
   const isReadOnly = currentMode === "view";
   const isCreate = currentMode === "create";
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
   const showLoadingState = isPrefillLoading && isCreate && submissionId;
+  const isProcessing = isLoading || isUpdating || isPrintLoading;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Dialog
         open={open}
         onClose={handleClose}
-        maxWidth="xl"
-        fullWidth
+        maxWidth={false}
         PaperProps={{
           sx: {
-            width: "90vw",
+            width: "1100px",
+            minWidth: "1100px",
             maxWidth: "1100px",
-            height: "90vh",
-            maxHeight: "900px",
+            height: "94vh",
+            maxHeight: "820px",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
           },
         }}>
         <DialogTitle sx={dialogTitleStyles}>
@@ -333,24 +519,62 @@ const MDAFormModal = ({
               {getModalTitle()}
             </Typography>
             {isViewMode && (
-              <Tooltip title="EDIT MDA" arrow placement="top">
-                <span>
-                  <IconButton
-                    onClick={() => handleModeChange("edit")}
-                    disabled={isLoading}
-                    size="small"
-                    sx={editIconButtonStyles}>
-                    <EditIcon sx={editIconStyles(isLoading)} />
-                  </IconButton>
-                </span>
-              </Tooltip>
+              <>
+                <Tooltip title="EDIT MDA" arrow placement="top">
+                  <span>
+                    <IconButton
+                      onClick={() => handleModeChange("edit")}
+                      disabled={!shouldEnableEditButton() || isProcessing}
+                      size="small"
+                      sx={editIconButtonStyles}>
+                      <EditIcon
+                        sx={editIconStyles(
+                          !shouldEnableEditButton() || isProcessing
+                        )}
+                      />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                {shouldShowPrintButton() && (
+                  <Tooltip title="PRINT NOTICE" arrow placement="top">
+                    <IconButton
+                      onClick={handlePrintClick}
+                      disabled={isProcessing}
+                      size="small"
+                      sx={{
+                        ml: 1,
+                        padding: "8px",
+                        "&:hover": {
+                          backgroundColor: !isProcessing
+                            ? "rgba(33, 61, 112, 0.08)"
+                            : "transparent",
+                          transform: !isProcessing ? "scale(1.1)" : "none",
+                          transition: "all 0.2s ease-in-out",
+                        },
+                      }}>
+                      {isPrintLoading ? (
+                        <CircularProgress size={20} />
+                      ) : (
+                        <PrintIcon
+                          sx={{
+                            fontSize: "20px",
+                            "& path": {
+                              fill: "rgb(33, 61, 112)",
+                            },
+                          }}
+                        />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </>
             )}
             {isEditMode && originalMode === "view" && (
               <Tooltip title="CANCEL EDIT">
                 <span>
                   <IconButton
                     onClick={handleCancelEdit}
-                    disabled={isLoading}
+                    disabled={isProcessing}
                     size="small"
                     sx={cancelEditIconButtonStyles}>
                     <EditOffIcon sx={editOffIconStyles} />
@@ -395,13 +619,42 @@ const MDAFormModal = ({
           </DialogContent>
 
           <DialogActions sx={dialogActionsStyles}>
+            {showResubmitButton() && (
+              <Button
+                onClick={handleResubmitClick}
+                variant="contained"
+                disabled={!shouldEnableResubmitButton() || isProcessing}
+                startIcon={
+                  isProcessing ? <CircularProgress size={16} /> : <SendIcon />
+                }
+                sx={{
+                  backgroundColor:
+                    shouldEnableResubmitButton() && !isProcessing
+                      ? "rgb(33, 61, 112)"
+                      : "rgba(33, 61, 112, 0.3)",
+                  "&:hover": {
+                    backgroundColor:
+                      shouldEnableResubmitButton() && !isProcessing
+                        ? "rgb(25, 45, 84)"
+                        : "rgba(33, 61, 112, 0.3)",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "rgba(33, 61, 112, 0.3)",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  },
+                  mr: 2,
+                }}>
+                {isProcessing ? "Resubmitting..." : "Resubmit"}
+              </Button>
+            )}
+
             {!isReadOnly && !showLoadingState && (
               <Button
                 type="submit"
                 variant="contained"
-                disabled={isLoading}
+                disabled={isProcessing}
                 startIcon={
-                  isLoading ? (
+                  isProcessing ? (
                     <CircularProgress size={16} />
                   ) : currentMode === "create" ? (
                     <AddIcon />
@@ -410,7 +663,7 @@ const MDAFormModal = ({
                   )
                 }
                 sx={saveButtonStyles}>
-                {isLoading
+                {isProcessing
                   ? "Saving..."
                   : currentMode === "create"
                   ? "Create"
@@ -420,10 +673,290 @@ const MDAFormModal = ({
           </DialogActions>
         </form>
       </Dialog>
+
+      <Dialog
+        open={showUpdateConfirmation}
+        onClose={isConfirmingUpdate ? undefined : handleCancelUpdate}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: "#ff4400",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
+                }}>
+                ?
+              </Typography>
+            </Box>
+          </Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
+            }}>
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            Are you sure you want to <strong>Update</strong> this MDA Form?
+          </Typography>
+          {selectedEntry && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {selectedEntry?.reference_number || ""}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleCancelUpdate}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isConfirmingUpdate}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleConfirmUpdate}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isConfirmingUpdate}>
+            {isConfirmingUpdate ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "CONFIRM"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={showResubmitConfirmation}
+        onClose={isConfirmingResubmit ? undefined : handleCancelResubmit}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: "#ff4400",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
+                }}>
+                ?
+              </Typography>
+            </Box>
+          </Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
+            }}>
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            Are you sure you want to <strong>Resubmit</strong> this MDA Form?
+          </Typography>
+          {selectedEntry && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {selectedEntry?.reference_number || ""}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleCancelResubmit}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isConfirmingResubmit}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleConfirmResubmit}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isConfirmingResubmit}>
+            {isConfirmingResubmit ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "CONFIRM"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Print Dialog */}
+      <Dialog
+        open={showPrintDialog}
+        onClose={handleClosePrintDialog}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            width: "90vw",
+            height: "90vh",
+            maxWidth: "1200px",
+            maxHeight: "900px",
+          },
+        }}>
+        <DialogTitle>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+            <Typography variant="h6">Print MDA Form</Typography>
+            <IconButton onClick={handleClosePrintDialog}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0 }}>
+          {printData && <MDAFormPrinting data={printData} />}
+        </DialogContent>
+      </Dialog>
     </LocalizationProvider>
   );
 };
-
-MDAFormModal.displayName = "MDAFormModal";
 
 export default MDAFormModal;

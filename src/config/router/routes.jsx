@@ -1,5 +1,4 @@
-import { CONSTANT } from "..";
-import { MODULES } from "..";
+import { CONSTANT, MODULES } from "..";
 import PrivateRoutes from "../../pages/index.jsx";
 import Login from "../../pages/login/Login";
 import Dashboard from "../../pages/dashboard/Dashboard";
@@ -35,19 +34,23 @@ import EMPLOYEEINFORMATION from "../../pages/employees/EmployeeInformation.jsx";
 import ONERDF from "../../pages/masterlist/one-rdf/oneRdf.jsx";
 import ApprovalFlow from "../../pages/approver/ApprovalFlow.jsx";
 import ApprovalForm from "../../pages/approver/ApprovalForm.jsx";
-import SubmissionApproval from "../../pages/approver/submissionApproval/SubmissionApproval.jsx";
+import SubmissionApproval from "../../pages/approvals/submissionApproval/SubmissionApproval.jsx";
 import PendingForms from "../../pages/receiving/PendingForms.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
-import RegistrationApproval from "../../pages/approver/registrationApproval/RegistrationApproval.jsx";
+import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
 import DataChangeReceiving from "../../pages/receiving/DataChangeReceiving";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
-import DataChangeApproval from "../../pages/approver/dataChangeApproval/DataChangeApproval.jsx";
-import MDA from "../../pages/forms/mdaform/MDA.jsx";
+import DataChangeApproval from "../../pages/approvals/dataChangeApproval/DataChangeApproval.jsx";
+import MASTERDATAAUTHORITY from "../../pages/forms/mdaform/MDA.jsx";
 import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdit.jsx";
+import MRFMonitoring from "../../pages/monitoring/MRFMonitoring.jsx";
+import DataChangeMonitoring from "../../pages/monitoring/DataChangeMonitoring.jsx";
+import MDAForApproval from "../../pages/forms/mdaform/MDAForApproval.jsx";
+import MDAMonitoring from "../../pages/monitoring/MDA/MDAMonitoring.jsx";
 
 export const ROUTES = [
   {
@@ -77,363 +80,382 @@ export const ROUTES = [
         },
       },
       {
-        id: CONSTANT.PAGES.USERMANAGEMENT.children.USER.name,
-        path: CONSTANT.PAGES.USERMANAGEMENT.children.USER.path,
+        id: MODULES.USERMANAGEMENT.children.USER.name,
+        path: MODULES.USERMANAGEMENT.children.USER.path,
         element: <User />,
         handle: {
-          permission: CONSTANT.PAGES.USERMANAGEMENT.children.USER.name,
+          permission: MODULES.USERMANAGEMENT.children.USER.name,
         },
       },
       {
-        id: CONSTANT.PAGES.USERMANAGEMENT.children.ROLES.name,
-        path: CONSTANT.PAGES.USERMANAGEMENT.children.ROLES.path,
+        id: MODULES.USERMANAGEMENT.children.ROLES.name,
+        path: MODULES.USERMANAGEMENT.children.ROLES.path,
         element: <Roles />,
         handle: {
-          permission: CONSTANT.PAGES.USERMANAGEMENT.children.ROLES.name,
+          permission: MODULES.USERMANAGEMENT.children.ROLES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFORM.name,
-        path: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFORM.path,
+        id: MODULES.APPROVALSETTINGS.children.APPROVALFORM.name,
+        path: MODULES.APPROVALSETTINGS.children.APPROVALFORM.path,
         element: <ApprovalForm />,
         handle: {
-          permission:
-            CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFORM.name,
+          permission: MODULES.APPROVALSETTINGS.children.APPROVALFORM.name,
         },
       },
       {
-        id: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFLOW.name,
-        path: CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFLOW.path,
+        id: MODULES.APPROVALSETTINGS.children.APPROVALFLOW.name,
+        path: MODULES.APPROVALSETTINGS.children.APPROVALFLOW.path,
         element: <ApprovalFlow />,
         handle: {
-          permission:
-            CONSTANT.PAGES.APPROVALSETTINGS.children.APPROVALFLOW.name,
+          permission: MODULES.APPROVALSETTINGS.children.APPROVALFLOW.name,
         },
       },
       {
-        id: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.name,
-        path: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.path,
+        id: MODULES.REQUEST.children.MRFMAINCONTAINER.name,
+        path: MODULES.REQUEST.children.MRFMAINCONTAINER.path,
         element: <MrfMainContainer />,
         handle: {
-          permission: CONSTANT.PAGES.REQUEST.children.MRFMAINCONTAINER.name,
+          permission: MODULES.REQUEST.children.MRFMAINCONTAINER.name,
         },
       },
       {
-        id: CONSTANT.PAGES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
-        path: CONSTANT.PAGES.REQUEST.children.DATACHANGEMAINCONTAINER.path,
+        id: MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
+        path: MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.path,
         element: <DATACHANGEMAINCONTAINER />,
         handle: {
-          permission:
-            CONSTANT.PAGES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
+          permission: MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
         },
       },
       {
-        id: CONSTANT.PAGES.REQUEST.children.MDA.name,
-        path: CONSTANT.PAGES.REQUEST.children.MDA.path,
-        element: <MDA />,
+        id: MODULES.REQUEST.children.MASTERDATAAUTHORITY.name,
+        path: MODULES.REQUEST.children.MASTERDATAAUTHORITY.path,
+        element: <MASTERDATAAUTHORITY />,
         handle: {
-          permission: CONSTANT.PAGES.REQUEST.children.MDA.name,
+          permission: MODULES.REQUEST.children.MASTERDATAAUTHORITY.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EVALUATION.name,
-        path: CONSTANT.PAGES.EVALUATION.path,
+        id: MODULES.REQUESTMONITORING.children.MRFMONITORING.name,
+        path: MODULES.REQUESTMONITORING.children.MRFMONITORING.path,
+        element: <MRFMonitoring />,
+        handle: {
+          permission: MODULES.REQUESTMONITORING.children.MRFMONITORING.name,
+        },
+      },
+      {
+        id: MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING.name,
+        path: MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING.path,
+        element: <DataChangeMonitoring />,
+        handle: {
+          permission:
+            MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING.name,
+        },
+      },
+      {
+        id: MODULES.REQUESTMONITORING.children.MDAMONITORING.name,
+        path: MODULES.REQUESTMONITORING.children.MDAMONITORING.path,
+        element: <MDAMonitoring />,
+        handle: {
+          permission: MODULES.REQUESTMONITORING.children.MDAMONITORING.name,
+        },
+      },
+      {
+        id: MODULES.EVALUATION.name,
+        path: MODULES.EVALUATION.path,
         element: <Evaluation />,
         handle: {
-          permission: CONSTANT.PAGES.EVALUATION.name,
+          permission: MODULES.EVALUATION.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EVALUATION.children.KPI.name,
-        path: CONSTANT.PAGES.EVALUATION.children.KPI.path,
+        id: MODULES.EVALUATION.children.KPI.name,
+        path: MODULES.EVALUATION.children.KPI.path,
         element: <KPI />,
         handle: {
-          permission: CONSTANT.PAGES.EVALUATION.children.KPI.name,
+          permission: MODULES.EVALUATION.children.KPI.name,
         },
       },
       {
-        id: CONSTANT.PAGES.APPROVING.children.SUBMISSIONAPPROVAL.name,
-        path: CONSTANT.PAGES.APPROVING.children.SUBMISSIONAPPROVAL.path,
+        id: MODULES.APPROVING.children.SUBMISSIONAPPROVAL.name,
+        path: MODULES.APPROVING.children.SUBMISSIONAPPROVAL.path,
         element: <SubmissionApproval />,
         handle: {
-          permission: CONSTANT.PAGES.APPROVING.children.SUBMISSIONAPPROVAL.name,
+          permission: MODULES.APPROVING.children.SUBMISSIONAPPROVAL.name,
         },
       },
       {
-        id: CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.name,
-        path: CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.path,
+        id: MODULES.APPROVING.children.REGISTRATIONAPPROVAL.name,
+        path: MODULES.APPROVING.children.REGISTRATIONAPPROVAL.path,
         element: <RegistrationApproval />,
         handle: {
-          permission:
-            CONSTANT.PAGES.APPROVING.children.REGISTRATIONAPPROVAL.name,
+          permission: MODULES.APPROVING.children.REGISTRATIONAPPROVAL.name,
         },
       },
       {
-        id: CONSTANT.PAGES.APPROVING.children.DATACHANGEAPPROVAL.name,
-        path: CONSTANT.PAGES.APPROVING.children.DATACHANGEAPPROVAL.path,
+        id: MODULES.APPROVING.children.DATACHANGEAPPROVAL.name,
+        path: MODULES.APPROVING.children.DATACHANGEAPPROVAL.path,
         element: <DataChangeApproval />,
         handle: {
-          permission: CONSTANT.PAGES.APPROVING.children.DATACHANGEAPPROVAL.name,
+          permission: MODULES.APPROVING.children.DATACHANGEAPPROVAL.name,
         },
       },
       {
-        id: CONSTANT.PAGES.RECEIVING.children.PENDINGFORMS.name,
-        path: CONSTANT.PAGES.RECEIVING.children.PENDINGFORMS.path,
+        id: MODULES.APPROVING.children.MDAAPPROVAL.name,
+        path: MODULES.APPROVING.children.MDAAPPROVAL.path,
+        element: <MDAForApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.MDAAPPROVAL.name,
+        },
+      },
+      {
+        id: MODULES.RECEIVING.children.PENDINGFORMS.name,
+        path: MODULES.RECEIVING.children.PENDINGFORMS.path,
         element: <PendingForms />,
         handle: {
-          permission: CONSTANT.PAGES.RECEIVING.children.PENDINGFORMS.name,
+          permission: MODULES.RECEIVING.children.PENDINGFORMS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.RECEIVING.children.DATACHANGERECEIVING.name,
-        path: CONSTANT.PAGES.RECEIVING.children.DATACHANGERECEIVING.path,
+        id: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
+        path: MODULES.RECEIVING.children.DATACHANGERECEIVING.path,
         element: <DataChangeReceiving />,
         handle: {
-          permission:
-            CONSTANT.PAGES.RECEIVING.children.DATACHANGERECEIVING.name,
+          permission: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
         },
       },
       {
-        id: CONSTANT.PAGES.MASTERLIST.children.ONERDF.name,
-        path: CONSTANT.PAGES.MASTERLIST.children.ONERDF.path,
+        id: MODULES.MASTERLIST.children.ONERDF.name,
+        path: MODULES.MASTERLIST.children.ONERDF.path,
         element: <ONERDF />,
         handle: {
-          permission: CONSTANT.PAGES.MASTERLIST.children.ONERDF.name,
+          permission: MODULES.MASTERLIST.children.ONERDF.name,
         },
       },
       {
-        id: CONSTANT.PAGES.MASTERLIST.children.POSITIONS.name,
-        path: CONSTANT.PAGES.MASTERLIST.children.POSITIONS.path,
+        id: MODULES.MASTERLIST.children.POSITIONS.name,
+        path: MODULES.MASTERLIST.children.POSITIONS.path,
         element: <Positions />,
         handle: {
-          permission: CONSTANT.PAGES.MASTERLIST.children.POSITIONS.name,
+          permission: MODULES.MASTERLIST.children.POSITIONS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.MASTERLIST.children.JOBBANDS.name,
-        path: CONSTANT.PAGES.MASTERLIST.children.JOBBANDS.path,
+        id: MODULES.MASTERLIST.children.JOBBANDS.name,
+        path: MODULES.MASTERLIST.children.JOBBANDS.path,
         element: <Jobbands />,
         handle: {
-          permission: CONSTANT.PAGES.MASTERLIST.children.JOBBANDS.name,
+          permission: MODULES.MASTERLIST.children.JOBBANDS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.MASTERLIST.children.JOBLEVELS.name,
-        path: CONSTANT.PAGES.MASTERLIST.children.JOBLEVELS.path,
+        id: MODULES.MASTERLIST.children.JOBLEVELS.name,
+        path: MODULES.MASTERLIST.children.JOBLEVELS.path,
         element: <Joblevels />,
         handle: {
-          permission: CONSTANT.PAGES.MASTERLIST.children.JOBLEVELS.name,
+          permission: MODULES.MASTERLIST.children.JOBLEVELS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.MASTERLIST.children.JOBRATES.name,
-        path: CONSTANT.PAGES.MASTERLIST.children.JOBRATES.path,
+        id: MODULES.MASTERLIST.children.JOBRATES.name,
+        path: MODULES.MASTERLIST.children.JOBRATES.path,
         element: <Jobrates />,
         handle: {
-          permission: CONSTANT.PAGES.MASTERLIST.children.JOBRATES.name,
+          permission: MODULES.MASTERLIST.children.JOBRATES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.TITLES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.TITLES.path,
+        id: MODULES.EXTRAS.children.TITLES.name,
+        path: MODULES.EXTRAS.children.TITLES.path,
         element: <Titles />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.TITLES.name,
+          permission: MODULES.EXTRAS.children.TITLES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.TEAMS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.TEAMS.path,
+        id: MODULES.EXTRAS.children.TEAMS.name,
+        path: MODULES.EXTRAS.children.TEAMS.path,
         element: <Teams />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.TEAMS.name,
+          permission: MODULES.EXTRAS.children.TEAMS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.RELIGIONS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.RELIGIONS.path,
+        id: MODULES.EXTRAS.children.RELIGIONS.name,
+        path: MODULES.EXTRAS.children.RELIGIONS.path,
         element: <Religions />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.RELIGIONS.name,
+          permission: MODULES.EXTRAS.children.RELIGIONS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.ATTAINMENTS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.ATTAINMENTS.path,
+        id: MODULES.EXTRAS.children.ATTAINMENTS.name,
+        path: MODULES.EXTRAS.children.ATTAINMENTS.path,
         element: <Attainments />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.ATTAINMENTS.name,
+          permission: MODULES.EXTRAS.children.ATTAINMENTS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.BANKS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.BANKS.path,
+        id: MODULES.EXTRAS.children.BANKS.name,
+        path: MODULES.EXTRAS.children.BANKS.path,
         element: <Banks />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.BANKS.name,
+          permission: MODULES.EXTRAS.children.BANKS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.BARANGAYS.name,
-        path: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.BARANGAYS.path,
+        id: MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.name,
+        path: MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.path,
         element: <Barangays />,
         handle: {
-          permission:
-            CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.BARANGAYS.name,
+          permission: MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.CABINETS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.CABINETS.path,
+        id: MODULES.EXTRAS.children.CABINETS.name,
+        path: MODULES.EXTRAS.children.CABINETS.path,
         element: <Cabinets />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.CABINETS.name,
+          permission: MODULES.EXTRAS.children.CABINETS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.DEGREES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.DEGREES.path,
+        id: MODULES.EXTRAS.children.DEGREES.name,
+        path: MODULES.EXTRAS.children.DEGREES.path,
         element: <Degrees />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.DEGREES.name,
+          permission: MODULES.EXTRAS.children.DEGREES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.FILETYPES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.FILETYPES.path,
+        id: MODULES.EXTRAS.children.FILETYPES.name,
+        path: MODULES.EXTRAS.children.FILETYPES.path,
         element: <FileTypes />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.FILETYPES.name,
+          permission: MODULES.EXTRAS.children.FILETYPES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.HONORTITLES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.HONORTITLES.path,
+        id: MODULES.EXTRAS.children.HONORTITLES.name,
+        path: MODULES.EXTRAS.children.HONORTITLES.path,
         element: <HonorTitles />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.HONORTITLES.name,
+          permission: MODULES.EXTRAS.children.HONORTITLES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.name,
-        path: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES
-          .path,
+        id: MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.name,
+        path: MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.path,
         element: <Municipalities />,
         handle: {
           permission:
-            CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.name,
+            MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES
-          .name,
-        path: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES
-          .path,
+        id: MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES.name,
+        path: MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES.path,
         element: <SubMunicipalities />,
         handle: {
           permission:
-            CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES
-              .name,
+            MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.OBJECTIVES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.OBJECTIVES.path,
+        id: MODULES.EXTRAS.children.OBJECTIVES.name,
+        path: MODULES.EXTRAS.children.OBJECTIVES.path,
         element: <Objectives />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.OBJECTIVES.name,
+          permission: MODULES.EXTRAS.children.OBJECTIVES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.PREFIXES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.PREFIXES.path,
+        id: MODULES.EXTRAS.children.PREFIXES.name,
+        path: MODULES.EXTRAS.children.PREFIXES.path,
         element: <Prefixes />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.PREFIXES.name,
+          permission: MODULES.EXTRAS.children.PREFIXES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.PROGRAMS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.PROGRAMS.path,
+        id: MODULES.EXTRAS.children.PROGRAMS.name,
+        path: MODULES.EXTRAS.children.PROGRAMS.path,
         element: <Programs />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.PROGRAMS.name,
+          permission: MODULES.EXTRAS.children.PROGRAMS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.PROVINCES.name,
-        path: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.PROVINCES.path,
+        id: MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.name,
+        path: MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.path,
         element: <Provinces />,
         handle: {
-          permission:
-            CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.PROVINCES.name,
+          permission: MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.REGIONS.name,
-        path: CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.REGIONS.path,
+        id: MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.name,
+        path: MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.path,
         element: <Regions />,
         handle: {
-          permission:
-            CONSTANT.PAGES.ADMINISTRATIVEDIVISION.children.REGIONS.name,
+          permission: MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.SCHEDULES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.SCHEDULES.path,
+        id: MODULES.EXTRAS.children.SCHEDULES.name,
+        path: MODULES.EXTRAS.children.SCHEDULES.path,
         element: <Schedules />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.SCHEDULES.name,
+          permission: MODULES.EXTRAS.children.SCHEDULES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.TOOLS.name,
-        path: CONSTANT.PAGES.EXTRAS.children.TOOLS.path,
+        id: MODULES.EXTRAS.children.TOOLS.name,
+        path: MODULES.EXTRAS.children.TOOLS.path,
         element: <Tools />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.TOOLS.name,
+          permission: MODULES.EXTRAS.children.TOOLS.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.REQUISITION.name,
-        path: CONSTANT.PAGES.EXTRAS.children.REQUISITION.path,
+        id: MODULES.EXTRAS.children.REQUISITION.name,
+        path: MODULES.EXTRAS.children.REQUISITION.path,
         element: <RequisitionTypes />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.REQUISITION.name,
+          permission: MODULES.EXTRAS.children.REQUISITION.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EXTRAS.children.MOVEMENTTYPES.name,
-        path: CONSTANT.PAGES.EXTRAS.children.MOVEMENTTYPES.path,
+        id: MODULES.EXTRAS.children.MOVEMENTTYPES.name,
+        path: MODULES.EXTRAS.children.MOVEMENTTYPES.path,
         element: <MovementTypes />,
         handle: {
-          permission: CONSTANT.PAGES.EXTRAS.children.MOVEMENTTYPES.name,
+          permission: MODULES.EXTRAS.children.MOVEMENTTYPES.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.EMPLOYEEINFORMATION.path,
+        id: MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
+        path: MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.path,
         element: <EMPLOYEEINFORMATION />,
         handle: {
-          permission:
-            CONSTANT.PAGES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
+          permission: MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EMPLOYEES.children.PENDINGREGISTRATION.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.PENDINGREGISTRATION.path,
+        id: MODULES.EMPLOYEES.children.PENDINGREGISTRATION.name,
+        path: MODULES.EMPLOYEES.children.PENDINGREGISTRATION.path,
         element: <PENDINGREGISTRATION />,
         handle: {
-          permission:
-            CONSTANT.PAGES.EMPLOYEES.children.PENDINGREGISTRATION.name,
+          permission: MODULES.EMPLOYEES.children.PENDINGREGISTRATION.name,
         },
       },
       {
-        id: CONSTANT.PAGES.EMPLOYEES.children.ENABLEEDIT.name,
-        path: CONSTANT.PAGES.EMPLOYEES.children.ENABLEEDIT.path,
+        id: MODULES.EMPLOYEES.children.ENABLEEDIT.name,
+        path: MODULES.EMPLOYEES.children.ENABLEEDIT.path,
         element: <EnableEdit />,
         handle: {
-          permission: CONSTANT.PAGES.EMPLOYEES.children.ENABLEEDIT.name,
+          permission: MODULES.EMPLOYEES.children.ENABLEEDIT.name,
         },
       },
     ],

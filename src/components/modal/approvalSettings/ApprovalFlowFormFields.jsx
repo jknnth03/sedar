@@ -33,7 +33,7 @@ const ApprovalFlowFormFields = ({
   isFormsLoading,
   handleChargingChange,
   isInUse,
-  noChargingChecked, // Add this prop
+  noChargingChecked,
 }) => {
   const safeChargingOptions = Array.isArray(chargingOptions)
     ? chargingOptions

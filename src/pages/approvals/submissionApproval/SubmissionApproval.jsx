@@ -306,7 +306,7 @@ const SubmissionApproval = () => {
               width: isMobile || isTablet ? "100%" : "auto",
               justifyContent: "flex-start",
             }}>
-            <Typography className="header">PENDING APPROVAL</Typography>
+            <Typography className="header">MRF APPROVAL</Typography>
           </Box>
 
           <CustomSearchBar

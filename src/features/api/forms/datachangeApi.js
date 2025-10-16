@@ -87,6 +87,16 @@ const dataChangeApi = sedarApi
         ],
       }),
 
+      getDataChangeNotice: build.query({
+        query: (id) => ({
+          url: `data-change/${id}/notice`,
+          method: "GET",
+        }),
+        providesTags: (result, error, id) => [
+          { type: "dataChangeSubmissions", id },
+        ],
+      }),
+
       getAllDataChangeOptions: build.query({
         query: (params = {}) => {
           const {
@@ -224,6 +234,8 @@ export const {
   useLazyGetDataChangeSubmissionDetailsQuery,
   useGetDataChangeAttachmentQuery,
   useLazyGetDataChangeAttachmentQuery,
+  useGetDataChangeNoticeQuery,
+  useLazyGetDataChangeNoticeQuery,
   useLazyGetAllDataChangeOptionsQuery,
   useGetAllDataChangeEmployeeQuery,
   useLazyGetAllDataChangeEmployeeQuery,

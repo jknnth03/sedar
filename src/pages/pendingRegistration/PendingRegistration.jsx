@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import {
   Box,
   Tabs,
@@ -35,6 +36,9 @@ import {
   useLazyGetSingleEmployeeQuery,
   useGetEmployeeRegistrationCountsQuery,
 } from "../../features/api/employee/mainApi";
+import pendingApi from "../../features/api/employee/pendingApi";
+import mainApi from "../../features/api/employee/mainApi";
+import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import PendingRegistrationForapproval from "./PendingRegistrationForapproval";
 import PendingRegistrationAwaitingresubmission from "./PendingRegistrationAwaitingresubmission";
 import PendingRegistrationRejected from "./PendingRegistrationRejected";
@@ -237,6 +241,7 @@ const ErrorDisplay = ({ error, onRetry }) => {
 };
 
 const PendingRegistration = () => {
+  const dispatch = useDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -284,17 +289,20 @@ const PendingRegistration = () => {
 
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
-  const { data: registrationCounts } = useGetEmployeeRegistrationCountsQuery(
-    undefined,
-    {
+  const { data: registrationCounts, refetch: refetchCounts } =
+    useGetEmployeeRegistrationCountsQuery(undefined, {
       refetchOnMountOrArgChange: true,
       refetchOnFocus: true,
       refetchOnReconnect: true,
-    }
-  );
+    });
 
-  const { data: dashboardData, isLoading: isDashboardLoading } =
-    useShowDashboardQuery();
+  const {
+    data: dashboardData,
+    isLoading: isDashboardLoading,
+    refetch: refetchDashboard,
+  } = useShowDashboardQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   const openMrfsCount = dashboardData?.result?.employees?.open_mrfs || 0;
 
@@ -500,20 +508,24 @@ const PendingRegistration = () => {
 
   const handleCreateSubmit = useCallback(
     async (data, mode) => {
-      setIsLoading(true);
-
       try {
-        if (mode === "create") {
-          enqueueSnackbar("Employee created successfully!", {
+        dispatch(pendingApi.util.invalidateTags(["pending"]));
+        dispatch(mainApi.util.invalidateTags(["employees"]));
+        dispatch(moduleApi.util.invalidateTags(["dashboard"]));
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await Promise.all([refetchCounts(), refetchDashboard()]);
+
+        enqueueSnackbar(
+          mode === "create"
+            ? "Employee created successfully!"
+            : "Employee updated successfully!",
+          {
             variant: "success",
             autoHideDuration: 2000,
-          });
-        } else {
-          enqueueSnackbar("Employee updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        }
+          }
+        );
 
         handleCloseCreateModal();
       } catch (error) {
@@ -521,11 +533,15 @@ const PendingRegistration = () => {
           variant: "error",
           autoHideDuration: 3000,
         });
-      } finally {
-        setIsLoading(false);
       }
     },
-    [enqueueSnackbar, handleCloseCreateModal]
+    [
+      dispatch,
+      refetchCounts,
+      refetchDashboard,
+      enqueueSnackbar,
+      handleCloseCreateModal,
+    ]
   );
 
   const tabsData = [
@@ -827,6 +843,7 @@ const PendingRegistration = () => {
             mode={createModalMode}
             initialData={editData}
             onSubmit={handleCreateSubmit}
+            refetchQueries={[refetchCounts, refetchDashboard]}
           />
         </Box>
       </FormProvider>

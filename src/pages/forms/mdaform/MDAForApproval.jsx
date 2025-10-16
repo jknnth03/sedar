@@ -11,6 +11,7 @@ import {
 import MDAForApprovalTable from "./MDAForApprovalTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
+import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const MDAForApproval = ({
   searchQuery,
@@ -39,11 +40,13 @@ const MDAForApproval = ({
   });
 
   const [updateMdaSubmission] = useUpdateMdaMutation();
+  const [resubmitMdaSubmission] = useResubmitFormSubmissionMutation(); // ADD THIS
 
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
       per_page: rowsPerPage,
+      status: "active",
       approval_status: "PENDING",
       pagination: true,
       search: searchQuery || "",
@@ -138,6 +141,38 @@ const MDAForApproval = ({
       refetch,
       handleModalClose,
     ]
+  );
+
+  // ADD THIS HANDLER
+  const handleResubmit = useCallback(
+    async (submissionId) => {
+      try {
+        console.log("Resubmitting MDA submission:", submissionId);
+
+        await resubmitMdaSubmission(submissionId).unwrap();
+
+        enqueueSnackbar("MDA submission resubmitted successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        await refetchDetails();
+        await refetch();
+
+        // Optionally close modal after resubmit
+        // handleModalClose();
+      } catch (error) {
+        console.error("Error resubmitting MDA submission:", error);
+        enqueueSnackbar(
+          error?.data?.message || "Failed to resubmit MDA submission",
+          {
+            variant: "error",
+            autoHideDuration: 2000,
+          }
+        );
+      }
+    },
+    [resubmitMdaSubmission, enqueueSnackbar, refetchDetails, refetch]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -274,6 +309,7 @@ const MDAForApproval = ({
           open={modalOpen}
           onClose={handleModalClose}
           onSave={handleSave}
+          onResubmit={handleResubmit} // ADD THIS PROP
           selectedEntry={selectedEntry}
           isLoading={detailsLoading}
           mode={modalMode}
