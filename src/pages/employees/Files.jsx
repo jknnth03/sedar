@@ -53,7 +53,6 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
 
   const { enqueueSnackbar } = useSnackbar();
 
-  // Add the lazy query hook
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
   React.useEffect(() => {
@@ -64,7 +63,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
     const params = {
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
+      // status: showArchived ? "inactive" : "active",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -72,7 +71,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
     }
 
     return params;
-  }, [page, rowsPerPage, showArchived, debounceValue]);
+  }, [page, rowsPerPage, debounceValue]);
 
   const {
     data: apiResponse,

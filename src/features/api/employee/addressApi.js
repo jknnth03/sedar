@@ -8,7 +8,7 @@ const addressApi = sedarApi
         query: ({
           page = 1,
           per_page = 10,
-          status = "active",
+          status = "all",
           search = "",
           employment_status,
           statuses = [],
@@ -21,12 +21,10 @@ const addressApi = sedarApi
             search,
           });
 
-          // Handle single employment_status
           if (employment_status) {
             params.append("employment_status", employment_status);
           }
 
-          // Handle multiple statuses - send as comma-separated string
           if (statuses && statuses.length > 0) {
             params.append("employment_status", statuses.join(","));
           }

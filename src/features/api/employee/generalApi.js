@@ -39,20 +39,12 @@ const generalApi = sedarApi
             search,
           });
 
-          // Handle single employment_status
           if (employment_status) {
             params.append("employment_status", employment_status);
           }
 
-          // Handle multiple statuses - send as comma-separated or multiple employment_status params
           if (statuses && statuses.length > 0) {
-            // Option 1: Send as comma-separated string
             params.append("employment_status", statuses.join(","));
-
-            // Option 2: Send as multiple employment_status parameters (uncomment if needed)
-            // statuses.forEach(status => {
-            //   params.append("employment_status", status);
-            // });
           }
 
           return { url: `employees/general-info?${params.toString()}` };

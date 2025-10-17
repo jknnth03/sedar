@@ -1,32 +1,32 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { TablePagination, Box, useTheme } from "@mui/material";
+import { Typography, TablePagination, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
+import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ForMDAProcessingMonitoringTable from "./ForMDAProcessingMonitoringTable";
-import {
-  useGetDataChangeSubmissionDetailsQuery,
-  useGetDataChangeSubmissionsQuery,
-} from "../../../features/api/forms/datachangeApi";
-import MDAForMDAProcessingModal from "../../../components/modal/monitoring/MDAForMDAProcessingModal";
+import DataChangeMonitoringModal from "../../../components/modal/monitoring/DataChangeMonitoringModal";
+import DataChangeMonitoringTable from "./DataChangeMonitoringTable";
+import { useGetDataChangeSubmissionsQuery } from "../../../features/api/forms/datachangeApi";
 
-const ForMDAProcessingMonitoring = ({
+const DataChangeMonitoringRejected = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
+  setQueryParams,
+  currentParams,
 }) => {
   const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState({});
+  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {
@@ -37,17 +37,15 @@ const ForMDAProcessingMonitoring = ({
     },
   });
 
-  const apiQueryParams = useMemo(() => {
+  const queryParams = useMemo(() => {
     return {
-      page: page,
-      per_page: rowsPerPage,
+      page: 1,
+      per_page: 10,
       status: "active",
       pagination: 1,
-      approval_status: "PENDING MDA CREATION",
-      search: searchQuery || "",
-      view_mode: "hr",
+      approval_status: "rejected",
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, []);
 
   useEffect(() => {
     const newPage = 1;
@@ -58,26 +56,17 @@ const ForMDAProcessingMonitoring = ({
     data: submissionsData,
     isLoading: queryLoading,
     isFetching,
+    refetch,
     error,
-  } = useGetDataChangeSubmissionsQuery(apiQueryParams, {
+  } = useGetDataChangeSubmissionsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
-
-  const { data: submissionDetails, isLoading: detailsLoading } =
-    useGetDataChangeSubmissionDetailsQuery(selectedSubmissionId, {
-      skip: !selectedSubmissionId,
-      refetchOnMountOrArgChange: true,
-    });
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
     let filtered = rawData;
-
-    filtered = filtered.filter(
-      (submission) => submission.status === "PENDING MDA CREATION"
-    );
 
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
@@ -108,13 +97,29 @@ const ForMDAProcessingMonitoring = ({
 
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setSelectedRowForMenu(null);
     setModalOpen(true);
   }, []);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedSubmissionId(null);
-    setModalLoading(false);
+  }, []);
+
+  const handleMenuOpen = useCallback((event, submission) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setMenuAnchor((prev) => ({
+      ...prev,
+      [submission.id]: event.currentTarget,
+    }));
+    setSelectedRowForMenu(submission);
+  }, []);
+
+  const handleMenuClose = useCallback((submissionId) => {
+    setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
+    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -124,7 +129,7 @@ const ForMDAProcessingMonitoring = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -132,7 +137,7 @@ const ForMDAProcessingMonitoring = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -144,7 +149,7 @@ const ForMDAProcessingMonitoring = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -152,10 +157,10 @@ const ForMDAProcessingMonitoring = ({
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
-  const isLoadingState = queryLoading || isFetching;
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
     <FormProvider {...methods}>
@@ -176,12 +181,18 @@ const ForMDAProcessingMonitoring = ({
             flexDirection: "column",
             backgroundColor: "white",
           }}>
-          <ForMDAProcessingMonitoringTable
+          <DataChangeMonitoringTable
             submissionsList={paginatedSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
+            handleMenuOpen={handleMenuOpen}
+            handleMenuClose={handleMenuClose}
+            menuAnchor={menuAnchor}
             searchQuery={searchQuery}
+            selectedFilters={[]}
+            showArchived={false}
+            hideStatusColumn={false}
           />
 
           <Box
@@ -226,23 +237,14 @@ const ForMDAProcessingMonitoring = ({
           </Box>
         </Box>
 
-        {/* DataChange Modal - View Only */}
-        <MDAForMDAProcessingModal
+        <DataChangeMonitoringModal
           open={modalOpen}
           onClose={handleModalClose}
-          mode="view"
-          onModeChange={null}
-          selectedEntry={submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onSave={null}
-          onRefreshDetails={null}
-          onSuccessfulSave={null}
-          onCreateMDA={null}
-          viewOnly={true}
+          submissionId={selectedSubmissionId}
         />
       </Box>
     </FormProvider>
   );
 };
 
-export default ForMDAProcessingMonitoring;
+export default DataChangeMonitoringRejected;

@@ -469,8 +469,9 @@ const Attainmentsemp = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">STATUS</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">ID NUMBER</TableCell>
                 <TableCell className="table-header2">ATTAINMENT</TableCell>
                 <TableCell className="table-header">PROGRAM</TableCell>
                 <TableCell className="table-header">DEGREE</TableCell>
@@ -519,8 +520,19 @@ const Attainmentsemp = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-cell4">
-                      {safelyDisplayValue(attainment.id)}
+                    <TableCell sx={{ paddingLeft: "21px" }}>
+                      <Chip
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          "& .MuiChip-label": {
+                            fontSize: "0.68rem",
+                            fontWeight: 600,
+                          },
+                        }}
+                      />
                     </TableCell>
                     <TableCell
                       sx={{

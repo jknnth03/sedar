@@ -10,29 +10,13 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Box,
   Chip,
   useTheme,
   alpha,
 } from "@mui/material";
-import {
-  MoreVert as MoreVertIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-} from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import {
-  useGetEmploymentTypesQuery,
-  useUpdateEmploymentTypeMutation,
-} from "../../features/api/employee/employeetypesApi";
+import { useGetEmploymentTypesQuery } from "../../features/api/employee/employeetypesApi";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
@@ -45,7 +29,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [menuAnchor, setMenuAnchor] = useState({});
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -60,10 +43,9 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     () => ({
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
       search: debounceValue || "",
     }),
-    [page, rowsPerPage, showArchived, debounceValue]
+    [page, rowsPerPage, debounceValue]
   );
 
   const {
@@ -76,8 +58,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     refetchOnMountOrArgChange: true,
   });
 
-  const [updateEmploymentType] = useUpdateEmploymentTypeMutation();
-
   const { employmentTypeList, totalCount } = useMemo(() => {
     const result = apiResponse?.result;
     const data = result?.data || [];
@@ -87,18 +67,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
       totalCount: result?.total || data.length,
     };
   }, [apiResponse]);
-
-  const handleMenuOpen = useCallback((event, employmentTypeId) => {
-    event.stopPropagation();
-    setMenuAnchor((prev) => ({
-      ...prev,
-      [employmentTypeId]: event.currentTarget,
-    }));
-  }, []);
-
-  const handleMenuClose = useCallback((employmentTypeId) => {
-    setMenuAnchor((prev) => ({ ...prev, [employmentTypeId]: null }));
-  }, []);
 
   const openWizard = useCallback(
     async (employmentType, mode) => {
@@ -119,24 +87,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
       }
     },
     [getSingleEmployee, enqueueSnackbar]
-  );
-
-  const handleViewEmployee = useCallback(
-    async (employmentType, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(employmentType.id);
-      await openWizard(employmentType, "view");
-    },
-    [handleMenuClose, openWizard]
-  );
-
-  const handleEditEmployee = useCallback(
-    async (employmentType, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(employmentType.id);
-      await openWizard(employmentType, "edit");
-    },
-    [handleMenuClose, openWizard]
   );
 
   const handleRowClick = useCallback(
@@ -162,6 +112,15 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
     },
     [refetch, enqueueSnackbar]
   );
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
@@ -200,7 +159,7 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
       case "probationary":
         return "warning";
       case "regular":
-        return "success";
+        return "primary";
       case "contractual":
         return "info";
       case "temporary":
@@ -238,25 +197,18 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ width: "100%", tableLayout: "fixed" }}>
+          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3" sx={{ width: "100px" }}>
-                  ID
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "400px" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "200px" }}>
-                  EMPLOYMENT TYPE
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "140px" }}>
-                  START DATE
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "140px" }}>
-                  END DATE
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "250px" }}>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">EMPLOYMENT TYPE</TableCell>
+                <TableCell className="table-header">START DATE</TableCell>
+                <TableCell className="table-header">END DATE</TableCell>
+                <TableCell
+                  className="table-header2"
+                  sx={{ whiteSpace: "nowrap" }}>
                   REGULARIZATION DATE
                 </TableCell>
               </TableRow>
@@ -299,13 +251,26 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-cell4" sx={{ width: "60px" }}>
-                      {safelyDisplayValue(employmentType.id)}
+                    <TableCell className="table-status">
+                      <Chip
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          "& .MuiChip-label": {
+                            fontSize: "0.68rem",
+                            fontWeight: 600,
+                          },
+                        }}
+                      />
                     </TableCell>
+
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "280px",
+                        width: "220px",
+                        minWidth: "180px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -313,7 +278,13 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                       }}>
                       {formatEmployeeName(employmentType.employee)}
                     </TableCell>
-                    <TableCell className="table-cell2" sx={{ width: "160px" }}>
+
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(
+                        employmentType.employee?.employee_code
+                      )}
+                    </TableCell>
+                    <TableCell className="table-cell2">
                       <Chip
                         label={safelyDisplayValue(
                           employmentType.employment_type_label
@@ -326,19 +297,25 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                         sx={{ fontWeight: 500 }}
                       />
                     </TableCell>
-                    <TableCell className="table-cell" sx={{ width: "140px" }}>
+                    <TableCell className="table-cell2">
                       {formatDate(
                         employmentType.employment_start_date ||
                           employmentType.start_date
                       )}
                     </TableCell>
-                    <TableCell className="table-cell" sx={{ width: "140px" }}>
+                    <TableCell className="table-cell2">
                       {formatDate(
                         employmentType.employment_end_date ||
                           employmentType.end_date
                       )}
                     </TableCell>
-                    <TableCell className="table-cell" sx={{ width: "180px" }}>
+                    <TableCell
+                      sx={{
+                        width: 100,
+                        minWidth: 90,
+                        whiteSpace: "nowrap",
+                        fontSize: "1rem",
+                      }}>
                       {formatDate(employmentType.regularization_date)}
                     </TableCell>
                   </TableRow>
@@ -382,11 +359,8 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
             count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
               borderTop: `1px solid ${theme.palette.divider}`,
               backgroundColor: alpha(theme.palette.background.paper, 0.6),

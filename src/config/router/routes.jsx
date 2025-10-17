@@ -47,8 +47,8 @@ import MovementTypes from "../../pages/extras/MovementTypes.jsx";
 import DataChangeApproval from "../../pages/approvals/dataChangeApproval/DataChangeApproval.jsx";
 import MASTERDATAAUTHORITY from "../../pages/forms/mdaform/MDA.jsx";
 import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdit.jsx";
-import MRFMonitoring from "../../pages/monitoring/MRFMonitoring.jsx";
-import DataChangeMonitoring from "../../pages/monitoring/DataChangeMonitoring.jsx";
+import MRFMonitoring from "../../pages/monitoring/MRF/MRFMonitoring.jsx";
+import DataChangeMonitoring from "../../pages/monitoring/datachange/DataChangeMonitoring.jsx";
 import MDAForApproval from "../../pages/forms/mdaform/MDAForApproval.jsx";
 import MDAMonitoring from "../../pages/monitoring/MDA/MDAMonitoring.jsx";
 

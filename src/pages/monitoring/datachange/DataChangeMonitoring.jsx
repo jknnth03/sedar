@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
@@ -27,18 +28,19 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-
+import { useSnackbar } from "notistack";
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
-import ForMDAProcessingMonitoring from "../datachange/DataChangeMonitoringForMDAProcessing";
-import MDAMonitoringForApproval from "./MDAMonitoringForApproval";
-import MDAMonitoringAwaitingResubmission from "./MDAMonitoringAwaitingResubmission";
-import MDAMonitoringRejected from "./MDAMonitoringRejected";
-import MDAMonitoringApproved from "./MDAMonitoringApproved";
-import MDAMonitoringCancelled from "./MDAMonitoringCancelled";
+import DataChangeMonitoringForApproval from "./DataChangeMonitoringForApproval";
+import DataChangeMonitoringRejected from "./DataChangeMonitoringRejected";
+import DataChangeMonitoringAwaitingResubmission from "./DataChangeMonitoringAwaitingResubmission";
+import DataChangeMonitoringCompleted from "./DataChangeMonitoringCompleted";
+import DataChangeMonitoringCancelled from "./DataChangeMonitoringCancelled";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import DataChangeMonitoringForMDAProcessing from "./DataChangeMonitoringForMDAProcessing";
+import MDAForApproval from "./MDAForApproval";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -81,8 +83,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`mda-monitoring-tabpanel-${index}`}
-      aria-labelledby={`mda-monitoring-tab-${index}`}
+      id={`datachange-monitoring-tabpanel-${index}`}
+      aria-labelledby={`datachange-monitoring-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -398,7 +400,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search MDA..."}
+        placeholder={isVerySmall ? "Search..." : "Search 201 data change..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -458,31 +460,34 @@ const CustomSearchBar = ({
   );
 };
 
-const MDAMonitoring = () => {
+const DataChangeMonitoring = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForMDAProcessing",
-    1: "ForApproval",
+    0: "ForApproval",
+    1: "AwaitingResubmission",
     2: "Rejected",
-    3: "AwaitingResubmission",
-    4: "Approved",
-    5: "Cancelled",
+    3: "ForMDAProcessing",
+    4: "MDAForApproval",
+    5: "Completed",
+    6: "Cancelled",
   };
 
   const reverseTabMap = {
-    ForMDAProcessing: 0,
-    ForApproval: 1,
+    ForApproval: 0,
+    AwaitingResubmission: 1,
     Rejected: 2,
-    AwaitingResubmission: 3,
-    Approved: 4,
-    Cancelled: 5,
+    ForMDAProcessing: 3,
+    MDAForApproval: 4,
+    Completed: 5,
+    Cancelled: 6,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -509,7 +514,7 @@ const MDAMonitoring = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap]
   );
 
   const handleSearchChange = useCallback(
@@ -523,7 +528,7 @@ const MDAMonitoring = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab, tabMap]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -536,46 +541,15 @@ const MDAMonitoring = () => {
 
   const tabsData = [
     {
-      label: "For MDA Processing",
-      component: (
-        <ForMDAProcessingMonitoring
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          statusFilter={null}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
       label: "For Approval",
       component: (
-        <MDAMonitoringForApproval
+        <DataChangeMonitoringForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
-          statusFilter="PENDING"
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <MDAMonitoringRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          statusFilter="REJECTED"
         />
       ),
       badgeCount: null,
@@ -583,29 +557,69 @@ const MDAMonitoring = () => {
     {
       label: "Awaiting Resubmission",
       component: (
-        <MDAMonitoringAwaitingResubmission
+        <DataChangeMonitoringAwaitingResubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
-          statusFilter="AWAITING_RESUBMISSION"
         />
       ),
       badgeCount: null,
     },
     {
-      label: "Approved",
+      label: "Rejected",
       component: (
-        <MDAMonitoringApproved
+        <DataChangeMonitoringRejected
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
-          statusFilter="APPROVED"
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "For MDA Processing",
+      component: (
+        <DataChangeMonitoringForMDAProcessing
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "MDA For Approval",
+      component: (
+        <MDAForApproval
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "Completed",
+      component: (
+        <DataChangeMonitoringCompleted
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
         />
       ),
       badgeCount: null,
@@ -613,14 +627,13 @@ const MDAMonitoring = () => {
     {
       label: "Cancelled",
       component: (
-        <MDAMonitoringCancelled
+        <DataChangeMonitoringCancelled
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
-          statusFilter="CANCELLED"
         />
       ),
       badgeCount: null,
@@ -629,8 +642,8 @@ const MDAMonitoring = () => {
 
   const a11yProps = (index) => {
     return {
-      id: `mda-monitoring-tab-${index}`,
-      "aria-controls": `mda-monitoring-tabpanel-${index}`,
+      id: `datachange-monitoring-tab-${index}`,
+      "aria-controls": `datachange-monitoring-tabpanel-${index}`,
     };
   };
 
@@ -691,7 +704,7 @@ const MDAMonitoring = () => {
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}>
-                  {isVerySmall ? "MDA Monitor" : "MDA Monitoring"}
+                  {isVerySmall ? "MONITORING" : "201 DATA CHANGE MONITORING"}
                 </Typography>
               </Box>
 
@@ -707,7 +720,7 @@ const MDAMonitoring = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="MDA monitoring tabs"
+              aria-label="Data change monitoring tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -765,4 +778,4 @@ const MDAMonitoring = () => {
   );
 };
 
-export default MDAMonitoring;
+export default DataChangeMonitoring;

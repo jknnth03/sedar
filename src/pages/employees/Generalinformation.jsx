@@ -48,7 +48,7 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 const General = ({
   searchQuery: parentSearchQuery,
   showArchived: parentShowArchived,
-  selectedStatuses: parentSelectedStatuses = [], // Add selectedStatuses prop
+  selectedStatuses: parentSelectedStatuses = [],
   debounceValue: parentDebounceValue,
   onSearchChange,
   onArchivedChange,
@@ -82,16 +82,15 @@ const General = ({
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  // Updated queryParams to include statuses filter
   const queryParams = useMemo(
     () => ({
       search: debounceValue,
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
-      statuses: selectedStatuses, // Add statuses to query params
+      status: "all",
+      statuses: selectedStatuses,
     }),
-    [debounceValue, page, rowsPerPage, showArchived, selectedStatuses]
+    [debounceValue, page, rowsPerPage, selectedStatuses]
   );
 
   const {
@@ -339,7 +338,7 @@ const General = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-header">FULL NAME</TableCell>
                 <TableCell className="table-header">ID NUMBER</TableCell>
                 <TableCell className="table-header">BIRTH DATE</TableCell>
@@ -348,14 +347,13 @@ const General = ({
                 <TableCell className="table-header">GENDER</TableCell>
                 <TableCell className="table-header2">REFERRED BY</TableCell>
                 <TableCell className="table-header">REMARKS</TableCell>
-                <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={11} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Box sx={{ py: 4 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body2" sx={{ mt: 2 }}>
@@ -382,8 +380,19 @@ const General = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-cell4">
-                      {safelyDisplayValue(employee.id)}
+                    <TableCell className="table-status">
+                      <Chip
+                        label={employee.deleted_at ? "INACTIVE" : "ACTIVE"}
+                        color={employee.deleted_at ? "error" : "success"}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          "& .MuiChip-label": {
+                            fontSize: "0.68rem",
+                            fontWeight: 600,
+                          },
+                        }}
+                      />
                     </TableCell>
                     <TableCell
                       className="table-cell"
@@ -438,20 +447,7 @@ const General = ({
                       }}>
                       {safelyDisplayValue(employee.remarks)}
                     </TableCell>
-                    <TableCell className="table-status">
-                      <Chip
-                        label={showArchived ? "INACTIVE" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": {
-                            fontSize: "0.68rem",
-                            fontWeight: 600,
-                          },
-                        }}
-                      />
-                    </TableCell>
+
                     <TableCell className="table-status">
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, employee.id)}
@@ -507,7 +503,7 @@ const General = ({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={11}
+                    colSpan={10}
                     align="center"
                     sx={{ border: "none", py: 8 }}>
                     <Box

@@ -81,9 +81,8 @@ const Positions = ({
       search: debounceValue,
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
     }),
-    [debounceValue, page, rowsPerPage, showArchived]
+    [debounceValue, page, rowsPerPage]
   );
 
   const {
@@ -262,8 +261,9 @@ const Positions = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3">ID</TableCell>
+                <TableCell className="table-header">STATUS</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">ID NUMBER</TableCell>
                 <TableCell className="table-header2">POSITION TITLE</TableCell>
                 <TableCell className="table-header">SCHEDULE</TableCell>
                 <TableCell className="table-header">JOB LEVEL</TableCell>
@@ -303,7 +303,20 @@ const Positions = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell>{safelyDisplayValue(position.id)}</TableCell>
+                    <TableCell sx={{ paddingLeft: "21px" }}>
+                      <Chip
+                        label={showArchived ? "INACTIVE" : "ACTIVE"}
+                        color={showArchived ? "error" : "success"}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          "& .MuiChip-label": {
+                            fontSize: "0.68rem",
+                            fontWeight: 600,
+                          },
+                        }}
+                      />
+                    </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
@@ -316,7 +329,9 @@ const Positions = ({
                       }}>
                       {formatEmployeeName(position.employee)}
                     </TableCell>
-
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(position.employee?.employee_code)}
+                    </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{

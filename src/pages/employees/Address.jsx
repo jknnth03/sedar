@@ -28,8 +28,6 @@ import {
   Archive as ArchiveIcon,
   Restore as RestoreIcon,
   Help as HelpIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import {
@@ -83,7 +81,7 @@ const Address = ({
       search: debounceValue,
       page,
       per_page: rowsPerPage,
-      // status: showArchived ? "inactive" : "active",
+      status: "all",
       statuses: selectedStatuses,
     }),
     [debounceValue, page, rowsPerPage, selectedStatuses]
@@ -100,6 +98,7 @@ const Address = ({
 
   const [deleteAddress] = useDeleteAddressMutation();
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+
   const addressList = useMemo(() => addresses?.result?.data || [], [addresses]);
 
   const handleMenuOpen = useCallback((event, addressId) => {
@@ -165,24 +164,6 @@ const Address = ({
     [getSingleEmployee, enqueueSnackbar]
   );
 
-  const handleViewEmployee = useCallback(
-    async (address, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(address.id);
-      await openWizard(address, "view");
-    },
-    [handleMenuClose, openWizard]
-  );
-
-  const handleEditEmployee = useCallback(
-    async (address, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(address.id);
-      await openWizard(address, "edit");
-    },
-    [handleMenuClose, openWizard]
-  );
-
   const handleRowClick = useCallback(
     async (address) => {
       await openWizard(address, "view");
@@ -206,6 +187,15 @@ const Address = ({
     },
     [refetch, enqueueSnackbar]
   );
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
@@ -259,42 +249,33 @@ const Address = ({
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ width: "100%", tableLayout: "fixed" }}>
+          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3" sx={{ width: "80px" }}>
-                  ID
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "400px" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "200px" }}>
-                  STREET
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "180px" }}>
-                  BARANGAY
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "200px" }}>
+                <TableCell className="table-status">STATUS</TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">STREET</TableCell>
+                <TableCell className="table-header">BARANGAY</TableCell>
+                <TableCell
+                  className="table-header2"
+                  sx={{ whiteSpace: "nowrap" }}>
                   CITY/MUNICIPALITY
                 </TableCell>
-                <TableCell className="table-header" sx={{ width: "200px" }}>
-                  SUB-MUNICIPALITY
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "160px" }}>
-                  PROVINCE
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "300px" }}>
-                  REGION
-                </TableCell>
-                <TableCell className="table-header" sx={{ width: "120px" }}>
+                <TableCell className="table-header">PROVINCE</TableCell>
+                <TableCell className="table-header2">REGION</TableCell>
+                <TableCell
+                  className="table-header"
+                  sx={{ whiteSpace: "nowrap" }}>
                   ZIP CODE
                 </TableCell>
+                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Box sx={{ py: 4 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body2" sx={{ mt: 2 }}>
@@ -321,13 +302,25 @@ const Address = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-cell4" sx={{ width: "80px" }}>
-                      {safelyDisplayValue(address.id)}
+                    <TableCell className="table-status">
+                      <Chip
+                        label={address.deleted_at ? "INACTIVE" : "ACTIVE"}
+                        color={address.deleted_at ? "error" : "success"}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          "& .MuiChip-label": {
+                            fontSize: "0.68rem",
+                            fontWeight: 600,
+                          },
+                        }}
+                      />
                     </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "300px",
+                        width: "220px",
+                        minWidth: "180px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -335,10 +328,13 @@ const Address = ({
                       }}>
                       {formatEmployeeName(address.employee)}
                     </TableCell>
+                    <TableCell className="table-cell2">
+                      {safelyDisplayValue(address.employee?.employee_code)}
+                    </TableCell>
                     <TableCell
                       className="table-cell2"
                       sx={{
-                        width: "200px",
+                        minWidth: "200px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -368,16 +364,6 @@ const Address = ({
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {formatLocation(address, "sub_municipality")}
-                    </TableCell>
-                    <TableCell
-                      className="table-cell"
-                      sx={{
                         width: "160px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -396,22 +382,68 @@ const Address = ({
                       {formatLocation(address, "region")}
                     </TableCell>
                     <TableCell
-                      className="table-cell"
                       sx={{
-                        width: "120px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
+                        width: 100,
+                        minWidth: 90,
                         whiteSpace: "nowrap",
-                        textAlign: "center",
+                        fontSize: "1rem",
                       }}>
                       {safelyDisplayValue(address.zip_code)}
+                    </TableCell>
+                    <TableCell className="table-status">
+                      <IconButton
+                        onClick={(e) => handleMenuOpen(e, address.id)}
+                        size="small"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: alpha(
+                              theme.palette.action.hover,
+                              0.1
+                            ),
+                          },
+                        }}>
+                        <MoreVertIcon />
+                      </IconButton>
+                      <Menu
+                        anchorEl={menuAnchor[address.id]}
+                        open={Boolean(menuAnchor[address.id])}
+                        onClose={() => handleMenuClose(address.id)}
+                        transformOrigin={{
+                          horizontal: "right",
+                          vertical: "top",
+                        }}
+                        anchorOrigin={{
+                          horizontal: "right",
+                          vertical: "bottom",
+                        }}>
+                        <MenuItem
+                          onClick={(e) => handleArchiveRestoreClick(address, e)}
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: address.deleted_at
+                              ? theme.palette.success.main
+                              : theme.palette.warning.main,
+                          }}>
+                          {address.deleted_at ? (
+                            <>
+                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
+                              Restore
+                            </>
+                          ) : (
+                            <>
+                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
+                              Archive
+                            </>
+                          )}
+                        </MenuItem>
+                      </Menu>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     align="center"
                     sx={{ border: "none", py: 8 }}>
                     <Box
@@ -449,11 +481,8 @@ const Address = ({
             count={addresses?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
               borderTop: `1px solid ${theme.palette.divider}`,
               backgroundColor: alpha(theme.palette.background.paper, 0.6),
