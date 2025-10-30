@@ -60,6 +60,10 @@ const DataChangeModalFields = ({
   } = useFormContext();
 
   const watchedEmployee = watch("employee_id");
+
+  // Only load dropdowns when in create or edit mode
+  const shouldLoadDropdowns = mode === "create" || mode === "edit";
+
   const [dropdownsLoaded, setDropdownsLoaded] = useState({
     forms: false,
     employees: false,
@@ -68,10 +72,11 @@ const DataChangeModalFields = ({
   });
   const [showSkeleton, setShowSkeleton] = useState(false);
 
+  // Only fetch forms in create mode
   const { data: formsData, isLoading: formsLoading } =
     useGetAllApprovalFormsQuery(
       { page: 1, per_page: 1000, status: "active" },
-      { skip: mode !== "create" || !dropdownsLoaded.forms }
+      { skip: !shouldLoadDropdowns || mode !== "create" }
     );
 
   const [
@@ -79,16 +84,18 @@ const DataChangeModalFields = ({
     { data: employeesData, isLoading: employeesLoading },
   ] = useLazyGetAllDataChangeEmployeeQuery();
 
+  // Only fetch movement types when needed (create/edit mode AND dropdown opened)
   const { data: movementTypesData, isLoading: movementTypesLoading } =
     useGetAllMovementTypesQuery(
       { page: 1, per_page: 1000, status: "active" },
-      { skip: !dropdownsLoaded.movementTypes }
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.movementTypes }
     );
 
+  // Only fetch positions when needed (create/edit mode AND dropdown opened)
   const { data: positionsData, isLoading: positionsLoading } =
     useGetAllPositionsQuery(
       { page: 1, per_page: 1000, status: "active" },
-      { skip: !dropdownsLoaded.positions }
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.positions }
     );
 
   const normalizeApiData = useCallback((data) => {
@@ -119,6 +126,9 @@ const DataChangeModalFields = ({
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
+      // Only load dropdowns in create/edit mode when they're actually opened
+      if (!shouldLoadDropdowns) return;
+
       if (!dropdownsLoaded[dropdownName]) {
         setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
 
@@ -130,7 +140,7 @@ const DataChangeModalFields = ({
           };
 
           if (
-            (mode === "view" || mode === "edit") &&
+            mode === "edit" &&
             selectedEntry?.result?.submittable?.employee_id
           ) {
             params.employee_id_to_include =
@@ -141,7 +151,13 @@ const DataChangeModalFields = ({
         }
       }
     },
-    [dropdownsLoaded, mode, selectedEntry, triggerGetEmployees]
+    [
+      dropdownsLoaded,
+      mode,
+      selectedEntry,
+      triggerGetEmployees,
+      shouldLoadDropdowns,
+    ]
   );
 
   useEffect(() => {
@@ -150,25 +166,16 @@ const DataChangeModalFields = ({
     }
   }, [setValue, mode]);
 
+  // Only load employee dropdown data in edit mode
   useEffect(() => {
-    if (mode !== "create") {
-      setDropdownsLoaded({
-        forms: true,
-        employees: true,
-        movementTypes: true,
-        positions: true,
-      });
-
+    if (mode === "edit") {
       const params = {
         page: 1,
         per_page: 1000,
         status: "active",
       };
 
-      if (
-        (mode === "view" || mode === "edit") &&
-        selectedEntry?.result?.submittable?.employee_id
-      ) {
+      if (selectedEntry?.result?.submittable?.employee_id) {
         params.employee_id_to_include =
           selectedEntry.result.submittable.employee_id;
       }
@@ -184,6 +191,7 @@ const DataChangeModalFields = ({
     }
   }, [mode, selectedEntry, triggerGetEmployees]);
 
+  // Update employee display data from selectedEntry (view mode) or employees list (edit mode)
   useEffect(() => {
     if (
       (mode === "view" || mode === "edit") &&
@@ -191,19 +199,20 @@ const DataChangeModalFields = ({
       watchedEmployee
     ) {
       const submittable = selectedEntry.result?.submittable;
-      const submittedBy = selectedEntry.result?.submitted_by;
-      const employee = selectedEntry.result?.employee;
 
       if (
         submittable?.employee_id &&
         watchedEmployee.id &&
         submittable.employee_id === watchedEmployee.id
       ) {
-        const currentEmployeeData = employees.find(
-          (emp) => emp.id === submittable.employee_id
-        );
+        // In view mode, use data from selectedEntry
+        // In edit mode, merge with employee list data if available
+        const currentEmployeeData =
+          mode === "edit"
+            ? employees.find((emp) => emp.id === submittable.employee_id)
+            : null;
 
-        if (currentEmployeeData) {
+        if (mode === "edit" && currentEmployeeData) {
           const updatedEmployeeData = {
             ...watchedEmployee,
             position_title:
@@ -285,7 +294,35 @@ const DataChangeModalFields = ({
 
   const isReadOnly = mode === "view";
   const isLoadingEmployeeData =
-    (mode === "view" || mode === "edit") && (employeesLoading || showSkeleton);
+    mode === "edit" && (employeesLoading || showSkeleton);
+
+  // In view mode, get display data directly from selectedEntry
+  const displayEmployee =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? watchedEmployee
+      : watchedEmployee;
+
+  const displayDepartment =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? selectedEntry.result.submittable.from_position?.charging
+          ?.department_name || "N/A"
+      : displayEmployee?.department || "N/A";
+
+  const displaySchedule =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? selectedEntry.result.submittable.from_position?.schedule?.name || "N/A"
+      : displayEmployee?.schedule || "N/A";
+
+  const displayPositionFrom =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? selectedEntry.result.submittable.from_position?.title?.name || "N/A"
+      : displayEmployee?.position_title || "N/A";
+
+  const displaySubUnit =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? selectedEntry.result.submittable.from_position?.charging
+          ?.sub_unit_name || "N/A"
+      : displayEmployee?.sub_unit || "N/A";
 
   return (
     <Box>
@@ -330,10 +367,7 @@ const DataChangeModalFields = ({
                       color: "#1a1a1a",
                       marginBottom: 2.5,
                     }}>
-                    {watchedEmployee.department ||
-                      selectedEntry?.result?.submittable?.from_position
-                        ?.charging?.department_name ||
-                      "N/A"}
+                    {displayDepartment}
                   </Typography>
                 )}
                 <Typography
@@ -359,10 +393,7 @@ const DataChangeModalFields = ({
                       lineHeight: 1.3,
                       color: "#1a1a1a",
                     }}>
-                    {watchedEmployee.schedule ||
-                      selectedEntry?.result?.submittable?.from_position
-                        ?.schedule?.name ||
-                      "N/A"}
+                    {displaySchedule}
                   </Typography>
                 )}
               </Box>
@@ -405,10 +436,7 @@ const DataChangeModalFields = ({
                       color: "#1a1a1a",
                       marginBottom: 2.5,
                     }}>
-                    {selectedEntry?.result?.submittable?.from_position?.title
-                      ?.name ||
-                      watchedEmployee.position_title ||
-                      "N/A"}
+                    {displayPositionFrom}
                   </Typography>
                 )}
 
@@ -441,10 +469,7 @@ const DataChangeModalFields = ({
                       color: "#1a1a1a",
                       marginBottom: 2.5,
                     }}>
-                    {watchedEmployee.sub_unit ||
-                      selectedEntry?.result?.submittable?.from_position
-                        ?.charging?.sub_unit_name ||
-                      "N/A"}
+                    {displaySubUnit}
                   </Typography>
                 )}
               </Box>
@@ -473,55 +498,69 @@ const DataChangeModalFields = ({
                 rules={{ required: "Employee is required" }}
                 render={({ field: { onChange, value } }) => (
                   <FormControl fullWidth error={!!errors.employee_id}>
-                    <Autocomplete
-                      value={value || null}
-                      onChange={(event, item) => onChange(item)}
-                      options={employees}
-                      loading={employeesLoading}
-                      getOptionLabel={(item) => {
-                        return item?.employee_name || "Unknown Employee";
-                      }}
-                      isOptionEqualToValue={(option, value) => {
-                        return option?.id === value?.id;
-                      }}
-                      onOpen={() => handleDropdownFocus("employees")}
-                      disabled={isLoading || isReadOnly}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={
-                            <span>
-                              Employee <span style={labelWithRequired}>*</span>
-                            </span>
-                          }
-                          error={!!errors.employee_id}
-                          helperText={errors.employee_id?.message}
-                          fullWidth
-                          sx={textFieldStyles.outlinedInput}
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {employeesLoading && (
-                                  <CircularProgress color="inherit" size={20} />
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      noOptionsText={
-                        employeesLoading
-                          ? "Loading employees..."
-                          : "No employees found"
-                      }
-                      renderOption={(props, option) => (
-                        <li {...props} key={option.id}>
-                          {option?.employee_name || "Unknown Employee"}
-                        </li>
-                      )}
-                    />
+                    {isReadOnly ? (
+                      <TextField
+                        label="Employee"
+                        value={value?.employee_name || value?.full_name || ""}
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) => onChange(item)}
+                        options={employees}
+                        loading={employeesLoading}
+                        getOptionLabel={(item) => {
+                          return item?.employee_name || "Unknown Employee";
+                        }}
+                        isOptionEqualToValue={(option, value) => {
+                          return option?.id === value?.id;
+                        }}
+                        onOpen={() => handleDropdownFocus("employees")}
+                        disabled={isLoading}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={
+                              <span>
+                                Employee{" "}
+                                <span style={labelWithRequired}>*</span>
+                              </span>
+                            }
+                            error={!!errors.employee_id}
+                            helperText={errors.employee_id?.message}
+                            fullWidth
+                            sx={textFieldStyles.outlinedInput}
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {employeesLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          employeesLoading
+                            ? "Loading employees..."
+                            : "No employees found"
+                        }
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id}>
+                            {option?.employee_name || "Unknown Employee"}
+                          </li>
+                        )}
+                      />
+                    )}
                   </FormControl>
                 )}
               />
@@ -538,51 +577,64 @@ const DataChangeModalFields = ({
                 rules={{ required: "Movement type is required" }}
                 render={({ field: { onChange, value } }) => (
                   <FormControl fullWidth error={!!errors.movement_type_id}>
-                    <Autocomplete
-                      value={value || null}
-                      onChange={(event, item) => onChange(item)}
-                      options={movementTypes}
-                      loading={movementTypesLoading}
-                      getOptionLabel={(item) =>
-                        item?.name || item?.type_name || ""
-                      }
-                      isOptionEqualToValue={(option, value) =>
-                        option?.id === value?.id
-                      }
-                      onOpen={() => handleDropdownFocus("movementTypes")}
-                      disabled={isLoading || isReadOnly}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={
-                            <span>
-                              Movement Type{" "}
-                              <span style={labelWithRequired}>*</span>
-                            </span>
-                          }
-                          error={!!errors.movement_type_id}
-                          helperText={errors.movement_type_id?.message}
-                          fullWidth
-                          sx={textFieldStyles.outlinedInput}
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {movementTypesLoading && (
-                                  <CircularProgress color="inherit" size={20} />
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      noOptionsText={
-                        movementTypesLoading
-                          ? "Loading movement types..."
-                          : "No movement types found"
-                      }
-                    />
+                    {isReadOnly ? (
+                      <TextField
+                        label="Movement Type"
+                        value={value?.name || value?.type_name || ""}
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) => onChange(item)}
+                        options={movementTypes}
+                        loading={movementTypesLoading}
+                        getOptionLabel={(item) =>
+                          item?.name || item?.type_name || ""
+                        }
+                        isOptionEqualToValue={(option, value) =>
+                          option?.id === value?.id
+                        }
+                        onOpen={() => handleDropdownFocus("movementTypes")}
+                        disabled={isLoading}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={
+                              <span>
+                                Movement Type{" "}
+                                <span style={labelWithRequired}>*</span>
+                              </span>
+                            }
+                            error={!!errors.movement_type_id}
+                            helperText={errors.movement_type_id?.message}
+                            fullWidth
+                            sx={textFieldStyles.outlinedInput}
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {movementTypesLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          movementTypesLoading
+                            ? "Loading movement types..."
+                            : "No movement types found"
+                        }
+                      />
+                    )}
                   </FormControl>
                 )}
               />
@@ -607,6 +659,7 @@ const DataChangeModalFields = ({
                     value={value}
                     onChange={onChange}
                     disabled={isLoading || isReadOnly}
+                    readOnly={isReadOnly}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -631,68 +684,86 @@ const DataChangeModalFields = ({
                 rules={{ required: "Position is required" }}
                 render={({ field: { onChange, value } }) => (
                   <FormControl fullWidth error={!!errors.to_position_id}>
-                    <Autocomplete
-                      value={value || null}
-                      onChange={(event, item) => onChange(item)}
-                      options={positions}
-                      loading={positionsLoading}
-                      getOptionLabel={(item) => {
-                        if (typeof item === "string") return item;
-                        return (
-                          item?.title?.name ||
-                          item?.name ||
-                          item?.position_name ||
-                          item?.title ||
+                    {isReadOnly ? (
+                      <TextField
+                        label="Position to"
+                        value={
+                          value?.title?.name ||
+                          value?.name ||
+                          value?.position_name ||
                           ""
-                        );
-                      }}
-                      isOptionEqualToValue={(option, value) =>
-                        option?.id === value?.id
-                      }
-                      onOpen={() => handleDropdownFocus("positions")}
-                      disabled={isLoading || isReadOnly}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={
-                            <span>
-                              Position to{" "}
-                              <span style={labelWithRequired}>*</span>
-                            </span>
-                          }
-                          error={!!errors.to_position_id}
-                          helperText={errors.to_position_id?.message}
-                          fullWidth
-                          sx={textFieldStyles.outlinedInput}
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {positionsLoading && (
-                                  <CircularProgress color="inherit" size={20} />
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      noOptionsText={
-                        positionsLoading
-                          ? "Loading positions..."
-                          : "No positions found"
-                      }
-                      renderOption={(props, option) => (
-                        <li {...props} key={option.id || option}>
-                          {typeof option === "string"
-                            ? option
-                            : option?.title?.name ||
-                              option?.name ||
-                              option?.position_name ||
-                              ""}
-                        </li>
-                      )}
-                    />
+                        }
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) => onChange(item)}
+                        options={positions}
+                        loading={positionsLoading}
+                        getOptionLabel={(item) => {
+                          if (typeof item === "string") return item;
+                          return (
+                            item?.title?.name ||
+                            item?.name ||
+                            item?.position_name ||
+                            item?.title ||
+                            ""
+                          );
+                        }}
+                        isOptionEqualToValue={(option, value) =>
+                          option?.id === value?.id
+                        }
+                        onOpen={() => handleDropdownFocus("positions")}
+                        disabled={isLoading}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={
+                              <span>
+                                Position to{" "}
+                                <span style={labelWithRequired}>*</span>
+                              </span>
+                            }
+                            error={!!errors.to_position_id}
+                            helperText={errors.to_position_id?.message}
+                            fullWidth
+                            sx={textFieldStyles.outlinedInput}
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {positionsLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          positionsLoading
+                            ? "Loading positions..."
+                            : "No positions found"
+                        }
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id || option}>
+                            {typeof option === "string"
+                              ? option
+                              : option?.title?.name ||
+                                option?.name ||
+                                option?.position_name ||
+                                ""}
+                          </li>
+                        )}
+                      />
+                    )}
                   </FormControl>
                 )}
               />

@@ -79,6 +79,11 @@ const DataChangeForApprovalTable = ({
         bgColor: "#e8f5e8",
         label: "APPROVED",
       },
+      completed: {
+        color: "#1976d2",
+        bgColor: "#e3f2fd",
+        label: "COMPLETED",
+      },
       received: {
         color: "#2e7d32",
         bgColor: "#e8f5e8",

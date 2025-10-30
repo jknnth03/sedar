@@ -39,7 +39,6 @@ import PendingForms from "../../pages/receiving/PendingForms.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
-// import DataChangeReceiving from "../../pages/receiving/DataChangeReceiving";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
@@ -216,14 +215,6 @@ export const ROUTES = [
           permission: MODULES.RECEIVING.children.PENDINGFORMS.name,
         },
       },
-      // {
-      //   id: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
-      //   path: MODULES.RECEIVING.children.DATACHANGERECEIVING.path,
-      //   element: <DataChangeReceiving />,
-      //   handle: {
-      //     permission: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
-      //   },
-      // },
       {
         id: MODULES.MASTERLIST.children.ONERDF.name,
         path: MODULES.MASTERLIST.children.ONERDF.path,

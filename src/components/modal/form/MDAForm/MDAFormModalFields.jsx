@@ -24,10 +24,8 @@ import {
   infoBoxStyles,
   addressGridStyles,
 } from "./MDAFormModalFields.styles";
-import {
-  FromPositionFields,
-  ToPositionFields,
-} from "./MDAFormModalAdditionalFields";
+import { FromPositionFields } from "./MDAFormModalFromPosition";
+import { ToPositionFields } from "./MDAFormModalToPosition";
 
 const InfoSection = ({ title, children }) => (
   <Box sx={infoSectionContainerStyles}>
@@ -58,6 +56,7 @@ const MDAFormModalFields = ({
   employeeMovements,
   isPrefillLoading,
   setSelectedMovementId,
+  currentMode,
 }) => {
   const {
     control,
@@ -219,6 +218,7 @@ const MDAFormModalFields = ({
             showSummary={true}
             formValues={formValues}
             formatCurrency={formatCurrency}
+            currentMode={currentMode}
           />
 
           <ToPositionFields
@@ -228,6 +228,7 @@ const MDAFormModalFields = ({
             isCreate={isCreate}
             showSummary={false}
             formValues={formValues}
+            currentMode={currentMode}
           />
         </>
       ) : (
@@ -504,6 +505,7 @@ const MDAFormModalFields = ({
             showSummary={false}
             formValues={formValues}
             formatCurrency={formatCurrency}
+            currentMode={currentMode}
           />
 
           <ToPositionFields
@@ -513,6 +515,7 @@ const MDAFormModalFields = ({
             isCreate={isCreate}
             showSummary={false}
             formValues={formValues}
+            currentMode={currentMode}
           />
         </>
       )}

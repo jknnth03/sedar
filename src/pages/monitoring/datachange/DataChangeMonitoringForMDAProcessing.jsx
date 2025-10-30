@@ -74,27 +74,10 @@ const DataChangeMonitoringForMDAProcessing = ({
     skip: !selectedSubmissionId,
   });
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
-
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    return filtered;
-  }, [submissionsData, dateFilters, filterDataByDate]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
@@ -163,6 +146,8 @@ const DataChangeMonitoringForMDAProcessing = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -183,7 +168,7 @@ const DataChangeMonitoringForMDAProcessing = ({
             backgroundColor: "white",
           }}>
           <DataChangeMonitoringTable
-            submissionsList={paginatedSubmissions}
+            submissionsList={submissionsList}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -229,7 +214,7 @@ const DataChangeMonitoringForMDAProcessing = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

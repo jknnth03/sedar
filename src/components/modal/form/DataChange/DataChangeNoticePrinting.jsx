@@ -9,6 +9,9 @@ const blankData = {
   date_prepared: "",
   movement_type: "",
   from: {
+    department: "",
+    unit: "",
+    sub_unit: "",
     position_title: "",
     job_level: "",
     job_rate: "",
@@ -16,6 +19,9 @@ const blankData = {
     schedule: "",
   },
   to: {
+    department: "",
+    unit: "",
+    sub_unit: "",
     position_title: "",
     job_level: "",
     job_rate: "",
@@ -110,9 +116,29 @@ export function DataChangeNoticePrinting({ data = blankData }) {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Department/Unit</td>
-                    <td className="text-center"></td>
-                    <td className="text-center"></td>
+                    <td>Department</td>
+                    <td className="text-center">
+                      {actualData.from?.department || ""}
+                    </td>
+                    <td className="text-center">
+                      {actualData.to?.department || ""}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Unit</td>
+                    <td className="text-center">
+                      {actualData.from?.unit || ""}
+                    </td>
+                    <td className="text-center">{actualData.to?.unit || ""}</td>
+                  </tr>
+                  <tr>
+                    <td>Sub-unit</td>
+                    <td className="text-center">
+                      {actualData.from?.sub_unit || ""}
+                    </td>
+                    <td className="text-center">
+                      {actualData.to?.sub_unit || ""}
+                    </td>
                   </tr>
                   <tr>
                     <td>Position</td>
@@ -143,12 +169,8 @@ export function DataChangeNoticePrinting({ data = blankData }) {
                   </tr>
                   <tr>
                     <td>Work Schedule</td>
-                    <td className="text-center">
-                      {actualData.from?.schedule || ""}
-                    </td>
-                    <td className="text-center">
-                      {actualData.to?.schedule || ""}
-                    </td>
+                    <td className="text-center"></td>
+                    <td className="text-center"></td>
                   </tr>
                   <tr>
                     <td>Rest Day/s</td>

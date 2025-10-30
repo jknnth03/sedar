@@ -23,8 +23,8 @@ import {
   useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
-import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 
 const DataChangeCancelled = ({
   searchQuery,

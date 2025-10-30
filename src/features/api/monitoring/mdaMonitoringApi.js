@@ -87,6 +87,7 @@ export const {
   useGetMDAMonitoringQuery,
   useGetAllMDAMonitoringQuery,
   useGetMDAMonitoringByIdQuery,
+  useLazyGetMDAMonitoringByIdQuery,
 } = mdaMonitoringApi;
 
 export default mdaMonitoringApi;

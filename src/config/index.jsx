@@ -55,6 +55,7 @@ import moduleApi from "../features/api/usermanagement/dashboardApi";
 import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
 import VerifiedIcon from "@mui/icons-material/Verified";
+import { iconStyles, imageStyles } from "./iconStyles";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -106,7 +107,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
     DASHBOARD: {
       name: "Dashboard",
       path: "/",
-      icon: <DashboardIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
+      icon: <DashboardIcon sx={iconStyles.main} />,
       icon_on: null,
       children: null,
     },
@@ -114,29 +115,19 @@ export const createEnhancedModules = (dashboardData = {}) => {
     USERMANAGEMENT: {
       name: "User Management",
       path: "/usermanagement",
-      icon: (
-        <ManageAccountsIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />
-      ),
+      icon: <ManageAccountsIcon sx={iconStyles.main} />,
       icon_on: null,
       children: {
         USER: {
           name: "User",
           path: "user",
-          icon: (
-            <PersonAddIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "20px" }}
-            />
-          ),
+          icon: <PersonAddIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         ROLES: {
           name: "Roles",
           path: "roles",
-          icon: (
-            <FolderSharedIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "20px" }}
-            />
-          ),
+          icon: <FolderSharedIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -144,39 +135,27 @@ export const createEnhancedModules = (dashboardData = {}) => {
     EMPLOYEES: {
       name: "Employees",
       path: "/employees",
-      icon: <FolderSharedIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
+      icon: <FolderSharedIcon sx={iconStyles.main} />,
       icon_on: null,
       notificationCount: counts.pendingRegistrations,
       children: {
         EMPLOYEEINFORMATION: {
           name: "Employee Information",
           path: "employeeinformation",
-          icon: (
-            <InfoIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <InfoIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PENDINGREGISTRATION: {
           name: "Pending Registration",
           path: "pendingregistration",
-          icon: (
-            <PendingActionsIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <PendingActionsIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.pendingRegistrations,
         },
         ENABLEEDIT: {
           name: "Enable Edit",
           path: "enableedit",
-          icon: (
-            <BorderColorIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <BorderColorIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -184,27 +163,14 @@ export const createEnhancedModules = (dashboardData = {}) => {
     RECEIVING: {
       name: "Receiving",
       path: "/receiving",
-      icon: (
-        <ArchiveIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "22px",
-            height: "22px",
-          }}
-        />
-      ),
+      icon: <ArchiveIcon sx={iconStyles.mainLarge} />,
       icon_on: null,
       notificationCount: counts.pendingReceiving,
       children: {
         PENDINGFORMS: {
           name: "MRF Receiving",
           path: "pendingforms",
-          icon: (
-            <MarkAsUnreadIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <MarkAsUnreadIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.pendingMrfReceiving,
         },
@@ -214,36 +180,19 @@ export const createEnhancedModules = (dashboardData = {}) => {
     APPROVALSETTINGS: {
       name: "Approval Settings",
       path: "/approvalsetting",
-      icon: (
-        <ApprovalIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "22px",
-            height: "22px",
-          }}
-        />
-      ),
+      icon: <ApprovalIcon sx={iconStyles.mainLarge} />,
       icon_on: null,
       children: {
         APPROVALFORM: {
           name: "Approval Form",
           path: "approvalform",
-          icon: (
-            <AssignmentTurnedInIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <AssignmentTurnedInIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         APPROVALFLOW: {
           name: "Approval Flow",
           path: "approvalflow",
-          icon: (
-            <DragIndicatorIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <DragIndicatorIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -252,60 +201,35 @@ export const createEnhancedModules = (dashboardData = {}) => {
     APPROVING: {
       name: "Approval",
       path: "/approving",
-      icon: (
-        <GavelIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "20px",
-            height: "20px",
-          }}
-        />
-      ),
+      icon: <GavelIcon sx={iconStyles.mainMedium} />,
       icon_on: null,
       notificationCount: counts.pendingApprovals,
       children: {
         SUBMISSIONAPPROVAL: {
           name: "MRF",
           path: "submissionapproval",
-          icon: (
-            <TaskIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <TaskIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.manpowerFormApprovals,
         },
         REGISTRATIONAPPROVAL: {
           name: "Registration",
           path: "registrationapproval",
-          icon: (
-            <HowToRegIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <HowToRegIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.registrationApprovals,
         },
         DATACHANGEAPPROVAL: {
           name: "Data Change",
           path: "datachangeapproval",
-          icon: (
-            <PublishedWithChangesIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.dataChangeApprovals,
         },
         MDAAPPROVAL: {
           name: "MDA",
           path: "mdaapproval",
-          icon: (
-            <VerifiedIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.mdaApprovals,
         },
@@ -315,49 +239,28 @@ export const createEnhancedModules = (dashboardData = {}) => {
     REQUEST: {
       name: "Requisition",
       path: "/request",
-      icon: (
-        <PendingActionsIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "23px",
-            height: "23px",
-          }}
-        />
-      ),
+      icon: <PendingActionsIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
       notificationCount: counts.manpowerFormTotal + counts.dataChangeTotal,
       children: {
         MRFMAINCONTAINER: {
           name: "Manpower Form",
           path: "mrfmaincontainer",
-          icon: (
-            <MarkEmailReadIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <MarkEmailReadIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.manpowerFormTotal,
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
           path: "datachangemaincontainer",
-          icon: (
-            <CloudSyncIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.dataChangeTotal,
         },
         MASTERDATAAUTHORITY: {
           name: "Master Data Authority",
           path: "masterdataauthority",
-          icon: (
-            <CreateNewFolderIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <CreateNewFolderIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.dataChangeForMdaProcessing,
         },
@@ -366,49 +269,28 @@ export const createEnhancedModules = (dashboardData = {}) => {
     REQUESTMONITORING: {
       name: "Request Monitoring",
       path: "/requestmonitoring",
-      icon: (
-        <MonitorIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "23px",
-            height: "23px",
-          }}
-        />
-      ),
+      icon: <MonitorIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
       notificationCount: 0,
       children: {
         MRFMONITORING: {
           name: "MRF (HR)",
           path: "mrfmonitoring",
-          icon: (
-            <MarkEmailReadIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <MarkEmailReadIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: 0,
         },
         DATACHANGEMONITORING: {
           name: "Data Change (HR)",
           path: "datachangemonitoring",
-          icon: (
-            <CloudSyncIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: 0,
         },
         MDAMONITORING: {
           name: "MDA (HR)",
           path: "mdamonitoring",
-          icon: (
-            <VerifiedIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: 0,
         },
@@ -417,27 +299,14 @@ export const createEnhancedModules = (dashboardData = {}) => {
     EVALUATION: {
       name: "Evaluation",
       path: "/evaluation",
-      icon: (
-        <TrendingUpIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "23px",
-            height: "23px",
-          }}
-        />
-      ),
+      icon: <TrendingUpIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
       notificationCount: 0,
       children: {
         KPI: {
           name: "KPI",
           path: "kpi",
-          icon: (
-            <VpnKeyIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <VpnKeyIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: 0,
         },
@@ -446,66 +315,37 @@ export const createEnhancedModules = (dashboardData = {}) => {
     MASTERLIST: {
       name: "Masterlist",
       path: "/masterlist",
-      icon: (
-        <SummarizeIcon
-          sx={{
-            marginRight: "5px",
-            marginLeft: "6px",
-            width: "23px",
-            height: "23px",
-          }}
-        />
-      ),
+      icon: <SummarizeIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
       children: {
         ONERDF: {
           name: "Charging",
           path: "onerdf",
-          icon: (
-            <LocationOnIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <LocationOnIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         POSITIONS: {
           name: "Position",
           path: "positions",
-          icon: (
-            <BadgeIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <BadgeIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBBANDS: {
           name: "Job Bands",
           path: "jobbands",
-          icon: (
-            <WorkHistoryIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <WorkHistoryIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBLEVELS: {
           name: "Job Levels",
           path: "joblevels",
-          icon: (
-            <MilitaryTechIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <MilitaryTechIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBRATES: {
           name: "Job Rates",
           path: "jobrates",
-          icon: (
-            <StarIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <StarIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -514,57 +354,37 @@ export const createEnhancedModules = (dashboardData = {}) => {
     ADMINISTRATIVEDIVISION: {
       name: "Administrative Divisions",
       path: "/administrative-divisions",
-      icon: <ExploreIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />,
+      icon: <ExploreIcon sx={iconStyles.main} />,
       icon_on: null,
       children: {
         REGIONS: {
           name: "Regions",
           path: "regions",
-          icon: (
-            <ExploreIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <ExploreIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PROVINCES: {
           name: "Provinces",
           path: "provinces",
-          icon: (
-            <LocationOnIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <LocationOnIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         MUNICIPALITIES: {
           name: "Municipalities",
           path: "municipalities",
-          icon: (
-            <GavelIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <GavelIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         SUBMUNICIPALITIES: {
           name: "Sub Municipalities",
           path: "submunicipalities",
-          icon: (
-            <CategoryIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <CategoryIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         BARANGAYS: {
           name: "Barangays",
           path: "barangays",
-          icon: (
-            <AccountBalanceIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <AccountBalanceIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -573,169 +393,103 @@ export const createEnhancedModules = (dashboardData = {}) => {
     EXTRAS: {
       name: "Extras",
       path: "/extras",
-      icon: (
-        <SettingsSuggestIcon sx={{ marginRight: "5px", marginLeft: "6px" }} />
-      ),
+      icon: <SettingsSuggestIcon sx={iconStyles.main} />,
       icon_on: null,
       children: {
         TITLES: {
           name: "Titles",
           path: "titles",
-          icon: (
-            <TitleIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <TitleIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         SCHEDULES: {
           name: "Schedules",
           path: "schedules",
-          icon: (
-            <CalendarMonthIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <CalendarMonthIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         TEAMS: {
           name: "Teams",
           path: "teams",
-          icon: (
-            <GroupsIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <GroupsIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         RELIGIONS: {
           name: "Religions",
           path: "religions",
-          icon: (
-            <ChurchIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <ChurchIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PREFIXES: {
           name: "Prefixes",
           path: "prefixes",
-          icon: (
-            <ExtensionIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <ExtensionIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PROGRAMS: {
           name: "Programs",
           path: "programs",
-          icon: (
-            <FeaturedPlayListIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <FeaturedPlayListIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         ATTAINMENTS: {
           name: "Attainments",
           path: "attainments",
-          icon: (
-            <WorkIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <WorkIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         DEGREES: {
           name: "Degrees",
           path: "degrees",
-          icon: (
-            <SchoolIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <SchoolIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         HONORTITLES: {
           name: "Honor Titles",
           path: "honortitles",
-          icon: (
-            <MilitaryTechIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <MilitaryTechIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         BANKS: {
           name: "Banks",
           path: "banks",
-          icon: (
-            <GroupsIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <GroupsIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         TOOLS: {
           name: "Tools",
           path: "tools",
-          icon: (
-            <ConstructionIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <ConstructionIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         CABINETS: {
           name: "Cabinets",
           path: "cabinets",
-          icon: (
-            <KitchenIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <KitchenIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         FILETYPES: {
           name: "File Types",
           path: "filetypes",
-          icon: (
-            <FileOpenIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <FileOpenIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         OBJECTIVES: {
           name: "Objectives",
           path: "objectives",
-          icon: (
-            <EmojiObjectsIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <EmojiObjectsIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         REQUISITION: {
           name: "Requisition Types",
           path: "requisition",
-          icon: (
-            <TextSnippetIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <TextSnippetIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         MOVEMENTTYPES: {
           name: "Movement Types",
           path: "movementtypes",
-          icon: (
-            <LowPriorityIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
+          icon: <LowPriorityIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -798,58 +552,23 @@ export const CONSTANT = {
       label: "Log In",
     },
     NODATA: {
-      icon: (
-        <img
-          src={NoDataGIF}
-          alt="No Data"
-          style={{
-            width: "365px",
-            height: "auto",
-            display: "block",
-            margin: "0 auto",
-          }}
-        />
-      ),
+      icon: <img src={NoDataGIF} alt="No Data" style={imageStyles.noData} />,
     },
     ADD: {
       label1: "Save",
       label2: "Update",
-      icon1: (
-        <SaveIcon
-          sx={{
-            marginRight: "5px",
-            width: 16,
-            height: 16,
-          }}
-        />
-      ),
-      icon2: (
-        <EditIcon
-          sx={{
-            marginRight: "5px",
-            width: 16,
-            height: 16,
-          }}
-        />
-      ),
+      icon1: <SaveIcon sx={iconStyles.button} />,
+      icon2: <EditIcon sx={iconStyles.button} />,
       icon_on: null,
     },
     CANCEL: {
       label: "Cancel",
-      icon: (
-        <CancelIcon
-          sx={{
-            marginRight: "5px",
-            width: 16,
-            height: 16,
-          }}
-        />
-      ),
+      icon: <CancelIcon sx={iconStyles.button} />,
       icon_on: null,
     },
     SYNC: {
       label: "Sync",
-      icon: <SyncIcon sx={{ marginRight: "10px", marginLeft: "6px" }} />,
+      icon: <SyncIcon sx={iconStyles.sync} />,
       icon_on: null,
     },
   },

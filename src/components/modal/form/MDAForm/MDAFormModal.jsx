@@ -27,8 +27,8 @@ import dayjs from "dayjs";
 import {
   useLazyGetMdaPrefillQuery,
   useLazyGetSingleMdaSubmissionQuery,
+  useGetAllJobLevelsQuery,
 } from "../../../../features/api/forms/mdaApi";
-import { useGetAllJobLevelsQuery } from "../../../../features/api/masterlist/joblevelsApi";
 import MDAFormModalFields from "./MDAFormModalFields";
 import {
   UpdateConfirmationDialog,
@@ -41,6 +41,7 @@ import {
   getViewEditModeFormData,
 } from "./MDAFieldsGetValues";
 import {
+  dialogPaperStyles,
   dialogTitleStyles,
   titleBoxStyles,
   descriptionIconStyles,
@@ -54,6 +55,9 @@ import {
   dialogContentStyles,
   dialogActionsStyles,
   saveButtonStyles,
+  printIconButtonStyles,
+  printIconStyles,
+  resubmitButtonStyles,
 } from "./MDAFornModal.styles";
 
 const MDAFormModal = ({
@@ -71,14 +75,17 @@ const MDAFormModal = ({
   const { setValue, reset, handleSubmit, formState } = useFormContext();
   const { errors } = formState;
 
-  // ✅ FIXED: Only fetch job levels when modal is open
-  const { data: jobLevelsData } = useGetAllJobLevelsQuery(undefined, {
-    skip: !open, // Don't fetch until modal opens
-  });
+  const shouldLoadJobLevels = open;
+  const { data: jobLevelsData, isLoading: isJobLevelsLoading } =
+    useGetAllJobLevelsQuery(undefined, {
+      skip: !shouldLoadJobLevels,
+      refetchOnMountOrArgChange: true,
+    });
   const jobLevels = jobLevelsData?.result || [];
 
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [selectedMovementId, setSelectedMovementId] = useState(null);
   const [movementType, setMovementType] = useState("");
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
@@ -148,18 +155,57 @@ const MDAFormModal = ({
   }, [open, currentMode, submissionId, triggerPrefill]);
 
   useEffect(() => {
-    if (open) {
+    if (!open) {
+      setHasInitialized(false);
+      return;
+    }
+
+    if (hasInitialized) {
+      return;
+    }
+
+    if (mode === "create") {
       setCurrentMode(mode);
       setOriginalMode(mode);
-
-      if (mode === "create") {
-        reset(getCreateModeInitialValues());
-      } else if (selectedEntry && (mode === "view" || mode === "edit")) {
-        const formData = getViewEditModeFormData(selectedEntry, jobLevels);
-        reset(formData);
-      }
+      setHasInitialized(true);
+      reset(getCreateModeInitialValues());
+      return;
     }
-  }, [open, mode, selectedEntry, reset, jobLevels]);
+
+    if ((mode === "view" || mode === "edit") && selectedEntry) {
+      if (isJobLevelsLoading || jobLevels.length === 0) {
+        return;
+      }
+
+      setCurrentMode(mode);
+      setOriginalMode(mode);
+      setHasInitialized(true);
+
+      const formData = getViewEditModeFormData(selectedEntry, jobLevels);
+      reset(formData);
+    }
+  }, [
+    open,
+    mode,
+    hasInitialized,
+    selectedEntry,
+    jobLevels,
+    isJobLevelsLoading,
+    reset,
+  ]);
+
+  useEffect(() => {
+    if (
+      open &&
+      currentMode === "edit" &&
+      originalMode === "view" &&
+      selectedEntry &&
+      jobLevels.length > 0
+    ) {
+      const formData = getViewEditModeFormData(selectedEntry, jobLevels);
+      reset(formData);
+    }
+  }, [currentMode, open, originalMode, selectedEntry, jobLevels, reset]);
 
   useEffect(() => {
     if (prefillData?.result && currentMode === "create") {
@@ -339,6 +385,7 @@ const MDAFormModal = ({
     setShowPrintDialog(false);
     setPrintData(null);
     setIsPrintLoading(false);
+    setHasInitialized(false);
     if (submissionId) {
       triggerPrefill(submissionId);
     }
@@ -370,8 +417,12 @@ const MDAFormModal = ({
   const isCreate = currentMode === "create";
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
-  const showLoadingState = isPrefillLoading && isCreate && submissionId;
+  const showLoadingState =
+    (isPrefillLoading && isCreate && submissionId) ||
+    (isJobLevelsLoading && (mode === "view" || mode === "edit"));
   const isProcessing = isLoading || isUpdating || isPrintLoading;
+
+  const formKey = `mda-form-${currentMode}-${open ? "open" : "closed"}`;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -380,16 +431,7 @@ const MDAFormModal = ({
         onClose={handleClose}
         maxWidth={false}
         PaperProps={{
-          sx: {
-            width: "1100px",
-            minWidth: "1100px",
-            maxWidth: "1100px",
-            height: "94vh",
-            maxHeight: "820px",
-            display: "flex",
-            flexDirection: "column",
-            position: "relative",
-          },
+          sx: dialogPaperStyles,
         }}>
         <DialogTitle sx={dialogTitleStyles}>
           <Box sx={titleBoxStyles}>
@@ -402,7 +444,9 @@ const MDAFormModal = ({
                 <Tooltip title="EDIT MDA" arrow placement="top">
                   <span>
                     <IconButton
-                      onClick={() => handleModeChange("edit")}
+                      onClick={() => {
+                        handleModeChange("edit");
+                      }}
                       disabled={!shouldEnableEditButton() || isProcessing}
                       size="small"
                       sx={editIconButtonStyles}>
@@ -420,28 +464,11 @@ const MDAFormModal = ({
                       onClick={handlePrintClick}
                       disabled={isProcessing}
                       size="small"
-                      sx={{
-                        ml: 1,
-                        padding: "8px",
-                        "&:hover": {
-                          backgroundColor: !isProcessing
-                            ? "rgba(33, 61, 112, 0.08)"
-                            : "transparent",
-                          transform: !isProcessing ? "scale(1.1)" : "none",
-                          transition: "all 0.2s ease-in-out",
-                        },
-                      }}>
+                      sx={printIconButtonStyles}>
                       {isPrintLoading ? (
                         <CircularProgress size={20} />
                       ) : (
-                        <PrintIcon
-                          sx={{
-                            fontSize: "20px",
-                            "& path": {
-                              fill: "rgb(33, 61, 112)",
-                            },
-                          }}
-                        />
+                        <PrintIcon sx={printIconStyles} />
                       )}
                     </IconButton>
                   </Tooltip>
@@ -468,7 +495,7 @@ const MDAFormModal = ({
           </IconButton>
         </DialogTitle>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} key={formKey}>
           <DialogContent sx={dialogContentStyles}>
             {showLoadingState ? (
               <Box
@@ -482,17 +509,21 @@ const MDAFormModal = ({
                 }}>
                 <CircularProgress size={48} />
                 <Typography variant="body1" color="text.secondary">
-                  Loading employee data...
+                  {isJobLevelsLoading
+                    ? "Loading form data..."
+                    : "Loading employee data..."}
                 </Typography>
               </Box>
             ) : (
               <MDAFormModalFields
+                key={formKey}
                 isCreate={isCreate}
                 isReadOnly={isReadOnly}
                 submissionId={submissionId}
                 employeeMovements={employeeMovements}
                 isPrefillLoading={isPrefillLoading}
                 setSelectedMovementId={setSelectedMovementId}
+                currentMode={currentMode}
               />
             )}
           </DialogContent>
@@ -506,23 +537,10 @@ const MDAFormModal = ({
                 startIcon={
                   isProcessing ? <CircularProgress size={16} /> : <SendIcon />
                 }
-                sx={{
-                  backgroundColor:
-                    shouldEnableResubmitButton() && !isProcessing
-                      ? "rgb(33, 61, 112)"
-                      : "rgba(33, 61, 112, 0.3)",
-                  "&:hover": {
-                    backgroundColor:
-                      shouldEnableResubmitButton() && !isProcessing
-                        ? "rgb(25, 45, 84)"
-                        : "rgba(33, 61, 112, 0.3)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "rgba(33, 61, 112, 0.3)",
-                    color: "rgba(255, 255, 255, 0.5)",
-                  },
-                  mr: 2,
-                }}>
+                sx={resubmitButtonStyles(
+                  shouldEnableResubmitButton(),
+                  isProcessing
+                )}>
                 {isProcessing ? "Resubmitting..." : "Resubmit"}
               </Button>
             )}
