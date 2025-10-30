@@ -66,31 +66,93 @@ const statusApi = sedarApi
       }),
 
       getFilteredStatuses: build.query({
-        query: ({
-          page = 1,
-          per_page = 10,
-          status = "active",
-          search = "",
-          status_type,
-          employment_status,
-        }) => {
-          const params = new URLSearchParams({
+        query: (params = {}) => {
+          const {
+            page = 1,
+            per_page = 10,
+            status = "active",
+            search = "",
+            status_type,
+            employment_status,
+            employee_name,
+            team_name,
+            id_number,
+            date_hired_from,
+            date_hired_to,
+            employment_type,
+            department_name,
+            manpower_form,
+            position_title,
+          } = params;
+
+          const queryParams = new URLSearchParams({
             pagination: "1",
             page: page.toString(),
             per_page: per_page.toString(),
             status,
-            search,
           });
 
+          // Add search if provided
+          if (search && search.trim()) {
+            queryParams.append("search", search);
+          }
+
+          // Add status_type if provided
           if (status_type) {
-            params.append("status_type", status_type);
+            queryParams.append("status_type", status_type);
           }
 
+          // Add employment_status if provided
           if (employment_status) {
-            params.append("employment_status", employment_status);
+            queryParams.append("employment_status", employment_status);
           }
 
-          return { url: `employees/statuses?${params.toString()}` };
+          // Add employee_name if provided
+          if (employee_name) {
+            queryParams.append("employee_name", employee_name);
+          }
+
+          // Add team_name if provided
+          if (team_name) {
+            queryParams.append("team_name", team_name);
+          }
+
+          // Add id_number if provided
+          if (id_number) {
+            queryParams.append("id_number", id_number);
+          }
+
+          // Add date_hired_from if provided
+          if (date_hired_from) {
+            queryParams.append("date_hired_from", date_hired_from);
+          }
+
+          // Add date_hired_to if provided
+          if (date_hired_to) {
+            queryParams.append("date_hired_to", date_hired_to);
+          }
+
+          // Add employment_type if provided
+          if (employment_type) {
+            queryParams.append("employment_type", employment_type);
+          }
+
+          // Add department_name if provided
+          if (department_name) {
+            queryParams.append("department_name", department_name);
+          }
+
+          // Add manpower_form if provided
+          if (manpower_form) {
+            queryParams.append("manpower_form", manpower_form);
+          }
+
+          // Add position_title if provided
+          if (position_title) {
+            queryParams.append("position_title", position_title);
+          }
+
+          return { url: `employees/statuses?${queryParams.toString()}` };
         },
         providesTags: ["statuses"],
       }),

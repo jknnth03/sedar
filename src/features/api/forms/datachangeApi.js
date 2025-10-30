@@ -217,10 +217,9 @@ const dataChangeApi = sedarApi
       }),
 
       resubmitDataChangeSubmission: build.mutation({
-        query: (body) => ({
-          url: "form-submissions/resubmit",
+        query: (id) => ({
+          url: `form-submissions/${id}/resubmit`,
           method: "POST",
-          body,
         }),
         invalidatesTags: ["dataChangeSubmissions"],
       }),

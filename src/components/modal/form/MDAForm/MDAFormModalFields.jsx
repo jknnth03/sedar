@@ -226,7 +226,7 @@ const MDAFormModalFields = ({
             errors={errors}
             isReadOnly={isReadOnly}
             isCreate={isCreate}
-            showSummary={true}
+            showSummary={false}
             formValues={formValues}
           />
         </>

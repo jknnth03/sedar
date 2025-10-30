@@ -30,7 +30,7 @@ import {
   dialogContentStyles,
   sectionTitleStyles,
 } from "../../../components/modal/form/MDAForm/MDAFornModal.styles";
-import { useLazyGetSingleMdaSubmissionQuery } from "../../../features/api/forms/mdaApi";
+import { useGetSingleMdaSubmissionQuery } from "../../../features/api/forms/mdaApi";
 import MDAFormPrinting from "../form/MDAForm/MDAFormPrinting";
 
 const InfoSection = ({ title, children }) => (
@@ -107,7 +107,7 @@ const MDAMonitoringModal = ({
   const [printData, setPrintData] = useState(null);
   const [isPrintLoading, setIsPrintLoading] = useState(false);
 
-  const [triggerGetSubmission] = useLazyGetSingleMdaSubmissionQuery();
+  const [triggerGetSubmission] = useGetSingleMdaSubmissionQuery();
 
   const shouldShowPrintButton = () => {
     const status = selectedEntry?.result?.status || selectedEntry?.status;

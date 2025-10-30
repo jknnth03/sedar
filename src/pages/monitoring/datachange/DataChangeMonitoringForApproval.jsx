@@ -5,7 +5,7 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import DataChangeMonitoringModal from "../../../components/modal/monitoring/DataChangeMonitoringModal";
 import DataChangeMonitoringTable from "./DataChangeMonitoringTable";
-import { useGetDataChangeSubmissionsQuery } from "../../../features/api/forms/datachangeApi";
+import { useGetDataChangeMonitoringQuery } from "../../../features/api/monitoring/dataChangeMonitoringApi";
 
 const DataChangeMonitoringForApproval = ({
   searchQuery,
@@ -37,20 +37,20 @@ const DataChangeMonitoringForApproval = ({
     },
   });
 
-  const queryParams = useMemo(() => {
-    return {
-      page: 1,
-      per_page: 10,
-      status: "active",
-      pagination: 1,
-      approval_status: "pending",
-    };
-  }, []);
-
   useEffect(() => {
     const newPage = 1;
     setPage(newPage);
   }, [searchQuery, dateFilters]);
+
+  const queryParams = useMemo(() => {
+    return {
+      page,
+      per_page: rowsPerPage,
+      status: "active",
+      approval_status: "pending",
+      search: searchQuery || "",
+    };
+  }, [page, rowsPerPage, searchQuery]);
 
   const {
     data: submissionsData,
@@ -58,7 +58,7 @@ const DataChangeMonitoringForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetDataChangeSubmissionsQuery(queryParams, {
+  } = useGetDataChangeMonitoringQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -76,18 +76,8 @@ const DataChangeMonitoringForApproval = ({
       );
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
     return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  }, [submissionsData, dateFilters, filterDataByDate]);
 
   const paginatedSubmissions = useMemo(() => {
     const startIndex = (page - 1) * rowsPerPage;

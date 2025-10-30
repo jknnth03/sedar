@@ -45,6 +45,8 @@ const Accounts = ({
   debounceValue: parentDebounceValue,
   onSearchChange,
   onArchivedChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -71,15 +73,59 @@ const Accounts = ({
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(
-    () => ({
-      search: debounceValue,
-      page,
+  const queryParams = useMemo(() => {
+    const params = {
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      // status: showArchived ? "inactive" : "active",
-    }),
-    [debounceValue, page, rowsPerPage]
-  );
+    };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: accounts,
@@ -222,6 +268,22 @@ const Accounts = ({
     return bank?.name || "N/A";
   }, []);
 
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
+
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
+
+    return chargingData.filter((item) => item.code && item.name);
+  }, []);
+
   return (
     <Box
       sx={{
@@ -253,8 +315,8 @@ const Accounts = ({
           <Table stickyHeader sx={{ minWidth: 1200, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header3">ID</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
                 <TableCell className="table-header">SSS</TableCell>
                 <TableCell className="table-header">PAG-IBIG</TableCell>
                 <TableCell className="table-header">PHILHEALTH</TableCell>
@@ -292,19 +354,87 @@ const Accounts = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-cell4">
-                      {safelyDisplayValue(account.id)}
+                    <TableCell
+                      className="table-cell"
+                      sx={{
+                        width: "280px",
+                        minWidth: "250px",
+                      }}>
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {formatEmployeeName(account.employee)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(account.employee?.employee_code)}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              account.employee?.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              account.employee?.status === "ACTIVE"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </TableCell>
                     <TableCell
                       sx={{
-                        width: "300px",
+                        width: "350px",
                         minWidth: "300px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
+                        paddingY: 1.5,
                       }}>
-                      {formatEmployeeName(account.employee)}
+                      <Box>
+                        {formatCharging(account.employee?.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(account.employee?.charging).length ===
+                          0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell className="table-cell">
                       {safelyDisplayValue(account.sss_number)}

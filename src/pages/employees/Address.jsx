@@ -10,30 +10,13 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Box,
   Chip,
   useTheme,
   alpha,
 } from "@mui/material";
-import {
-  MoreVert as MoreVertIcon,
-  Archive as ArchiveIcon,
-  Restore as RestoreIcon,
-  Help as HelpIcon,
-} from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import {
-  useGetAddressQuery,
-  useDeleteAddressMutation,
-} from "../../features/api/employee/addressApi";
+import { useGetAddressQuery } from "../../features/api/employee/addressApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
@@ -43,11 +26,10 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 
 const Address = ({
   searchQuery: parentSearchQuery,
-  showArchived: parentShowArchived,
-  selectedStatuses: parentSelectedStatuses = [],
   debounceValue: parentDebounceValue,
   onSearchChange,
-  onArchivedChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -61,31 +43,68 @@ const Address = ({
     parentSearchQuery !== undefined
       ? parentSearchQuery
       : currentParams?.q ?? "";
-  const showArchived =
-    parentShowArchived !== undefined ? parentShowArchived : false;
-  const selectedStatuses =
-    parentSelectedStatuses !== undefined ? parentSelectedStatuses : [];
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
-
-  const [menuAnchor, setMenuAnchor] = useState({});
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState(null);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(
-    () => ({
-      search: debounceValue,
-      page,
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+
+  const queryParams = useMemo(() => {
+    const params = {
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      status: "all",
-      statuses: selectedStatuses,
-    }),
-    [debounceValue, page, rowsPerPage, selectedStatuses]
-  );
+    };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: addresses,
@@ -95,52 +114,28 @@ const Address = ({
   } = useGetAddressQuery(queryParams, {
     refetchOnMountOrArgChange: true,
   });
-
-  const [deleteAddress] = useDeleteAddressMutation();
-  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
-
   const addressList = useMemo(() => addresses?.result?.data || [], [addresses]);
 
-  const handleMenuOpen = useCallback((event, addressId) => {
-    event.stopPropagation();
-    setMenuAnchor((prev) => ({ ...prev, [addressId]: event.currentTarget }));
-  }, []);
+  const totalCount = useMemo(() => addresses?.result?.total || 0, [addresses]);
 
-  const handleMenuClose = useCallback((addressId) => {
-    setMenuAnchor((prev) => ({ ...prev, [addressId]: null }));
-  }, []);
+  const handleSearchChange = useCallback(
+    (event) => {
+      const value = event.target.value;
 
-  const handleArchiveRestoreClick = useCallback(
-    (address, event) => {
-      if (event) event.stopPropagation();
-      setSelectedAddress(address);
-      setConfirmOpen(true);
-      handleMenuClose(address.id);
+      if (onSearchChange) {
+        onSearchChange(value);
+      } else {
+        if (value.trim()) {
+          setQueryParams({ q: value });
+        } else {
+          removeQueryParams(["q"]);
+        }
+      }
+
+      setPage(1);
     },
-    [handleMenuClose]
+    [onSearchChange, setQueryParams, removeQueryParams]
   );
-
-  const handleArchiveRestoreConfirm = async () => {
-    if (!selectedAddress) return;
-    try {
-      await deleteAddress(selectedAddress.id).unwrap();
-      enqueueSnackbar(
-        selectedAddress.deleted_at
-          ? "Address restored successfully!"
-          : "Address archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
-      );
-      refetch();
-    } catch (error) {
-      enqueueSnackbar("Action failed. Please try again.", {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedAddress(null);
-    }
-  };
 
   const openWizard = useCallback(
     async (address, mode) => {
@@ -154,7 +149,7 @@ const Address = ({
         setWizardMode(mode);
         setWizardOpen(true);
       } catch (error) {
-        console.error("ERROR", error);
+        console.error("Error loading employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 2000,
@@ -221,6 +216,22 @@ const Address = ({
     return "N/A";
   }, []);
 
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
+
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
+
+    return chargingData.filter((item) => item.code && item.name);
+  }, []);
+
   return (
     <Box
       sx={{
@@ -252,9 +263,8 @@ const Address = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
                 <TableCell className="table-header">STREET</TableCell>
                 <TableCell className="table-header">BARANGAY</TableCell>
                 <TableCell
@@ -269,13 +279,12 @@ const Address = ({
                   sx={{ whiteSpace: "nowrap" }}>
                   ZIP CODE
                 </TableCell>
-                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
+                  <TableCell colSpan={8} align="center">
                     <Box sx={{ py: 4 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body2" sx={{ mt: 2 }}>
@@ -302,34 +311,87 @@ const Address = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-status">
-                      <Chip
-                        label={address.deleted_at ? "INACTIVE" : "ACTIVE"}
-                        color={address.deleted_at ? "error" : "success"}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": {
-                            fontSize: "0.68rem",
-                            fontWeight: 600,
-                          },
-                        }}
-                      />
-                    </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
+                        width: "280px",
+                        minWidth: "250px",
                       }}>
-                      {formatEmployeeName(address.employee)}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {formatEmployeeName(address.employee)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(address.employee?.employee_code)}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              address.employee?.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              address.employee?.status === "ACTIVE"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </TableCell>
-                    <TableCell className="table-cell2">
-                      {safelyDisplayValue(address.employee?.employee_code)}
+                    <TableCell
+                      sx={{
+                        width: "350px",
+                        minWidth: "300px",
+                        paddingY: 1.5,
+                      }}>
+                      <Box>
+                        {formatCharging(address.employee?.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(address.employee?.charging).length ===
+                          0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell
                       className="table-cell2"
@@ -390,60 +452,12 @@ const Address = ({
                       }}>
                       {safelyDisplayValue(address.zip_code)}
                     </TableCell>
-                    <TableCell className="table-status">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, address.id)}
-                        size="small"
-                        sx={{
-                          "&:hover": {
-                            backgroundColor: alpha(
-                              theme.palette.action.hover,
-                              0.1
-                            ),
-                          },
-                        }}>
-                        <MoreVertIcon />
-                      </IconButton>
-                      <Menu
-                        anchorEl={menuAnchor[address.id]}
-                        open={Boolean(menuAnchor[address.id])}
-                        onClose={() => handleMenuClose(address.id)}
-                        transformOrigin={{
-                          horizontal: "right",
-                          vertical: "top",
-                        }}
-                        anchorOrigin={{
-                          horizontal: "right",
-                          vertical: "bottom",
-                        }}>
-                        <MenuItem
-                          onClick={(e) => handleArchiveRestoreClick(address, e)}
-                          sx={{
-                            fontSize: "0.875rem",
-                            color: address.deleted_at
-                              ? theme.palette.success.main
-                              : theme.palette.warning.main,
-                          }}>
-                          {address.deleted_at ? (
-                            <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
-                              Archive
-                            </>
-                          )}
-                        </MenuItem>
-                      </Menu>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
+                    colSpan={8}
                     align="center"
                     sx={{ border: "none", py: 8 }}>
                     <Box
@@ -460,11 +474,11 @@ const Address = ({
                       <Typography variant="body2" color="text.secondary">
                         {searchQuery
                           ? `No results for "${searchQuery}"`
-                          : showArchived
-                          ? "No archived addresses"
-                          : selectedStatuses.length > 0
-                          ? `No addresses with selected status filters`
-                          : "No active addresses"}
+                          : Object.values(filters).some(
+                              (v) => v && v !== "ACTIVE"
+                            )
+                          ? `No addresses with selected filters`
+                          : "No addresses"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -478,7 +492,7 @@ const Address = ({
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={addresses?.result?.total || 0}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page - 1}
             onPageChange={handlePageChange}
@@ -497,71 +511,6 @@ const Address = ({
           />
         </Box>
       </Paper>
-
-      <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
-          </Box>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            textAlign="center"
-            color="rgb(33, 61, 112)">
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom textAlign="center">
-            Are you sure you want to{" "}
-            <strong>
-              {selectedAddress?.deleted_at ? "restore" : "archive"}
-            </strong>{" "}
-            this address?
-          </Typography>
-          {selectedAddress && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mt: 1 }}>
-              {formatEmployeeName(selectedAddress.employee)}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Box
-            display="flex"
-            justifyContent="center"
-            width="100%"
-            gap={2}
-            mb={2}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              color="error"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleArchiveRestoreConfirm}
-              variant="contained"
-              color="success"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Confirm
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
 
       <EmployeeWizardForm
         open={wizardOpen}

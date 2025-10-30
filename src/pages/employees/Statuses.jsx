@@ -15,7 +15,13 @@ import StatusesTable from "./StatusesTable";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 
-const Status = ({ searchQuery, showArchived, debounceValue }) => {
+const Status = ({
+  searchQuery,
+  showArchived,
+  debounceValue,
+  filters = {},
+  isLoading: parentIsLoading = false,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -23,7 +29,6 @@ const Status = ({ searchQuery, showArchived, debounceValue }) => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [menuAnchor, setMenuAnchor] = useState({});
 
-  // Internal filter state management
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [selectedStatusTypes, setSelectedStatusTypes] = useState([]);
 
@@ -36,27 +41,65 @@ const Status = ({ searchQuery, showArchived, debounceValue }) => {
   const [tempSelectedStatusTypes, setTempSelectedStatusTypes] = useState([]);
 
   React.useEffect(() => {
-    console.log("selectedStatusTypes changed:", selectedStatusTypes);
     setPage(1);
-  }, [debounceValue, showArchived, selectedStatusTypes]);
+  }, [debounceValue, showArchived, selectedStatusTypes, filters]);
 
   const queryParams = useMemo(() => {
     const params = {
       page,
       per_page: rowsPerPage,
-      status: showArchived ? "inactive" : "active",
-      search: debounceValue || "",
     };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
 
     if (selectedStatusTypes.length > 0) {
       params.status_type = selectedStatusTypes.join(",");
     }
 
-    console.log("Query params being sent:", params);
-    console.log("Selected status types:", selectedStatusTypes);
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
 
     return params;
-  }, [page, rowsPerPage, showArchived, debounceValue, selectedStatusTypes]);
+  }, [page, rowsPerPage, debounceValue, selectedStatusTypes, filters]);
 
   const {
     data: apiResponse,
@@ -131,6 +174,7 @@ const Status = ({ searchQuery, showArchived, debounceValue }) => {
           last_name: item.employee?.last_name,
           email: item.employee?.email,
           current_status: item.employee?.current_status,
+          charging: item.employee?.charging,
         },
         employee_status_label: latestStatus.employee_status_label || "N/A",
         employee_status: latestStatus.employee_status || "active",
@@ -169,7 +213,6 @@ const Status = ({ searchQuery, showArchived, debounceValue }) => {
 
   const handleFilterDialogClose = useCallback(() => {
     setFilterDialogOpen(false);
-    // Don't reset temp values here - let them keep their current values
   }, []);
 
   const handleStatusChange = useCallback((statuses) => {
@@ -181,22 +224,13 @@ const Status = ({ searchQuery, showArchived, debounceValue }) => {
   }, []);
 
   const handleApplyFilters = useCallback(() => {
-    console.log(
-      "handleApplyFilters called with tempSelectedStatusTypes:",
-      tempSelectedStatusTypes
-    );
-    console.log("tempSelectedStatuses:", tempSelectedStatuses);
-
-    // Apply the filters to the actual state
     setSelectedStatusTypes(tempSelectedStatusTypes);
     setSelectedStatuses(tempSelectedStatuses);
-
     setPage(1);
     setFilterDialogOpen(false);
   }, [tempSelectedStatusTypes, tempSelectedStatuses]);
 
   const handleClearFilters = useCallback(() => {
-    // Clear all filters
     setSelectedStatuses([]);
     setSelectedStatusTypes([]);
     setTempSelectedStatuses([]);
@@ -401,13 +435,23 @@ const Status = ({ searchQuery, showArchived, debounceValue }) => {
     if (debounceValue) {
       return `No results found for "${debounceValue}"`;
     }
-    if (selectedStatuses.length > 0 || selectedStatusTypes.length > 0) {
+    if (
+      selectedStatuses.length > 0 ||
+      selectedStatusTypes.length > 0 ||
+      Object.values(filters).some((v) => v && v !== "ACTIVE")
+    ) {
       return `No employee statuses found with selected filters`;
     }
     return showArchived
       ? "No archived employee statuses found"
       : "No active employee statuses found";
-  }, [debounceValue, showArchived, selectedStatuses, selectedStatusTypes]);
+  }, [
+    debounceValue,
+    showArchived,
+    selectedStatuses,
+    selectedStatusTypes,
+    filters,
+  ]);
 
   const handleFilterIconClick = useCallback(
     (event) => {

@@ -34,6 +34,7 @@ import { styles } from "../manpowerform/FormSubmissionStyles";
 import {
   useCreateDataChangeSubmissionMutation,
   useUpdateDataChangeSubmissionMutation,
+  useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
@@ -41,12 +42,13 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
 import DataChangeForapproval from "./DataChangeForapproval";
-import DataChangeRejected from "./DataChangeRejected";
 import DataChangeAwaitingResubmission from "./DataChangeAwaitingResubmission";
+import DataChangeRejected from "./DataChangeRejected";
 import DataChangeCompleted from "./DataChangeCompleted";
 import DataChangeCancelled from "./DataChangeCancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
-
+import DataChangeMonitoringForMDAProcessing from "../../monitoring/DATACHANGE/DataChangeMonitoringForMDAProcessing";
+import MDAForApproval from "../../monitoring/DATACHANGE/MDAForApproval";
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
   borderRadius: "0",
@@ -477,18 +479,22 @@ const DataChangeMainContainer = () => {
 
   const tabMap = {
     0: "ForApproval",
-    1: "Rejected",
-    2: "AwaitingResubmission",
+    1: "AwaitingResubmission",
+    2: "Rejected",
     3: "ForMDAProcessing",
-    4: "Cancelled",
+    4: "MDAForApproval",
+    5: "Completed",
+    6: "Cancelled",
   };
 
   const reverseTabMap = {
     ForApproval: 0,
-    Rejected: 1,
-    AwaitingResubmission: 2,
+    AwaitingResubmission: 1,
+    Rejected: 2,
     ForMDAProcessing: 3,
-    Cancelled: 4,
+    MDAForApproval: 4,
+    Completed: 5,
+    Cancelled: 6,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -509,6 +515,8 @@ const DataChangeMainContainer = () => {
   const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
   const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
+  const [resubmitDataChangeSubmission] =
+    useResubmitDataChangeSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -523,7 +531,7 @@ const DataChangeMainContainer = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap]
   );
 
   const handleSearchChange = useCallback(
@@ -537,7 +545,7 @@ const DataChangeMainContainer = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab, tabMap]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -567,6 +575,19 @@ const DataChangeMainContainer = () => {
     setModalMode(newMode);
   }, []);
 
+  const handleRefreshDetails = useCallback(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+  }, []);
+
+  const handleRowClick = useCallback((entry) => {
+    setSelectedEntry({ result: entry });
+    setModalMode("view");
+    setModalOpen(true);
+  }, []);
+
   const handleCancel = useCallback(
     async (entryId, cancellationReason = "") => {
       try {
@@ -577,6 +598,7 @@ const DataChangeMainContainer = () => {
           autoHideDuration: 2000,
         });
 
+        handleRefreshDetails();
         return true;
       } catch (error) {
         let errorMessage =
@@ -596,7 +618,46 @@ const DataChangeMainContainer = () => {
         return false;
       }
     },
-    [cancelDataChangeSubmission, enqueueSnackbar]
+    [cancelDataChangeSubmission, enqueueSnackbar, handleRefreshDetails]
+  );
+
+  const handleResubmit = useCallback(
+    async (entryId) => {
+      try {
+        await resubmitDataChangeSubmission(entryId).unwrap();
+
+        enqueueSnackbar("201 data change resubmitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        handleRefreshDetails();
+        handleCloseModal();
+        return true;
+      } catch (error) {
+        let errorMessage =
+          "Failed to resubmit 201 data change. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [
+      resubmitDataChangeSubmission,
+      enqueueSnackbar,
+      handleRefreshDetails,
+      handleCloseModal,
+    ]
   );
 
   const handleSave = useCallback(
@@ -630,6 +691,7 @@ const DataChangeMainContainer = () => {
         }
 
         handleCloseModal();
+        handleRefreshDetails();
       } catch (error) {
         let errorMessage =
           mode === "edit"
@@ -655,6 +717,7 @@ const DataChangeMainContainer = () => {
       updateDataChangeSubmission,
       enqueueSnackbar,
       handleCloseModal,
+      handleRefreshDetails,
     ]
   );
 
@@ -670,21 +733,7 @@ const DataChangeMainContainer = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <DataChangeRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: null,
@@ -700,6 +749,55 @@ const DataChangeMainContainer = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "Rejected",
+      component: (
+        <DataChangeRejected
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "For MDA Processing",
+      component: (
+        <DataChangeMonitoringForMDAProcessing
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "MDA For Approval",
+      component: (
+        <MDAForApproval
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: null,
@@ -715,6 +813,7 @@ const DataChangeMainContainer = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: null,
@@ -729,6 +828,7 @@ const DataChangeMainContainer = () => {
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: null,
@@ -838,15 +938,12 @@ const DataChangeMainContainer = () => {
                         width: isMobile ? "auto" : "160px",
                         minWidth: isMobile ? "120px" : "160px",
                         padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
+                        fontSize: "12px",
                         fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
                         boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
                         transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
                         "&:hover": {
                           backgroundColor: "rgb(25, 45, 84)",
                           boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
@@ -857,7 +954,7 @@ const DataChangeMainContainer = () => {
                           boxShadow: "none",
                         },
                       }}>
-                      CREATE
+                      {isMobile ? "NEW" : "NEW ENTRY"}
                     </Button>
                   )}
                 </Fade>
@@ -875,7 +972,7 @@ const DataChangeMainContainer = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="Data change submissions tabs"
+              aria-label="Data change tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -929,14 +1026,23 @@ const DataChangeMainContainer = () => {
           />
 
           <DataChangeModal
-            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
             open={modalOpen}
             onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEntry={selectedEntry}
-            isLoading={modalLoading}
             mode={modalMode}
             onModeChange={handleModeChange}
+            selectedEntry={selectedEntry}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            onResubmit={handleResubmit}
+            isLoading={modalLoading}
+            methods={methods}
+          />
+
+          <DateFilterDialog
+            open={filterDialogOpen}
+            onClose={() => setFilterDialogOpen(false)}
+            dateFilters={dateFilters}
+            onDateFiltersChange={handleDateFiltersChange}
           />
         </Box>
       </FormProvider>

@@ -157,10 +157,14 @@ const MDAForApprovalTable = ({
         } else {
           setIsCancelling(false);
         }
+      } else {
+        setIsCancelling(false);
+        handleCancelDialogClose();
       }
     } catch (error) {
       console.error("Error cancelling submission:", error);
       setIsCancelling(false);
+      alert("Failed to cancel submission. Please try again.");
     }
   };
 
@@ -211,7 +215,6 @@ const MDAForApprovalTable = ({
 
   const shouldHideActions =
     statusFilter === "APPROVED" || statusFilter === "CANCELLED";
-
   const shouldShowActionsColumn = !shouldHideActions;
   const totalColumns = shouldShowActionsColumn ? 9 : 8;
 

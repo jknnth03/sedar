@@ -3,9 +3,9 @@ import { Typography, TablePagination, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetMdaSubmissionsQuery,
-  useGetSingleMdaSubmissionQuery,
-} from "../../../features/api/forms/mdaApi";
+  useGetMDAMonitoringQuery,
+  useGetMDAMonitoringByIdQuery,
+} from "../../../features/api/monitoring/mdaMonitoringApi";
 import MDAMonitoringTable from "./MDAMonitoringTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAMonitoringModal from "../../../components/modal/monitoring/MDAMonitoringModal";
@@ -33,32 +33,32 @@ const MDAMonitoringAwaitingResubmission = ({
     defaultValues: {},
   });
 
-  const apiQueryParams = useMemo(() => {
-    return {
-      page: page,
-      per_page: rowsPerPage,
-      status: "awaiting resubmission",
-      pagination: true,
-      search: searchQuery || "",
-    };
-  }, [page, rowsPerPage, searchQuery]);
-
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
+
+  const apiQueryParams = useMemo(() => {
+    return {
+      page,
+      per_page: rowsPerPage,
+      status: "active",
+      approval_status: "awaiting resubmission",
+      search: searchQuery || "",
+    };
+  }, [page, rowsPerPage, searchQuery]);
 
   const {
     data: submissionsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetMdaSubmissionsQuery(apiQueryParams, {
+  } = useGetMDAMonitoringQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
   const { data: submissionDetails, isLoading: detailsLoading } =
-    useGetSingleMdaSubmissionQuery(selectedSubmissionId, {
+    useGetMDAMonitoringByIdQuery(selectedSubmissionId, {
       skip: !selectedSubmissionId,
       refetchOnMountOrArgChange: true,
     });

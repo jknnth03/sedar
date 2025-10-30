@@ -18,6 +18,8 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -35,7 +37,14 @@ import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
 
-const Files = ({ searchQuery, showArchived, debounceValue }) => {
+const Files = ({
+  searchQuery,
+  showArchived,
+  debounceValue,
+  filters = {},
+  isLoading: parentIsLoading = false,
+}) => {
+  const theme = useTheme();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -61,17 +70,60 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
 
   const queryParams = useMemo(() => {
     const params = {
-      page,
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      // status: showArchived ? "inactive" : "active",
     };
 
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
     }
 
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    console.log("Files Query Params:", params);
+    console.log("Filters object:", filters);
+
     return params;
-  }, [page, rowsPerPage, debounceValue]);
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: apiResponse,
@@ -86,7 +138,6 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
 
   const [deleteFile] = useDeleteFileTypesEmpMutation();
 
-  // Move employeeList definition before the useEffect that uses it
   const { employeeList, totalCount } = useMemo(() => {
     if (!apiResponse) {
       return { employeeList: [], totalCount: 0 };
@@ -147,9 +198,8 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
       employeeList: combinedEmployees,
       totalCount: total,
     };
-  }, [apiResponse, debounceValue]);
+  }, [apiResponse]);
 
-  // Remove the old useEffect and replace with the new openWizard function
   const openWizard = useCallback(
     async (employeeRecord, mode) => {
       try {
@@ -171,7 +221,6 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
     [getSingleEmployee, enqueueSnackbar]
   );
 
-  // Now this useEffect can safely access employeeList
   React.useEffect(() => {
     if (selectedEmployeeId && employeeList.length > 0) {
       const selectedEmployee = employeeList.find(
@@ -271,10 +320,10 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
   };
 
   const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "—" : String(value);
+    value === null || value === undefined ? "N/A" : String(value);
 
   const formatEmployeeName = (employee) => {
-    if (!employee) return "—";
+    if (!employee) return "N/A";
 
     return (
       employee.full_name ||
@@ -282,32 +331,32 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
       employee.first_name ||
       `${employee.first_name} ${employee.last_name}`.trim() ||
       employee.display_name ||
-      "—"
+      "N/A"
     );
   };
 
   const formatFileType = (fileType) => {
-    if (!fileType) return "—";
+    if (!fileType) return "N/A";
 
     if (typeof fileType === "string") return fileType;
     if (typeof fileType === "object") {
-      return fileType.name || fileType.type || fileType.title || "—";
+      return fileType.name || fileType.type || fileType.title || "N/A";
     }
 
-    return "—";
+    return "N/A";
   };
 
   const formatFileCabinet = (fileCabinet) => {
-    if (!fileCabinet) return "—";
+    if (!fileCabinet) return "N/A";
 
     if (typeof fileCabinet === "string") return fileCabinet;
     if (typeof fileCabinet === "object") {
       return (
-        fileCabinet.name || fileCabinet.cabinet || fileCabinet.title || "—"
+        fileCabinet.name || fileCabinet.cabinet || fileCabinet.title || "N/A"
       );
     }
 
-    return "—";
+    return "N/A";
   };
 
   const getFileAttachmentUrl = (attachment) => {
@@ -315,51 +364,24 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
     return `${import.meta.env.VITE_API_BASE_URL}/${attachment}`;
   };
 
-  const filteredEmployeeList = useMemo(() => {
-    if (!debounceValue || debounceValue.trim() === "") {
-      return employeeList;
-    }
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
 
-    const searchTerm = debounceValue.toLowerCase().trim();
-    return employeeList.filter((employeeRecord) => {
-      const employeeName = formatEmployeeName(
-        employeeRecord.employee
-      ).toLowerCase();
-      const employeeCode = (
-        employeeRecord.employee?.employee_code || ""
-      ).toLowerCase();
-      const employeeId = (employeeRecord.employee?.id || "")
-        .toString()
-        .toLowerCase();
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
 
-      const fileMatches = employeeRecord.files.some((file) => {
-        const fileType = formatFileType(file.file_type).toLowerCase();
-        const fileCabinet = formatFileCabinet(file.file_cabinet).toLowerCase();
-        const description = (file.file_description || "").toLowerCase();
-        const fileId = (file.id || "").toString().toLowerCase();
+    return chargingData.filter((item) => item.code && item.name);
+  }, []);
 
-        return (
-          fileType.includes(searchTerm) ||
-          fileCabinet.includes(searchTerm) ||
-          description.includes(searchTerm) ||
-          fileId.includes(searchTerm)
-        );
-      });
-
-      return (
-        employeeName.includes(searchTerm) ||
-        employeeCode.includes(searchTerm) ||
-        employeeId.includes(searchTerm) ||
-        fileMatches
-      );
-    });
-  }, [employeeList, debounceValue]);
-
-  const displayList = filteredEmployeeList;
-  const displayCount =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredEmployeeList.length
-      : totalCount;
+  const displayList = employeeList;
+  const displayCount = totalCount;
 
   return (
     <Box
@@ -377,6 +399,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
           flexDirection: "column",
           overflow: "hidden",
           minHeight: 0,
+          borderRadius: 2,
         }}>
         <TableContainer
           className="table-container"
@@ -388,43 +411,29 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ width: "100%", minWidth: "800px" }}>
+          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-id"
-                  sx={{ minWidth: 80, width: 80, whiteSpace: "nowrap" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "250px",
-                    minWidth: "200px",
-                  }}>
-                  EMPLOYEE NAME
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{
-                    width: "120px",
-                    minWidth: "100px",
-                    textAlign: "center",
-                  }}>
-                  FILE COUNT
-                </TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
+                <TableCell className="table-header">FILE COUNT</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    <CircularProgress size={24} />
+                  <TableCell colSpan={3} align="center">
+                    <Box sx={{ py: 4 }}>
+                      <CircularProgress size={32} />
+                      <Typography variant="body2" sx={{ mt: 2 }}>
+                        Loading files...
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" className="table-cell">
+                  <TableCell colSpan={3} align="center" className="table-cell">
                     <Typography color="error">
                       Error: {error?.data?.message || "Failed to load data"}
                     </Typography>
@@ -439,7 +448,10 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
                       sx={{
                         cursor: "pointer",
                         "&:hover": {
-                          backgroundColor: "#f5f5f5",
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.04
+                          ),
                           "& .MuiTableCell-root": {
                             backgroundColor: "transparent",
                           },
@@ -447,36 +459,90 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
                         transition: "background-color 0.2s ease",
                       }}>
                       <TableCell
-                        className="table-cell-id"
-                        sx={{ whiteSpace: "nowrap" }}>
-                        {safelyDisplayValue(employeeRecord.employee.id)}
-                      </TableCell>
-                      <TableCell
                         className="table-cell"
                         sx={{
-                          width: "250px",
-                          minWidth: "200px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          width: "400px",
+                          minWidth: "400px",
                         }}>
-                        {formatEmployeeName(employeeRecord.employee)}
+                        <Box>
+                          <Typography
+                            sx={{
+                              fontWeight: 500,
+                              fontSize: "0.875rem",
+                              lineHeight: 1.4,
+                            }}>
+                            {formatEmployeeName(employeeRecord.employee)}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                              lineHeight: 1.2,
+                              mt: 0.3,
+                            }}>
+                            {safelyDisplayValue(
+                              employeeRecord.employee?.employee_code
+                            )}
+                          </Typography>
+                          <Box sx={{ mt: 0.5 }}>
+                            <Chip
+                              label={
+                                employeeRecord.employee?.status === "ACTIVE"
+                                  ? "ACTIVE"
+                                  : "INACTIVE"
+                              }
+                              color={
+                                employeeRecord.employee?.status === "ACTIVE"
+                                  ? "success"
+                                  : "error"
+                              }
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                height: "18px",
+                                "& .MuiChip-label": {
+                                  fontSize: "0.65rem",
+                                  fontWeight: 600,
+                                  paddingX: "6px",
+                                },
+                              }}
+                            />
+                          </Box>
+                        </Box>
                       </TableCell>
                       <TableCell
-                        className="table-cell"
                         sx={{
-                          width: "120px",
-                          minWidth: "100px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          textAlign: "center",
-                          fontWeight: "bold",
-                          color:
-                            employeeRecord.file_count > 0
-                              ? "primary.main"
-                              : "text.secondary",
+                          width: "640px",
+                          minWidth: "640px",
+                          paddingY: 1.5,
                         }}>
+                        <Box>
+                          {formatCharging(
+                            employeeRecord.employee?.charging
+                          ).map((item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          ))}
+                          {formatCharging(employeeRecord.employee?.charging)
+                            .length === 0 && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.75rem",
+                                color: "text.secondary",
+                              }}>
+                              N/A
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell className="table-cell">
                         {employeeRecord.file_count}
                       </TableCell>
                     </TableRow>
@@ -485,29 +551,38 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={3}
                     align="center"
-                    sx={{ borderBottom: "none" }}
-                    className="table-cell">
-                    {CONSTANT?.BUTTONS?.NODATA?.icon || (
-                      <>
-                        <img
-                          src={NoDataGIF}
-                          alt="No data"
-                          style={{ width: 150 }}
-                        />
-                        <Typography
-                          variant="body2"
-                          color="textSecondary"
-                          sx={{ mt: 1 }}>
-                          {debounceValue && debounceValue.trim() !== ""
-                            ? `No employees found for "${debounceValue}"`
-                            : showArchived
-                            ? "No archived employees found."
-                            : "No active employees found."}
-                        </Typography>
-                      </>
-                    )}
+                    sx={{ border: "none", py: 8 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      {CONSTANT?.BUTTONS?.NODATA?.icon || (
+                        <>
+                          <img
+                            src={NoDataGIF}
+                            alt="No data"
+                            style={{ width: 150 }}
+                          />
+                        </>
+                      )}
+                      <Typography variant="h6" color="text.secondary">
+                        No files found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {debounceValue && debounceValue.trim() !== ""
+                          ? `No results for "${debounceValue}"`
+                          : Object.values(filters).some(
+                              (v) => v && v !== "ACTIVE"
+                            )
+                          ? `No files with selected filters`
+                          : "No files"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -521,25 +596,25 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
             component="div"
             count={displayCount}
             rowsPerPage={rowsPerPage}
-            page={Math.min(
-              page - 1,
-              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
-            )}
+            page={page - 1}
             onPageChange={(event, newPage) => setPage(newPage + 1)}
             onRowsPerPageChange={(event) => {
               setRowsPerPage(parseInt(event.target.value, 10));
               setPage(1);
             }}
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fafafa",
+              borderTop: `1px solid ${theme.palette.divider}`,
+              backgroundColor: alpha(theme.palette.background.paper, 0.6),
               minHeight: "52px",
-            }}
-            labelDisplayedRows={({ from, to, count }) => {
-              if (debounceValue && debounceValue.trim() !== "") {
-                return `${from}-${to} of ${count} (filtered)`;
-              }
-              return `${from}-${to} of ${count}`;
+              "& .MuiTablePagination-toolbar": {
+                paddingLeft: theme.spacing(2),
+                paddingRight: theme.spacing(1),
+              },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  margin: 0,
+                  fontSize: "0.875rem",
+                },
             }}
           />
         </Box>
@@ -572,7 +647,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
             justifyContent: "space-between",
             alignItems: "center",
             pb: 2,
-            color: "rgb(33, 61, 112) ",
+            color: "rgb(33, 61, 112)",
             fontWeight: "bold",
           }}>
           <Typography variant="h6" component="div">
@@ -594,7 +669,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
             <Box sx={{ display: "flex", flexDirection: "column" }}>
               <Box sx={{ mb: 2 }}>
                 <Typography>
-                  <strong>Employee Code:</strong>{" "}
+                  <strong>Employee:</strong>{" "}
                   {formatEmployeeName(employeeDetails.employee)} (
                   {safelyDisplayValue(employeeDetails.employee?.employee_code)})
                 </Typography>
@@ -650,7 +725,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
                                 variant="body2"
                                 color="text.secondary">
                                 <strong>File Type Code:</strong>{" "}
-                                {file.file_type?.code || "—"}
+                                {file.file_type?.code || "N/A"}
                               </Typography>
                               <Typography
                                 variant="body2"
@@ -662,7 +737,7 @@ const Files = ({ searchQuery, showArchived, debounceValue }) => {
                                 variant="body2"
                                 color="text.secondary">
                                 <strong>Cabinet Code:</strong>{" "}
-                                {file.file_cabinet?.code || "—"}
+                                {file.file_cabinet?.code || "N/A"}
                               </Typography>
                             </Box>
 

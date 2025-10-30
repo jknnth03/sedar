@@ -42,14 +42,12 @@ const StatusesTable = ({
     }
 
     const parts = [
-      employee.last_name,
       employee.first_name,
       employee.middle_name,
+      employee.last_name,
     ].filter(Boolean);
 
-    return parts.length > 0
-      ? parts.join(", ")
-      : employee.employee_code || "N/A";
+    return parts.length > 0 ? parts.join(" ") : employee.employee_code || "N/A";
   }, []);
 
   const validateDate = useCallback((dateString) => {
@@ -291,14 +289,14 @@ const StatusesTable = ({
         maxWidth: "100%",
         minHeight: 0,
       }}>
-      <Table stickyHeader sx={{ width: "100%", tableLayout: "fixed" }}>
+      <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
         <TableHead>
           <TableRow>
-            <TableCell className="table-header3" sx={{ width: "80px" }}>
-              ID
-            </TableCell>
             <TableCell className="table-header" sx={{ width: "400px" }}>
-              EMPLOYEE NAME
+              FULL NAME
+            </TableCell>
+            <TableCell className="table-header" sx={{ width: "350px" }}>
+              CHARGING
             </TableCell>
             <TableCell className="table-header" sx={{ width: "220px" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -358,96 +356,211 @@ const StatusesTable = ({
               </TableCell>
             </TableRow>
           ) : employeeStatusList.length > 0 ? (
-            employeeStatusList.map((employeeStatus) => (
-              <TableRow
-                key={employeeStatus.id}
-                onClick={() => handleRowClick(employeeStatus)}
-                sx={{
-                  cursor: "pointer",
-                  "&:hover": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                    "& .MuiTableCell-root": {
-                      backgroundColor: "transparent",
-                    },
-                  },
-                  transition: "background-color 0.2s ease",
-                }}>
-                <TableCell className="table-cell4" sx={{ width: "80px" }}>
-                  {safelyDisplayValue(employeeStatus.id)}
-                </TableCell>
+            employeeStatusList.map((employeeStatus) => {
+              const charging = employeeStatus.employee?.charging;
 
-                <TableCell
-                  className="table-cell"
+              return (
+                <TableRow
+                  key={employeeStatus.id}
+                  onClick={() => handleRowClick(employeeStatus)}
                   sx={{
-                    width: "280px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    fontWeight: 500,
-                  }}
-                  title={formatEmployeeName(employeeStatus.employee)}>
-                  {formatEmployeeName(employeeStatus.employee)}
-                </TableCell>
-
-                <TableCell
-                  className="table-cell2"
-                  sx={{
-                    width: "180px",
-                    overflow: "hidden",
-                  }}>
-                  <Chip
-                    label={safelyDisplayValue(
-                      employeeStatus.employee_status_label
-                    )}
-                    variant="filled"
-                    size="small"
-                    sx={{
-                      fontWeight: 500,
-                      textTransform: "uppercase",
-                      maxWidth: "100%",
-                      borderRadius: "16px",
-                      height: "24px",
-                      fontSize: "0.75rem",
-                      letterSpacing: "0.5px",
-                      border: "none",
-                      boxShadow: "none",
-                      ...getEmployeeStatusChipStyle(
-                        employeeStatus.employee_status_label
-                      ),
-                      "& .MuiChip-label": {
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: "150px",
-                        padding: "0 12px",
+                    cursor: "pointer",
+                    "&:hover": {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                      "& .MuiTableCell-root": {
+                        backgroundColor: "transparent",
                       },
-                    }}
-                  />
-                </TableCell>
+                    },
+                    transition: "background-color 0.2s ease",
+                  }}>
+                  <TableCell
+                    className="table-cell"
+                    sx={{
+                      width: "400px",
+                      minWidth: "350px",
+                    }}>
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.875rem",
+                          lineHeight: 1.4,
+                        }}>
+                        {formatEmployeeName(employeeStatus.employee)}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: "0.75rem",
+                          color: "text.secondary",
+                          lineHeight: 1.2,
+                          mt: 0.3,
+                        }}>
+                        {safelyDisplayValue(
+                          employeeStatus.employee?.employee_code
+                        )}
+                      </Typography>
+                    </Box>
+                  </TableCell>
 
-                <TableCell className="table-cell" sx={{ width: "130px" }}>
-                  {formatDateWithStatus(
-                    employeeStatus.employee_status_start_date,
-                    employeeStatus.employee_status_label,
-                    "start_date"
-                  )}
-                </TableCell>
-                <TableCell className="table-cell" sx={{ width: "120px" }}>
-                  {formatDateWithStatus(
-                    employeeStatus.employee_status_end_date,
-                    employeeStatus.employee_status_label,
-                    "end_date"
-                  )}
-                </TableCell>
-                <TableCell className="table-cell" sx={{ width: "160px" }}>
-                  {formatDateWithStatus(
-                    employeeStatus.employee_status_effectivity_date,
-                    employeeStatus.employee_status_label,
-                    "effectivity_date"
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
+                  <TableCell
+                    sx={{
+                      width: "350px",
+                      minWidth: "300px",
+                      paddingY: 1.5,
+                    }}>
+                    <Box>
+                      {charging ? (
+                        <>
+                          {charging.code && charging.name && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({charging.code}) - {charging.name}
+                            </Typography>
+                          )}
+                          {charging.company_code && charging.company_name && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({charging.company_code}) -{" "}
+                              {charging.company_name}
+                            </Typography>
+                          )}
+                          {charging.business_unit_code &&
+                            charging.business_unit_name && (
+                              <Typography
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  lineHeight: 1.4,
+                                  color: "text.primary",
+                                }}>
+                                ({charging.business_unit_code}) -{" "}
+                                {charging.business_unit_name}
+                              </Typography>
+                            )}
+                          {charging.department_code &&
+                            charging.department_name && (
+                              <Typography
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  lineHeight: 1.4,
+                                  color: "text.primary",
+                                }}>
+                                ({charging.department_code}) -{" "}
+                                {charging.department_name}
+                              </Typography>
+                            )}
+                          {charging.unit_code && charging.unit_name && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({charging.unit_code}) - {charging.unit_name}
+                            </Typography>
+                          )}
+                          {charging.sub_unit_code && charging.sub_unit_name && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({charging.sub_unit_code}) -{" "}
+                              {charging.sub_unit_name}
+                            </Typography>
+                          )}
+                          {charging.location_code && charging.location_name && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({charging.location_code}) -{" "}
+                              {charging.location_name}
+                            </Typography>
+                          )}
+                        </>
+                      ) : (
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                          }}>
+                          N/A
+                        </Typography>
+                      )}
+                    </Box>
+                  </TableCell>
+
+                  <TableCell
+                    className="table-cell2"
+                    sx={{
+                      width: "220px",
+                      overflow: "hidden",
+                    }}>
+                    <Chip
+                      label={safelyDisplayValue(
+                        employeeStatus.employee_status_label
+                      )}
+                      variant="filled"
+                      size="small"
+                      sx={{
+                        fontWeight: 500,
+                        textTransform: "uppercase",
+                        maxWidth: "100%",
+                        borderRadius: "16px",
+                        height: "24px",
+                        fontSize: "0.75rem",
+                        letterSpacing: "0.5px",
+                        border: "none",
+                        boxShadow: "none",
+                        ...getEmployeeStatusChipStyle(
+                          employeeStatus.employee_status_label
+                        ),
+                        "& .MuiChip-label": {
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: "180px",
+                          padding: "0 12px",
+                        },
+                      }}
+                    />
+                  </TableCell>
+
+                  <TableCell className="table-cell" sx={{ width: "160px" }}>
+                    {formatDateWithStatus(
+                      employeeStatus.employee_status_start_date,
+                      employeeStatus.employee_status_label,
+                      "start_date"
+                    )}
+                  </TableCell>
+                  <TableCell className="table-cell" sx={{ width: "160px" }}>
+                    {formatDateWithStatus(
+                      employeeStatus.employee_status_end_date,
+                      employeeStatus.employee_status_label,
+                      "end_date"
+                    )}
+                  </TableCell>
+                  <TableCell className="table-cell" sx={{ width: "220px" }}>
+                    {formatDateWithStatus(
+                      employeeStatus.employee_status_effectivity_date,
+                      employeeStatus.employee_status_label,
+                      "effectivity_date"
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell

@@ -93,6 +93,14 @@ const mainApi = sedarApi
         providesTags: ["employees"],
       }),
 
+      getAllApprovedMrf: build.query({
+        query: () => ({
+          url: `mrf/approved`,
+          method: "GET",
+        }),
+        providesTags: ["employees"],
+      }),
+
       getAllEmployeesToBeReplaced: build.query({
         query: ({ position_id, requisition_type_id, current_mrf_id }) => {
           const queryParams = new URLSearchParams();
@@ -217,6 +225,8 @@ export const {
   useGetSingleEmployeeQuery,
   useLazyGetSingleEmployeeQuery,
   useGetAllPositionsQuery,
+  useGetAllApprovedMrfQuery,
+  useLazyGetAllApprovedMrfQuery,
   useGetAllEmployeesToBeReplacedQuery,
   useLazyGetAllEmployeesToBeReplacedQuery,
   useGetEmployeeRegistrationCountsQuery,

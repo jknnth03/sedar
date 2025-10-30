@@ -182,7 +182,10 @@ const DataChangeModal = ({
   const shouldShowResubmitButton = () => {
     const status = selectedEntry?.result?.status;
     return (
-      status !== "COMPLETED" && status !== "CANCELLED" && status !== "APPROVED"
+      status !== "COMPLETED" &&
+      status !== "CANCELLED" &&
+      status !== "APPROVED" &&
+      status !== "PENDING MDA CREATION"
     );
   };
 
@@ -312,21 +315,35 @@ const DataChangeModal = ({
   };
 
   const handleResubmit = async () => {
-    if (editingEntryId && onResubmit) {
+    console.log("=== RESUBMIT BUTTON CLICKED ===");
+    const entryId = selectedEntry?.result?.id;
+    console.log("Entry ID:", entryId);
+    console.log("onResubmit function exists?", !!onResubmit);
+    console.log("selectedEntry:", selectedEntry);
+
+    if (entryId && onResubmit) {
       try {
+        console.log("Starting resubmit process...");
         setIsUpdating(true);
-        await onResubmit(editingEntryId);
-        setFormInitialized(false);
-        if (onRefreshDetails) {
-          setTimeout(() => {
-            onRefreshDetails();
-          }, 200);
+        const success = await onResubmit(entryId);
+        console.log("Resubmit success:", success);
+        if (success) {
+          setFormInitialized(false);
+          if (onRefreshDetails) {
+            setTimeout(() => {
+              onRefreshDetails();
+            }, 200);
+          }
         }
       } catch (error) {
-        alert("An error occurred while resubmitting. Please try again.");
+        console.error("Resubmit error:", error);
       } finally {
         setIsUpdating(false);
       }
+    } else {
+      console.log("Cannot resubmit - Missing entryId or onResubmit");
+      console.log("entryId:", entryId);
+      console.log("onResubmit:", onResubmit);
     }
   };
 

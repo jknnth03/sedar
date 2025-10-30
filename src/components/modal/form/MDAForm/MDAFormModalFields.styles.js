@@ -68,7 +68,7 @@ export const textFieldStyles = {
 
 export const addressGridStyles = {
   marginTop: -5,
-  marginBottom: -6,
+  marginBottom: -9,
 };
 
 export const sectionHeaderStyles = {

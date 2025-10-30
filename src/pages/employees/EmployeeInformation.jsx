@@ -8,8 +8,6 @@ import {
   Button,
   Typography,
   TextField,
-  Checkbox,
-  FormControlLabel,
   Alert,
   Snackbar,
   Fade,
@@ -21,7 +19,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import ArchiveIcon from "@mui/icons-material/Archive";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import GeneralInformation from "./Generalinformation.jsx";
 import Address from "./Address.jsx";
 import PositionsEmp from "../../pages/employees/Positionsemp.jsx";
@@ -38,83 +36,114 @@ import useDebounce from "../../hooks/useDebounce";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/employeeWizardForm.jsx";
 import Status from "./Statuses.jsx";
 import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js";
+import FilterDialog from "./FilterDialog.jsx";
 
 const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
-  showArchived,
-  setShowArchived,
+  onOpenFilter,
   isLoading = false,
+  activeFilterCount = 0,
 }) => {
   const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
-
-  const archivedIconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
     <Box
       sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
       className="search-bar-container">
-      {/* Archived Checkbox - Show only icon for very small screens */}
       {isVerySmall ? (
         <IconButton
-          onClick={() => setShowArchived(!showArchived)}
+          onClick={onOpenFilter}
           disabled={isLoading}
           size="small"
           sx={{
             width: "36px",
             height: "36px",
-            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            border: "1px solid rgb(33, 61, 112)",
             borderRadius: "8px",
-            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-            color: archivedIconColor,
+            backgroundColor:
+              activeFilterCount > 0 ? "rgba(33, 61, 112, 0.04)" : "white",
+            color: "rgb(33, 61, 112)",
             transition: "all 0.2s ease-in-out",
+            position: "relative",
             "&:hover": {
-              backgroundColor: showArchived
-                ? "rgba(211, 47, 47, 0.08)"
-                : "#f5f5f5",
-              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+              backgroundColor: "rgba(33, 61, 112, 0.08)",
+              borderColor: "rgb(33, 61, 112)",
             },
           }}>
-          <ArchiveIcon sx={{ fontSize: "18px" }} />
+          <FilterListIcon sx={{ fontSize: "18px" }} />
+          {activeFilterCount > 0 && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                backgroundColor: "rgb(33, 61, 112)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: "bold",
+                border: "2px solid white",
+              }}>
+              {activeFilterCount}
+            </Box>
+          )}
         </IconButton>
       ) : (
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-              disabled={isLoading}
-              icon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
-              checkedIcon={<ArchiveIcon sx={{ color: archivedIconColor }} />}
-              size="small"
-            />
-          }
-          label="ARCHIVED"
-          className="archived-checkbox"
+        <Button
+          variant="outlined"
+          onClick={onOpenFilter}
+          startIcon={<FilterListIcon />}
+          disabled={isLoading}
           sx={{
             margin: 0,
-            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            border: "1px solid rgb(33, 61, 112)",
             borderRadius: "8px",
-            paddingLeft: "8px",
-            paddingRight: "12px",
+            paddingLeft: "12px",
+            paddingRight: "16px",
             height: "36px",
-            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            minWidth: "100px",
+            backgroundColor:
+              activeFilterCount > 0 ? "rgba(33, 61, 112, 0.04)" : "white",
+            color: "rgb(33, 61, 112)",
             transition: "all 0.2s ease-in-out",
+            textTransform: "none",
+            fontWeight: 600,
+            fontSize: "12px",
+            letterSpacing: "0.5px",
+            position: "relative",
             "&:hover": {
-              backgroundColor: showArchived
-                ? "rgba(211, 47, 47, 0.08)"
-                : "#f5f5f5",
-              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+              backgroundColor: "rgba(33, 61, 112, 0.08)",
+              borderColor: "rgb(33, 61, 112)",
             },
-            "& .MuiFormControlLabel-label": {
-              fontSize: "12px",
-              fontWeight: 600,
-              color: archivedIconColor,
-              letterSpacing: "0.5px",
+            "& .MuiButton-startIcon": {
+              marginRight: "6px",
             },
-          }}
-        />
+          }}>
+          FILTER
+          {activeFilterCount > 0 && (
+            <Box
+              sx={{
+                marginLeft: "8px",
+                backgroundColor: "rgb(33, 61, 112)",
+                color: "white",
+                borderRadius: "10px",
+                padding: "2px 6px",
+                fontSize: "11px",
+                fontWeight: "bold",
+                minWidth: "20px",
+                textAlign: "center",
+              }}>
+              {activeFilterCount}
+            </Box>
+          )}
+        </Button>
       )}
 
       <TextField
@@ -189,9 +218,20 @@ function EmployeeInformation() {
   const [modalMode, setModalMode] = React.useState("create");
   const [editData, setEditData] = React.useState(null);
   const [searchQuery, setSearchQuery] = React.useState(currentParams?.q ?? "");
-  const [showArchived, setShowArchived] = React.useState(
-    currentParams?.archived === "true"
-  );
+
+  const [openFilterDialog, setOpenFilterDialog] = React.useState(false);
+  const [filters, setFilters] = React.useState({
+    name: null,
+    team: null,
+    idNumber: null,
+    dateHiredFrom: null,
+    dateHiredTo: null,
+    status: "ACTIVE",
+    type: null,
+    department: null,
+    manpower: null,
+    position: null,
+  });
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [notification, setNotification] = React.useState({
@@ -207,19 +247,42 @@ function EmployeeInformation() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const activeFilterCount = React.useMemo(() => {
+    let count = 0;
+    const defaultFilters = {
+      name: null,
+      team: null,
+      idNumber: null,
+      dateHiredFrom: null,
+      dateHiredTo: null,
+      status: "ACTIVE",
+      type: null,
+      department: null,
+      manpower: null,
+      position: null,
+    };
+
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] !== defaultFilters[key] && filters[key] !== null) {
+        count++;
+      }
+    });
+    return count;
+  }, [filters]);
+
   const handleChange = React.useCallback(
     (event, newValue) => {
       setQueryParams(
         {
           tab: newValue,
           q: searchQuery,
-          archived: showArchived.toString(),
+          ...filters,
         },
         { retain: true }
       );
       setValue(newValue);
     },
-    [setQueryParams, searchQuery, showArchived]
+    [setQueryParams, searchQuery, filters]
   );
 
   const handleOpenModal = React.useCallback((mode = "create", data = null) => {
@@ -273,26 +336,35 @@ function EmployeeInformation() {
       setQueryParams(
         {
           q: newSearchQuery,
-          archived: showArchived.toString(),
           tab: value,
+          ...filters,
         },
         { retain: true }
       );
     },
-    [setQueryParams, showArchived, value]
+    [setQueryParams, value, filters]
   );
 
-  const handleArchivedChange = React.useCallback(
-    (newShowArchived) => {
-      setShowArchived(newShowArchived);
+  const handleOpenFilterDialog = React.useCallback(() => {
+    setOpenFilterDialog(true);
+  }, []);
+
+  const handleCloseFilterDialog = React.useCallback(() => {
+    setOpenFilterDialog(false);
+  }, []);
+
+  const handleApplyFilters = React.useCallback(
+    (newFilters) => {
+      setFilters(newFilters);
       setQueryParams(
         {
           q: searchQuery,
-          archived: newShowArchived.toString(),
           tab: value,
+          ...newFilters,
         },
         { retain: true }
       );
+      setOpenFilterDialog(false);
     },
     [setQueryParams, searchQuery, value]
   );
@@ -307,21 +379,19 @@ function EmployeeInformation() {
   const sharedSearchProps = React.useMemo(
     () => ({
       searchQuery,
-      showArchived,
       debounceValue: debouncedSearchQuery,
       onSearchChange: handleSearchChange,
-      onArchivedChange: handleArchivedChange,
       onEdit: (employeeData) => handleOpenModal("update", employeeData),
       isLoading,
+      filters,
     }),
     [
       searchQuery,
-      showArchived,
       debouncedSearchQuery,
       handleSearchChange,
-      handleArchivedChange,
       handleOpenModal,
       isLoading,
+      filters,
     ]
   );
 
@@ -372,97 +442,14 @@ function EmployeeInformation() {
           <Typography className="header">
             {isVerySmall ? "EMPLOYEE INFO" : "EMPLOYEE INFORMATION"}
           </Typography>
-          {/* <Fade in={!isLoading}>
-            <Badge
-              badgeContent={openMrfsCount}
-              color="error"
-              anchorOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-              sx={{
-                "& .MuiBadge-badge": {
-                  backgroundColor: "#ff4444",
-                  color: "white",
-                  fontSize: "11px",
-                  fontWeight: "bold",
-                  minWidth: "18px",
-                  height: "18px",
-                  transform: "translate(50%, -50%)",
-                  border: "2px solid white",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
-                },
-              }}> */}
-          {/* CREATE Button - Show only icon for very small screens */}
-          {/* {isVerySmall ? (
-                <IconButton
-                  onClick={() => handleOpenModal("create")}
-                  disabled={isLoading}
-                  sx={{
-                    backgroundColor: "rgb(33, 61, 112)",
-                    color: "white",
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover": {
-                      backgroundColor: "rgb(25, 45, 84)",
-                      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                      transform: "translateY(-1px)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "#ccc",
-                      boxShadow: "none",
-                    },
-                  }}>
-                  <AddIcon sx={{ fontSize: "18px" }} />
-                </IconButton>
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={() => handleOpenModal("create")}
-                  startIcon={<AddIcon />}
-                  disabled={isLoading}
-                  className="create-button"
-                  sx={{
-                    backgroundColor: "rgb(33, 61, 112)",
-                    height: isMobile ? "36px" : "38px",
-                    width: isMobile ? "auto" : "140px",
-                    minWidth: isMobile ? "100px" : "140px",
-                    padding: isMobile ? "0 16px" : "0 20px",
-                    textTransform: "none",
-                    fontWeight: 600,
-                    fontSize: isMobile ? "12px" : "14px",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                    transition: "all 0.2s ease-in-out",
-                    "& .MuiButton-startIcon": {
-                      marginRight: isMobile ? "4px" : "8px",
-                    },
-                    "&:hover": {
-                      backgroundColor: "rgb(25, 45, 84)",
-                      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                      transform: "translateY(-1px)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "#ccc",
-                      boxShadow: "none",
-                    },
-                  }}>
-                  CREATE
-                </Button>
-              )} */}
-          {/* </Badge>
-          </Fade> */}
         </Box>
 
         <CustomSearchBar
           searchQuery={searchQuery}
           setSearchQuery={handleSearchChange}
-          showArchived={showArchived}
-          setShowArchived={handleArchivedChange}
+          onOpenFilter={handleOpenFilterDialog}
           isLoading={isLoading}
+          activeFilterCount={activeFilterCount}
         />
       </Box>
 
@@ -472,6 +459,13 @@ function EmployeeInformation() {
         mode={modalMode}
         initialData={editData}
         onSubmit={handleSubmit}
+      />
+
+      <FilterDialog
+        open={openFilterDialog}
+        onClose={handleCloseFilterDialog}
+        filters={filters}
+        onApplyFilters={handleApplyFilters}
       />
 
       <TabContext value={value}>
@@ -501,7 +495,7 @@ function EmployeeInformation() {
                   fontWeight: 700,
                 },
                 "&:hover": {
-                  color: "rgb(33, 61, 112) 78, ",
+                  color: "rgb(33, 61, 112)",
                   backgroundColor: "rgba(33, 61, 112, 0.04)",
                 },
               },

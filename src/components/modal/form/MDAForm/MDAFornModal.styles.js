@@ -100,8 +100,8 @@ export const gridItemFullStyles = {
 };
 
 export const gridItemLargeStyles = {
-  minWidth: "346px",
-  maxWidth: "346px",
+  minWidth: "248px",
+  maxWidth: "248px",
 };
 
 export const gridItemExtraLargeStyles = {

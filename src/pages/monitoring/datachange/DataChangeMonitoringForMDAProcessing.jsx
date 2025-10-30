@@ -40,20 +40,20 @@ const DataChangeMonitoringForMDAProcessing = ({
     },
   });
 
-  const queryParams = useMemo(() => {
-    return {
-      page: 1,
-      per_page: 10,
-      status: "active",
-      pagination: 1,
-      approval_status: "PENDING MDA CREATION",
-    };
-  }, []);
-
   useEffect(() => {
     const newPage = 1;
     setPage(newPage);
   }, [searchQuery, dateFilters]);
+
+  const queryParams = useMemo(() => {
+    return {
+      page,
+      per_page: rowsPerPage,
+      status: "active",
+      approval_status: "pending mda creation",
+      search: searchQuery || "",
+    };
+  }, [page, rowsPerPage, searchQuery]);
 
   const {
     data: submissionsData,
@@ -77,10 +77,7 @@ const DataChangeMonitoringForMDAProcessing = ({
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
-    let filtered = rawData.filter((item) => {
-      const status = item.status?.toUpperCase();
-      return status === "PENDING MDA CREATION";
-    });
+    let filtered = rawData;
 
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
@@ -90,18 +87,8 @@ const DataChangeMonitoringForMDAProcessing = ({
       );
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
     return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  }, [submissionsData, dateFilters, filterDataByDate]);
 
   const paginatedSubmissions = useMemo(() => {
     const startIndex = (page - 1) * rowsPerPage;

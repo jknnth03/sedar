@@ -40,21 +40,20 @@ import {
   useGetAttainmentsQuery,
   useDeleteAttainmentMutation,
 } from "../../features/api/employee/attainmentsempApi";
-import { useGetAllShowAttainmentsQuery } from "../../features/api/extras/attainmentsApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
-import AttainmentDialog from "./AttainmentDialog"; // Import the new dialog component
+import AttainmentDialog from "./AttainmentDialog";
 
 const Attainmentsemp = ({
   searchQuery: parentSearchQuery,
-  showArchived: parentShowArchived,
   debounceValue: parentDebounceValue,
   onSearchChange,
-  onArchivedChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -68,8 +67,6 @@ const Attainmentsemp = ({
     parentSearchQuery !== undefined
       ? parentSearchQuery
       : currentParams?.q ?? "";
-  const showArchived =
-    parentShowArchived !== undefined ? parentShowArchived : false;
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -79,30 +76,62 @@ const Attainmentsemp = ({
   const [selectedAttainment, setSelectedAttainment] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // New state for AttainmentDialog
   const [attainmentDialogOpen, setAttainmentDialogOpen] = useState(false);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [debounceValue, showArchived]);
-
   const queryParams = useMemo(() => {
     const params = {
-      page,
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      // status: showArchived ? "inactive" : "active",
+      status: "all",
     };
 
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
     }
 
     return params;
-  }, [page, rowsPerPage, debounceValue]);
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: apiResponse,
@@ -115,42 +144,10 @@ const Attainmentsemp = ({
     skip: false,
   });
 
-  const {
-    data: attainmentsListData,
-    isLoading: attainmentsLoading,
-    error: attainmentsError,
-  } = useGetAllShowAttainmentsQuery({
-    page: 1,
-    per_page: 1000,
-    status: "active",
-  });
-
   const [deleteAttainment] = useDeleteAttainmentMutation();
 
-  const attainmentsList = useMemo(() => {
-    if (!attainmentsListData) return [];
-
-    const getDropdownOptions = (data) => {
-      if (!data) return [];
-      if (Array.isArray(data)) return data;
-      if (data.result && Array.isArray(data.result)) return data.result;
-      if (data.data && Array.isArray(data.data)) return data.data;
-      if (data.result?.data && Array.isArray(data.result.data))
-        return data.result.data;
-      if (data.data?.data && Array.isArray(data.data.data))
-        return data.data.data;
-      if (data.items && Array.isArray(data.items)) return data.items;
-      if (data.results && Array.isArray(data.results)) return data.results;
-      return [];
-    };
-
-    return getDropdownOptions(attainmentsListData);
-  }, [attainmentsListData]);
-
-  const { attainmentList, totalCount } = useMemo(() => {
-    if (!apiResponse) {
-      return { attainmentList: [], totalCount: 0 };
-    }
+  const attainmentList = useMemo(() => {
+    if (!apiResponse) return [];
 
     let result;
     if (apiResponse.result) {
@@ -161,23 +158,29 @@ const Attainmentsemp = ({
       result = apiResponse;
     }
 
-    const data = Array.isArray(result) ? result : result?.data || [];
-    const total = result?.total || result?.count || data.length;
+    return Array.isArray(result) ? result : result?.data || [];
+  }, [apiResponse]);
 
-    return {
-      attainmentList: data,
-      totalCount: total,
-    };
-  }, [apiResponse, debounceValue]);
+  const totalCount = useMemo(() => {
+    if (!apiResponse) return 0;
 
-  // Updated function to use the provided filename or fallback to URL extraction (matching Positions.jsx)
+    let result;
+    if (apiResponse.result) {
+      result = apiResponse.result;
+    } else if (apiResponse.data) {
+      result = apiResponse.data;
+    } else {
+      result = apiResponse;
+    }
+
+    return result?.total || result?.count || 0;
+  }, [apiResponse]);
+
   const getDisplayFileName = (attainment) => {
-    // First, check if attainment_attachment_filename is provided
     if (attainment.attainment_attachment_filename) {
       return attainment.attainment_attachment_filename;
     }
 
-    // Fallback to extracting from URL if filename is not provided
     if (attainment.attainment_attachment) {
       try {
         const urlParts = attainment.attainment_attachment.split("/");
@@ -190,6 +193,25 @@ const Attainmentsemp = ({
 
     return null;
   };
+
+  const handleSearchChange = useCallback(
+    (event) => {
+      const value = event.target.value;
+
+      if (onSearchChange) {
+        onSearchChange(value);
+      } else {
+        if (value.trim()) {
+          setQueryParams({ q: value });
+        } else {
+          removeQueryParams(["q"]);
+        }
+      }
+
+      setPage(1);
+    },
+    [onSearchChange, setQueryParams, removeQueryParams]
+  );
 
   const handleMenuOpen = useCallback((event, attainmentId) => {
     event.stopPropagation();
@@ -249,6 +271,7 @@ const Attainmentsemp = ({
         setWizardMode(mode);
         setWizardOpen(true);
       } catch (error) {
+        console.error("Error loading employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 2000,
@@ -315,7 +338,6 @@ const Attainmentsemp = ({
     handleModalClose();
   };
 
-  // New handler for AttainmentDialog (matching Positions.jsx pattern)
   const handleOpenAttainmentDialog = (attainment) => {
     setSelectedAttainment(attainment);
     setAttainmentDialogOpen(true);
@@ -326,7 +348,14 @@ const Attainmentsemp = ({
     setAttainmentDialogOpen(false);
   };
 
-  // Remove the old file handling functions since we'll use the dialog now
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
@@ -378,65 +407,24 @@ const Attainmentsemp = ({
       return attainment;
     }
 
-    if (attainmentId && attainmentsList && attainmentsList.length > 0) {
-      const foundAttainment = attainmentsList.find(
-        (att) => att.id === attainmentId
-      );
-      if (foundAttainment) {
-        return (
-          foundAttainment.attainment_name ||
-          foundAttainment.name ||
-          foundAttainment.title ||
-          foundAttainment.display_name ||
-          `Attainment ${attainmentId}`
-        );
-      }
-    }
-
     return attainmentId ? `Attainment ${attainmentId}` : "N/A";
   };
 
-  const filteredAttainmentList = useMemo(() => {
-    if (!debounceValue || debounceValue.trim() === "") {
-      return attainmentList;
-    }
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
 
-    const searchTerm = debounceValue.toLowerCase().trim();
-    return attainmentList.filter((attainment) => {
-      const employeeName = formatEmployeeName(
-        attainment.employee
-      ).toLowerCase();
-      const attainmentName = formatAttainmentName(
-        attainment.attainment,
-        attainment.attainment_id
-      ).toLowerCase();
-      const program = formatNestedValue(attainment.program).toLowerCase();
-      const degree = formatNestedValue(attainment.degree).toLowerCase();
-      const honorTitle = formatNestedValue(
-        attainment.honor_title
-      ).toLowerCase();
-      const institution = safelyDisplayValue(
-        attainment.institution
-      ).toLowerCase();
-      const gpa = safelyDisplayValue(attainment.gpa).toLowerCase();
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
 
-      return (
-        employeeName.includes(searchTerm) ||
-        attainmentName.includes(searchTerm) ||
-        program.includes(searchTerm) ||
-        degree.includes(searchTerm) ||
-        honorTitle.includes(searchTerm) ||
-        institution.includes(searchTerm) ||
-        gpa.includes(searchTerm)
-      );
-    });
-  }, [attainmentList, debounceValue, attainmentsList]);
-
-  const displayList = filteredAttainmentList;
-  const displayCount =
-    debounceValue && debounceValue.trim() !== ""
-      ? filteredAttainmentList.length
-      : totalCount;
+    return chargingData.filter((item) => item.code && item.name);
+  }, []);
 
   return (
     <Box
@@ -469,9 +457,8 @@ const Attainmentsemp = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">STATUS</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
                 <TableCell className="table-header2">ATTAINMENT</TableCell>
                 <TableCell className="table-header">PROGRAM</TableCell>
                 <TableCell className="table-header">DEGREE</TableCell>
@@ -485,7 +472,7 @@ const Attainmentsemp = ({
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={12} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Box sx={{ py: 4 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body2" sx={{ mt: 2 }}>
@@ -496,14 +483,14 @@ const Attainmentsemp = ({
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={12} align="center" className="table-cell">
+                  <TableCell colSpan={10} align="center" className="table-cell">
                     <Typography color="error">
                       Error: {error?.data?.message || "Failed to load data"}
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : displayList.length > 0 ? (
-                displayList.map((attainment) => (
+              ) : attainmentList.length > 0 ? (
+                attainmentList.map((attainment) => (
                   <TableRow
                     key={attainment.id}
                     onClick={() => handleRowClick(attainment)}
@@ -520,30 +507,89 @@ const Attainmentsemp = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell sx={{ paddingLeft: "21px" }}>
-                      <Chip
-                        label={showArchived ? "INACTIVE" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": {
-                            fontSize: "0.68rem",
-                            fontWeight: 600,
-                          },
-                        }}
-                      />
+                    <TableCell
+                      className="table-cell"
+                      sx={{
+                        width: "280px",
+                        minWidth: "250px",
+                      }}>
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {formatEmployeeName(attainment.employee)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(
+                            attainment.employee?.employee_code
+                          )}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              attainment.employee?.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              attainment.employee?.status === "ACTIVE"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </TableCell>
                     <TableCell
                       sx={{
-                        width: "300px",
+                        width: "350px",
                         minWidth: "300px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
+                        paddingY: 1.5,
                       }}>
-                      {formatEmployeeName(attainment.employee)}
+                      <Box>
+                        {formatCharging(attainment.employee?.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(attainment.employee?.charging)
+                          .length === 0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell
                       sx={{
@@ -616,7 +662,7 @@ const Attainmentsemp = ({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={12}
+                    colSpan={10}
                     align="center"
                     sx={{ border: "none", py: 8 }}>
                     <Box
@@ -631,11 +677,13 @@ const Attainmentsemp = ({
                         No attainments found
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {debounceValue && debounceValue.trim() !== ""
-                          ? `No results for "${debounceValue}"`
-                          : showArchived
-                          ? "No archived attainments"
-                          : "No active attainments"}
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : Object.values(filters).some(
+                              (v) => v && v !== "ACTIVE"
+                            )
+                          ? `No attainments with selected filters`
+                          : "No attainments"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -649,17 +697,11 @@ const Attainmentsemp = ({
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={displayCount}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
-            page={Math.min(
-              page - 1,
-              Math.max(0, Math.ceil(displayCount / rowsPerPage) - 1)
-            )}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            page={page - 1}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
               borderTop: `1px solid ${theme.palette.divider}`,
               backgroundColor: alpha(theme.palette.background.paper, 0.6),
@@ -674,17 +716,10 @@ const Attainmentsemp = ({
                   fontSize: "0.875rem",
                 },
             }}
-            labelDisplayedRows={({ from, to, count }) => {
-              if (debounceValue && debounceValue.trim() !== "") {
-                return `${from}-${to} of ${count} (filtered)`;
-              }
-              return `${from}-${to} of ${count}`;
-            }}
           />
         </Box>
       </Paper>
 
-      {/* AttainmentDialog - New dialog component matching Positions.jsx pattern */}
       <AttainmentDialog
         open={attainmentDialogOpen}
         onClose={handleCloseAttainmentDialog}

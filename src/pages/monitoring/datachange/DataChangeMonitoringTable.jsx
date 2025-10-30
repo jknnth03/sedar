@@ -53,6 +53,17 @@ const DataChangeMonitoringTable = ({
     );
   };
 
+  const renderRequestor = (submittedBy) => {
+    if (!submittedBy) return "-";
+    return (
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
+          {submittedBy}
+        </Typography>
+      </Box>
+    );
+  };
+
   const renderStatusChip = (submission) => {
     const statusConfig = {
       pending: {
@@ -156,9 +167,7 @@ const DataChangeMonitoringTable = ({
         <Table stickyHeader sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={styles.columnStyles.id}>
-                ID
-              </TableCell>
+              <TableCell sx={styles.columnStyles.id}>REQUESTOR</TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -202,8 +211,12 @@ const DataChangeMonitoringTable = ({
                   key={submission.id}
                   onClick={() => handleRowClick(submission)}
                   sx={styles.tableRowHover(theme)}>
-                  <TableCell align="left" sx={styles.columnStyles.id}>
-                    {submission.id}
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.id,
+                      ...styles.cellContentStyles,
+                    }}>
+                    {renderRequestor(submission.submitted_by)}
                   </TableCell>
                   <TableCell
                     sx={{

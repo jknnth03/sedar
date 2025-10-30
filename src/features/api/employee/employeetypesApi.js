@@ -4,38 +4,78 @@ export const employeeTypesApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["EmploymentType", "EmploymentTypeMaster"] })
   .injectEndpoints({
     endpoints: (build) => ({
-      // Fetch a paginated list of employment types
       getEmploymentTypes: build.query({
         query: ({
           page = 1,
           per_page = 10,
-          status = "active",
+          status = "all",
           search = "",
+          pagination = 1,
           employment_status,
+          employee_name,
+          team_name,
+          id_number,
+          date_hired_from,
+          date_hired_to,
+          employment_type,
+          department_name,
+          position_title,
+          manpower_form,
           statuses = [],
         }) => {
           const params = new URLSearchParams({
-            pagination: "1",
+            pagination: pagination.toString(),
             page: page.toString(),
             per_page: per_page.toString(),
             status,
-            search,
           });
 
-          // Handle single employment_status
+          if (search && search.trim()) {
+            params.append("search", search);
+          }
+
           if (employment_status) {
             params.append("employment_status", employment_status);
           }
 
-          // Handle multiple statuses - send as comma-separated or multiple employment_status params
-          if (statuses && statuses.length > 0) {
-            // Option 1: Send as comma-separated string
-            params.append("employment_status", statuses.join(","));
+          if (employee_name) {
+            params.append("employee_name", employee_name);
+          }
 
-            // Option 2: Send as multiple employment_status parameters (uncomment if needed)
-            // statuses.forEach(status => {
-            //   params.append("employment_status", status);
-            // });
+          if (team_name) {
+            params.append("team_name", team_name);
+          }
+
+          if (id_number) {
+            params.append("id_number", id_number);
+          }
+
+          if (date_hired_from) {
+            params.append("date_hired_from", date_hired_from);
+          }
+
+          if (date_hired_to) {
+            params.append("date_hired_to", date_hired_to);
+          }
+
+          if (employment_type) {
+            params.append("employment_type", employment_type);
+          }
+
+          if (department_name) {
+            params.append("department_name", department_name);
+          }
+
+          if (position_title) {
+            params.append("position_title", position_title);
+          }
+
+          if (manpower_form) {
+            params.append("manpower_form", manpower_form);
+          }
+
+          if (statuses && statuses.length > 0) {
+            params.append("statuses", statuses.join(","));
           }
 
           return { url: `employees/employment-types?${params.toString()}` };
@@ -51,7 +91,6 @@ export const employeeTypesApi = sedarApi
               ]
             : [{ type: "EmploymentType", id: "LIST" }],
       }),
-      // Get all employment types (for dropdowns)
       getAllEmploymentTypes: build.query({
         query: ({
           page = 1,
@@ -69,20 +108,12 @@ export const employeeTypesApi = sedarApi
             search,
           });
 
-          // Handle single employment_status
           if (employment_status) {
             params.append("employment_status", employment_status);
           }
 
-          // Handle multiple statuses - send as comma-separated or multiple employment_status params
           if (statuses && statuses.length > 0) {
-            // Option 1: Send as comma-separated string
             params.append("employment_status", statuses.join(","));
-
-            // Option 2: Send as multiple employment_status parameters (uncomment if needed)
-            // statuses.forEach(status => {
-            //   params.append("employment_status", status);
-            // });
           }
 
           return { url: `employees/employment-types?${params.toString()}` };
@@ -100,7 +131,6 @@ export const employeeTypesApi = sedarApi
               ]
             : [{ type: "EmploymentTypeMaster", id: "ALL" }],
       }),
-      // Update employment type
       updateEmploymentType: build.mutation({
         query: ({ id, ...data }) => ({
           url: `employees/employment-types/${id}`,
@@ -113,6 +143,22 @@ export const employeeTypesApi = sedarApi
           { type: "EmploymentTypeMaster", id: "ALL" },
         ],
       }),
+      deleteEmploymentType: build.mutation({
+        query: (id) => {
+          if (!id) {
+            throw new Error("ID is required for employment type deletion");
+          }
+          return {
+            url: `employees/employment-types/${id}`,
+            method: "DELETE",
+          };
+        },
+        invalidatesTags: (result, error, id) => [
+          { type: "EmploymentType", id },
+          { type: "EmploymentType", id: "LIST" },
+          { type: "EmploymentTypeMaster", id: "ALL" },
+        ],
+      }),
     }),
   });
 
@@ -120,6 +166,7 @@ export const {
   useGetEmploymentTypesQuery,
   useGetAllEmploymentTypesQuery,
   useUpdateEmploymentTypeMutation,
+  useDeleteEmploymentTypeMutation,
 } = employeeTypesApi;
 
 export default employeeTypesApi;

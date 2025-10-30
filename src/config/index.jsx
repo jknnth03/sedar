@@ -208,17 +208,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon_on: null,
           notificationCount: counts.pendingMrfReceiving,
         },
-        DATACHANGERECEIVING: {
-          name: "201 DC Receiving",
-          path: "datachangereceiving",
-          icon: (
-            <CloudSyncIcon
-              sx={{ marginRight: "10px", marginLeft: "10px", width: "18px" }}
-            />
-          ),
-          icon_on: null,
-          notificationCount: counts.pendingDataChangeReceiving,
-        },
       },
     },
 

@@ -49,6 +49,8 @@ const Contacts = ({
   debounceValue: parentDebounceValue,
   onSearchChange,
   onArchivedChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -76,15 +78,59 @@ const Contacts = ({
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(
-    () => ({
-      search: debounceValue,
-      page,
+  const queryParams = useMemo(() => {
+    const params = {
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      // status: showArchived ? "inactive" : "active",
-    }),
-    [debounceValue, page, rowsPerPage]
-  );
+    };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: contacts,
@@ -224,6 +270,22 @@ const Contacts = ({
     return parts.length > 0 ? parts.join(", ") : "N/A";
   }, []);
 
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
+
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
+
+    return chargingData.filter((item) => item.code && item.name);
+  }, []);
+
   return (
     <Box
       sx={{
@@ -252,45 +314,15 @@ const Contacts = ({
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table
-            stickyHeader
-            sx={{
-              minWidth: 1000,
-              width: "100%",
-              tableLayout: "fixed",
-            }}>
+          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell
-                  className="table-header3"
-                  sx={{ width: "80px", minWidth: "80px" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ width: "400px", minWidth: "400px" }}>
-                  EMPLOYEE
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ width: "200px", minWidth: "200px" }}>
-                  MOBILE NUMBER
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ width: "220px", minWidth: "180px" }}>
-                  EMAIL ADDRESS
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ width: "180px", minWidth: "150px" }}>
-                  EMAIL REMARKS
-                </TableCell>
-                <TableCell
-                  className="table-header"
-                  sx={{ width: "300x", minWidth: "300px" }}>
-                  MOBILE REMARKS
-                </TableCell>
+                <TableCell className="table-header">EMPLOYEE</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
+                <TableCell className="table-header">MOBILE NUMBER</TableCell>
+                <TableCell className="table-header">EMAIL ADDRESS</TableCell>
+                <TableCell className="table-header">EMAIL REMARKS</TableCell>
+                <TableCell className="table-header">MOBILE REMARKS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -324,26 +356,86 @@ const Contacts = ({
                       transition: "background-color 0.2s ease",
                     }}>
                     <TableCell
-                      className="table-cell4"
-                      sx={{
-                        width: "80px",
-                        minWidth: "80px",
-                        textAlign: "center",
-                      }}>
-                      {safelyDisplayValue(contact.id)}
-                    </TableCell>
-                    <TableCell
                       className="table-cell"
                       sx={{
-                        width: "200px",
-                        minWidth: "160px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
-                      }}
-                      title={formatEmployeeName(contact.employee)}>
-                      {formatEmployeeName(contact.employee)}
+                        width: "280px",
+                        minWidth: "250px",
+                      }}>
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {formatEmployeeName(contact.employee)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(contact.employee?.employee_code)}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              contact.employee?.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              contact.employee?.status === "ACTIVE"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: "350px",
+                        minWidth: "300px",
+                        paddingY: 1.5,
+                      }}>
+                      <Box>
+                        {formatCharging(contact.employee?.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(contact.employee?.charging).length ===
+                          0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell
                       className="table-cell2"

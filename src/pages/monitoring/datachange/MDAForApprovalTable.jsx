@@ -48,6 +48,27 @@ const MDAForApprovalTable = ({
     );
   };
 
+  const getRequestorName = (submission) => {
+    if (!submission?.activity_log || submission.activity_log.length === 0)
+      return "-";
+    const submittedEvent = submission.activity_log.find(
+      (event) => event.event_type === "SUBMITTED"
+    );
+    return submittedEvent?.actor?.full_name || "-";
+  };
+
+  const renderRequestor = (submission) => {
+    const requestorName = getRequestorName(submission);
+    if (requestorName === "-") return "-";
+    return (
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
+          {requestorName}
+        </Typography>
+      </Box>
+    );
+  };
+
   const renderStatusChip = (submission) => {
     const statusConfig = {
       pending: {
@@ -135,9 +156,7 @@ const MDAForApprovalTable = ({
         <Table stickyHeader sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={styles.columnStyles.id}>
-                ID
-              </TableCell>
+              <TableCell sx={styles.columnStyles.id}>REQUESTOR</TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -179,8 +198,12 @@ const MDAForApprovalTable = ({
                     key={submission.id}
                     onClick={() => handleRowClick(submission)}
                     sx={styles.tableRowHover(theme)}>
-                    <TableCell align="left" sx={styles.columnStyles.id}>
-                      {submission.id}
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.id,
+                        ...styles.cellContentStyles,
+                      }}>
+                      {renderRequestor(submission)}
                     </TableCell>
                     <TableCell
                       sx={{

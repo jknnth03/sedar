@@ -17,56 +17,132 @@ import {
 } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useGetEmploymentTypesQuery } from "../../features/api/employee/employeetypesApi";
-import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 
-const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
+const EmployeeTypes = ({
+  searchQuery: parentSearchQuery,
+  debounceValue: parentDebounceValue,
+  onSearchChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
+  const [currentParams, setQueryParams, removeQueryParams] =
+    useRememberQueryParams();
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+
+  const searchQuery =
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : currentParams?.q ?? "";
+  const debounceValue =
+    parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [debounceValue, showArchived]);
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
-  const queryParams = useMemo(
-    () => ({
-      page,
+  const queryParams = useMemo(() => {
+    const params = {
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      search: debounceValue || "",
-    }),
-    [page, rowsPerPage, debounceValue]
-  );
+    };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
-    data: apiResponse,
+    data: employmentTypes,
     isLoading,
     isFetching,
-    error,
     refetch,
   } = useGetEmploymentTypesQuery(queryParams, {
     refetchOnMountOrArgChange: true,
   });
 
-  const { employmentTypeList, totalCount } = useMemo(() => {
-    const result = apiResponse?.result;
-    const data = result?.data || [];
+  const employmentTypeList = useMemo(
+    () => employmentTypes?.result?.data || [],
+    [employmentTypes]
+  );
 
-    return {
-      employmentTypeList: data,
-      totalCount: result?.total || data.length,
-    };
-  }, [apiResponse]);
+  const totalCount = useMemo(
+    () => employmentTypes?.result?.total || 0,
+    [employmentTypes]
+  );
+
+  const handleSearchChange = useCallback(
+    (event) => {
+      const value = event.target.value;
+
+      if (onSearchChange) {
+        onSearchChange(value);
+      } else {
+        if (value.trim()) {
+          setQueryParams({ q: value });
+        } else {
+          removeQueryParams(["q"]);
+        }
+      }
+
+      setPage(1);
+    },
+    [onSearchChange, setQueryParams, removeQueryParams]
+  );
 
   const openWizard = useCallback(
     async (employmentType, mode) => {
@@ -80,6 +156,7 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
         setWizardMode(mode);
         setWizardOpen(true);
       } catch (error) {
+        console.error("Error loading employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 2000,
@@ -130,13 +207,11 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
   const formatEmployeeName = useCallback((employee) => {
     if (!employee) return "N/A";
     if (employee?.full_name) return employee.full_name;
-
     const parts = [
       employee?.last_name,
       employee?.first_name,
       employee?.middle_name,
     ].filter(Boolean);
-
     return parts.length > 0 ? parts.join(", ") : "N/A";
   }, []);
 
@@ -167,6 +242,22 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
       default:
         return "default";
     }
+  }, []);
+
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
+
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
+
+    return chargingData.filter((item) => item.code && item.name);
   }, []);
 
   return (
@@ -200,9 +291,8 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
                 <TableCell className="table-header">EMPLOYMENT TYPE</TableCell>
                 <TableCell className="table-header">START DATE</TableCell>
                 <TableCell className="table-header">END DATE</TableCell>
@@ -225,14 +315,6 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                     </Box>
                   </TableCell>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" className="table-cell">
-                    <Typography color="error">
-                      Error: {error?.data?.message || "Failed to load data"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
               ) : employmentTypeList.length > 0 ? (
                 employmentTypeList.map((employmentType) => (
                   <TableRow
@@ -251,38 +333,89 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-status">
-                      <Chip
-                        label={showArchived ? "INACTIVE" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": {
-                            fontSize: "0.68rem",
-                            fontWeight: 600,
-                          },
-                        }}
-                      />
-                    </TableCell>
-
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
+                        width: "280px",
+                        minWidth: "250px",
                       }}>
-                      {formatEmployeeName(employmentType.employee)}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {formatEmployeeName(employmentType.employee)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(
+                            employmentType.employee?.employee_code
+                          )}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              employmentType.employee?.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              employmentType.employee?.status === "ACTIVE"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </TableCell>
-
-                    <TableCell className="table-cell2">
-                      {safelyDisplayValue(
-                        employmentType.employee?.employee_code
-                      )}
+                    <TableCell
+                      sx={{
+                        width: "350px",
+                        minWidth: "300px",
+                        paddingY: 1.5,
+                      }}>
+                      <Box>
+                        {formatCharging(employmentType.employee?.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(employmentType.employee?.charging)
+                          .length === 0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell className="table-cell2">
                       <Chip
@@ -338,11 +471,13 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                         No employment types found
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {debounceValue
-                          ? `No results for "${debounceValue}"`
-                          : showArchived
-                          ? "No archived employment types"
-                          : "No active employment types"}
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : Object.values(filters).some(
+                              (v) => v && v !== "ACTIVE"
+                            )
+                          ? `No employment types with selected filters`
+                          : "No employment types"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -370,10 +505,7 @@ const EmployeeTypes = ({ searchQuery, showArchived, debounceValue }) => {
                 paddingRight: theme.spacing(1),
               },
               "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  margin: 0,
-                  fontSize: "0.875rem",
-                },
+                { margin: 0, fontSize: "0.875rem" },
             }}
           />
         </Box>

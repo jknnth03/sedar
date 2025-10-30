@@ -137,6 +137,12 @@ const EmployeeWizardForm = ({
   const isDisabled = isSubmitting || blockAllInteractions;
   const canEdit = hasEnableEditPermission;
 
+  // Check if employee status is INACTIVE
+  const isEmployeeInactive =
+    initialData?.status === "INACTIVE" ||
+    initialData?.general_info?.status === "INACTIVE";
+  const canEditEmployee = canEdit && !isEmployeeInactive;
+
   const methods = useForm({
     defaultValues: getDefaultValues({ mode, initialData }),
     resolver: yupResolver(createFlattenedEmployeeSchema()),
@@ -253,7 +259,7 @@ const EmployeeWizardForm = ({
   }, [watch, handleEmploymentTypeChange, isFormInitialized, isDisabled]);
 
   const handleEditClick = () => {
-    if (isDisabled || !canEdit) return;
+    if (isDisabled || !canEditEmployee) return;
     setCurrentMode("edit");
     setSubmissionResult(null);
   };
@@ -342,33 +348,35 @@ const EmployeeWizardForm = ({
             {isViewMode && (
               <Tooltip
                 title={
-                  canEdit
+                  isEmployeeInactive
+                    ? "INACTIVE EMPLOYEE - EDITING NOT ALLOWED"
+                    : canEdit
                     ? "EDIT EMPLOYEE"
                     : "EDITING NOT ALLOWED - ENABLE EDIT PERMISSION REQUIRED"
                 }>
                 <span>
                   <IconButton
                     onClick={handleEditClick}
-                    disabled={isDisabled || !canEdit}
+                    disabled={isDisabled || !canEditEmployee}
                     size="small"
                     sx={{
                       ml: 1,
                       padding: "8px",
-                      "&:hover": canEdit
+                      "&:hover": canEditEmployee
                         ? {
                             backgroundColor: "rgba(0, 136, 32, 0.08)",
                             transform: "scale(1.1)",
                             transition: "all 0.2s ease-in-out",
                           }
                         : {},
-                      opacity: canEdit ? 1 : 0.5,
-                      cursor: canEdit ? "pointer" : "not-allowed",
+                      opacity: canEditEmployee ? 1 : 0.5,
+                      cursor: canEditEmployee ? "pointer" : "not-allowed",
                     }}>
                     <EditIcon
                       sx={{
                         fontSize: "20px",
                         "& path": {
-                          fill: canEdit
+                          fill: canEditEmployee
                             ? "rgba(0, 136, 32, 1)"
                             : "rgba(158, 158, 158, 1)",
                         },

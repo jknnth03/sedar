@@ -11,12 +11,14 @@ import {
 import MDAForApprovalTable from "./MDAForApprovalTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const MDARejected = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
+  onCancel: onCancelProp,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -39,6 +41,7 @@ const MDARejected = ({
   });
 
   const [updateMdaSubmission] = useUpdateMdaMutation();
+  const [cancelMdaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -140,6 +143,42 @@ const MDARejected = ({
     ]
   );
 
+  const handleCancel = useCallback(
+    async (submissionId) => {
+      try {
+        console.log("Cancelling MDA submission:", submissionId);
+
+        await cancelMdaSubmission(submissionId).unwrap();
+
+        enqueueSnackbar("MDA submission cancelled successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        await refetch();
+
+        return true;
+      } catch (error) {
+        console.error("Error cancelling MDA submission:", error);
+
+        let errorMessage = "Failed to cancel MDA submission";
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelMdaSubmission, enqueueSnackbar, refetch]
+  );
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -226,6 +265,7 @@ const MDARejected = ({
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
             forApproval={false}
+            onCancel={handleCancel}
           />
 
           <Box

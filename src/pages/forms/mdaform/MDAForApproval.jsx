@@ -11,13 +11,17 @@ import {
 import MDAForApprovalTable from "./MDAForApprovalTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
-import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import {
+  useResubmitFormSubmissionMutation,
+  useCancelFormSubmissionMutation,
+} from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const MDAForApproval = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
+  onCancel,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -40,7 +44,8 @@ const MDAForApproval = ({
   });
 
   const [updateMdaSubmission] = useUpdateMdaMutation();
-  const [resubmitMdaSubmission] = useResubmitFormSubmissionMutation(); // ADD THIS
+  const [resubmitMdaSubmission] = useResubmitFormSubmissionMutation();
+  const [cancelMdaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -143,7 +148,6 @@ const MDAForApproval = ({
     ]
   );
 
-  // ADD THIS HANDLER
   const handleResubmit = useCallback(
     async (submissionId) => {
       try {
@@ -158,9 +162,6 @@ const MDAForApproval = ({
 
         await refetchDetails();
         await refetch();
-
-        // Optionally close modal after resubmit
-        // handleModalClose();
       } catch (error) {
         console.error("Error resubmitting MDA submission:", error);
         enqueueSnackbar(
@@ -173,6 +174,42 @@ const MDAForApproval = ({
       }
     },
     [resubmitMdaSubmission, enqueueSnackbar, refetchDetails, refetch]
+  );
+
+  const handleCancel = useCallback(
+    async (submissionId) => {
+      try {
+        console.log("Cancelling MDA submission:", submissionId);
+
+        await cancelMdaSubmission(submissionId).unwrap();
+
+        enqueueSnackbar("MDA submission cancelled successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        await refetch();
+
+        return true;
+      } catch (error) {
+        console.error("Error cancelling MDA submission:", error);
+
+        let errorMessage = "Failed to cancel MDA submission";
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelMdaSubmission, enqueueSnackbar, refetch]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -261,6 +298,7 @@ const MDAForApproval = ({
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
             statusFilter="PENDING"
+            onCancel={handleCancel}
           />
 
           <Box
@@ -309,7 +347,7 @@ const MDAForApproval = ({
           open={modalOpen}
           onClose={handleModalClose}
           onSave={handleSave}
-          onResubmit={handleResubmit} // ADD THIS PROP
+          onResubmit={handleResubmit}
           selectedEntry={selectedEntry}
           isLoading={detailsLoading}
           mode={modalMode}

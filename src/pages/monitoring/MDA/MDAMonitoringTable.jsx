@@ -27,6 +27,7 @@ const MDAMonitoringTable = ({
   handleRowClick,
   searchQuery,
   statusFilter,
+  showRequestor = false,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
@@ -46,6 +47,26 @@ const MDAMonitoringTable = ({
           {submission.employee_number || ""}
         </Typography>
       </Box>
+    );
+  };
+
+  const getRequestor = (submission) => {
+    if (!submission?.activity_log || submission.activity_log.length === 0) {
+      return "-";
+    }
+
+    const requestorLog = submission.activity_log.find(
+      (log) => log?.actor?.title === "Requestor"
+    );
+
+    if (!requestorLog?.actor?.full_name) {
+      return "-";
+    }
+
+    return (
+      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
+        {requestorLog.actor.full_name}
+      </Typography>
     );
   };
 
@@ -82,6 +103,11 @@ const MDAMonitoringTable = ({
         label: "RETURNED",
       },
       awaiting_resubmission: {
+        color: "#ed6c02",
+        bgColor: "#fff4e5",
+        label: "AWAITING RESUBMISSION",
+      },
+      "awaiting resubmission": {
         color: "#ed6c02",
         bgColor: "#fff4e5",
         label: "AWAITING RESUBMISSION",
@@ -126,10 +152,15 @@ const MDAMonitoringTable = ({
 
   const filteredSubmissions = React.useMemo(() => {
     if (!statusFilter) return submissionsList;
-    return submissionsList.filter(
-      (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
-    );
+
+    const normalizedFilter = statusFilter.toUpperCase().replace(/_/g, " ");
+
+    return submissionsList.filter((submission) => {
+      const submissionStatus = submission.status
+        ?.toUpperCase()
+        .replace(/_/g, " ");
+      return submissionStatus === normalizedFilter;
+    });
   }, [submissionsList, statusFilter]);
 
   const getNoDataMessage = () => {
@@ -139,6 +170,7 @@ const MDAMonitoringTable = ({
         APPROVED: "approved",
         REJECTED: "rejected",
         AWAITING_RESUBMISSION: "awaiting resubmission",
+        "AWAITING RESUBMISSION": "awaiting resubmission",
         CANCELLED: "cancelled",
       };
       const statusLabel =
@@ -152,15 +184,15 @@ const MDAMonitoringTable = ({
       : "No submissions found";
   };
 
+  const colSpan = 8;
+
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
         <Table stickyHeader sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={styles.columnStyles.id}>
-                ID
-              </TableCell>
+              <TableCell sx={styles.columnStyles.id}>REQUESTOR</TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -183,13 +215,19 @@ const MDAMonitoringTable = ({
           <TableBody>
             {isLoadingState ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={styles.loadingCell}>
+                <TableCell
+                  colSpan={colSpan}
+                  align="center"
+                  sx={styles.loadingCell}>
                   <CircularProgress size={32} sx={styles.loadingSpinner} />
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={styles.errorCell}>
+                <TableCell
+                  colSpan={colSpan}
+                  align="center"
+                  sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -202,8 +240,12 @@ const MDAMonitoringTable = ({
                     key={submission.id}
                     onClick={() => handleRowClick(submission)}
                     sx={styles.tableRowHover(theme)}>
-                    <TableCell align="left" sx={styles.columnStyles.id}>
-                      {submission.id}
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.id,
+                        ...styles.cellContentStyles,
+                      }}>
+                      {getRequestor(submission)}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -257,7 +299,7 @@ const MDAMonitoringTable = ({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={colSpan}
                   align="center"
                   sx={styles.noDataContainer}>
                   <Box sx={styles.noDataBox}>

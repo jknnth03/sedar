@@ -10,9 +10,6 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,25 +17,12 @@ import {
   Button,
   Box,
   Chip,
-  TextField,
-  InputAdornment,
-  Switch,
-  FormControlLabel,
-  Toolbar,
   useTheme,
   alpha,
 } from "@mui/material";
-import {
-  MoreVert as MoreVertIcon,
-  Archive as ArchiveIcon,
-  Restore as RestoreIcon,
-  Help as HelpIcon,
-} from "@mui/icons-material";
+import { Help as HelpIcon } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import {
-  useGetGeneralsQuery,
-  useDeleteGeneralMutation,
-} from "../../features/api/employee/generalApi";
+import { useGetGeneralsQuery } from "../../features/api/employee/generalApi";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import { CONSTANT } from "../../config/index";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
@@ -47,11 +31,10 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 
 const General = ({
   searchQuery: parentSearchQuery,
-  showArchived: parentShowArchived,
-  selectedStatuses: parentSelectedStatuses = [],
   debounceValue: parentDebounceValue,
   onSearchChange,
-  onArchivedChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -66,48 +49,82 @@ const General = ({
     parentSearchQuery !== undefined
       ? parentSearchQuery
       : currentParams?.q ?? "";
-  const showArchived =
-    parentShowArchived !== undefined ? parentShowArchived : false;
-  const selectedStatuses =
-    parentSelectedStatuses !== undefined ? parentSelectedStatuses : [];
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
-  const [menuAnchor, setMenuAnchor] = useState({});
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(
-    () => ({
-      search: debounceValue,
-      page,
+  const queryParams = useMemo(() => {
+    const params = {
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-      status: "all",
-      statuses: selectedStatuses,
-    }),
-    [debounceValue, page, rowsPerPage, selectedStatuses]
-  );
+    };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    // if (filters?.status) {
+    //   params.employment_status = filters.status;
+    // }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: employees,
     isLoading,
     isFetching,
     refetch,
-  } = useGetGeneralsQuery(queryParams, {
-    refetchOnMountOrArgChange: true,
-  });
-
-  const [deleteEmployee] = useDeleteGeneralMutation();
+  } = useGetGeneralsQuery(queryParams);
 
   const employeeList = useMemo(
     () => employees?.result?.data || [],
     [employees]
   );
+
+  const totalCount = useMemo(() => employees?.result?.total || 0, [employees]);
 
   const handleSearchChange = useCallback(
     (event) => {
@@ -128,63 +145,6 @@ const General = ({
     [onSearchChange, setQueryParams, removeQueryParams]
   );
 
-  const handleArchivedToggle = useCallback(
-    (event) => {
-      const checked = event.target.checked;
-
-      if (onArchivedChange) {
-        onArchivedChange(checked);
-      }
-
-      setPage(1);
-    },
-    [onArchivedChange]
-  );
-
-  const handleMenuOpen = useCallback((event, employeeId) => {
-    event.stopPropagation();
-    setMenuAnchor((prev) => ({ ...prev, [employeeId]: event.currentTarget }));
-  }, []);
-
-  const handleMenuClose = useCallback((employeeId) => {
-    setMenuAnchor((prev) => ({ ...prev, [employeeId]: null }));
-  }, []);
-
-  const handleArchiveRestoreClick = useCallback(
-    (employee, event) => {
-      if (event) {
-        event.stopPropagation();
-      }
-      setSelectedEmployee(employee);
-      setConfirmOpen(true);
-      handleMenuClose(employee.id);
-    },
-    [handleMenuClose]
-  );
-
-  const handleArchiveRestoreConfirm = async () => {
-    if (!selectedEmployee) return;
-
-    try {
-      await deleteEmployee(selectedEmployee.id).unwrap();
-      enqueueSnackbar(
-        selectedEmployee.deleted_at
-          ? "Employee restored successfully!"
-          : "Employee archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
-      );
-      refetch();
-    } catch (error) {
-      enqueueSnackbar("Action failed. Please try again.", {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedEmployee(null);
-    }
-  };
-
   const openWizard = useCallback(
     async (general, mode) => {
       try {
@@ -202,24 +162,6 @@ const General = ({
       }
     },
     [getSingleEmployee, enqueueSnackbar]
-  );
-
-  const handleViewEmployee = useCallback(
-    async (general, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(general.id);
-      await openWizard(general, "view");
-    },
-    [handleMenuClose, openWizard]
-  );
-
-  const handleEditEmployee = useCallback(
-    async (general, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(general.id);
-      await openWizard(general, "edit");
-    },
-    [handleMenuClose, openWizard]
   );
 
   const handleRowClick = useCallback(
@@ -260,22 +202,6 @@ const General = ({
     []
   );
 
-  const formatEmployeeId = useCallback((id) => {
-    return id ? `RDFFLFI-${String(id).padStart(5, "0")}` : "N/A";
-  }, []);
-
-  const formatFullName = useCallback((employee) => {
-    if (employee?.full_name) return employee.full_name;
-
-    const parts = [
-      employee?.last_name,
-      employee?.first_name,
-      employee?.middle_name,
-    ].filter(Boolean);
-
-    return parts.length > 0 ? parts.join(", ") : "N/A";
-  }, []);
-
   const formatDate = useCallback((dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -305,6 +231,22 @@ const General = ({
       return referredBy;
     }
     return "N/A";
+  }, []);
+
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
+
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
+
+    return chargingData.filter((item) => item.code && item.name);
   }, []);
 
   return (
@@ -338,22 +280,20 @@ const General = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-status">STATUS</TableCell>
                 <TableCell className="table-header">FULL NAME</TableCell>
-                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
                 <TableCell className="table-header">BIRTH DATE</TableCell>
                 <TableCell className="table-header">CIVIL STATUS</TableCell>
                 <TableCell className="table-header">RELIGION</TableCell>
                 <TableCell className="table-header">GENDER</TableCell>
                 <TableCell className="table-header2">REFERRED BY</TableCell>
                 <TableCell className="table-header">REMARKS</TableCell>
-                <TableCell className="table-status">ACTIONS</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
+                  <TableCell colSpan={8} align="center">
                     <Box sx={{ py: 4 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body2" sx={{ mt: 2 }}>
@@ -380,34 +320,84 @@ const General = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell className="table-status">
-                      <Chip
-                        label={employee.deleted_at ? "INACTIVE" : "ACTIVE"}
-                        color={employee.deleted_at ? "error" : "success"}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": {
-                            fontSize: "0.68rem",
-                            fontWeight: 600,
-                          },
-                        }}
-                      />
-                    </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "220px",
-                        minWidth: "180px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
+                        width: "280px",
+                        minWidth: "250px",
                       }}>
-                      {formatFullName(employee)}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {employee.full_name || "N/A"}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(employee.employee_code)}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              employee.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              employee.status === "ACTIVE" ? "success" : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </TableCell>
-                    <TableCell className="table-cell2">
-                      {safelyDisplayValue(employee.employee_code)}
+                    <TableCell
+                      sx={{
+                        width: "350px",
+                        minWidth: "300px",
+                        paddingY: 1.5,
+                      }}>
+                      <Box>
+                        {formatCharging(employee.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(employee.charging).length === 0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell className="table-cell2">
                       {formatDate(employee.birth_date)}
@@ -447,63 +437,12 @@ const General = ({
                       }}>
                       {safelyDisplayValue(employee.remarks)}
                     </TableCell>
-
-                    <TableCell className="table-status">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, employee.id)}
-                        size="small"
-                        sx={{
-                          "&:hover": {
-                            backgroundColor: alpha(
-                              theme.palette.action.hover,
-                              0.1
-                            ),
-                          },
-                        }}>
-                        <MoreVertIcon />
-                      </IconButton>
-                      <Menu
-                        anchorEl={menuAnchor[employee.id]}
-                        open={Boolean(menuAnchor[employee.id])}
-                        onClose={() => handleMenuClose(employee.id)}
-                        transformOrigin={{
-                          horizontal: "right",
-                          vertical: "top",
-                        }}
-                        anchorOrigin={{
-                          horizontal: "right",
-                          vertical: "bottom",
-                        }}>
-                        <MenuItem
-                          onClick={(e) =>
-                            handleArchiveRestoreClick(employee, e)
-                          }
-                          sx={{
-                            fontSize: "0.875rem",
-                            color: employee.deleted_at
-                              ? theme.palette.success.main
-                              : theme.palette.warning.main,
-                          }}>
-                          {employee.deleted_at ? (
-                            <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
-                              Archive
-                            </>
-                          )}
-                        </MenuItem>
-                      </Menu>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
+                    colSpan={8}
                     align="center"
                     sx={{ border: "none", py: 8 }}>
                     <Box
@@ -520,11 +459,11 @@ const General = ({
                       <Typography variant="body2" color="text.secondary">
                         {searchQuery
                           ? `No results for "${searchQuery}"`
-                          : showArchived
-                          ? "No archived employees"
-                          : selectedStatuses.length > 0
-                          ? `No employees with selected status filters`
-                          : "No active employees"}
+                          : Object.values(filters).some(
+                              (v) => v && v !== "ACTIVE"
+                            )
+                          ? `No employees with selected filters`
+                          : "No employees"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -538,7 +477,7 @@ const General = ({
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={employees?.result?.total || 0}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page - 1}
             onPageChange={handlePageChange}
@@ -560,73 +499,6 @@ const General = ({
           />
         </Box>
       </Paper>
-
-      <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3 },
-        }}>
-        <DialogTitle>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
-          </Box>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            textAlign="center"
-            color="rgb(33, 61, 112)">
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom textAlign="center">
-            Are you sure you want to{" "}
-            <strong>
-              {selectedEmployee?.deleted_at ? "restore" : "archive"}
-            </strong>{" "}
-            this employee?
-          </Typography>
-          {selectedEmployee && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mt: 1 }}>
-              {formatFullName(selectedEmployee)}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Box
-            display="flex"
-            justifyContent="center"
-            width="100%"
-            gap={2}
-            mb={2}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              color="error"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleArchiveRestoreConfirm}
-              variant="contained"
-              color="success"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Confirm
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
 
       <EmployeeWizardForm
         open={wizardOpen}

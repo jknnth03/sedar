@@ -10,32 +10,13 @@ import {
   TablePagination,
   CircularProgress,
   TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Box,
   Chip,
   useTheme,
   alpha,
 } from "@mui/material";
-import {
-  MoreVert as MoreVertIcon,
-  Archive as ArchiveIcon,
-  Restore as RestoreIcon,
-  Help as HelpIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-} from "@mui/icons-material";
 import { useSnackbar } from "notistack";
-import {
-  useGetPositionQuery,
-  useDeletePositionMutation,
-} from "../../features/api/employee/positionsempApi";
+import { useGetPositionQuery } from "../../features/api/employee/positionsempApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
@@ -45,10 +26,10 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 
 const Positions = ({
   searchQuery: parentSearchQuery,
-  showArchived: parentShowArchived,
   debounceValue: parentDebounceValue,
   onSearchChange,
-  onArchivedChange,
+  filters = {},
+  isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -62,28 +43,69 @@ const Positions = ({
     parentSearchQuery !== undefined
       ? parentSearchQuery
       : currentParams?.q ?? "";
-  const showArchived =
-    parentShowArchived !== undefined ? parentShowArchived : false;
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
-
-  const [menuAnchor, setMenuAnchor] = useState({});
-  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedPosition, setSelectedPosition] = useState(null);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(
-    () => ({
-      search: debounceValue,
-      page,
+  const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
+
+  const queryParams = useMemo(() => {
+    const params = {
+      pagination: page,
+      page: page,
       per_page: rowsPerPage,
-    }),
-    [debounceValue, page, rowsPerPage]
-  );
+    };
+
+    if (debounceValue && debounceValue.trim()) {
+      params.search = debounceValue;
+    }
+
+    // Add this block ⬇️
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
+
+    if (filters?.name) {
+      params.employee_name = filters.name;
+    }
+
+    if (filters?.team) {
+      params.team_name = filters.team;
+    }
+
+    if (filters?.idNumber) {
+      params.id_number = filters.idNumber;
+    }
+
+    if (filters?.dateHiredFrom) {
+      params.date_hired_from = filters.dateHiredFrom;
+    }
+
+    if (filters?.dateHiredTo) {
+      params.date_hired_to = filters.dateHiredTo;
+    }
+
+    if (filters?.type) {
+      params.employment_type = filters.type;
+    }
+
+    if (filters?.department) {
+      params.department_name = filters.department;
+    }
+
+    if (filters?.manpower) {
+      params.manpower_form = filters.manpower;
+    }
+
+    if (filters?.position) {
+      params.position_title = filters.position;
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, filters]);
 
   const {
     data: positions,
@@ -94,56 +116,31 @@ const Positions = ({
     refetchOnMountOrArgChange: true,
   });
 
-  const [deletePosition] = useDeletePositionMutation();
-
   const positionList = useMemo(
     () => positions?.result?.data || [],
     [positions]
   );
 
-  const handleMenuOpen = useCallback((event, positionId) => {
-    event.stopPropagation();
-    setMenuAnchor((prev) => ({ ...prev, [positionId]: event.currentTarget }));
-  }, []);
+  const totalCount = useMemo(() => positions?.result?.total || 0, [positions]);
 
-  const handleMenuClose = useCallback((positionId) => {
-    setMenuAnchor((prev) => ({ ...prev, [positionId]: null }));
-  }, []);
+  const handleSearchChange = useCallback(
+    (event) => {
+      const value = event.target.value;
 
-  const handleArchiveRestoreClick = useCallback(
-    (position, event) => {
-      if (event) {
-        event.stopPropagation();
+      if (onSearchChange) {
+        onSearchChange(value);
+      } else {
+        if (value.trim()) {
+          setQueryParams({ q: value });
+        } else {
+          removeQueryParams(["q"]);
+        }
       }
-      setSelectedPosition(position);
-      setConfirmOpen(true);
-      handleMenuClose(position.id);
+
+      setPage(1);
     },
-    [handleMenuClose]
+    [onSearchChange, setQueryParams, removeQueryParams]
   );
-
-  const handleArchiveRestoreConfirm = async () => {
-    if (!selectedPosition) return;
-
-    try {
-      await deletePosition(selectedPosition.id).unwrap();
-      enqueueSnackbar(
-        selectedPosition.deleted_at
-          ? "Position restored successfully!"
-          : "Position archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
-      );
-      refetch();
-    } catch (error) {
-      enqueueSnackbar("Action failed. Please try again.", {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedPosition(null);
-    }
-  };
 
   const openWizard = useCallback(
     async (position, mode) => {
@@ -157,6 +154,7 @@ const Positions = ({
         setWizardMode(mode);
         setWizardOpen(true);
       } catch (error) {
+        console.error("Error loading employee details:", error);
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 2000,
@@ -164,24 +162,6 @@ const Positions = ({
       }
     },
     [getSingleEmployee, enqueueSnackbar]
-  );
-
-  const handleViewEmployee = useCallback(
-    async (position, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(position.id);
-      await openWizard(position, "view");
-    },
-    [handleMenuClose, openWizard]
-  );
-
-  const handleEditEmployee = useCallback(
-    async (position, event) => {
-      if (event) event.stopPropagation();
-      handleMenuClose(position.id);
-      await openWizard(position, "edit");
-    },
-    [handleMenuClose, openWizard]
   );
 
   const handleRowClick = useCallback(
@@ -208,6 +188,15 @@ const Positions = ({
     [refetch, enqueueSnackbar]
   );
 
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
     []
@@ -216,18 +205,32 @@ const Positions = ({
   const formatEmployeeName = useCallback((employee) => {
     if (!employee) return "N/A";
     if (employee?.full_name) return employee.full_name;
-
     const parts = [
       employee?.last_name,
       employee?.first_name,
       employee?.middle_name,
     ].filter(Boolean);
-
     return parts.length > 0 ? parts.join(", ") : "N/A";
   }, []);
 
   const formatCurrency = useCallback((amount) => {
     return amount ? `₱${amount.toLocaleString()}` : "N/A";
+  }, []);
+
+  const formatCharging = useCallback((charging) => {
+    if (!charging) return [];
+
+    const chargingData = [
+      { code: charging.code, name: charging.name },
+      { code: charging.company_code, name: charging.company_name },
+      { code: charging.business_unit_code, name: charging.business_unit_name },
+      { code: charging.department_code, name: charging.department_name },
+      { code: charging.unit_code, name: charging.unit_name },
+      { code: charging.sub_unit_code, name: charging.sub_unit_name },
+      { code: charging.location_code, name: charging.location_name },
+    ];
+
+    return chargingData.filter((item) => item.code && item.name);
   }, []);
 
   return (
@@ -261,13 +264,24 @@ const Positions = ({
           <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">STATUS</TableCell>
                 <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">ID NUMBER</TableCell>
+                <TableCell className="table-header">CHARGING</TableCell>
                 <TableCell className="table-header2">POSITION TITLE</TableCell>
-                <TableCell className="table-header">SCHEDULE</TableCell>
-                <TableCell className="table-header">JOB LEVEL</TableCell>
-                <TableCell className="table-header">JOB RATE</TableCell>
+                <TableCell
+                  className="table-header"
+                  sx={{ whiteSpace: "nowrap" }}>
+                  SCHEDULE
+                </TableCell>
+                <TableCell
+                  className="table-header"
+                  sx={{ whiteSpace: "nowrap" }}>
+                  JOB LEVEL
+                </TableCell>
+                <TableCell
+                  className="table-header"
+                  sx={{ whiteSpace: "nowrap" }}>
+                  JOB RATE
+                </TableCell>
                 <TableCell className="table-header">ALLOWANCE</TableCell>
                 <TableCell className="table-header">SALARY</TableCell>
                 <TableCell className="table-header">TOOLS</TableCell>
@@ -276,7 +290,7 @@ const Positions = ({
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={12} align="center">
+                  <TableCell colSpan={9} align="center">
                     <Box sx={{ py: 4 }}>
                       <CircularProgress size={32} />
                       <Typography variant="body2" sx={{ mt: 2 }}>
@@ -303,34 +317,87 @@ const Positions = ({
                       },
                       transition: "background-color 0.2s ease",
                     }}>
-                    <TableCell sx={{ paddingLeft: "21px" }}>
-                      <Chip
-                        label={showArchived ? "INACTIVE" : "ACTIVE"}
-                        color={showArchived ? "error" : "success"}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          "& .MuiChip-label": {
-                            fontSize: "0.68rem",
-                            fontWeight: 600,
-                          },
-                        }}
-                      />
-                    </TableCell>
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "340px",
-                        minWidth: "340px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 500,
+                        width: "280px",
+                        minWidth: "250px",
                       }}>
-                      {formatEmployeeName(position.employee)}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                            lineHeight: 1.4,
+                          }}>
+                          {formatEmployeeName(position.employee)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                            lineHeight: 1.2,
+                            mt: 0.3,
+                          }}>
+                          {safelyDisplayValue(position.employee?.employee_code)}
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={
+                              position.employee?.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : "INACTIVE"
+                            }
+                            color={
+                              position.employee?.status === "ACTIVE"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: "18px",
+                              "& .MuiChip-label": {
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                paddingX: "6px",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </TableCell>
-                    <TableCell className="table-cell2">
-                      {safelyDisplayValue(position.employee?.employee_code)}
+                    <TableCell
+                      sx={{
+                        width: "350px",
+                        minWidth: "300px",
+                        paddingY: 1.5,
+                      }}>
+                      <Box>
+                        {formatCharging(position.employee?.charging).map(
+                          (item, index) => (
+                            <Typography
+                              key={index}
+                              sx={{
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4,
+                                color: "text.primary",
+                              }}>
+                              ({item.code}) - {item.name}
+                            </Typography>
+                          )
+                        )}
+                        {formatCharging(position.employee?.charging).length ===
+                          0 && (
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              color: "text.secondary",
+                            }}>
+                            N/A
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell
                       className="table-cell"
@@ -343,13 +410,19 @@ const Positions = ({
                       }}>
                       {safelyDisplayValue(position.position?.name)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell
+                      className="table-cell"
+                      sx={{ minWidth: "280px", whiteSpace: "nowrap" }}>
                       {safelyDisplayValue(position.schedule?.name)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell
+                      className="table-cell"
+                      sx={{ minWidth: "150px" }}>
                       {safelyDisplayValue(position.job_level?.name)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell
+                      className="table-cell"
+                      sx={{ minWidth: "130px" }}>
                       {formatCurrency(position.job_rate)}
                     </TableCell>
                     <TableCell className="table-cell">
@@ -374,7 +447,7 @@ const Positions = ({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={12}
+                    colSpan={9}
                     align="center"
                     sx={{ border: "none", py: 8 }}>
                     <Box
@@ -391,9 +464,11 @@ const Positions = ({
                       <Typography variant="body2" color="text.secondary">
                         {searchQuery
                           ? `No results for "${searchQuery}"`
-                          : showArchived
-                          ? "No archived positions"
-                          : "No active positions"}
+                          : Object.values(filters).some(
+                              (v) => v && v !== "ACTIVE"
+                            )
+                          ? `No positions with selected filters`
+                          : "No positions"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -407,14 +482,11 @@ const Positions = ({
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={positions?.result?.total || 0}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
               borderTop: `1px solid ${theme.palette.divider}`,
               backgroundColor: alpha(theme.palette.background.paper, 0.6),
@@ -424,81 +496,11 @@ const Positions = ({
                 paddingRight: theme.spacing(1),
               },
               "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  margin: 0,
-                  fontSize: "0.875rem",
-                },
+                { margin: 0, fontSize: "0.875rem" },
             }}
           />
         </Box>
       </Paper>
-
-      <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3 },
-        }}>
-        <DialogTitle>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
-          </Box>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            textAlign="center"
-            color="rgb(33, 61, 112)">
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom textAlign="center">
-            Are you sure you want to{" "}
-            <strong>
-              {selectedPosition?.deleted_at ? "restore" : "archive"}
-            </strong>{" "}
-            this position?
-          </Typography>
-          {selectedPosition && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mt: 1 }}>
-              {formatEmployeeName(selectedPosition.employee)}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Box
-            display="flex"
-            justifyContent="center"
-            width="100%"
-            gap={2}
-            mb={2}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              color="error"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleArchiveRestoreConfirm}
-              variant="contained"
-              color="success"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Confirm
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
 
       <EmployeeWizardForm
         open={wizardOpen}

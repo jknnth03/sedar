@@ -19,6 +19,22 @@ const mdaApi = sedarApi
           url: `mda/prefill/${id}`,
           method: "GET",
         }),
+        transformResponse: (response) => {
+          if (response?.result) {
+            const {
+              to_position_title,
+              to_department,
+              to_sub_unit,
+              to_job_level,
+              ...rest
+            } = response.result;
+            return {
+              ...response,
+              result: rest,
+            };
+          }
+          return response;
+        },
         providesTags: (result, error, id) => [
           { type: "mdaPrefill", id },
           "mdaPrefill",
@@ -142,6 +158,20 @@ const mdaApi = sedarApi
           "mdaSubmissions",
         ],
       }),
+
+      getAllPositions: build.query({
+        query: () => ({
+          url: "/positions?pagination=none&status=active",
+          method: "GET",
+        }),
+      }),
+
+      getAllJobLevels: build.query({
+        query: () => ({
+          url: "/job-levels",
+          method: "GET",
+        }),
+      }),
     }),
   });
 
@@ -156,6 +186,10 @@ export const {
   useLazyGetMdaSubmissionsQuery,
   useGetSingleMdaSubmissionQuery,
   useLazyGetSingleMdaSubmissionQuery,
+  useGetAllPositionsQuery,
+  useLazyGetAllPositionsQuery,
+  useGetAllJobLevelsQuery,
+  useLazyGetAllJobLevelsQuery,
 } = mdaApi;
 
 export default mdaApi;

@@ -494,10 +494,32 @@ const DataChangeAwaitingResubmission = ({
           selectedEntry={submissionDetails}
           isLoading={modalLoading || detailsLoading}
           onSave={handleModalSave}
-          onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
+          onResubmit={async (entryId) => {
+            console.log("onResubmit called with ID:", entryId);
+            try {
+              const result = await resubmitDataChangeSubmission(
+                entryId
+              ).unwrap();
+              console.log("Resubmit result:", result);
+              enqueueSnackbar("Data change resubmitted successfully!", {
+                variant: "success",
+                autoHideDuration: 2000,
+              });
+              refetch();
+              handleModalClose();
+              return true;
+            } catch (error) {
+              console.error("Resubmit error:", error);
+              const errorMessage =
+                error?.data?.message || "Failed to resubmit. Please try again.";
+              enqueueSnackbar(errorMessage, {
+                variant: "error",
+                autoHideDuration: 2000,
+              });
+              return false;
+            }
+          }}
         />
-
         <Dialog
           open={confirmOpen}
           onClose={handleConfirmationCancel}

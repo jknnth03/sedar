@@ -39,7 +39,7 @@ import PendingForms from "../../pages/receiving/PendingForms.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
-import DataChangeReceiving from "../../pages/receiving/DataChangeReceiving";
+// import DataChangeReceiving from "../../pages/receiving/DataChangeReceiving";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
@@ -49,8 +49,8 @@ import MASTERDATAAUTHORITY from "../../pages/forms/mdaform/MDA.jsx";
 import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdit.jsx";
 import MRFMonitoring from "../../pages/monitoring/MRF/MRFMonitoring.jsx";
 import DataChangeMonitoring from "../../pages/monitoring/datachange/DataChangeMonitoring.jsx";
-import MDAForApproval from "../../pages/forms/mdaform/MDAForApproval.jsx";
 import MDAMonitoring from "../../pages/monitoring/MDA/MDAMonitoring.jsx";
+import MdaApproval from "../../pages/approvals/mdaApproval/MdaApproval.jsx";
 
 export const ROUTES = [
   {
@@ -203,7 +203,7 @@ export const ROUTES = [
       {
         id: MODULES.APPROVING.children.MDAAPPROVAL.name,
         path: MODULES.APPROVING.children.MDAAPPROVAL.path,
-        element: <MDAForApproval />,
+        element: <MdaApproval />,
         handle: {
           permission: MODULES.APPROVING.children.MDAAPPROVAL.name,
         },
@@ -216,14 +216,14 @@ export const ROUTES = [
           permission: MODULES.RECEIVING.children.PENDINGFORMS.name,
         },
       },
-      {
-        id: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
-        path: MODULES.RECEIVING.children.DATACHANGERECEIVING.path,
-        element: <DataChangeReceiving />,
-        handle: {
-          permission: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
-        },
-      },
+      // {
+      //   id: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
+      //   path: MODULES.RECEIVING.children.DATACHANGERECEIVING.path,
+      //   element: <DataChangeReceiving />,
+      //   handle: {
+      //     permission: MODULES.RECEIVING.children.DATACHANGERECEIVING.name,
+      //   },
+      // },
       {
         id: MODULES.MASTERLIST.children.ONERDF.name,
         path: MODULES.MASTERLIST.children.ONERDF.path,
