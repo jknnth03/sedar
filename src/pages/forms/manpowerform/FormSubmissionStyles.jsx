@@ -495,6 +495,8 @@ export const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    height: "100%",
+    justifyContent: "center",
     gap: 2,
   },
 

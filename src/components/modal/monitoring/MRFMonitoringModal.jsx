@@ -21,8 +21,8 @@ import {
 import { useFormContext, Controller } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
-import DataChangeAttachmentFields from "../form/DataChange/DataChangeAttachmentFields";
-import { useGetDataChangeMonitoringByIdQuery } from "../../../features/api/monitoring/dataChangeMonitoringApi";
+import { useGetMRFSubmissionByIdQuery } from "../../../features/api/monitoring/mrfMonitoringApi";
+import MonitoringAttachmentField from "./MonitoringAttachmentFields";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -73,34 +73,23 @@ const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
   },
 }));
 
-const generateUniqueId = (prefix = "attachment") => {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
-const DataChangeMonitoringModal = ({
+const MrfMonitoringModal = ({
   open,
   onClose,
   submissionId,
   submissionData,
   isLoading: externalLoading,
 }) => {
-  const {
-    reset,
-    setValue,
-    control,
-    watch,
-    formState: { errors },
-  } = useFormContext();
+  const { reset, setValue, control, watch } = useFormContext();
 
   const [formInitialized, setFormInitialized] = useState(false);
-  const watchedEmployee = watch("employee_id");
-  const watchedAttachments = watch("attachments");
+  const watchedPosition = watch("position_id");
 
   const {
     data: fetchedData,
     isLoading: isFetchingData,
     isFetching,
-  } = useGetDataChangeMonitoringByIdQuery(submissionId, {
+  } = useGetMRFSubmissionByIdQuery(submissionId, {
     skip: !open || !submissionId,
   });
 
@@ -123,70 +112,48 @@ const DataChangeMonitoringModal = ({
     if (open && effectiveSubmissionData && !formInitialized && !isLoading) {
       const result = effectiveSubmissionData.result || effectiveSubmissionData;
       const submittable = result.submittable || result;
-      const employee = submittable.employee;
 
       if (submittable) {
-        const employeeName = employee?.full_name || "Unknown Employee";
-
         const formData = {
-          form_id: { id: result.form?.id || 4 },
-          employee_id: {
-            id: submittable.employee_id || employee?.id,
-            employee_name: employeeName,
-            full_name: employeeName,
-            position_title: submittable.from_position?.title?.name || "N/A",
-            department:
-              submittable.from_position?.charging?.department_name || "N/A",
-            sub_unit:
-              submittable.from_position?.charging?.sub_unit_name || "N/A",
-            schedule: submittable.from_position?.schedule?.name || "N/A",
-          },
-          movement_type_id: submittable.movement_type
+          form_id: { id: result.form?.id || 1 },
+          position_id: submittable.position
             ? {
-                id: submittable.movement_type.id,
-                name: submittable.movement_type.name,
+                id: submittable.position.id,
+                name: submittable.position.title?.name || "Unknown Position",
+                department:
+                  submittable.position.charging?.department_name || "N/A",
+                sub_unit: submittable.position.charging?.sub_unit_name || "N/A",
+                schedule: submittable.position.schedule?.name || "N/A",
               }
             : null,
-          effective_date: submittable.effective_date
-            ? dayjs(submittable.effective_date)
-            : null,
-          to_position_id: submittable.to_position
+          requisition_type_id: submittable.requisition_type
             ? {
-                id: submittable.to_position.id,
-                name: submittable.to_position.title?.name || "Unknown Position",
+                id: submittable.requisition_type.id,
+                name: submittable.requisition_type.name,
               }
             : null,
+          job_level_id: submittable.job_level
+            ? {
+                id: submittable.job_level.id,
+                label: submittable.job_level.label,
+              }
+            : null,
+          expected_salary: submittable.expected_salary || "",
+          employment_type: submittable.employment_type || "",
+          justification: submittable.justification || "",
+          remarks: submittable.remarks || "",
         };
 
         Object.keys(formData).forEach((key) => {
           setValue(key, formData[key], { shouldValidate: false });
         });
 
-        const attachmentsData = submittable.attachments || [];
-        const attachmentFieldsData =
-          attachmentsData.length > 0
-            ? attachmentsData.map((attachment) => ({
-                id: generateUniqueId(),
-                file_attachment: null,
-                existing_file_name:
-                  attachment.original_filename || "Unknown file",
-                existing_file_path: attachment.file_path,
-                existing_file_id: attachment.id,
-                is_new_file: false,
-                keep_existing: true,
-              }))
-            : [];
-
-        setValue("attachments", attachmentFieldsData, {
-          shouldValidate: false,
-        });
         setFormInitialized(true);
       }
     }
   }, [open, effectiveSubmissionData, formInitialized, isLoading, setValue]);
 
-  const isReadOnly = true;
-  const isLoadingEmployeeData = false;
+  const isLoadingPositionData = false;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -195,7 +162,7 @@ const DataChangeMonitoringModal = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              VIEW DATA CHANGE
+              VIEW MRF SUBMISSION
             </Typography>
           </Box>
           <IconButton
@@ -223,8 +190,8 @@ const DataChangeMonitoringModal = ({
             </Box>
           ) : (
             <Box>
-              {(watchedEmployee && watchedEmployee.employee_name) ||
-              isLoadingEmployeeData ? (
+              {(watchedPosition && watchedPosition.name) ||
+              isLoadingPositionData ? (
                 <Box sx={{ marginLeft: 2.1 }}>
                   <Grid container spacing={0}>
                     <Grid item xs={12} md={6}>
@@ -247,7 +214,7 @@ const DataChangeMonitoringModal = ({
                           }}>
                           DEPARTMENT
                         </Typography>
-                        {isLoadingEmployeeData ? (
+                        {isLoadingPositionData ? (
                           <Skeleton
                             variant="text"
                             width="70%"
@@ -264,9 +231,9 @@ const DataChangeMonitoringModal = ({
                               color: "#1a1a1a",
                               marginBottom: 2.5,
                             }}>
-                            {watchedEmployee.department ||
+                            {watchedPosition.department ||
                               effectiveSubmissionData?.result?.submittable
-                                ?.from_position?.charging?.department_name ||
+                                ?.position?.charging?.department_name ||
                               "N/A"}
                           </Typography>
                         )}
@@ -282,7 +249,7 @@ const DataChangeMonitoringModal = ({
                           }}>
                           SCHEDULE
                         </Typography>
-                        {isLoadingEmployeeData ? (
+                        {isLoadingPositionData ? (
                           <Skeleton variant="text" width="60%" height={24} />
                         ) : (
                           <Typography
@@ -293,9 +260,9 @@ const DataChangeMonitoringModal = ({
                               lineHeight: 1.3,
                               color: "#1a1a1a",
                             }}>
-                            {watchedEmployee.schedule ||
+                            {watchedPosition.schedule ||
                               effectiveSubmissionData?.result?.submittable
-                                ?.from_position?.schedule?.name ||
+                                ?.position?.schedule?.name ||
                               "N/A"}
                           </Typography>
                         )}
@@ -320,9 +287,9 @@ const DataChangeMonitoringModal = ({
                             textTransform: "uppercase",
                             letterSpacing: "0.5px",
                           }}>
-                          POSITION FROM
+                          POSITION
                         </Typography>
-                        {isLoadingEmployeeData ? (
+                        {isLoadingPositionData ? (
                           <Skeleton
                             variant="text"
                             width="85%"
@@ -340,8 +307,8 @@ const DataChangeMonitoringModal = ({
                               marginBottom: 2.5,
                             }}>
                             {effectiveSubmissionData?.result?.submittable
-                              ?.from_position?.title?.name ||
-                              watchedEmployee.position_title ||
+                              ?.position?.title?.name ||
+                              watchedPosition.name ||
                               "N/A"}
                           </Typography>
                         )}
@@ -358,7 +325,7 @@ const DataChangeMonitoringModal = ({
                           }}>
                           SUB UNIT
                         </Typography>
-                        {isLoadingEmployeeData ? (
+                        {isLoadingPositionData ? (
                           <Skeleton
                             variant="text"
                             width="65%"
@@ -375,9 +342,9 @@ const DataChangeMonitoringModal = ({
                               color: "#1a1a1a",
                               marginBottom: 2.5,
                             }}>
-                            {watchedEmployee.sub_unit ||
+                            {watchedPosition.sub_unit ||
                               effectiveSubmissionData?.result?.submittable
-                                ?.from_position?.charging?.sub_unit_name ||
+                                ?.position?.charging?.sub_unit_name ||
                               "N/A"}
                           </Typography>
                         )}
@@ -401,25 +368,25 @@ const DataChangeMonitoringModal = ({
                       <input
                         type="hidden"
                         {...field}
-                        value={field.value?.id || 4}
+                        value={field.value?.id || 1}
                       />
                     )}
                   />
 
                   <Box sx={{ display: "flex", gap: 2 }}>
                     <Box sx={{ flex: 1 }}>
-                      {isLoadingEmployeeData ? (
+                      {isLoadingPositionData ? (
                         <Skeleton variant="rounded" width="100%" height={56} />
                       ) : (
                         <Controller
-                          name="employee_id"
+                          name="requisition_type_id"
                           control={control}
                           render={({ field: { onChange, value } }) => (
                             <FormControl fullWidth>
                               <TextField
                                 label={
                                   <span>
-                                    Employee{" "}
+                                    Requisition Type{" "}
                                     <span
                                       style={{
                                         color: "red",
@@ -429,7 +396,7 @@ const DataChangeMonitoringModal = ({
                                     </span>
                                   </span>
                                 }
-                                value={value?.employee_name || ""}
+                                value={value?.name || ""}
                                 fullWidth
                                 disabled
                                 sx={{
@@ -450,18 +417,18 @@ const DataChangeMonitoringModal = ({
                     </Box>
 
                     <Box sx={{ flex: 1 }}>
-                      {isLoadingEmployeeData ? (
+                      {isLoadingPositionData ? (
                         <Skeleton variant="rounded" width="100%" height={56} />
                       ) : (
                         <Controller
-                          name="movement_type_id"
+                          name="position_id"
                           control={control}
                           render={({ field: { onChange, value } }) => (
                             <FormControl fullWidth>
                               <TextField
                                 label={
                                   <span>
-                                    Movement Type{" "}
+                                    Position{" "}
                                     <span
                                       style={{
                                         color: "red",
@@ -471,7 +438,9 @@ const DataChangeMonitoringModal = ({
                                     </span>
                                   </span>
                                 }
-                                value={value?.name || ""}
+                                value={
+                                  value?.title_with_unit || value?.name || ""
+                                }
                                 fullWidth
                                 disabled
                                 sx={{
@@ -494,63 +463,18 @@ const DataChangeMonitoringModal = ({
 
                   <Box sx={{ display: "flex", gap: 2 }}>
                     <Box sx={{ flex: 1 }}>
-                      {isLoadingEmployeeData ? (
+                      {isLoadingPositionData ? (
                         <Skeleton variant="rounded" width="100%" height={56} />
                       ) : (
                         <Controller
-                          name="effective_date"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <DatePicker
-                              label={
-                                <span>
-                                  Effective Date{" "}
-                                  <span
-                                    style={{
-                                      color: "red",
-                                      marginLeft: "2px",
-                                    }}>
-                                    *
-                                  </span>
-                                </span>
-                              }
-                              value={value}
-                              onChange={onChange}
-                              disabled
-                              slotProps={{
-                                textField: {
-                                  fullWidth: true,
-                                  sx: {
-                                    "& .MuiOutlinedInput-root": {
-                                      "&:hover fieldset": {
-                                        borderColor: "rgba(0, 0, 0, 0.23)",
-                                      },
-                                      "&.Mui-focused fieldset": {
-                                        borderColor: "#1976d2",
-                                      },
-                                    },
-                                  },
-                                },
-                              }}
-                            />
-                          )}
-                        />
-                      )}
-                    </Box>
-
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingEmployeeData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="to_position_id"
+                          name="job_level_id"
                           control={control}
                           render={({ field: { onChange, value } }) => (
                             <FormControl fullWidth>
                               <TextField
                                 label={
                                   <span>
-                                    Position to{" "}
+                                    Job Level{" "}
                                     <span
                                       style={{
                                         color: "red",
@@ -560,7 +484,49 @@ const DataChangeMonitoringModal = ({
                                     </span>
                                   </span>
                                 }
-                                value={value?.name || ""}
+                                value={value?.label || value?.name || ""}
+                                fullWidth
+                                disabled
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    "&:hover fieldset": {
+                                      borderColor: "rgba(0, 0, 0, 0.23)",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                      borderColor: "#1976d2",
+                                    },
+                                  },
+                                }}
+                              />
+                            </FormControl>
+                          )}
+                        />
+                      )}
+                    </Box>
+
+                    <Box sx={{ flex: 1 }}>
+                      {isLoadingPositionData ? (
+                        <Skeleton variant="rounded" width="100%" height={56} />
+                      ) : (
+                        <Controller
+                          name="expected_salary"
+                          control={control}
+                          render={({ field: { onChange, value } }) => (
+                            <FormControl fullWidth>
+                              <TextField
+                                label={
+                                  <span>
+                                    Expected Salary{" "}
+                                    <span
+                                      style={{
+                                        color: "red",
+                                        marginLeft: "2px",
+                                      }}>
+                                      *
+                                    </span>
+                                  </span>
+                                }
+                                value={value || ""}
                                 fullWidth
                                 disabled
                                 sx={{
@@ -581,11 +547,142 @@ const DataChangeMonitoringModal = ({
                     </Box>
                   </Box>
 
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <Box sx={{ flex: 1 }}>
+                      {isLoadingPositionData ? (
+                        <Skeleton variant="rounded" width="100%" height={56} />
+                      ) : (
+                        <Controller
+                          name="employment_type"
+                          control={control}
+                          render={({ field: { onChange, value } }) => (
+                            <FormControl fullWidth>
+                              <TextField
+                                label={
+                                  <span>
+                                    Employment Type{" "}
+                                    <span
+                                      style={{
+                                        color: "red",
+                                        marginLeft: "2px",
+                                      }}>
+                                      *
+                                    </span>
+                                  </span>
+                                }
+                                value={value || ""}
+                                fullWidth
+                                disabled
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    "&:hover fieldset": {
+                                      borderColor: "rgba(0, 0, 0, 0.23)",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                      borderColor: "#1976d2",
+                                    },
+                                  },
+                                }}
+                              />
+                            </FormControl>
+                          )}
+                        />
+                      )}
+                    </Box>
+
+                    <Box sx={{ flex: 1 }}>
+                      {isLoadingPositionData ? (
+                        <Skeleton variant="rounded" width="100%" height={56} />
+                      ) : (
+                        <Controller
+                          name="justification"
+                          control={control}
+                          render={({ field: { onChange, value } }) => (
+                            <FormControl fullWidth>
+                              <TextField
+                                label={
+                                  <span>
+                                    Justification{" "}
+                                    <span
+                                      style={{
+                                        color: "red",
+                                        marginLeft: "2px",
+                                      }}>
+                                      *
+                                    </span>
+                                  </span>
+                                }
+                                value={value || ""}
+                                fullWidth
+                                multiline
+                                rows={2}
+                                disabled
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    "&:hover fieldset": {
+                                      borderColor: "rgba(0, 0, 0, 0.23)",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                      borderColor: "#1976d2",
+                                    },
+                                  },
+                                }}
+                              />
+                            </FormControl>
+                          )}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ flex: 1 }}>
+                    {isLoadingPositionData ? (
+                      <Skeleton variant="rounded" width="100%" height={120} />
+                    ) : (
+                      <Controller
+                        name="remarks"
+                        control={control}
+                        render={({ field: { onChange, value } }) => (
+                          <FormControl fullWidth>
+                            <TextField
+                              label="Remarks"
+                              value={value || ""}
+                              fullWidth
+                              multiline
+                              rows={3}
+                              disabled
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  "&:hover fieldset": {
+                                    borderColor: "rgba(0, 0, 0, 0.23)",
+                                  },
+                                  "&.Mui-focused fieldset": {
+                                    borderColor: "#1976d2",
+                                  },
+                                },
+                              }}
+                            />
+                          </FormControl>
+                        )}
+                      />
+                    )}
+                  </Box>
+
                   <Box sx={{ mt: 2 }}>
-                    <DataChangeAttachmentFields
-                      isLoading={isLoading}
-                      mode="view"
-                      selectedEntry={effectiveSubmissionData}
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: "bold",
+                        color: "rgb(33, 61, 112)",
+                        marginBottom: 1.5,
+                        fontSize: "11px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}>
+                      ATTACHMENT
+                    </Typography>
+                    <MonitoringAttachmentField
+                      submissionData={effectiveSubmissionData}
                     />
                   </Box>
                 </Box>
@@ -598,4 +695,4 @@ const DataChangeMonitoringModal = ({
   );
 };
 
-export default DataChangeMonitoringModal;
+export default MrfMonitoringModal;

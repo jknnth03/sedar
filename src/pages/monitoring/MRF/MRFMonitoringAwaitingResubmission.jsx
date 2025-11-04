@@ -15,6 +15,7 @@ import "../../../pages/GeneralStyle.scss";
 import MRFMonitoringTable from "./MRFMonitoringTable";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import { useGetMRFSubmissionsQuery } from "../../../features/api/monitoring/mrfMonitoringApi";
+import MrfMonitoringModal from "../../../components/modal/monitoring/MrfMonitoringModal";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -44,8 +45,21 @@ const MRFMonitoringAwaitingResubmission = ({
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
 
-  const methods = useForm();
+  const methods = useForm({
+    defaultValues: {
+      position_id: null,
+      manpower_request_type_id: null,
+      no_of_employees: "",
+      required_date: null,
+      justification: "",
+      attachments: [],
+    },
+  });
+
   const effectiveSearchQuery =
     searchQuery !== undefined ? searchQuery : localSearchQuery;
   const debounceValue = useDebounce(effectiveSearchQuery, 500);
@@ -96,8 +110,16 @@ const MRFMonitoringAwaitingResubmission = ({
   }, []);
 
   const handleRowClick = useCallback((submission) => {
-    // View only - no action
-    console.log("Row clicked:", submission);
+    setSelectedSubmissionId(submission.id);
+    setSelectedSubmission(submission);
+    setMenuAnchor({});
+    setModalOpen(true);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
+    setSelectedSubmissionId(null);
+    setSelectedSubmission(null);
   }, []);
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -154,6 +176,14 @@ const MRFMonitoringAwaitingResubmission = ({
             />
           </Box>
         </Box>
+
+        <MrfMonitoringModal
+          open={modalOpen}
+          onClose={handleModalClose}
+          submissionId={selectedSubmissionId}
+          submissionData={selectedSubmission}
+          isLoading={isLoadingState}
+        />
       </Box>
     </FormProvider>
   );

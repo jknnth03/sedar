@@ -37,7 +37,7 @@ const MDAMonitoringCancelled = ({
     return {
       page: page,
       per_page: rowsPerPage,
-      status: "cancelled",
+      status: "CANCELLED",
       pagination: true,
       search: searchQuery || "",
     };

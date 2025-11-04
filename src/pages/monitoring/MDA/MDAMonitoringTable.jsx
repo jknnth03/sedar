@@ -108,8 +108,8 @@ const MDAMonitoringTable = ({
         label: "AWAITING RESUBMISSION",
       },
       "awaiting resubmission": {
-        color: "#ed6c02",
-        bgColor: "#fff4e5",
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
         label: "AWAITING RESUBMISSION",
       },
     };

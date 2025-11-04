@@ -37,7 +37,7 @@ const MDAMonitoringApproved = ({
     return {
       page: page,
       per_page: rowsPerPage,
-      status: "approved",
+      status: "APPROVED",
       pagination: true,
       search: searchQuery || "",
     };

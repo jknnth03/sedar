@@ -94,33 +94,28 @@ const MRFMonitoringTable = ({
         bgColor: "#f3e5f5",
         label: "AWAITING RESUBMISSION",
       },
-      RETURNED: {
-        color: "#d32f2f",
-        bgColor: "#ffebee",
-        label: "RETURNED",
-      },
     };
-
-    const hasReceivedEvent = submission.activity_log?.some(
-      (log) => log.event_type === "RECEIVED"
-    );
-
-    const hasRejectedEvent = submission.activity_log?.some(
-      (log) => log.event_type === "REJECTED"
-    );
-
-    const hasReturnedEvent = submission.activity_log?.some(
-      (log) => log.event_type === "RETURNED"
-    );
 
     let displayStatus = submission.status?.toUpperCase();
 
-    if (hasReceivedEvent) {
-      displayStatus = "RECEIVED";
-    } else if (hasRejectedEvent) {
-      displayStatus = "REJECTED";
-    } else if (hasReturnedEvent) {
-      displayStatus = "RETURNED";
+    const normalizedStatus = displayStatus?.replace(/[\s_-]+/g, " ");
+
+    if (normalizedStatus === "AWAITING RESUBMISSION") {
+      displayStatus = "AWAITING RESUBMISSION";
+    } else {
+      const hasReceivedEvent = submission.activity_log?.some(
+        (log) => log.event_type === "RECEIVED"
+      );
+
+      const hasRejectedEvent = submission.activity_log?.some(
+        (log) => log.event_type === "REJECTED"
+      );
+
+      if (hasReceivedEvent) {
+        displayStatus = "RECEIVED";
+      } else if (hasRejectedEvent) {
+        displayStatus = "REJECTED";
+      }
     }
 
     const config = statusConfig[displayStatus] || {

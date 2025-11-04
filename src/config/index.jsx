@@ -56,6 +56,9 @@ import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi
 import BorderColorIcon from "@mui/icons-material/BorderColor";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import { iconStyles, imageStyles } from "./iconStyles";
+import LooksOneIcon from "@mui/icons-material/LooksOne";
+import LooksTwoIcon from "@mui/icons-material/LooksTwo";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -330,22 +333,22 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <BadgeIcon sx={iconStyles.child} />,
           icon_on: null,
         },
-        JOBBANDS: {
-          name: "Job Bands",
-          path: "jobbands",
-          icon: <WorkHistoryIcon sx={iconStyles.child} />,
+        CATONE: {
+          name: "Cat One",
+          path: "catone",
+          icon: <LooksOneIcon sx={iconStyles.child} />,
           icon_on: null,
         },
-        JOBLEVELS: {
-          name: "Job Levels",
-          path: "joblevels",
-          icon: <MilitaryTechIcon sx={iconStyles.child} />,
+        CATTWO: {
+          name: "Cat Two",
+          path: "cattwo",
+          icon: <LooksTwoIcon sx={iconStyles.child} />,
           icon_on: null,
         },
-        JOBRATES: {
-          name: "Job Rates",
-          path: "jobrates",
-          icon: <StarIcon sx={iconStyles.child} />,
+        PDP: {
+          name: "PDP",
+          path: "pdp",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
@@ -490,6 +493,24 @@ export const createEnhancedModules = (dashboardData = {}) => {
           name: "Movement Types",
           path: "movementtypes",
           icon: <LowPriorityIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        JOBBANDS: {
+          name: "Job Bands",
+          path: "jobbands",
+          icon: <WorkHistoryIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        JOBLEVELS: {
+          name: "Job Levels",
+          path: "joblevels",
+          icon: <MilitaryTechIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        JOBRATES: {
+          name: "Job Rates",
+          path: "jobrates",
+          icon: <StarIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },

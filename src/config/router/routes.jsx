@@ -50,6 +50,9 @@ import MRFMonitoring from "../../pages/monitoring/MRF/MRFMonitoring.jsx";
 import DataChangeMonitoring from "../../pages/monitoring/datachange/DataChangeMonitoring.jsx";
 import MDAMonitoring from "../../pages/monitoring/MDA/MDAMonitoring.jsx";
 import MdaApproval from "../../pages/approvals/mdaApproval/MdaApproval.jsx";
+import CatOne from "../../pages/masterlist/da-tasks/catone/CatOne.jsx";
+import CatTwo from "../../pages/masterlist/da-tasks/cattwo/CatTwo.jsx";
+import Pdp from "../../pages/masterlist/da-tasks/pdp/Pdp.jsx";
 
 export const ROUTES = [
   {
@@ -232,27 +235,51 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.MASTERLIST.children.JOBBANDS.name,
-        path: MODULES.MASTERLIST.children.JOBBANDS.path,
+        id: MODULES.MASTERLIST.children.CATONE.name,
+        path: MODULES.MASTERLIST.children.CATONE.path,
+        element: <CatOne />,
+        handle: {
+          permission: MODULES.MASTERLIST.children.CATONE.name,
+        },
+      },
+      {
+        id: MODULES.MASTERLIST.children.CATTWO.name,
+        path: MODULES.MASTERLIST.children.CATTWO.path,
+        element: <CatTwo />,
+        handle: {
+          permission: MODULES.MASTERLIST.children.CATTWO.name,
+        },
+      },
+      {
+        id: MODULES.MASTERLIST.children.PDP.name,
+        path: MODULES.MASTERLIST.children.PDP.path,
+        element: <Pdp />,
+        handle: {
+          permission: MODULES.MASTERLIST.children.PDP.name,
+        },
+      },
+      {
+        id: MODULES.EXTRAS.children.JOBBANDS.name,
+        path: MODULES.EXTRAS.children.JOBBANDS.path,
         element: <Jobbands />,
         handle: {
-          permission: MODULES.MASTERLIST.children.JOBBANDS.name,
+          permission: MODULES.EXTRAS.children.JOBBANDS.name,
         },
       },
       {
-        id: MODULES.MASTERLIST.children.JOBLEVELS.name,
-        path: MODULES.MASTERLIST.children.JOBLEVELS.path,
+        id: MODULES.EXTRAS.children.JOBLEVELS.name,
+        path: MODULES.EXTRAS.children.JOBLEVELS.path,
         element: <Joblevels />,
         handle: {
-          permission: MODULES.MASTERLIST.children.JOBLEVELS.name,
+          permission: MODULES.EXTRAS.children.JOBLEVELS.name,
         },
       },
       {
-        id: MODULES.MASTERLIST.children.JOBRATES.name,
-        path: MODULES.MASTERLIST.children.JOBRATES.path,
+        id: MODULES.EXTRAS.children.JOBRATES.name,
+        path: MODULES.EXTRAS.children.JOBRATES.path,
         element: <Jobrates />,
         handle: {
-          permission: MODULES.MASTERLIST.children.JOBRATES.name,
+          permission: MODULES.EXTRAS.children.JOBRATES.name,
         },
       },
       {

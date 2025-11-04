@@ -1,13 +1,31 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import {
+  Typography,
+  TablePagination,
+  Box,
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
-import DataChangeMonitoringModal from "../../../components/modal/monitoring/DataChangeMonitoringModal";
-import DataChangeMonitoringTable from "./DataChangeMonitoringTable";
-import { useGetDataChangeMonitoringQuery } from "../../../features/api/monitoring/dataChangeMonitoringApi";
+import "../../../../pages/GeneralStyle.scss";
+import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
+import {
+  useGetCatOneTaskQuery,
+  useGetCatOneScoreQuery,
+  useSaveCatOneAsDraftMutation,
+  useSubmitCatOneMutation,
+} from "../../../../features/api/da-task/catOneApi";
+import CatOneTable from "./CatOneTable";
+import CatOneModal from "../../../../components/modal/da-task/CatOneModal";
+import { useCancelFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
 
-const DataChangeMonitoringForApproval = ({
+const CatOneCancelled = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -23,17 +41,19 @@ const DataChangeMonitoringForApproval = ({
     parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {
-      reason_for_change: "",
+      template_id: null,
       employee_id: null,
-      new_position_id: null,
+      date_assessed: null,
       remarks: "",
     },
   });
@@ -43,31 +63,46 @@ const DataChangeMonitoringForApproval = ({
     setPage(newPage);
   }, [searchQuery, dateFilters]);
 
-  const queryParams = useMemo(() => {
-    return {
-      page,
-      per_page: rowsPerPage,
-      status: "active",
-      approval_status: "pending",
-      search: searchQuery || "",
-    };
-  }, [page, rowsPerPage, searchQuery]);
-
   const {
-    data: submissionsData,
+    data: taskData,
     isLoading: queryLoading,
     isFetching,
     refetch,
     error,
-  } = useGetDataChangeMonitoringQuery(queryParams, {
+  } = useGetCatOneTaskQuery(undefined, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissionDetails = useMemo(() => {
+    if (!selectedSubmissionId || !selectedSubmission) return null;
+    return { result: selectedSubmission };
+  }, [selectedSubmissionId, selectedSubmission]);
 
-    let filtered = rawData;
+  const detailsLoading = false;
+
+  const refetchDetails = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const submissionsData = useMemo(() => {
+    if (!taskData?.result) return [];
+
+    const result = taskData.result;
+
+    if (Array.isArray(result)) {
+      return result.filter((item) => item.status === "CANCELLED");
+    }
+
+    if (result.status === "CANCELLED") {
+      return [result];
+    }
+
+    return [];
+  }, [taskData]);
+
+  const filteredSubmissions = useMemo(() => {
+    let filtered = submissionsData;
 
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
@@ -77,8 +112,18 @@ const DataChangeMonitoringForApproval = ({
       );
     }
 
+    if (searchQuery && filterDataBySearch) {
+      filtered = filterDataBySearch(filtered, searchQuery);
+    }
+
     return filtered;
-  }, [submissionsData, dateFilters, filterDataByDate]);
+  }, [
+    submissionsData,
+    dateFilters,
+    searchQuery,
+    filterDataByDate,
+    filterDataBySearch,
+  ]);
 
   const paginatedSubmissions = useMemo(() => {
     const startIndex = (page - 1) * rowsPerPage;
@@ -87,6 +132,7 @@ const DataChangeMonitoringForApproval = ({
   }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
+    setModalMode("view");
     setSelectedSubmissionId(submission.id);
     setSelectedSubmission(submission);
     setMenuAnchor({});
@@ -98,7 +144,15 @@ const DataChangeMonitoringForApproval = ({
     setModalOpen(false);
     setSelectedSubmissionId(null);
     setSelectedSubmission(null);
+    setModalLoading(false);
+    setModalMode("view");
   }, []);
+
+  const handleRefreshDetails = useCallback(() => {
+    if (selectedSubmissionId && refetchDetails) {
+      refetchDetails();
+    }
+  }, [selectedSubmissionId, refetchDetails]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -153,6 +207,10 @@ const DataChangeMonitoringForApproval = ({
     [setQueryParams, currentParams]
   );
 
+  const handleModeChange = useCallback((newMode) => {
+    setModalMode(newMode);
+  }, []);
+
   const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
@@ -174,7 +232,7 @@ const DataChangeMonitoringForApproval = ({
             flexDirection: "column",
             backgroundColor: "white",
           }}>
-          <DataChangeMonitoringTable
+          <CatOneTable
             submissionsList={paginatedSubmissions}
             isLoadingState={isLoadingState}
             error={error}
@@ -185,7 +243,8 @@ const DataChangeMonitoringForApproval = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
+            hideStatusColumn={false}
+            forApproval={false}
           />
 
           <Box
@@ -230,16 +289,18 @@ const DataChangeMonitoringForApproval = ({
           </Box>
         </Box>
 
-        <DataChangeMonitoringModal
+        <CatOneModal
           open={modalOpen}
           onClose={handleModalClose}
-          submissionId={selectedSubmissionId}
-          submissionData={selectedSubmission}
-          isLoading={isLoadingState}
+          mode={modalMode}
+          onModeChange={handleModeChange}
+          selectedEntry={selectedSubmission}
+          isLoading={modalLoading || detailsLoading}
+          onRefreshDetails={handleRefreshDetails}
         />
       </Box>
     </FormProvider>
   );
 };
 
-export default DataChangeMonitoringForApproval;
+export default CatOneCancelled;
