@@ -31,22 +31,22 @@ import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
-  useGetCatTwoTaskQuery,
-  useGetCatTwoScoreQuery,
-  useSaveCatTwoAsDraftMutation,
-  useSubmitCatTwoMutation,
-} from "../../../../features/api/da-task/catTwoApi";
+  useGetPdpTaskQuery,
+  useGetPdpScoreQuery,
+  useSavePdpAsDraftMutation,
+  useSubmitPdpMutation,
+} from "../../../features/api/da-task/pdpApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
-import CatTwoForAssessment from "./CatTwoForAssesment";
-import CatTwoForSubmission from "./CatTwoForSubmission";
-import CatTwoForApproval from "./CatTwoForApproval";
-import CatTwoAwaitingResubmission from "./CatTwoAwaitingResubmission";
-import CatTwoRejected from "./CatTwoRejected";
-import CatTwoApproved from "./CatTwoApproved";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
-import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../../hooks/useDebounce";
-import CatTwoModal from "../../../../components/modal/da-task/CatTwoModal";
+
+import PdpForApproval from "./PdpForApproval";
+import PdpAwaitingResubmission from "./PdpAwaitingResubmission";
+import PdpRejected from "./PdpRejected";
+import PdpApproved from "./PdpApproved";
+import PdpCancelled from "./PdpCancelled";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import useDebounce from "../../../hooks/useDebounce";
+import PdpModal from "../../../components/modal/da-task/PdpModal";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -89,8 +89,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`cattwo-tabpanel-${index}`}
-      aria-labelledby={`cattwo-tab-${index}`}
+      id={`pdp-tabpanel-${index}`}
+      aria-labelledby={`pdp-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -406,7 +406,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search CAT 2..."}
+        placeholder={isVerySmall ? "Search..." : "Search PDP..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -466,7 +466,7 @@ const CustomSearchBar = ({
   );
 };
 
-const CatTwo = () => {
+const Pdp = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -477,20 +477,19 @@ const CatTwo = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForAssessment",
-    1: "ForSubmission",
-    2: "ForApproval",
-    3: "AwaitingResubmission",
-    4: "Rejected",
-    5: "Approved",
+    0: "ForApproval",
+    1: "AwaitingResubmission",
+    2: "Rejected",
+    3: "Approved",
+    4: "Cancelled",
   };
+
   const reverseTabMap = {
-    ForAssessment: 0,
-    ForSubmission: 1,
-    ForApproval: 2,
-    AwaitingResubmission: 3,
-    Rejected: 4,
-    Approved: 5,
+    ForApproval: 0,
+    AwaitingResubmission: 1,
+    Rejected: 2,
+    Approved: 3,
+    Cancelled: 4,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -507,8 +506,8 @@ const CatTwo = () => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalMode, setModalMode] = useState("create");
 
-  const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
-  const [submitCatTwo] = useSubmitCatTwoMutation();
+  const [savePdpAsDraft] = useSavePdpAsDraftMutation();
+  const [submitPdp] = useSubmitPdpMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -577,14 +576,14 @@ const CatTwo = () => {
     async (data, isDraft = false) => {
       try {
         if (isDraft) {
-          await saveCatTwoAsDraft(data).unwrap();
-          enqueueSnackbar("CAT 2 saved as draft successfully!", {
+          await savePdpAsDraft(data).unwrap();
+          enqueueSnackbar("PDP saved as draft successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
-          await submitCatTwo(data).unwrap();
-          enqueueSnackbar("CAT 2 submitted successfully!", {
+          await submitPdp(data).unwrap();
+          enqueueSnackbar("PDP submitted successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -596,7 +595,7 @@ const CatTwo = () => {
       } catch (error) {
         let errorMessage = isDraft
           ? "Failed to save draft. Please try again."
-          : "Failed to submit CAT 2. Please try again.";
+          : "Failed to submit PDP. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -611,13 +610,13 @@ const CatTwo = () => {
         return false;
       }
     },
-    [saveCatTwoAsDraft, submitCatTwo, enqueueSnackbar, handleRefreshDetails]
+    [savePdpAsDraft, submitPdp, enqueueSnackbar, handleRefreshDetails]
   );
 
   const handleCancel = useCallback(
     async (entryId, cancellationReason = "") => {
       try {
-        enqueueSnackbar("CAT 2 cancelled successfully!", {
+        enqueueSnackbar("PDP cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -625,7 +624,7 @@ const CatTwo = () => {
         handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage = "Failed to cancel CAT 2. Please try again.";
+        let errorMessage = "Failed to cancel PDP. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -646,41 +645,9 @@ const CatTwo = () => {
 
   const tabsData = [
     {
-      label: "For Assessment",
-      component: (
-        <CatTwoForAssessment
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "For Submission",
-      component: (
-        <CatTwoForSubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
       label: "For Approval",
       component: (
-        <CatTwoForApproval
+        <PdpForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -696,7 +663,7 @@ const CatTwo = () => {
     {
       label: "Awaiting Resubmission",
       component: (
-        <CatTwoAwaitingResubmission
+        <PdpAwaitingResubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -712,7 +679,7 @@ const CatTwo = () => {
     {
       label: "Rejected",
       component: (
-        <CatTwoRejected
+        <PdpRejected
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -728,7 +695,7 @@ const CatTwo = () => {
     {
       label: "Approved",
       component: (
-        <CatTwoApproved
+        <PdpApproved
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -741,12 +708,27 @@ const CatTwo = () => {
       ),
       badgeCount: null,
     },
+    {
+      label: "Cancelled",
+      component: (
+        <PdpCancelled
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `cattwo-tab-${index}`,
-      "aria-controls": `cattwo-tabpanel-${index}`,
+      id: `pdp-tab-${index}`,
+      "aria-controls": `pdp-tabpanel-${index}`,
     };
   };
 
@@ -807,7 +789,7 @@ const CatTwo = () => {
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}>
-                  CAT 2
+                  PDP
                 </Typography>
                 <Fade in={!isLoadingState}>
                   {isVerySmall ? (
@@ -880,7 +862,7 @@ const CatTwo = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="CAT 2 tabs"
+              aria-label="PDP tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -933,7 +915,7 @@ const CatTwo = () => {
             onDateFiltersChange={handleDateFiltersChange}
           />
 
-          <CatTwoModal
+          <PdpModal
             open={modalOpen}
             onClose={handleModalClose}
             mode={modalMode}
@@ -946,4 +928,4 @@ const CatTwo = () => {
   );
 };
 
-export default CatTwo;
+export default Pdp;

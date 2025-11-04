@@ -59,6 +59,7 @@ import { iconStyles, imageStyles } from "./iconStyles";
 import LooksOneIcon from "@mui/icons-material/LooksOne";
 import LooksTwoIcon from "@mui/icons-material/LooksTwo";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -333,6 +334,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <BadgeIcon sx={iconStyles.child} />,
           icon_on: null,
         },
+      },
+    },
+
+    DEVELOPMENTALASSIGNMENT: {
+      name: "Developmental Assignment",
+      path: "/developmental-assignment",
+      icon: <AssignmentIcon sx={iconStyles.mainExtraLarge} />,
+      icon_on: null,
+      children: {
         CATONE: {
           name: "Cat One",
           path: "catone",

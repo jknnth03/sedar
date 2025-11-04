@@ -21,7 +21,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CancelIcon from "@mui/icons-material/Cancel";
 import { format, parseISO } from "date-fns";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 
 const CatOneTable = ({
   submissionsList = [],

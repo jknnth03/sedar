@@ -27,26 +27,24 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
-  useGetPdpTaskQuery,
-  useGetPdpScoreQuery,
-  useSavePdpAsDraftMutation,
-  useSubmitPdpMutation,
-} from "../../../../features/api/da-task/pdpApi";
+  useGetCatOneTaskQuery,
+  useSaveCatOneAsDraftMutation,
+  useSubmitCatOneMutation,
+} from "../../../features/api/da-task/catOneApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
 
-import PdpForApproval from "./PdpForApproval";
-import PdpAwaitingResubmission from "./PdpAwaitingResubmission";
-import PdpRejected from "./PdpRejected";
-import PdpApproved from "./PdpApproved";
-import PdpCancelled from "./PdpCancelled";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
-import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../../hooks/useDebounce";
-import PdpModal from "../../../../components/modal/da-task/PdpModal";
+import CatOneForAssessment from "./CatOneForAssesment";
+import CatOneForApproval from "./CatOneForApproval";
+import CatOneForSubmission from "./CatOneForSubmission";
+import CatOneApproved from "./CatOneApproved";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import useDebounce from "../../../hooks/useDebounce";
+import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+import CatOneReturned from "./CatOneReturned";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -89,8 +87,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`pdp-tabpanel-${index}`}
-      aria-labelledby={`pdp-tab-${index}`}
+      id={`catone-tabpanel-${index}`}
+      aria-labelledby={`catone-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -406,7 +404,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search PDP..."}
+        placeholder={isVerySmall ? "Search..." : "Search CAT 1..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -466,7 +464,7 @@ const CustomSearchBar = ({
   );
 };
 
-const Pdp = () => {
+const CatOne = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -477,21 +475,20 @@ const Pdp = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForApproval",
-    1: "AwaitingResubmission",
-    2: "Rejected",
-    3: "Approved",
-    4: "Cancelled",
+    0: "ForAssessment",
+    1: "ForSubmission",
+    2: "ForApproval",
+    3: "Returned",
+    4: "Approved",
   };
 
   const reverseTabMap = {
-    ForApproval: 0,
-    AwaitingResubmission: 1,
-    Rejected: 2,
-    Approved: 3,
-    Cancelled: 4,
+    ForAssessment: 0,
+    ForSubmission: 1,
+    ForApproval: 2,
+    Returned: 3,
+    Approved: 4,
   };
-
   const [activeTab, setActiveTab] = useState(
     reverseTabMap[currentParams?.tab] ?? 0
   );
@@ -504,10 +501,10 @@ const Pdp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalMode, setModalMode] = useState("create");
+  const [modalMode, setModalMode] = useState("view");
 
-  const [savePdpAsDraft] = useSavePdpAsDraftMutation();
-  const [submitPdp] = useSubmitPdpMutation();
+  const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
+  const [submitCatOne] = useSubmitCatOneMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -547,13 +544,6 @@ const Pdp = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const handleAddNew = useCallback(() => {
-    methods.reset();
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalOpen(true);
-  }, [methods]);
-
   const handleRefreshDetails = useCallback(() => {
     setIsLoading(true);
     setTimeout(() => {
@@ -576,14 +566,14 @@ const Pdp = () => {
     async (data, isDraft = false) => {
       try {
         if (isDraft) {
-          await savePdpAsDraft(data).unwrap();
-          enqueueSnackbar("PDP saved as draft successfully!", {
+          await saveCatOneAsDraft(data).unwrap();
+          enqueueSnackbar("CAT 1 saved as draft successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
-          await submitPdp(data).unwrap();
-          enqueueSnackbar("PDP submitted successfully!", {
+          await submitCatOne(data).unwrap();
+          enqueueSnackbar("CAT 1 submitted successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -595,7 +585,7 @@ const Pdp = () => {
       } catch (error) {
         let errorMessage = isDraft
           ? "Failed to save draft. Please try again."
-          : "Failed to submit PDP. Please try again.";
+          : "Failed to submit CAT 1. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -610,13 +600,13 @@ const Pdp = () => {
         return false;
       }
     },
-    [savePdpAsDraft, submitPdp, enqueueSnackbar, handleRefreshDetails]
+    [saveCatOneAsDraft, submitCatOne, enqueueSnackbar, handleRefreshDetails]
   );
 
   const handleCancel = useCallback(
     async (entryId, cancellationReason = "") => {
       try {
-        enqueueSnackbar("PDP cancelled successfully!", {
+        enqueueSnackbar("CAT 1 cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -624,7 +614,7 @@ const Pdp = () => {
         handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage = "Failed to cancel PDP. Please try again.";
+        let errorMessage = "Failed to cancel CAT 1. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -645,9 +635,41 @@ const Pdp = () => {
 
   const tabsData = [
     {
+      label: "For Assessment",
+      component: (
+        <CatOneForAssessment
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "For Submission",
+      component: (
+        <CatOneForSubmission
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
       label: "For Approval",
       component: (
-        <PdpForApproval
+        <CatOneForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -661,25 +683,9 @@ const Pdp = () => {
       badgeCount: null,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "Returned",
       component: (
-        <PdpAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <PdpRejected
+        <CatOneReturned
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -695,7 +701,7 @@ const Pdp = () => {
     {
       label: "Approved",
       component: (
-        <PdpApproved
+        <CatOneApproved
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -708,27 +714,12 @@ const Pdp = () => {
       ),
       badgeCount: null,
     },
-    {
-      label: "Cancelled",
-      component: (
-        <PdpCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `pdp-tab-${index}`,
-      "aria-controls": `pdp-tabpanel-${index}`,
+      id: `catone-tab-${index}`,
+      "aria-controls": `catone-tabpanel-${index}`,
     };
   };
 
@@ -789,65 +780,8 @@ const Pdp = () => {
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}>
-                  PDP
+                  CAT 1
                 </Typography>
-                <Fade in={!isLoadingState}>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "160px",
-                        minWidth: isMobile ? "120px" : "160px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      {isMobile ? "NEW" : "NEW ENTRY"}
-                    </Button>
-                  )}
-                </Fade>
               </Box>
 
               <CustomSearchBar
@@ -862,7 +796,7 @@ const Pdp = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="PDP tabs"
+              aria-label="CAT 1 tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -915,7 +849,7 @@ const Pdp = () => {
             onDateFiltersChange={handleDateFiltersChange}
           />
 
-          <PdpModal
+          <CatOneModal
             open={modalOpen}
             onClose={handleModalClose}
             mode={modalMode}
@@ -928,4 +862,4 @@ const Pdp = () => {
   );
 };
 
-export default Pdp;
+export default CatOne;

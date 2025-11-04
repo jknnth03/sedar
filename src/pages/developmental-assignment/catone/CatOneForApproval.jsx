@@ -13,18 +13,19 @@ import {
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../../pages/GeneralStyle.scss";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
+import "../../../pages/GeneralStyle.scss";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
+  useGetCatOneScoreQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
-} from "../../../../features/api/da-task/catOneApi";
+} from "../../../features/api/da-task/catOneApi";
 import CatOneTable from "./CatOneTable";
-import CatOneModal from "../../../../components/modal/da-task/CatOneModal";
-import { useCancelFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const CatOneForSubmission = ({
+const CatOneForApproval = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -104,10 +105,21 @@ const CatOneForSubmission = ({
     const result = taskData.result;
 
     if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "AWAITING_RESUBMISSION");
+      return result.filter(
+        (item) =>
+          item.status === "PENDING_VALIDATION" ||
+          item.status === "PENDING_APPROVAL" ||
+          item.status === "PENDING_SUPERIOR_INPUT" ||
+          item.status === "DRAFT"
+      );
     }
 
-    if (result.status === "AWAITING_RESUBMISSION") {
+    if (
+      result.status === "PENDING_VALIDATION" ||
+      result.status === "PENDING_APPROVAL" ||
+      result.status === "PENDING_SUPERIOR_INPUT" ||
+      result.status === "DRAFT"
+    ) {
       return [result];
     }
 
@@ -190,8 +202,10 @@ const CatOneForSubmission = ({
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    if (selectedSubmissionId && refetchDetails) {
+      refetchDetails();
+    }
+  }, [selectedSubmissionId, refetchDetails]);
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
@@ -344,7 +358,6 @@ const CatOneForSubmission = ({
         if (modalSuccessHandler) {
           modalSuccessHandler();
         }
-        handleModalClose();
       }
     } catch (error) {
       const errorMessage =
@@ -452,8 +465,7 @@ const CatOneForSubmission = ({
             selectedFilters={[]}
             showArchived={false}
             hideStatusColumn={false}
-            forApproval={false}
-            forAssessment={false}
+            forApproval={true}
             onCancel={handleCancelSubmission}
           />
 
@@ -638,4 +650,4 @@ const CatOneForSubmission = ({
   );
 };
 
-export default CatOneForSubmission;
+export default CatOneForApproval;

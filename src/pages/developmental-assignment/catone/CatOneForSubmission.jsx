@@ -13,19 +13,18 @@ import {
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../../pages/GeneralStyle.scss";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
+import "../../../pages/GeneralStyle.scss";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
-  useGetCatOneScoreQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
-} from "../../../../features/api/da-task/catOneApi";
+} from "../../../features/api/da-task/catOneApi";
 import CatOneTable from "./CatOneTable";
-import CatOneModal from "../../../../components/modal/da-task/CatOneModal";
-import { useCancelFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const CatOneReturned = ({
+const CatOneForSubmission = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -105,10 +104,10 @@ const CatOneReturned = ({
     const result = taskData.result;
 
     if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "RETURNED");
+      return result.filter((item) => item.status === "AWAITING_RESUBMISSION");
     }
 
-    if (result.status === "RETURNED") {
+    if (result.status === "AWAITING_RESUBMISSION") {
       return [result];
     }
 
@@ -191,10 +190,8 @@ const CatOneReturned = ({
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId && refetchDetails) {
-      refetchDetails();
-    }
-  }, [selectedSubmissionId, refetchDetails]);
+    refetch();
+  }, [refetch]);
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
@@ -347,6 +344,7 @@ const CatOneReturned = ({
         if (modalSuccessHandler) {
           modalSuccessHandler();
         }
+        handleModalClose();
       }
     } catch (error) {
       const errorMessage =
@@ -455,6 +453,7 @@ const CatOneReturned = ({
             showArchived={false}
             hideStatusColumn={false}
             forApproval={false}
+            forAssessment={false}
             onCancel={handleCancelSubmission}
           />
 
@@ -639,4 +638,4 @@ const CatOneReturned = ({
   );
 };
 
-export default CatOneReturned;
+export default CatOneForSubmission;

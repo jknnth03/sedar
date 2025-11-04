@@ -13,17 +13,17 @@ import {
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../../pages/GeneralStyle.scss";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
+import "../../../pages/GeneralStyle.scss";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
   useGetCatOneScoreQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
-} from "../../../../features/api/da-task/catOneApi";
+} from "../../../features/api/da-task/catOneApi";
 import CatOneTable from "./CatOneTable";
-import CatOneModal from "../../../../components/modal/da-task/CatOneModal";
-import { useCancelFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const CatOneApproved = ({
   searchQuery,

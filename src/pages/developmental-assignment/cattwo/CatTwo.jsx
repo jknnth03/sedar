@@ -27,24 +27,26 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
-  useGetCatOneTaskQuery,
-  useSaveCatOneAsDraftMutation,
-  useSubmitCatOneMutation,
-} from "../../../../features/api/da-task/catOneApi";
+  useGetCatTwoTaskQuery,
+  useGetCatTwoScoreQuery,
+  useSaveCatTwoAsDraftMutation,
+  useSubmitCatTwoMutation,
+} from "../../../features/api/da-task/catTwoApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
-
-import CatOneForAssessment from "./CatOneForAssesment";
-import CatOneForApproval from "./CatOneForApproval";
-import CatOneForSubmission from "./CatOneForSubmission";
-import CatOneApproved from "./CatOneApproved";
-import { styles } from "../../../forms/manpowerform/FormSubmissionStyles";
-import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../../hooks/useDebounce";
-import CatOneModal from "../../../../components/modal/da-task/CatOneModal";
-import CatOneReturned from "./CatOneReturned";
+import CatTwoForAssessment from "./CatTwoForAssesment";
+import CatTwoForSubmission from "./CatTwoForSubmission";
+import CatTwoForApproval from "./CatTwoForApproval";
+import CatTwoAwaitingResubmission from "./CatTwoAwaitingResubmission";
+import CatTwoRejected from "./CatTwoRejected";
+import CatTwoApproved from "./CatTwoApproved";
+import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import useDebounce from "../../../hooks/useDebounce";
+import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -87,8 +89,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`catone-tabpanel-${index}`}
-      aria-labelledby={`catone-tab-${index}`}
+      id={`cattwo-tabpanel-${index}`}
+      aria-labelledby={`cattwo-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -404,7 +406,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search CAT 1..."}
+        placeholder={isVerySmall ? "Search..." : "Search CAT 2..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -464,7 +466,7 @@ const CustomSearchBar = ({
   );
 };
 
-const CatOne = () => {
+const CatTwo = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -478,17 +480,19 @@ const CatOne = () => {
     0: "ForAssessment",
     1: "ForSubmission",
     2: "ForApproval",
-    3: "Returned",
-    4: "Approved",
+    3: "AwaitingResubmission",
+    4: "Rejected",
+    5: "Approved",
   };
-
   const reverseTabMap = {
     ForAssessment: 0,
     ForSubmission: 1,
     ForApproval: 2,
-    Returned: 3,
-    Approved: 4,
+    AwaitingResubmission: 3,
+    Rejected: 4,
+    Approved: 5,
   };
+
   const [activeTab, setActiveTab] = useState(
     reverseTabMap[currentParams?.tab] ?? 0
   );
@@ -501,10 +505,10 @@ const CatOne = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalMode, setModalMode] = useState("view");
+  const [modalMode, setModalMode] = useState("create");
 
-  const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
-  const [submitCatOne] = useSubmitCatOneMutation();
+  const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
+  const [submitCatTwo] = useSubmitCatTwoMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -544,6 +548,13 @@ const CatOne = () => {
     setDateFilters(newDateFilters);
   }, []);
 
+  const handleAddNew = useCallback(() => {
+    methods.reset();
+    setSelectedEntry(null);
+    setModalMode("create");
+    setModalOpen(true);
+  }, [methods]);
+
   const handleRefreshDetails = useCallback(() => {
     setIsLoading(true);
     setTimeout(() => {
@@ -566,14 +577,14 @@ const CatOne = () => {
     async (data, isDraft = false) => {
       try {
         if (isDraft) {
-          await saveCatOneAsDraft(data).unwrap();
-          enqueueSnackbar("CAT 1 saved as draft successfully!", {
+          await saveCatTwoAsDraft(data).unwrap();
+          enqueueSnackbar("CAT 2 saved as draft successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
-          await submitCatOne(data).unwrap();
-          enqueueSnackbar("CAT 1 submitted successfully!", {
+          await submitCatTwo(data).unwrap();
+          enqueueSnackbar("CAT 2 submitted successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -585,7 +596,7 @@ const CatOne = () => {
       } catch (error) {
         let errorMessage = isDraft
           ? "Failed to save draft. Please try again."
-          : "Failed to submit CAT 1. Please try again.";
+          : "Failed to submit CAT 2. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -600,13 +611,13 @@ const CatOne = () => {
         return false;
       }
     },
-    [saveCatOneAsDraft, submitCatOne, enqueueSnackbar, handleRefreshDetails]
+    [saveCatTwoAsDraft, submitCatTwo, enqueueSnackbar, handleRefreshDetails]
   );
 
   const handleCancel = useCallback(
     async (entryId, cancellationReason = "") => {
       try {
-        enqueueSnackbar("CAT 1 cancelled successfully!", {
+        enqueueSnackbar("CAT 2 cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -614,7 +625,7 @@ const CatOne = () => {
         handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage = "Failed to cancel CAT 1. Please try again.";
+        let errorMessage = "Failed to cancel CAT 2. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -637,7 +648,7 @@ const CatOne = () => {
     {
       label: "For Assessment",
       component: (
-        <CatOneForAssessment
+        <CatTwoForAssessment
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -653,7 +664,7 @@ const CatOne = () => {
     {
       label: "For Submission",
       component: (
-        <CatOneForSubmission
+        <CatTwoForSubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -669,7 +680,7 @@ const CatOne = () => {
     {
       label: "For Approval",
       component: (
-        <CatOneForApproval
+        <CatTwoForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -683,9 +694,25 @@ const CatOne = () => {
       badgeCount: null,
     },
     {
-      label: "Returned",
+      label: "Awaiting Resubmission",
       component: (
-        <CatOneReturned
+        <CatTwoAwaitingResubmission
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "Rejected",
+      component: (
+        <CatTwoRejected
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -701,7 +728,7 @@ const CatOne = () => {
     {
       label: "Approved",
       component: (
-        <CatOneApproved
+        <CatTwoApproved
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -718,8 +745,8 @@ const CatOne = () => {
 
   const a11yProps = (index) => {
     return {
-      id: `catone-tab-${index}`,
-      "aria-controls": `catone-tabpanel-${index}`,
+      id: `cattwo-tab-${index}`,
+      "aria-controls": `cattwo-tabpanel-${index}`,
     };
   };
 
@@ -780,8 +807,65 @@ const CatOne = () => {
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}>
-                  CAT 1
+                  CAT 2
                 </Typography>
+                <Fade in={!isLoadingState}>
+                  {isVerySmall ? (
+                    <IconButton
+                      onClick={handleAddNew}
+                      disabled={isLoadingState}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        color: "white",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      <AddIcon sx={{ fontSize: "18px" }} />
+                    </IconButton>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleAddNew}
+                      startIcon={<AddIcon />}
+                      disabled={isLoadingState}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        height: isMobile ? "36px" : "38px",
+                        width: isMobile ? "auto" : "160px",
+                        minWidth: isMobile ? "120px" : "160px",
+                        padding: isMobile ? "0 16px" : "0 20px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      {isMobile ? "NEW" : "NEW ENTRY"}
+                    </Button>
+                  )}
+                </Fade>
               </Box>
 
               <CustomSearchBar
@@ -796,7 +880,7 @@ const CatOne = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="CAT 1 tabs"
+              aria-label="CAT 2 tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -849,7 +933,7 @@ const CatOne = () => {
             onDateFiltersChange={handleDateFiltersChange}
           />
 
-          <CatOneModal
+          <CatTwoModal
             open={modalOpen}
             onClose={handleModalClose}
             mode={modalMode}
@@ -862,4 +946,4 @@ const CatOne = () => {
   );
 };
 
-export default CatOne;
+export default CatTwo;
