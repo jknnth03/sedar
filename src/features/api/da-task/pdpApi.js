@@ -2,47 +2,67 @@ import { sedarApi } from "..";
 
 const pdpApi = sedarApi
   .enhanceEndpoints({
-    addTagTypes: ["pdp"],
+    addTagTypes: ["pdp", "pdpList"],
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      getPdpTask: build.query({
-        query: () => ({
-          url: "da-tasks/pdp/1",
+      getPdpList: build.query({
+        query: ({
+          pagination = 1,
+          page = 1,
+          per_page = 10,
+          status = "active",
+        }) => ({
+          url: `da-tasks/pdp?pagination=${pagination}&page=${page}&per_page=${per_page}&status=${status}`,
           method: "GET",
         }),
-        providesTags: ["pdp"],
+        providesTags: ["pdpList"],
+      }),
+
+      getPdpTask: build.query({
+        query: (id) => ({
+          url: `da-tasks/pdp/${id}`,
+          method: "GET",
+        }),
+        providesTags: (result, error, id) => [{ type: "pdp", id }],
       }),
 
       getPdpScore: build.query({
-        query: () => ({
-          url: "da-tasks/pdp/1/score",
+        query: (id) => ({
+          url: `da-tasks/pdp/${id}/score`,
           method: "GET",
         }),
-        providesTags: ["pdp"],
+        providesTags: (result, error, id) => [{ type: "pdp", id }],
       }),
 
       savePdpAsDraft: build.mutation({
-        query: (data) => ({
-          url: "da-tasks/pdp/1",
+        query: ({ id, data }) => ({
+          url: `da-tasks/pdp/${id}`,
           method: "PUT",
           body: data,
         }),
-        invalidatesTags: ["pdp"],
+        invalidatesTags: (result, error, { id }) => [
+          { type: "pdp", id },
+          "pdpList",
+        ],
       }),
 
       submitPdp: build.mutation({
-        query: (data) => ({
-          url: "da-tasks/pdp/1",
+        query: ({ id, data }) => ({
+          url: `da-tasks/pdp/${id}`,
           method: "PUT",
           body: data,
         }),
-        invalidatesTags: ["pdp"],
+        invalidatesTags: (result, error, { id }) => [
+          { type: "pdp", id },
+          "pdpList",
+        ],
       }),
     }),
   });
 
 export const {
+  useGetPdpListQuery,
   useGetPdpTaskQuery,
   useGetPdpScoreQuery,
   useSavePdpAsDraftMutation,

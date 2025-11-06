@@ -27,21 +27,17 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
-  useGetCatTwoTaskQuery,
-  useGetCatTwoScoreQuery,
   useSaveCatTwoAsDraftMutation,
   useSubmitCatTwoMutation,
 } from "../../../features/api/da-task/catTwoApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
-import CatTwoForAssessment from "./CatTwoForAssesment";
+import CatTwoForAssessment from "./CatTwoForAssessment";
 import CatTwoForSubmission from "./CatTwoForSubmission";
 import CatTwoForApproval from "./CatTwoForApproval";
-import CatTwoAwaitingResubmission from "./CatTwoAwaitingResubmission";
-import CatTwoRejected from "./CatTwoRejected";
+import CatTwoReturned from "./CatTwoReturned";
 import CatTwoApproved from "./CatTwoApproved";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -480,17 +476,15 @@ const CatTwo = () => {
     0: "ForAssessment",
     1: "ForSubmission",
     2: "ForApproval",
-    3: "AwaitingResubmission",
-    4: "Rejected",
-    5: "Approved",
+    3: "Returned",
+    4: "Approved",
   };
   const reverseTabMap = {
     ForAssessment: 0,
     ForSubmission: 1,
     ForApproval: 2,
-    AwaitingResubmission: 3,
-    Rejected: 4,
-    Approved: 5,
+    Returned: 3,
+    Approved: 4,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -547,13 +541,6 @@ const CatTwo = () => {
   const handleDateFiltersChange = useCallback((newDateFilters) => {
     setDateFilters(newDateFilters);
   }, []);
-
-  const handleAddNew = useCallback(() => {
-    methods.reset();
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalOpen(true);
-  }, [methods]);
 
   const handleRefreshDetails = useCallback(() => {
     setIsLoading(true);
@@ -694,25 +681,9 @@ const CatTwo = () => {
       badgeCount: null,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "Returned",
       component: (
-        <CatTwoAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <CatTwoRejected
+        <CatTwoReturned
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -790,83 +761,17 @@ const CatTwo = () => {
                 boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                 gap: isMobile || isTablet ? "16px" : "0",
               }}>
-              <Box
+              <Typography
+                className="header"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                  width: isMobile || isTablet ? "100%" : "auto",
-                  justifyContent: "flex-start",
+                  fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
+                  fontWeight: 500,
+                  color: "rgb(33, 61, 112)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}>
-                <Typography
-                  className="header"
-                  sx={{
-                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                    fontWeight: 500,
-                    color: "rgb(33, 61, 112)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  CAT 2
-                </Typography>
-                <Fade in={!isLoadingState}>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "160px",
-                        minWidth: isMobile ? "120px" : "160px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      {isMobile ? "NEW" : "NEW ENTRY"}
-                    </Button>
-                  )}
-                </Fade>
-              </Box>
+                CAT 2
+              </Typography>
 
               <CustomSearchBar
                 searchQuery={searchQuery}

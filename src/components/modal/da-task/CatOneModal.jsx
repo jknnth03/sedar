@@ -18,6 +18,7 @@ import {
   Assignment as AssignmentIcon,
   Edit as EditIcon,
   Send as SendIcon,
+  Save as SaveIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { useFormContext } from "react-hook-form";
@@ -110,10 +111,37 @@ const SubmitButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+const DraftButton = styled(Button)(({ theme }) => ({
+  backgroundColor: "#2196F3 !important",
+  color: "white !important",
+  fontWeight: 600,
+  textTransform: "uppercase",
+  padding: "12px 20px",
+  borderRadius: "8px",
+  fontSize: "0.875rem",
+  border: "none !important",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+  minWidth: "120px",
+  height: "44px",
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  "&:hover": {
+    backgroundColor: "#1976D2 !important",
+    border: "none !important",
+  },
+  "&:disabled": {
+    backgroundColor: "#cccccc !important",
+    color: "#666666 !important",
+    border: "none !important",
+  },
+}));
+
 const CatOneModal = ({
   open,
   onClose,
   onSave,
+  onSaveAsDraft,
   onResubmit,
   selectedEntry = null,
   isLoading = false,
@@ -139,9 +167,13 @@ const CatOneModal = ({
     }
   }, [open, selectedEntry?.id]);
 
-  const shouldEnableEditButton = () => {
+  const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
-    if (status === "APPROVED" || status === "CANCELLED") {
+    if (
+      status === "APPROVED" ||
+      status === "CANCELLED" ||
+      status === "KICKOFF_COMPLETE"
+    ) {
       return false;
     }
     return true;
@@ -246,6 +278,40 @@ const CatOneModal = ({
     }
   };
 
+  const handleSaveAsDraft = async () => {
+    try {
+      setIsUpdating(true);
+
+      if (!getFormDataForSubmission) {
+        alert("Form data function not available. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
+
+      const formData = getFormDataForSubmission();
+      if (!formData) {
+        alert("Failed to create form data. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
+
+      const draftData = {
+        ...formData,
+        action: "save_draft",
+      };
+
+      const entryIdToUse = editingEntryId || selectedEntry?.id;
+
+      if (onSaveAsDraft) {
+        await onSaveAsDraft(draftData, entryIdToUse);
+      }
+    } catch (error) {
+      alert("An error occurred while saving as draft. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleResubmit = async () => {
     const entryId = selectedEntry?.id;
 
@@ -320,46 +386,34 @@ const CatOneModal = ({
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
               {getModalTitle()}
             </Typography>
-            {currentMode === "view" && (
-              <Tooltip
-                title={
-                  shouldEnableEditButton() ? "EDIT FORM" : "Edit not available"
-                }
-                arrow
-                placement="top">
-                <span>
-                  <IconButton
-                    onClick={() => handleModeChange("edit")}
-                    disabled={!shouldEnableEditButton() || isProcessing}
-                    size="small"
+            {currentMode === "view" && shouldShowEditButton() && (
+              <Tooltip title="EDIT FORM" arrow placement="top">
+                <IconButton
+                  onClick={() => handleModeChange("edit")}
+                  disabled={isProcessing}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    padding: "8px",
+                    "&:hover": {
+                      backgroundColor: !isProcessing
+                        ? "rgba(0, 136, 32, 0.08)"
+                        : "transparent",
+                      transform: !isProcessing ? "scale(1.1)" : "none",
+                      transition: "all 0.2s ease-in-out",
+                    },
+                  }}>
+                  <EditIcon
                     sx={{
-                      ml: 1,
-                      padding: "8px",
-                      "&:hover": {
-                        backgroundColor:
-                          shouldEnableEditButton() && !isProcessing
-                            ? "rgba(0, 136, 32, 0.08)"
-                            : "transparent",
-                        transform:
-                          shouldEnableEditButton() && !isProcessing
-                            ? "scale(1.1)"
-                            : "none",
-                        transition: "all 0.2s ease-in-out",
+                      fontSize: "20px",
+                      "& path": {
+                        fill: !isProcessing
+                          ? "rgba(0, 136, 32, 1)"
+                          : "rgba(0, 0, 0, 0.26)",
                       },
-                    }}>
-                    <EditIcon
-                      sx={{
-                        fontSize: "20px",
-                        "& path": {
-                          fill:
-                            shouldEnableEditButton() && !isProcessing
-                              ? "rgba(0, 136, 32, 1)"
-                              : "rgba(0, 0, 0, 0.26)",
-                        },
-                      }}
-                    />
-                  </IconButton>
-                </span>
+                    }}
+                  />
+                </IconButton>
               </Tooltip>
             )}
             {currentMode === "edit" && originalMode === "view" && (
@@ -448,16 +502,31 @@ const CatOneModal = ({
             )}
 
             {currentMode === "edit" && (
-              <SubmitButton type="submit" disabled={isProcessing}>
-                {isProcessing ? (
-                  <CircularProgress size={16} />
-                ) : (
-                  <>
-                    <SendIcon sx={{ fontSize: 16 }} />
-                    SUBMIT
-                  </>
-                )}
-              </SubmitButton>
+              <>
+                <DraftButton
+                  onClick={handleSaveAsDraft}
+                  disabled={isProcessing}
+                  sx={{ mr: 2 }}>
+                  {isProcessing ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <>
+                      <SaveIcon sx={{ fontSize: 16 }} />
+                      SAVE AS DRAFT
+                    </>
+                  )}
+                </DraftButton>
+                <SubmitButton type="submit" disabled={isProcessing}>
+                  {isProcessing ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <>
+                      <SendIcon sx={{ fontSize: 16 }} />
+                      SUBMIT
+                    </>
+                  )}
+                </SubmitButton>
+              </>
             )}
           </StyledDialogActions>
         </form>

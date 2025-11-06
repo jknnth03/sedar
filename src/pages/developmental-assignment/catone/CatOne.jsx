@@ -30,13 +30,12 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
-  useGetCatOneTaskQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
 
-import CatOneForAssessment from "./CatOneForAssesment";
+import CatOneForAssessment from "./CatOneForAssessment";
 import CatOneForApproval from "./CatOneForApproval";
 import CatOneForSubmission from "./CatOneForSubmission";
 import CatOneApproved from "./CatOneApproved";
@@ -489,6 +488,7 @@ const CatOne = () => {
     Returned: 3,
     Approved: 4,
   };
+
   const [activeTab, setActiveTab] = useState(
     reverseTabMap[currentParams?.tab] ?? 0
   );
@@ -502,6 +502,8 @@ const CatOne = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalMode, setModalMode] = useState("view");
+  const [selectedPage, setSelectedPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
   const [submitCatOne] = useSubmitCatOneMutation();
@@ -511,6 +513,7 @@ const CatOne = () => {
   const handleTabChange = useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
+      setSelectedPage(1);
       setQueryParams(
         {
           tab: tabMap[newValue],
@@ -578,9 +581,11 @@ const CatOne = () => {
             autoHideDuration: 2000,
           });
         }
-        handleRefreshDetails();
+
         setModalOpen(false);
         setSelectedEntry(null);
+        handleRefreshDetails();
+
         return true;
       } catch (error) {
         let errorMessage = isDraft
@@ -646,6 +651,12 @@ const CatOne = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          data={null}
+          isLoading={false}
+          page={selectedPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setSelectedPage}
+          onRowsPerPageChange={setRowsPerPage}
         />
       ),
       badgeCount: null,
@@ -662,6 +673,12 @@ const CatOne = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          data={null}
+          isLoading={false}
+          page={selectedPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setSelectedPage}
+          onRowsPerPageChange={setRowsPerPage}
         />
       ),
       badgeCount: null,
@@ -678,6 +695,12 @@ const CatOne = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          data={null}
+          isLoading={false}
+          page={selectedPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setSelectedPage}
+          onRowsPerPageChange={setRowsPerPage}
         />
       ),
       badgeCount: null,
@@ -694,6 +717,12 @@ const CatOne = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          data={null}
+          isLoading={false}
+          page={selectedPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setSelectedPage}
+          onRowsPerPageChange={setRowsPerPage}
         />
       ),
       badgeCount: null,
@@ -710,6 +739,12 @@ const CatOne = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          data={null}
+          isLoading={false}
+          page={selectedPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setSelectedPage}
+          onRowsPerPageChange={setRowsPerPage}
         />
       ),
       badgeCount: null,
@@ -853,8 +888,14 @@ const CatOne = () => {
             open={modalOpen}
             onClose={handleModalClose}
             mode={modalMode}
-            entry={selectedEntry}
-            onSave={handleModalSave}
+            selectedEntry={selectedEntry}
+            onSave={(formData, mode, entryId) =>
+              handleModalSave(formData, false)
+            }
+            onSaveAsDraft={(formData, entryId) =>
+              handleModalSave(formData, true)
+            }
+            onRefreshDetails={handleRefreshDetails}
           />
         </Box>
       </FormProvider>

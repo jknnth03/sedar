@@ -16,34 +16,37 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
-  useGetCatOneTaskQuery,
-  useSaveCatOneAsDraftMutation,
-  useSubmitCatOneMutation,
-} from "../../../features/api/da-task/catOneApi";
-import CatOneTable from "./CatOneTable";
-import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+  useGetPdpListQuery,
+  useGetPdpTaskQuery,
+} from "../../../features/api/da-task/pdpApi";
+import PdpTable from "./PdpTable";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const CatOneForAssessment = ({
+const PdpForSubmission = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
   setQueryParams,
   currentParams,
+  data,
+  isLoading: externalIsLoading,
+  page: externalPage,
+  rowsPerPage: externalRowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  onRowClick,
+  onCancel,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
-  const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+  const [page, setPage] = useState(
+    externalPage || parseInt(currentParams?.page) || 1
   );
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
+  const [rowsPerPage, setRowsPerPage] = useState(
+    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
+  );
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,12 +54,6 @@ const CatOneForAssessment = ({
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
-  const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
-
-  const handleModalSuccessCallback = useCallback((successHandler) => {
-    setModalSuccessHandler(() => successHandler);
-  }, []);
 
   const methods = useForm({
     defaultValues: {
@@ -68,8 +65,23 @@ const CatOneForAssessment = ({
   });
 
   useEffect(() => {
+    if (externalPage !== undefined) {
+      setPage(externalPage);
+    }
+  }, [externalPage]);
+
+  useEffect(() => {
+    if (externalRowsPerPage !== undefined) {
+      setRowsPerPage(externalRowsPerPage);
+    }
+  }, [externalRowsPerPage]);
+
+  useEffect(() => {
     const newPage = 1;
     setPage(newPage);
+    if (onPageChange) {
+      onPageChange(newPage);
+    }
   }, [searchQuery, dateFilters]);
 
   const {
@@ -78,41 +90,50 @@ const CatOneForAssessment = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-    skip: false,
-  });
+  } = useGetPdpListQuery(
+    {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_SUBMISSION",
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      skip: false,
+    }
+  );
 
-  const submissionDetails = useMemo(() => {
-    if (!selectedSubmissionId || !selectedSubmission) return null;
-    return { result: selectedSubmission };
-  }, [selectedSubmissionId, selectedSubmission]);
-
-  const detailsLoading = false;
-
-  const refetchDetails = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const [submitCatOne] = useSubmitCatOneMutation();
-  const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
-  const [cancelCatOneSubmission] = useCancelFormSubmissionMutation();
+  const [cancelPdpSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
-    if (!taskData?.result) return [];
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return [];
 
-    const result = taskData.result;
+    const result = dataSource.result;
+
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
+    }
 
     if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "FOR_ASSESSMENT");
+      return result;
     }
 
-    if (result.status === "FOR_ASSESSMENT") {
-      return [result];
+    return [result];
+  }, [data, taskData]);
+
+  const totalRecords = useMemo(() => {
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return 0;
+
+    const result = dataSource.result;
+
+    if (result.total !== undefined) {
+      return result.total;
     }
 
-    return [];
-  }, [taskData]);
+    return filteredSubmissions.length;
+  }, [data, taskData]);
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
@@ -138,29 +159,25 @@ const CatOneForAssessment = ({
     filterDataBySearch,
   ]);
 
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const handleRowClick = useCallback(
+    (submission) => {
+      if (onRowClick) {
+        onRowClick(submission);
+      }
+    },
+    [onRowClick]
+  );
 
-  const handleRowClick = useCallback((submission) => {
-    setModalMode("view");
-    setSelectedSubmissionId(submission.id);
-    setSelectedSubmission(submission);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalOpen(true);
-  }, []);
-
-  const handleEditSubmission = useCallback((submission) => {
-    setSelectedSubmissionId(submission.id);
-    setSelectedSubmission(submission);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalMode("edit");
-    setModalOpen(true);
-  }, []);
+  const handleEditSubmission = useCallback(
+    (submission) => {
+      setMenuAnchor({});
+      setSelectedRowForMenu(null);
+      if (onRowClick) {
+        onRowClick(submission);
+      }
+    },
+    [onRowClick]
+  );
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
@@ -179,72 +196,6 @@ const CatOneForAssessment = ({
       }
     },
     [filteredSubmissions, enqueueSnackbar]
-  );
-
-  const handleModalClose = useCallback(() => {
-    setModalOpen(false);
-    setSelectedSubmissionId(null);
-    setSelectedSubmission(null);
-    setModalLoading(false);
-    setModalMode("view");
-  }, []);
-
-  const handleRefreshDetails = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const handleModalSave = useCallback(
-    async (submissionData, mode, submissionId) => {
-      if (mode === "edit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
-        return;
-      }
-
-      if (mode === "assess") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("assess");
-        setConfirmOpen(true);
-        return;
-      }
-
-      try {
-        await submitCatOne(submissionData).unwrap();
-        enqueueSnackbar("Assessment submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to submit assessment. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [
-      refetch,
-      enqueueSnackbar,
-      handleModalClose,
-      submissionDetails,
-      filteredSubmissions,
-      submitCatOne,
-    ]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -266,6 +217,9 @@ const CatOneForAssessment = ({
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
+      if (onPageChange) {
+        onPageChange(targetPage);
+      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -277,7 +231,7 @@ const CatOneForAssessment = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [onPageChange, setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -286,6 +240,12 @@ const CatOneForAssessment = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
+      if (onRowsPerPageChange) {
+        onRowsPerPageChange(newRowsPerPage);
+      }
+      if (onPageChange) {
+        onPageChange(newPage);
+      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -297,12 +257,8 @@ const CatOneForAssessment = ({
         );
       }
     },
-    [setQueryParams, currentParams]
+    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
   );
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -311,45 +267,20 @@ const CatOneForAssessment = ({
 
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelCatOneSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("CAT 1 assessment cancelled successfully!", {
+        await cancelPdpSubmission(selectedSubmissionForAction.id).unwrap();
+        enqueueSnackbar("PDP submission cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
-      } else if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionForAction
-      ) {
-        try {
-          const result = await saveCatOneAsDraft(pendingFormData).unwrap();
-
-          enqueueSnackbar("CAT 1 assessment updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          handleModalClose();
-        } catch (updateError) {
-          throw updateError;
+        if (onCancel) {
+          onCancel(selectedSubmissionForAction.id);
         }
-      } else if (confirmAction === "assess" && pendingFormData) {
-        await submitCatOne(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 assessment submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-        handleModalClose();
       }
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} assessment. Please try again.`;
+        `Failed to ${confirmAction} submission. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -358,7 +289,6 @@ const CatOneForAssessment = ({
       setConfirmOpen(false);
       setSelectedSubmissionForAction(null);
       setConfirmAction(null);
-      setPendingFormData(null);
       setIsLoading(false);
     }
   };
@@ -367,29 +297,13 @@ const CatOneForAssessment = ({
     setConfirmOpen(false);
     setSelectedSubmissionForAction(null);
     setConfirmAction(null);
-    setPendingFormData(null);
   }, []);
 
   const getConfirmationMessage = useCallback(() => {
     if (confirmAction === "cancel") {
       return (
         <>
-          Are you sure you want to <strong>Cancel</strong> this CAT 1
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this CAT 1
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "assess") {
-      return (
-        <>
-          Are you sure you want to <strong>Submit</strong> this CAT 1
-          Assessment?
+          Are you sure you want to <strong>Cancel</strong> this PDP Submission?
         </>
       );
     }
@@ -406,22 +320,25 @@ const CatOneForAssessment = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "CAT 1 Assessment";
+      selectedSubmissionForAction?.data_change?.reference_number ||
+      selectedSubmissionForAction?.reference_number ||
+      "PDP Submission";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
       cancel: { color: "#ff4400", icon: "?" },
-      update: { color: "#2196f3", icon: "✎" },
-      assess: { color: "#4caf50", icon: "✓" },
     };
 
     const config = iconConfig[confirmAction] || iconConfig.cancel;
     return config;
   }, [confirmAction]);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState =
+    externalIsLoading !== undefined
+      ? externalIsLoading
+      : queryLoading || isFetching || isLoading;
 
   return (
     <FormProvider {...methods}>
@@ -442,8 +359,8 @@ const CatOneForAssessment = ({
             flexDirection: "column",
             backgroundColor: "white",
           }}>
-          <CatOneTable
-            submissionsList={paginatedSubmissions}
+          <PdpTable
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -454,8 +371,8 @@ const CatOneForAssessment = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
-            forAssessment={true}
+            hideStatusColumn={false}
+            forAssessment={false}
             onCancel={handleCancelSubmission}
           />
 
@@ -492,7 +409,7 @@ const CatOneForAssessment = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalRecords}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}
@@ -500,18 +417,6 @@ const CatOneForAssessment = ({
             />
           </Box>
         </Box>
-
-        <CatOneModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={selectedSubmission}
-          isLoading={modalLoading || detailsLoading}
-          onSave={handleModalSave}
-          onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
-        />
 
         <Dialog
           open={confirmOpen}
@@ -640,4 +545,4 @@ const CatOneForAssessment = ({
   );
 };
 
-export default CatOneForAssessment;
+export default PdpForSubmission;

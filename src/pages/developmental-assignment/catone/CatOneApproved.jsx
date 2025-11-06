@@ -17,13 +17,11 @@ import "../../../pages/GeneralStyle.scss";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
+  useGetCatOneByIdQuery,
   useGetCatOneScoreQuery,
-  useSaveCatOneAsDraftMutation,
-  useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
 import CatOneTable from "./CatOneTable";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const CatOneApproved = ({
   searchQuery,
@@ -44,7 +42,6 @@ const CatOneApproved = ({
   const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,33 +66,40 @@ const CatOneApproved = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(undefined, {
+  } = useGetCatOneTaskQuery(
+    {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "KICKOFF_COMPLETE",
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      skip: false,
+    }
+  );
+
+  const {
+    data: catOneDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetCatOneByIdQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
     refetchOnMountOrArgChange: true,
-    skip: false,
   });
 
   const submissionDetails = useMemo(() => {
-    if (!selectedSubmissionId || !selectedSubmission) return null;
-    return { result: selectedSubmission };
-  }, [selectedSubmissionId, selectedSubmission]);
-
-  const detailsLoading = false;
-
-  const refetchDetails = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    if (!catOneDetails?.result) return null;
+    return catOneDetails;
+  }, [catOneDetails]);
 
   const submissionsData = useMemo(() => {
-    if (!taskData?.result) return [];
+    if (!taskData?.result?.data) return [];
 
-    const result = taskData.result;
+    const data = taskData.result.data;
 
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "APPROVED");
-    }
-
-    if (result.status === "APPROVED") {
-      return [result];
+    if (Array.isArray(data)) {
+      return data;
     }
 
     return [];
@@ -144,15 +148,15 @@ const CatOneApproved = ({
     setModalOpen(false);
     setSelectedSubmissionId(null);
     setSelectedSubmission(null);
-    setModalLoading(false);
     setModalMode("view");
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId && refetchDetails) {
+    refetch();
+    if (selectedSubmissionId) {
       refetchDetails();
     }
-  }, [selectedSubmissionId, refetchDetails]);
+  }, [refetch, refetchDetails, selectedSubmissionId]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -245,6 +249,7 @@ const CatOneApproved = ({
             showArchived={false}
             hideStatusColumn={false}
             forApproval={false}
+            useRootStatus={true}
           />
 
           <Box
@@ -294,8 +299,8 @@ const CatOneApproved = ({
           onClose={handleModalClose}
           mode={modalMode}
           onModeChange={handleModeChange}
-          selectedEntry={selectedSubmission}
-          isLoading={modalLoading || detailsLoading}
+          selectedEntry={submissionDetails?.result || selectedSubmission}
+          isLoading={detailsLoading}
           onRefreshDetails={handleRefreshDetails}
         />
       </Box>

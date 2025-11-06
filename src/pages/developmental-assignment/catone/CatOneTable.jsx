@@ -38,6 +38,7 @@ const CatOneTable = ({
   hideStatusColumn = false,
   forApproval = false,
   forAssessment = false,
+  useRootStatus = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -73,12 +74,22 @@ const CatOneTable = ({
         color: "#9c27b0",
         label: "FOR SUBMISSION",
       },
+      DA_IN_PROGRESS: {
+        bg: "#e3f2fd",
+        color: "#1976d2",
+        label: "IN PROGRESS",
+      },
+      KICKOFF_COMPLETE: {
+        bg: "#e8f5e9",
+        color: "#2e7d32",
+        label: "APPROVED",
+      },
     };
     return (
       statusColors[status] || {
         bg: "#f5f5f5",
         color: "#757575",
-        label: status?.toUpperCase() || "UNKNOWN",
+        label: status?.replace(/_/g, " ")?.toUpperCase() || "UNKNOWN",
       }
     );
   };
@@ -94,9 +105,13 @@ const CatOneTable = ({
 
   const tableColumns = useMemo(() => {
     const columns = [
+      { id: "reference_number", label: "Reference Number", minWidth: 150 },
       { id: "employee_name", label: "Employee Name", minWidth: 200 },
+      { id: "position_title", label: "Position", minWidth: 200 },
+      { id: "department", label: "Department", minWidth: 200 },
       { id: "template_name", label: "Template Name", minWidth: 250 },
-      { id: "date_assessed", label: "Date Assessed", minWidth: 130 },
+      { id: "start_date", label: "Start Date", minWidth: 130 },
+      { id: "end_date", label: "End Date", minWidth: 130 },
     ];
 
     if (!hideStatusColumn || forAssessment) {
@@ -121,7 +136,7 @@ const CatOneTable = ({
       <Table
         stickyHeader
         sx={{
-          minWidth: 800,
+          minWidth: 1200,
           height: submissionsList.length === 0 ? "100%" : "auto",
         }}>
         <TableHead>
@@ -171,7 +186,10 @@ const CatOneTable = ({
             </TableRow>
           ) : submissionsList.length > 0 ? (
             submissionsList.map((submission) => {
-              const statusInfo = getStatusColor(submission.status);
+              const status = useRootStatus
+                ? submission?.status
+                : submission?.data_change?.status || submission?.status;
+              const statusInfo = getStatusColor(status);
               return (
                 <TableRow
                   key={submission.id}
@@ -182,21 +200,50 @@ const CatOneTable = ({
                       ...styles.columnStyles.id,
                       ...styles.cellContentStyles,
                     }}>
-                    {submission.employee_name || "N/A"}
+                    {submission?.data_change?.reference_number || "N/A"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.id,
+                      ...styles.cellContentStyles,
+                      fontWeight: 700,
+                    }}>
+                    {submission?.employee?.employee_name || "N/A"}
                   </TableCell>
                   <TableCell
                     sx={{
                       ...styles.columnStyles.formName,
                       ...styles.cellContentStyles,
                     }}>
-                    {submission.template?.name || "N/A"}
+                    {submission?.employee?.position_title || "N/A"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      ...styles.cellContentStyles,
+                    }}>
+                    {submission?.employee?.department || "N/A"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      ...styles.cellContentStyles,
+                    }}>
+                    {submission?.name || "N/A"}
                   </TableCell>
                   <TableCell
                     sx={{
                       ...styles.columnStyles.dateCreated,
                       ...styles.cellContentStyles,
                     }}>
-                    {formatDate(submission.date_assessed)}
+                    {formatDate(submission?.data_change?.start_date)}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.dateCreated,
+                      ...styles.cellContentStyles,
+                    }}>
+                    {formatDate(submission?.data_change?.end_date)}
                   </TableCell>
                   {(!hideStatusColumn || forAssessment) && (
                     <TableCell sx={styles.columnStyles.status}>

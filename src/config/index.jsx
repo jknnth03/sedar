@@ -85,11 +85,17 @@ export const createEnhancedModules = (dashboardData = {}) => {
       (apiResult.approval?.manpower_form || 0) +
       (apiResult.approval?.registration_approval || 0) +
       (apiResult.approval?.data_change_approval || 0) +
-      (apiResult.approval?.mda_approval || 0),
+      (apiResult.approval?.mda_approval || 0) +
+      (apiResult.approval?.cat_one_approval || 0) +
+      (apiResult.approval?.cat_two_approval || 0) +
+      (apiResult.approval?.pdp_approval || 0),
     manpowerFormApprovals: apiResult.approval?.manpower_form || 0,
     registrationApprovals: apiResult.approval?.registration_approval || 0,
     dataChangeApprovals: apiResult.approval?.data_change_approval || 0,
     mdaApprovals: apiResult.approval?.mda_approval || 0,
+    catOneApprovals: apiResult.approval?.cat_one_approval || 0,
+    catTwoApprovals: apiResult.approval?.cat_two_approval || 0,
+    pdpApprovals: apiResult.approval?.pdp_approval || 0,
 
     pendingReceiving:
       (apiResult.receiving?.pending_mrfs || 0) +
@@ -236,6 +242,27 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.mdaApprovals,
+        },
+        CATONEAPPROVAL: {
+          name: "Cat One",
+          path: "catoneapproval",
+          icon: <LooksOneIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.catOneApprovals,
+        },
+        CATTWOAPPROVAL: {
+          name: "Cat Two",
+          path: "cattwoapproval",
+          icon: <LooksTwoIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.catTwoApprovals,
+        },
+        PDPAPPROVAL: {
+          name: "PDP",
+          path: "pdpapproval",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.pdpApprovals,
         },
       },
     },
@@ -604,3 +631,4 @@ export const CONSTANT = {
     },
   },
 };
+export default CONSTANT;

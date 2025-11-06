@@ -17,6 +17,7 @@ import "../../../pages/GeneralStyle.scss";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
+  useGetCatOneByIdQuery,
   useGetCatOneScoreQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
@@ -44,7 +45,6 @@ const CatOneReturned = ({
   const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,21 +79,32 @@ const CatOneReturned = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(undefined, {
+  } = useGetCatOneTaskQuery(
+    {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "RETURNED",
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      skip: false,
+    }
+  );
+
+  const {
+    data: catOneDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetCatOneByIdQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
     refetchOnMountOrArgChange: true,
-    skip: false,
   });
 
   const submissionDetails = useMemo(() => {
-    if (!selectedSubmissionId || !selectedSubmission) return null;
-    return { result: selectedSubmission };
-  }, [selectedSubmissionId, selectedSubmission]);
-
-  const detailsLoading = false;
-
-  const refetchDetails = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    if (!catOneDetails?.result) return null;
+    return catOneDetails;
+  }, [catOneDetails]);
 
   const [submitCatOne] = useSubmitCatOneMutation();
   const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
@@ -186,15 +197,52 @@ const CatOneReturned = ({
     setModalOpen(false);
     setSelectedSubmissionId(null);
     setSelectedSubmission(null);
-    setModalLoading(false);
     setModalMode("view");
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId && refetchDetails) {
+    refetch();
+    if (selectedSubmissionId) {
       refetchDetails();
     }
-  }, [selectedSubmissionId, refetchDetails]);
+  }, [refetch, refetchDetails, selectedSubmissionId]);
+
+  const handleModalSaveAsDraft = useCallback(
+    async (submissionData, submissionId) => {
+      try {
+        setIsLoading(true);
+        await saveCatOneAsDraft(submissionData).unwrap();
+        enqueueSnackbar("CAT 1 submission saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        if (selectedSubmissionId) {
+          refetchDetails();
+        }
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
+        }
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to save as draft. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      saveCatOneAsDraft,
+      enqueueSnackbar,
+      refetch,
+      refetchDetails,
+      selectedSubmissionId,
+      modalSuccessHandler,
+    ]
+  );
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
@@ -333,6 +381,9 @@ const CatOneReturned = ({
             autoHideDuration: 2000,
           });
           refetch();
+          if (selectedSubmissionId) {
+            refetchDetails();
+          }
           handleModalClose();
         } catch (updateError) {
           throw updateError;
@@ -347,6 +398,7 @@ const CatOneReturned = ({
         if (modalSuccessHandler) {
           modalSuccessHandler();
         }
+        handleModalClose();
       }
     } catch (error) {
       const errorMessage =
@@ -505,9 +557,10 @@ const CatOneReturned = ({
           onClose={handleModalClose}
           mode={modalMode}
           onModeChange={handleModeChange}
-          selectedEntry={selectedSubmission}
-          isLoading={modalLoading || detailsLoading}
+          selectedEntry={submissionDetails?.result || selectedSubmission}
+          isLoading={detailsLoading}
           onSave={handleModalSave}
+          onSaveAsDraft={handleModalSaveAsDraft}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}
         />

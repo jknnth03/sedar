@@ -7,13 +7,30 @@ const catOneApi = sedarApi
   .injectEndpoints({
     endpoints: (build) => ({
       getCatOneTask: build.query({
-        query: () => ({
-          url: "da-tasks/cat1/1",
+        query: ({
+          pagination = 1,
+          page = 1,
+          per_page = 10,
+          status = "active",
+        }) => ({
+          url: "da-tasks/cat1",
+          method: "GET",
+          params: {
+            pagination,
+            page,
+            per_page,
+            status,
+          },
+        }),
+        providesTags: ["catOne"],
+      }),
+      getCatOneById: build.query({
+        query: (id) => ({
+          url: `da-tasks/cat1/${id}`,
           method: "GET",
         }),
         providesTags: ["catOne"],
       }),
-
       getCatOneTemplate: build.query({
         query: (templateId) => ({
           url: `da-tasks/cat1/templates/${templateId}`,
@@ -21,7 +38,6 @@ const catOneApi = sedarApi
         }),
         providesTags: ["catOne"],
       }),
-
       getCatOneScore: build.query({
         query: (submissionId) => ({
           url: `da-tasks/cat1/${submissionId}/score`,
@@ -29,7 +45,6 @@ const catOneApi = sedarApi
         }),
         providesTags: ["catOne"],
       }),
-
       saveCatOneAsDraft: build.mutation({
         query: (data) => ({
           url: "da-tasks/cat1/1",
@@ -38,7 +53,6 @@ const catOneApi = sedarApi
         }),
         invalidatesTags: ["catOne"],
       }),
-
       submitCatOne: build.mutation({
         query: (data) => ({
           url: "da-tasks/cat1/1",
@@ -52,6 +66,7 @@ const catOneApi = sedarApi
 
 export const {
   useGetCatOneTaskQuery,
+  useGetCatOneByIdQuery,
   useGetCatOneTemplateQuery,
   useGetCatOneScoreQuery,
   useSaveCatOneAsDraftMutation,

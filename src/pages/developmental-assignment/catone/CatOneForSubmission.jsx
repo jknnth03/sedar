@@ -17,6 +17,7 @@ import "../../../pages/GeneralStyle.scss";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
+  useGetCatOneByIdQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
@@ -43,7 +44,6 @@ const CatOneForSubmission = ({
   const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,21 +78,32 @@ const CatOneForSubmission = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(undefined, {
+  } = useGetCatOneTaskQuery(
+    {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_SUBMISSION",
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      skip: false,
+    }
+  );
+
+  const {
+    data: catOneDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetCatOneByIdQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
     refetchOnMountOrArgChange: true,
-    skip: false,
   });
 
   const submissionDetails = useMemo(() => {
-    if (!selectedSubmissionId || !selectedSubmission) return null;
-    return { result: selectedSubmission };
-  }, [selectedSubmissionId, selectedSubmission]);
-
-  const detailsLoading = false;
-
-  const refetchDetails = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    if (!catOneDetails?.result) return null;
+    return catOneDetails;
+  }, [catOneDetails]);
 
   const [submitCatOne] = useSubmitCatOneMutation();
   const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
@@ -185,13 +196,15 @@ const CatOneForSubmission = ({
     setModalOpen(false);
     setSelectedSubmissionId(null);
     setSelectedSubmission(null);
-    setModalLoading(false);
     setModalMode("view");
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
     refetch();
-  }, [refetch]);
+    if (selectedSubmissionId) {
+      refetchDetails();
+    }
+  }, [refetch, refetchDetails, selectedSubmissionId]);
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
@@ -330,6 +343,9 @@ const CatOneForSubmission = ({
             autoHideDuration: 2000,
           });
           refetch();
+          if (selectedSubmissionId) {
+            refetchDetails();
+          }
           handleModalClose();
         } catch (updateError) {
           throw updateError;
@@ -504,8 +520,8 @@ const CatOneForSubmission = ({
           onClose={handleModalClose}
           mode={modalMode}
           onModeChange={handleModeChange}
-          selectedEntry={selectedSubmission}
-          isLoading={modalLoading || detailsLoading}
+          selectedEntry={submissionDetails?.result || selectedSubmission}
+          isLoading={detailsLoading}
           onSave={handleModalSave}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}

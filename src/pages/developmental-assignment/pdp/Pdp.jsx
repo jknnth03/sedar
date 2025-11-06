@@ -27,10 +27,10 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
+  useGetPdpListQuery,
   useGetPdpTaskQuery,
   useGetPdpScoreQuery,
   useSavePdpAsDraftMutation,
@@ -38,11 +38,11 @@ import {
 } from "../../../features/api/da-task/pdpApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
 
+import PdpForAssessment from "./PdpForAssessment";
+import PdpForSubmission from "./PdpForSubmission";
 import PdpForApproval from "./PdpForApproval";
-import PdpAwaitingResubmission from "./PdpAwaitingResubmission";
-import PdpRejected from "./PdpRejected";
+import PdpReturned from "./PdpReturned";
 import PdpApproved from "./PdpApproved";
-import PdpCancelled from "./PdpCancelled";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import PdpModal from "../../../components/modal/da-task/PdpModal";
@@ -477,19 +477,19 @@ const Pdp = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForApproval",
-    1: "AwaitingResubmission",
-    2: "Rejected",
-    3: "Approved",
-    4: "Cancelled",
+    0: "ForAssessment",
+    1: "ForSubmission",
+    2: "ForApproval",
+    3: "Returned",
+    4: "Approved",
   };
 
   const reverseTabMap = {
-    ForApproval: 0,
-    AwaitingResubmission: 1,
-    Rejected: 2,
-    Approved: 3,
-    Cancelled: 4,
+    ForAssessment: 0,
+    ForSubmission: 1,
+    ForApproval: 2,
+    Returned: 3,
+    Approved: 4,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -504,7 +504,7 @@ const Pdp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalMode, setModalMode] = useState("create");
+  const [modalMode, setModalMode] = useState("view");
 
   const [savePdpAsDraft] = useSavePdpAsDraftMutation();
   const [submitPdp] = useSubmitPdpMutation();
@@ -547,13 +547,6 @@ const Pdp = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const handleAddNew = useCallback(() => {
-    methods.reset();
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalOpen(true);
-  }, [methods]);
-
   const handleRefreshDetails = useCallback(() => {
     setIsLoading(true);
     setTimeout(() => {
@@ -575,14 +568,19 @@ const Pdp = () => {
   const handleModalSave = useCallback(
     async (data, isDraft = false) => {
       try {
+        const payload = {
+          id: selectedEntry?.id,
+          data: data,
+        };
+
         if (isDraft) {
-          await savePdpAsDraft(data).unwrap();
+          await savePdpAsDraft(payload).unwrap();
           enqueueSnackbar("PDP saved as draft successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
-          await submitPdp(data).unwrap();
+          await submitPdp(payload).unwrap();
           enqueueSnackbar("PDP submitted successfully!", {
             variant: "success",
             autoHideDuration: 2000,
@@ -610,7 +608,13 @@ const Pdp = () => {
         return false;
       }
     },
-    [savePdpAsDraft, submitPdp, enqueueSnackbar, handleRefreshDetails]
+    [
+      savePdpAsDraft,
+      submitPdp,
+      enqueueSnackbar,
+      handleRefreshDetails,
+      selectedEntry,
+    ]
   );
 
   const handleCancel = useCallback(
@@ -645,6 +649,38 @@ const Pdp = () => {
 
   const tabsData = [
     {
+      label: "For Assessment",
+      component: (
+        <PdpForAssessment
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
+      label: "For Submission",
+      component: (
+        <PdpForSubmission
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: null,
+    },
+    {
       label: "For Approval",
       component: (
         <PdpForApproval
@@ -661,25 +697,9 @@ const Pdp = () => {
       badgeCount: null,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "Returned",
       component: (
-        <PdpAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <PdpRejected
+        <PdpReturned
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -703,21 +723,6 @@ const Pdp = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <PdpCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
           onRowClick={handleRowClick}
         />
       ),
@@ -791,63 +796,6 @@ const Pdp = () => {
                   }}>
                   PDP
                 </Typography>
-                <Fade in={!isLoadingState}>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "160px",
-                        minWidth: isMobile ? "120px" : "160px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      {isMobile ? "NEW" : "NEW ENTRY"}
-                    </Button>
-                  )}
-                </Fade>
               </Box>
 
               <CustomSearchBar

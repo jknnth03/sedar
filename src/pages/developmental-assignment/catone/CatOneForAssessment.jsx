@@ -18,7 +18,6 @@ import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
   useGetCatOneByIdQuery,
-  useGetCatOneScoreQuery,
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
@@ -26,20 +25,28 @@ import CatOneTable from "./CatOneTable";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const CatOneForApproval = ({
+const CatOneForAssessment = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
   setQueryParams,
   currentParams,
+  data,
+  isLoading: externalIsLoading,
+  page: externalPage,
+  rowsPerPage: externalRowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
+  const [page, setPage] = useState(
+    externalPage || parseInt(currentParams?.page) || 1
+  );
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -69,8 +76,23 @@ const CatOneForApproval = ({
   });
 
   useEffect(() => {
+    if (externalPage !== undefined) {
+      setPage(externalPage);
+    }
+  }, [externalPage]);
+
+  useEffect(() => {
+    if (externalRowsPerPage !== undefined) {
+      setRowsPerPage(externalRowsPerPage);
+    }
+  }, [externalRowsPerPage]);
+
+  useEffect(() => {
     const newPage = 1;
     setPage(newPage);
+    if (onPageChange) {
+      onPageChange(newPage);
+    }
   }, [searchQuery, dateFilters]);
 
   const {
@@ -84,7 +106,7 @@ const CatOneForApproval = ({
       pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      status: "FOR_APPROVAL",
+      status: "FOR_ASSESSMENT",
     },
     {
       refetchOnMountOrArgChange: true,
@@ -111,33 +133,21 @@ const CatOneForApproval = ({
   const [cancelCatOneSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
-    if (!taskData?.result) return [];
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return [];
 
-    const result = taskData.result;
+    const result = dataSource.result;
 
     if (Array.isArray(result)) {
-      return result.filter(
-        (item) =>
-          item.status === "FOR_APPROVAL" ||
-          item.status === "PENDING_VALIDATION" ||
-          item.status === "PENDING_APPROVAL" ||
-          item.status === "PENDING_SUPERIOR_INPUT" ||
-          item.status === "DRAFT"
-      );
+      return result.filter((item) => item.status === "FOR_ASSESSMENT");
     }
 
-    if (
-      result.status === "FOR_APPROVAL" ||
-      result.status === "PENDING_VALIDATION" ||
-      result.status === "PENDING_APPROVAL" ||
-      result.status === "PENDING_SUPERIOR_INPUT" ||
-      result.status === "DRAFT"
-    ) {
+    if (result.status === "FOR_ASSESSMENT") {
       return [result];
     }
 
     return [];
-  }, [taskData]);
+  }, [data, taskData]);
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
@@ -162,12 +172,6 @@ const CatOneForApproval = ({
     filterDataByDate,
     filterDataBySearch,
   ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -220,6 +224,43 @@ const CatOneForApproval = ({
     }
   }, [refetch, refetchDetails, selectedSubmissionId]);
 
+  const handleModalSaveAsDraft = useCallback(
+    async (submissionData, submissionId) => {
+      try {
+        setIsLoading(true);
+        await saveCatOneAsDraft(submissionData).unwrap();
+        enqueueSnackbar("CAT 1 assessment saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        if (selectedSubmissionId) {
+          refetchDetails();
+        }
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
+        }
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to save as draft. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      saveCatOneAsDraft,
+      enqueueSnackbar,
+      refetch,
+      refetchDetails,
+      selectedSubmissionId,
+      modalSuccessHandler,
+    ]
+  );
+
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
       if (mode === "edit") {
@@ -234,21 +275,21 @@ const CatOneForApproval = ({
         return;
       }
 
-      if (mode === "resubmit") {
+      if (mode === "assess") {
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
-        setConfirmAction("resubmit");
+        setConfirmAction("assess");
         setConfirmOpen(true);
         return;
       }
 
       try {
         await submitCatOne(submissionData).unwrap();
-        enqueueSnackbar("Submission processed successfully!", {
+        enqueueSnackbar("Assessment submitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -257,7 +298,7 @@ const CatOneForApproval = ({
       } catch (error) {
         const errorMessage =
           error?.data?.message ||
-          "Failed to save submission. Please try again.";
+          "Failed to submit assessment. Please try again.";
         enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
@@ -293,6 +334,9 @@ const CatOneForApproval = ({
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
+      if (onPageChange) {
+        onPageChange(targetPage);
+      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -304,7 +348,7 @@ const CatOneForApproval = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [onPageChange, setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -313,6 +357,12 @@ const CatOneForApproval = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
+      if (onRowsPerPageChange) {
+        onRowsPerPageChange(newRowsPerPage);
+      }
+      if (onPageChange) {
+        onPageChange(newPage);
+      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -324,7 +374,7 @@ const CatOneForApproval = ({
         );
       }
     },
-    [setQueryParams, currentParams]
+    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -339,7 +389,7 @@ const CatOneForApproval = ({
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
         await cancelCatOneSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("CAT 1 submission cancelled successfully!", {
+        enqueueSnackbar("CAT 1 assessment cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -352,7 +402,7 @@ const CatOneForApproval = ({
         try {
           const result = await saveCatOneAsDraft(pendingFormData).unwrap();
 
-          enqueueSnackbar("CAT 1 submission updated successfully!", {
+          enqueueSnackbar("CAT 1 assessment updated successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -364,9 +414,9 @@ const CatOneForApproval = ({
         } catch (updateError) {
           throw updateError;
         }
-      } else if (confirmAction === "resubmit" && pendingFormData) {
+      } else if (confirmAction === "assess" && pendingFormData) {
         await submitCatOne(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 submission resubmitted successfully!", {
+        enqueueSnackbar("CAT 1 assessment submitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -379,7 +429,7 @@ const CatOneForApproval = ({
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
+        `Failed to ${confirmAction} assessment. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -404,19 +454,22 @@ const CatOneForApproval = ({
     if (confirmAction === "cancel") {
       return (
         <>
-          Are you sure you want to <strong>Cancel</strong> this CAT 1 Request?
+          Are you sure you want to <strong>Cancel</strong> this CAT 1
+          Assessment?
         </>
       );
     } else if (confirmAction === "update") {
       return (
         <>
-          Are you sure you want to <strong>Update</strong> this CAT 1 Request?
+          Are you sure you want to <strong>Update</strong> this CAT 1
+          Assessment?
         </>
       );
-    } else if (confirmAction === "resubmit") {
+    } else if (confirmAction === "assess") {
       return (
         <>
-          Are you sure you want to <strong>Resubmit</strong> this CAT 1 Request?
+          Are you sure you want to <strong>Submit</strong> this CAT 1
+          Assessment?
         </>
       );
     }
@@ -433,7 +486,9 @@ const CatOneForApproval = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "CAT 1 Request";
+      selectedSubmissionForAction?.data_change?.reference_number ||
+      selectedSubmissionForAction?.reference_number ||
+      "CAT 1 Assessment";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
@@ -441,14 +496,17 @@ const CatOneForApproval = ({
     const iconConfig = {
       cancel: { color: "#ff4400", icon: "?" },
       update: { color: "#2196f3", icon: "✎" },
-      resubmit: { color: "#ff9800", icon: "↻" },
+      assess: { color: "#4caf50", icon: "✓" },
     };
 
     const config = iconConfig[confirmAction] || iconConfig.cancel;
     return config;
   }, [confirmAction]);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState =
+    externalIsLoading !== undefined
+      ? externalIsLoading
+      : queryLoading || isFetching || isLoading;
 
   return (
     <FormProvider {...methods}>
@@ -470,7 +528,7 @@ const CatOneForApproval = ({
             backgroundColor: "white",
           }}>
           <CatOneTable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -481,8 +539,8 @@ const CatOneForApproval = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={false}
-            forApproval={true}
+            hideStatusColumn={true}
+            forAssessment={true}
             onCancel={handleCancelSubmission}
           />
 
@@ -536,6 +594,7 @@ const CatOneForApproval = ({
           selectedEntry={submissionDetails?.result || selectedSubmission}
           isLoading={detailsLoading}
           onSave={handleModalSave}
+          onSaveAsDraft={handleModalSaveAsDraft}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}
         />
@@ -667,4 +726,4 @@ const CatOneForApproval = ({
   );
 };
 
-export default CatOneForApproval;
+export default CatOneForAssessment;

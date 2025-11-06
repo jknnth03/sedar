@@ -16,30 +16,37 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
-  useGetCatOneTaskQuery,
-  useGetCatOneByIdQuery,
-  useGetCatOneScoreQuery,
-  useSaveCatOneAsDraftMutation,
-  useSubmitCatOneMutation,
-} from "../../../features/api/da-task/catOneApi";
-import CatOneTable from "./CatOneTable";
-import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+  useGetCatTwoTasksQuery,
+  useGetCatTwoTaskByIdQuery,
+  useSaveCatTwoAsDraftMutation,
+  useSubmitCatTwoMutation,
+} from "../../../features/api/da-task/catTwoApi";
+import CatTwoTable from "./CatTwoTable";
+import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const CatOneForApproval = ({
+const CatTwoReturned = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
   setQueryParams,
   currentParams,
+  data,
+  isLoading: externalIsLoading,
+  page: externalPage,
+  rowsPerPage: externalRowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
+  const [page, setPage] = useState(
+    externalPage || parseInt(currentParams?.page) || 1
+  );
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -69,8 +76,23 @@ const CatOneForApproval = ({
   });
 
   useEffect(() => {
+    if (externalPage !== undefined) {
+      setPage(externalPage);
+    }
+  }, [externalPage]);
+
+  useEffect(() => {
+    if (externalRowsPerPage !== undefined) {
+      setRowsPerPage(externalRowsPerPage);
+    }
+  }, [externalRowsPerPage]);
+
+  useEffect(() => {
     const newPage = 1;
     setPage(newPage);
+    if (onPageChange) {
+      onPageChange(newPage);
+    }
   }, [searchQuery, dateFilters]);
 
   const {
@@ -79,12 +101,12 @@ const CatOneForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(
+  } = useGetCatTwoTasksQuery(
     {
       pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      status: "FOR_APPROVAL",
+      status: "RETURNED",
     },
     {
       refetchOnMountOrArgChange: true,
@@ -93,51 +115,39 @@ const CatOneForApproval = ({
   );
 
   const {
-    data: catOneDetails,
+    data: catTwoDetails,
     isLoading: detailsLoading,
     refetch: refetchDetails,
-  } = useGetCatOneByIdQuery(selectedSubmissionId, {
+  } = useGetCatTwoTaskByIdQuery(selectedSubmissionId, {
     skip: !selectedSubmissionId,
     refetchOnMountOrArgChange: true,
   });
 
   const submissionDetails = useMemo(() => {
-    if (!catOneDetails?.result) return null;
-    return catOneDetails;
-  }, [catOneDetails]);
+    if (!catTwoDetails?.result) return null;
+    return catTwoDetails;
+  }, [catTwoDetails]);
 
-  const [submitCatOne] = useSubmitCatOneMutation();
-  const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
-  const [cancelCatOneSubmission] = useCancelFormSubmissionMutation();
+  const [submitCatTwo] = useSubmitCatTwoMutation();
+  const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
+  const [cancelCatTwoSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
-    if (!taskData?.result) return [];
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return [];
 
-    const result = taskData.result;
+    const result = dataSource.result;
 
     if (Array.isArray(result)) {
-      return result.filter(
-        (item) =>
-          item.status === "FOR_APPROVAL" ||
-          item.status === "PENDING_VALIDATION" ||
-          item.status === "PENDING_APPROVAL" ||
-          item.status === "PENDING_SUPERIOR_INPUT" ||
-          item.status === "DRAFT"
-      );
+      return result.filter((item) => item.status === "RETURNED");
     }
 
-    if (
-      result.status === "FOR_APPROVAL" ||
-      result.status === "PENDING_VALIDATION" ||
-      result.status === "PENDING_APPROVAL" ||
-      result.status === "PENDING_SUPERIOR_INPUT" ||
-      result.status === "DRAFT"
-    ) {
+    if (result.status === "RETURNED") {
       return [result];
     }
 
     return [];
-  }, [taskData]);
+  }, [data, taskData]);
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
@@ -162,12 +172,6 @@ const CatOneForApproval = ({
     filterDataByDate,
     filterDataBySearch,
   ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -220,6 +224,46 @@ const CatOneForApproval = ({
     }
   }, [refetch, refetchDetails, selectedSubmissionId]);
 
+  const handleModalSaveAsDraft = useCallback(
+    async (submissionData, submissionId) => {
+      try {
+        setIsLoading(true);
+        await saveCatTwoAsDraft({
+          taskId: submissionId,
+          ...submissionData,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 assessment saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        if (selectedSubmissionId) {
+          refetchDetails();
+        }
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
+        }
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to save as draft. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      saveCatTwoAsDraft,
+      enqueueSnackbar,
+      refetch,
+      refetchDetails,
+      selectedSubmissionId,
+      modalSuccessHandler,
+    ]
+  );
+
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
       if (mode === "edit") {
@@ -247,8 +291,11 @@ const CatOneForApproval = ({
       }
 
       try {
-        await submitCatOne(submissionData).unwrap();
-        enqueueSnackbar("Submission processed successfully!", {
+        await submitCatTwo({
+          taskId: submissionId,
+          ...submissionData,
+        }).unwrap();
+        enqueueSnackbar("Assessment submitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -257,7 +304,7 @@ const CatOneForApproval = ({
       } catch (error) {
         const errorMessage =
           error?.data?.message ||
-          "Failed to save submission. Please try again.";
+          "Failed to submit assessment. Please try again.";
         enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
@@ -270,7 +317,7 @@ const CatOneForApproval = ({
       handleModalClose,
       submissionDetails,
       filteredSubmissions,
-      submitCatOne,
+      submitCatTwo,
     ]
   );
 
@@ -293,6 +340,9 @@ const CatOneForApproval = ({
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
+      if (onPageChange) {
+        onPageChange(targetPage);
+      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -304,7 +354,7 @@ const CatOneForApproval = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [onPageChange, setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -313,6 +363,12 @@ const CatOneForApproval = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
+      if (onRowsPerPageChange) {
+        onRowsPerPageChange(newRowsPerPage);
+      }
+      if (onPageChange) {
+        onPageChange(newPage);
+      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -324,7 +380,7 @@ const CatOneForApproval = ({
         );
       }
     },
-    [setQueryParams, currentParams]
+    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -338,8 +394,8 @@ const CatOneForApproval = ({
 
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelCatOneSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("CAT 1 submission cancelled successfully!", {
+        await cancelCatTwoSubmission(selectedSubmissionForAction.id).unwrap();
+        enqueueSnackbar("CAT 2 assessment cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -350,9 +406,12 @@ const CatOneForApproval = ({
         selectedSubmissionForAction
       ) {
         try {
-          const result = await saveCatOneAsDraft(pendingFormData).unwrap();
+          const result = await saveCatTwoAsDraft({
+            taskId: selectedSubmissionForAction.id,
+            ...pendingFormData,
+          }).unwrap();
 
-          enqueueSnackbar("CAT 1 submission updated successfully!", {
+          enqueueSnackbar("CAT 2 assessment updated successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -365,8 +424,11 @@ const CatOneForApproval = ({
           throw updateError;
         }
       } else if (confirmAction === "resubmit" && pendingFormData) {
-        await submitCatOne(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 submission resubmitted successfully!", {
+        await submitCatTwo({
+          taskId: selectedSubmissionForAction.id,
+          ...pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 assessment resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -379,7 +441,7 @@ const CatOneForApproval = ({
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
+        `Failed to ${confirmAction} assessment. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -404,19 +466,22 @@ const CatOneForApproval = ({
     if (confirmAction === "cancel") {
       return (
         <>
-          Are you sure you want to <strong>Cancel</strong> this CAT 1 Request?
+          Are you sure you want to <strong>Cancel</strong> this CAT 2
+          Assessment?
         </>
       );
     } else if (confirmAction === "update") {
       return (
         <>
-          Are you sure you want to <strong>Update</strong> this CAT 1 Request?
+          Are you sure you want to <strong>Update</strong> this CAT 2
+          Assessment?
         </>
       );
     } else if (confirmAction === "resubmit") {
       return (
         <>
-          Are you sure you want to <strong>Resubmit</strong> this CAT 1 Request?
+          Are you sure you want to <strong>Resubmit</strong> this CAT 2
+          Assessment?
         </>
       );
     }
@@ -433,7 +498,9 @@ const CatOneForApproval = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "CAT 1 Request";
+      selectedSubmissionForAction?.data_change?.reference_number ||
+      selectedSubmissionForAction?.reference_number ||
+      "CAT 2 Assessment";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
@@ -441,14 +508,17 @@ const CatOneForApproval = ({
     const iconConfig = {
       cancel: { color: "#ff4400", icon: "?" },
       update: { color: "#2196f3", icon: "✎" },
-      resubmit: { color: "#ff9800", icon: "↻" },
+      resubmit: { color: "#4caf50", icon: "↻" },
     };
 
     const config = iconConfig[confirmAction] || iconConfig.cancel;
     return config;
   }, [confirmAction]);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState =
+    externalIsLoading !== undefined
+      ? externalIsLoading
+      : queryLoading || isFetching || isLoading;
 
   return (
     <FormProvider {...methods}>
@@ -469,8 +539,8 @@ const CatOneForApproval = ({
             flexDirection: "column",
             backgroundColor: "white",
           }}>
-          <CatOneTable
-            submissionsList={paginatedSubmissions}
+          <CatTwoTable
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -481,8 +551,8 @@ const CatOneForApproval = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={false}
-            forApproval={true}
+            hideStatusColumn={true}
+            forReturned={true}
             onCancel={handleCancelSubmission}
           />
 
@@ -528,7 +598,7 @@ const CatOneForApproval = ({
           </Box>
         </Box>
 
-        <CatOneModal
+        <CatTwoModal
           open={modalOpen}
           onClose={handleModalClose}
           mode={modalMode}
@@ -536,8 +606,10 @@ const CatOneForApproval = ({
           selectedEntry={submissionDetails?.result || selectedSubmission}
           isLoading={detailsLoading}
           onSave={handleModalSave}
+          onSaveAsDraft={handleModalSaveAsDraft}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}
+          forReturned={true}
         />
 
         <Dialog
@@ -667,4 +739,4 @@ const CatOneForApproval = ({
   );
 };
 
-export default CatOneForApproval;
+export default CatTwoReturned;

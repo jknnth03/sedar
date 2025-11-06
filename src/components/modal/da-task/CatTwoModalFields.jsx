@@ -9,7 +9,6 @@ import {
   Radio,
   Paper,
   Divider,
-  CircularProgress,
   Alert,
   LinearProgress,
   Skeleton,
@@ -18,7 +17,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { Controller, useFormContext } from "react-hook-form";
 import dayjs from "dayjs";
 
-const CatOneModalFields = ({
+const CatTwoModalFields = ({
   isLoading = false,
   mode = "view",
   onFormDataCreate,
@@ -38,7 +37,6 @@ const CatOneModalFields = ({
   const answers = watch("answers") || [];
 
   const isViewMode = mode === "view";
-
   const templateData = selectedEntry?.template;
 
   useEffect(() => {
@@ -47,6 +45,7 @@ const CatOneModalFields = ({
     }
   }, [isViewMode, selectedEntry?.scores]);
 
+  // Initialize answers from template items' rating_id
   useEffect(() => {
     if (formInitialized && templateData && answers.length === 0) {
       const initialAnswers = [];
@@ -56,7 +55,7 @@ const CatOneModalFields = ({
           if (item.is_rateable) {
             initialAnswers.push({
               template_item_id: item.id,
-              rating_scale_id: item.rating_id,
+              rating_scale_id: item.rating_id || null,
             });
           }
           if (item.children && item.children.length > 0) {
@@ -69,7 +68,7 @@ const CatOneModalFields = ({
         collectRateableItems(section.items);
       });
 
-      setValue("answers", initialAnswers);
+      setValue("answers", initialAnswers, { shouldValidate: false });
     }
   }, [formInitialized, templateData, answers.length, setValue]);
 
@@ -95,7 +94,7 @@ const CatOneModalFields = ({
         ? { ...answer, rating_scale_id: ratingScaleId }
         : answer
     );
-    setValue("answers", updatedAnswers);
+    setValue("answers", updatedAnswers, { shouldValidate: true });
   };
 
   const getRatingForItem = (templateItemId) => {
@@ -523,4 +522,4 @@ const CatOneModalFields = ({
   );
 };
 
-export default CatOneModalFields;
+export default CatTwoModalFields;

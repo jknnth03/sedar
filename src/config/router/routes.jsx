@@ -53,28 +53,31 @@ import MdaApproval from "../../pages/approvals/mdaApproval/MdaApproval.jsx";
 import CatOne from "../../pages/developmental-assignment/catone/CatOne.jsx";
 import CatTwo from "../../pages/developmental-assignment/cattwo/CatTwo.jsx";
 import Pdp from "../../pages/developmental-assignment/pdp/Pdp.jsx";
+import CatOneApproval from "../../pages/approvals/da-task/CatOneApproval.jsx";
+import CatTwoApproval from "../../pages/approvals/da-task/CatTwoApproval.jsx";
+import PdpApproval from "../../pages/approvals/da-task/PdpApproval.jsx";
 
 export const ROUTES = [
   {
-    id: CONSTANT.PAGES.UNAUTHORIZED.name,
+    id: "UNAUTHORIZED",
     path: CONSTANT.PAGES.UNAUTHORIZED.path,
     element: <Unauthorized />,
   },
   {
     path: CONSTANT.PAGES.LOGIN.path,
     element: <Login />,
-    id: CONSTANT.PAGES.LOGIN.name,
+    id: "LOGIN",
   },
   {
     path: CONSTANT.PAGES.CHANGEPASS.path,
     element: <Changepass />,
-    id: CONSTANT.PAGES.CHANGEPASS.name,
+    id: "CHANGEPASS",
   },
   {
     element: <PrivateRoutes />,
     children: [
       {
-        id: MODULES.DASHBOARD.name,
+        id: "DASHBOARD",
         path: MODULES.DASHBOARD.path,
         element: <Dashboard />,
         handle: {
@@ -82,7 +85,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.USERMANAGEMENT.children.USER.name,
+        id: "USERMANAGEMENT.USER",
         path: MODULES.USERMANAGEMENT.children.USER.path,
         element: <User />,
         handle: {
@@ -90,7 +93,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.USERMANAGEMENT.children.ROLES.name,
+        id: "USERMANAGEMENT.ROLES",
         path: MODULES.USERMANAGEMENT.children.ROLES.path,
         element: <Roles />,
         handle: {
@@ -98,7 +101,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.APPROVALSETTINGS.children.APPROVALFORM.name,
+        id: "APPROVALSETTINGS.APPROVALFORM",
         path: MODULES.APPROVALSETTINGS.children.APPROVALFORM.path,
         element: <ApprovalForm />,
         handle: {
@@ -106,7 +109,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.APPROVALSETTINGS.children.APPROVALFLOW.name,
+        id: "APPROVALSETTINGS.APPROVALFLOW",
         path: MODULES.APPROVALSETTINGS.children.APPROVALFLOW.path,
         element: <ApprovalFlow />,
         handle: {
@@ -114,7 +117,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.REQUEST.children.MRFMAINCONTAINER.name,
+        id: "REQUEST.MRFMAINCONTAINER",
         path: MODULES.REQUEST.children.MRFMAINCONTAINER.path,
         element: <MrfMainContainer />,
         handle: {
@@ -122,7 +125,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
+        id: "REQUEST.DATACHANGEMAINCONTAINER",
         path: MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.path,
         element: <DATACHANGEMAINCONTAINER />,
         handle: {
@@ -130,7 +133,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.REQUEST.children.MASTERDATAAUTHORITY.name,
+        id: "REQUEST.MASTERDATAAUTHORITY",
         path: MODULES.REQUEST.children.MASTERDATAAUTHORITY.path,
         element: <MASTERDATAAUTHORITY />,
         handle: {
@@ -138,7 +141,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.REQUESTMONITORING.children.MRFMONITORING.name,
+        id: "REQUESTMONITORING.MRFMONITORING",
         path: MODULES.REQUESTMONITORING.children.MRFMONITORING.path,
         element: <MRFMonitoring />,
         handle: {
@@ -146,7 +149,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING.name,
+        id: "REQUESTMONITORING.DATACHANGEMONITORING",
         path: MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING.path,
         element: <DataChangeMonitoring />,
         handle: {
@@ -155,7 +158,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.REQUESTMONITORING.children.MDAMONITORING.name,
+        id: "REQUESTMONITORING.MDAMONITORING",
         path: MODULES.REQUESTMONITORING.children.MDAMONITORING.path,
         element: <MDAMonitoring />,
         handle: {
@@ -163,7 +166,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EVALUATION.name,
+        id: "EVALUATION",
         path: MODULES.EVALUATION.path,
         element: <Evaluation />,
         handle: {
@@ -171,7 +174,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EVALUATION.children.KPI.name,
+        id: "EVALUATION.KPI",
         path: MODULES.EVALUATION.children.KPI.path,
         element: <KPI />,
         handle: {
@@ -179,7 +182,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.APPROVING.children.SUBMISSIONAPPROVAL.name,
+        id: "APPROVING.SUBMISSIONAPPROVAL",
         path: MODULES.APPROVING.children.SUBMISSIONAPPROVAL.path,
         element: <SubmissionApproval />,
         handle: {
@@ -187,7 +190,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.APPROVING.children.REGISTRATIONAPPROVAL.name,
+        id: "APPROVING.REGISTRATIONAPPROVAL",
         path: MODULES.APPROVING.children.REGISTRATIONAPPROVAL.path,
         element: <RegistrationApproval />,
         handle: {
@@ -195,7 +198,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.APPROVING.children.DATACHANGEAPPROVAL.name,
+        id: "APPROVING.DATACHANGEAPPROVAL",
         path: MODULES.APPROVING.children.DATACHANGEAPPROVAL.path,
         element: <DataChangeApproval />,
         handle: {
@@ -203,7 +206,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.APPROVING.children.MDAAPPROVAL.name,
+        id: "APPROVING.MDAAPPROVAL",
         path: MODULES.APPROVING.children.MDAAPPROVAL.path,
         element: <MdaApproval />,
         handle: {
@@ -211,7 +214,31 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.RECEIVING.children.PENDINGFORMS.name,
+        id: "APPROVING.CATONEAPPROVAL",
+        path: MODULES.APPROVING.children.CATONEAPPROVAL.path,
+        element: <CatOneApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.CATONEAPPROVAL.name,
+        },
+      },
+      {
+        id: "APPROVING.CATTWOAPPROVAL",
+        path: MODULES.APPROVING.children.CATTWOAPPROVAL.path,
+        element: <CatTwoApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.CATTWOAPPROVAL.name,
+        },
+      },
+      {
+        id: "APPROVING.PDPAPPROVAL",
+        path: MODULES.APPROVING.children.PDPAPPROVAL.path,
+        element: <PdpApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.PDPAPPROVAL.name,
+        },
+      },
+      {
+        id: "RECEIVING.PENDINGFORMS",
         path: MODULES.RECEIVING.children.PENDINGFORMS.path,
         element: <PendingForms />,
         handle: {
@@ -219,7 +246,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.MASTERLIST.children.ONERDF.name,
+        id: "MASTERLIST.ONERDF",
         path: MODULES.MASTERLIST.children.ONERDF.path,
         element: <ONERDF />,
         handle: {
@@ -227,7 +254,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.MASTERLIST.children.POSITIONS.name,
+        id: "MASTERLIST.POSITIONS",
         path: MODULES.MASTERLIST.children.POSITIONS.path,
         element: <Positions />,
         handle: {
@@ -235,7 +262,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.DEVELOPMENTALASSIGNMENT.children.CATONE.name,
+        id: "DEVELOPMENTALASSIGNMENT.CATONE",
         path: MODULES.DEVELOPMENTALASSIGNMENT.children.CATONE.path,
         element: <CatOne />,
         handle: {
@@ -243,7 +270,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.DEVELOPMENTALASSIGNMENT.children.CATTWO.name,
+        id: "DEVELOPMENTALASSIGNMENT.CATTWO",
         path: MODULES.DEVELOPMENTALASSIGNMENT.children.CATTWO.path,
         element: <CatTwo />,
         handle: {
@@ -251,7 +278,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.DEVELOPMENTALASSIGNMENT.children.PDP.name,
+        id: "DEVELOPMENTALASSIGNMENT.PDP",
         path: MODULES.DEVELOPMENTALASSIGNMENT.children.PDP.path,
         element: <Pdp />,
         handle: {
@@ -259,7 +286,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.JOBBANDS.name,
+        id: "EXTRAS.JOBBANDS",
         path: MODULES.EXTRAS.children.JOBBANDS.path,
         element: <Jobbands />,
         handle: {
@@ -267,7 +294,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.JOBLEVELS.name,
+        id: "EXTRAS.JOBLEVELS",
         path: MODULES.EXTRAS.children.JOBLEVELS.path,
         element: <Joblevels />,
         handle: {
@@ -275,7 +302,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.JOBRATES.name,
+        id: "EXTRAS.JOBRATES",
         path: MODULES.EXTRAS.children.JOBRATES.path,
         element: <Jobrates />,
         handle: {
@@ -283,7 +310,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.TITLES.name,
+        id: "EXTRAS.TITLES",
         path: MODULES.EXTRAS.children.TITLES.path,
         element: <Titles />,
         handle: {
@@ -291,7 +318,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.TEAMS.name,
+        id: "EXTRAS.TEAMS",
         path: MODULES.EXTRAS.children.TEAMS.path,
         element: <Teams />,
         handle: {
@@ -299,7 +326,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.RELIGIONS.name,
+        id: "EXTRAS.RELIGIONS",
         path: MODULES.EXTRAS.children.RELIGIONS.path,
         element: <Religions />,
         handle: {
@@ -307,7 +334,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.ATTAINMENTS.name,
+        id: "EXTRAS.ATTAINMENTS",
         path: MODULES.EXTRAS.children.ATTAINMENTS.path,
         element: <Attainments />,
         handle: {
@@ -315,7 +342,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.BANKS.name,
+        id: "EXTRAS.BANKS",
         path: MODULES.EXTRAS.children.BANKS.path,
         element: <Banks />,
         handle: {
@@ -323,7 +350,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.name,
+        id: "ADMINISTRATIVEDIVISION.BARANGAYS",
         path: MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.path,
         element: <Barangays />,
         handle: {
@@ -331,7 +358,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.CABINETS.name,
+        id: "EXTRAS.CABINETS",
         path: MODULES.EXTRAS.children.CABINETS.path,
         element: <Cabinets />,
         handle: {
@@ -339,7 +366,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.DEGREES.name,
+        id: "EXTRAS.DEGREES",
         path: MODULES.EXTRAS.children.DEGREES.path,
         element: <Degrees />,
         handle: {
@@ -347,7 +374,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.FILETYPES.name,
+        id: "EXTRAS.FILETYPES",
         path: MODULES.EXTRAS.children.FILETYPES.path,
         element: <FileTypes />,
         handle: {
@@ -355,7 +382,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.HONORTITLES.name,
+        id: "EXTRAS.HONORTITLES",
         path: MODULES.EXTRAS.children.HONORTITLES.path,
         element: <HonorTitles />,
         handle: {
@@ -363,7 +390,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.name,
+        id: "ADMINISTRATIVEDIVISION.MUNICIPALITIES",
         path: MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.path,
         element: <Municipalities />,
         handle: {
@@ -372,7 +399,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES.name,
+        id: "ADMINISTRATIVEDIVISION.SUBMUNICIPALITIES",
         path: MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES.path,
         element: <SubMunicipalities />,
         handle: {
@@ -381,7 +408,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.OBJECTIVES.name,
+        id: "EXTRAS.OBJECTIVES",
         path: MODULES.EXTRAS.children.OBJECTIVES.path,
         element: <Objectives />,
         handle: {
@@ -389,7 +416,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.PREFIXES.name,
+        id: "EXTRAS.PREFIXES",
         path: MODULES.EXTRAS.children.PREFIXES.path,
         element: <Prefixes />,
         handle: {
@@ -397,7 +424,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.PROGRAMS.name,
+        id: "EXTRAS.PROGRAMS",
         path: MODULES.EXTRAS.children.PROGRAMS.path,
         element: <Programs />,
         handle: {
@@ -405,7 +432,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.name,
+        id: "ADMINISTRATIVEDIVISION.PROVINCES",
         path: MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.path,
         element: <Provinces />,
         handle: {
@@ -413,7 +440,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.name,
+        id: "ADMINISTRATIVEDIVISION.REGIONS",
         path: MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.path,
         element: <Regions />,
         handle: {
@@ -421,7 +448,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.SCHEDULES.name,
+        id: "EXTRAS.SCHEDULES",
         path: MODULES.EXTRAS.children.SCHEDULES.path,
         element: <Schedules />,
         handle: {
@@ -429,7 +456,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.TOOLS.name,
+        id: "EXTRAS.TOOLS",
         path: MODULES.EXTRAS.children.TOOLS.path,
         element: <Tools />,
         handle: {
@@ -437,7 +464,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.REQUISITION.name,
+        id: "EXTRAS.REQUISITION",
         path: MODULES.EXTRAS.children.REQUISITION.path,
         element: <RequisitionTypes />,
         handle: {
@@ -445,7 +472,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EXTRAS.children.MOVEMENTTYPES.name,
+        id: "EXTRAS.MOVEMENTTYPES",
         path: MODULES.EXTRAS.children.MOVEMENTTYPES.path,
         element: <MovementTypes />,
         handle: {
@@ -453,7 +480,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
+        id: "EMPLOYEES.EMPLOYEEINFORMATION",
         path: MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.path,
         element: <EMPLOYEEINFORMATION />,
         handle: {
@@ -461,7 +488,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EMPLOYEES.children.PENDINGREGISTRATION.name,
+        id: "EMPLOYEES.PENDINGREGISTRATION",
         path: MODULES.EMPLOYEES.children.PENDINGREGISTRATION.path,
         element: <PENDINGREGISTRATION />,
         handle: {
@@ -469,7 +496,7 @@ export const ROUTES = [
         },
       },
       {
-        id: MODULES.EMPLOYEES.children.ENABLEEDIT.name,
+        id: "EMPLOYEES.ENABLEEDIT",
         path: MODULES.EMPLOYEES.children.ENABLEEDIT.path,
         element: <EnableEdit />,
         handle: {
