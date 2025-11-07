@@ -11,10 +11,6 @@ import {
   infoBoxStyles,
   sectionHeaderStyles,
 } from "./MDAFormModalFields.styles";
-import {
-  useGetAllPositionsQuery,
-  useGetAllJobLevelsQuery,
-} from "../../../../features/api/forms/mdaApi";
 
 const InfoSection = ({ title, children }) => (
   <Box sx={infoSectionContainerStyles}>
@@ -68,40 +64,38 @@ export const ToPositionFields = ({
   showSummary,
   formValues,
   currentMode,
+  positions = [],
+  jobLevels = [],
 }) => {
   const { setValue, watch } = useFormContext();
-
-  const shouldFetchData = currentMode === "edit" || currentMode === "create";
-
-  const { data: jobLevelsData, isLoading: isJobLevelsLoading } =
-    useGetAllJobLevelsQuery(undefined, {
-      skip: !shouldFetchData,
-    });
-  const { data: positionsData, isLoading: isPositionsLoading } =
-    useGetAllPositionsQuery(undefined, {
-      skip: !shouldFetchData,
-    });
-
-  const jobLevels = jobLevelsData?.result || [];
-  const positions = positionsData?.result || [];
 
   const toPositionId = watch("to_position_id");
   const toJobLevelId = watch("to_job_level_id");
 
   const getPositionLabel = (item) => {
-    if (typeof item === "string") return item;
     if (!item) return "";
-    if (item?.title && typeof item.title === "object" && item.title?.name) {
-      return String(item.title.name);
+    if (typeof item === "string") return item;
+
+    if (item?.title) {
+      if (typeof item.title === "object" && item.title?.name) {
+        return String(item.title.name);
+      }
+      if (typeof item.title === "string") {
+        return String(item.title);
+      }
     }
-    if (item?.title && typeof item.title === "string") {
-      return String(item.title);
-    }
+
     return "";
   };
 
+  const getJobLevelLabel = (item) => {
+    if (!item) return "";
+    if (typeof item === "string") return item;
+    return item?.label || item?.name || "";
+  };
+
   useEffect(() => {
-    if (shouldFetchData && toPositionId && positions.length > 0) {
+    if (toPositionId && positions.length > 0) {
       const selectedPosition = positions.find((p) => p.id === toPositionId);
       if (selectedPosition) {
         const positionTitle =
@@ -116,10 +110,10 @@ export const ToPositionFields = ({
         setValue("to_sub_unit", subUnitName, { shouldValidate: true });
       }
     }
-  }, [toPositionId, positions, setValue, shouldFetchData]);
+  }, [toPositionId, positions, setValue]);
 
   useEffect(() => {
-    if (shouldFetchData && toJobLevelId && jobLevels.length > 0) {
+    if (toJobLevelId && jobLevels.length > 0) {
       const selectedJobLevel = jobLevels.find((jl) => jl.id === toJobLevelId);
       if (selectedJobLevel) {
         setValue("to_job_level", selectedJobLevel.name || "", {
@@ -127,7 +121,7 @@ export const ToPositionFields = ({
         });
       }
     }
-  }, [toJobLevelId, jobLevels, setValue, shouldFetchData]);
+  }, [toJobLevelId, jobLevels, setValue]);
 
   useEffect(() => {
     if (currentMode === "edit" && !toJobLevelId && formValues.to_job_level) {
@@ -193,20 +187,37 @@ export const ToPositionFields = ({
                           if (!option || !val) return false;
                           return option.id === val.id;
                         }}
+                        filterOptions={(options, state) => {
+                          const inputValue = state.inputValue
+                            .toLowerCase()
+                            .trim();
+
+                          if (!inputValue) return options;
+
+                          return options.filter((option) => {
+                            const label =
+                              getPositionLabel(option).toLowerCase();
+                            return label.includes(inputValue);
+                          });
+                        }}
                         value={selectedPosition}
                         onChange={(_, newValue) => {
                           onChange(newValue?.id || null);
                         }}
-                        loading={isPositionsLoading}
                         disabled={isReadOnly}
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Position *"
+                            label="Position Title To *"
                             error={!!errors.to_position_id}
                             helperText={errors.to_position_id?.message}
                             sx={{ mb: 1.5 }}
                           />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id}>
+                            {getPositionLabel(option)}
+                          </li>
                         )}
                       />
                     );
@@ -237,19 +248,28 @@ export const ToPositionFields = ({
                     return (
                       <Autocomplete
                         options={jobLevels}
-                        getOptionLabel={(option) => {
-                          if (!option || typeof option !== "object") return "";
-                          return option.name || "";
-                        }}
+                        getOptionLabel={getJobLevelLabel}
                         isOptionEqualToValue={(option, val) => {
                           if (!option || !val) return false;
                           return option.id === val.id;
+                        }}
+                        filterOptions={(options, state) => {
+                          const inputValue = state.inputValue
+                            .toLowerCase()
+                            .trim();
+
+                          if (!inputValue) return options;
+
+                          return options.filter((option) => {
+                            const label =
+                              getJobLevelLabel(option).toLowerCase();
+                            return label.includes(inputValue);
+                          });
                         }}
                         value={selectedJobLevel}
                         onChange={(_, newValue) => {
                           onChange(newValue?.id || null);
                         }}
-                        loading={isJobLevelsLoading}
                         disabled={isReadOnly}
                         renderInput={(params) => (
                           <TextField
@@ -258,6 +278,11 @@ export const ToPositionFields = ({
                             error={!!errors.to_job_level_id}
                             helperText={errors.to_job_level_id?.message}
                           />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id}>
+                            {getJobLevelLabel(option)}
+                          </li>
                         )}
                       />
                     );
@@ -493,11 +518,20 @@ export const ToPositionFields = ({
                     if (!option || !val) return false;
                     return option.id === val.id;
                   }}
+                  filterOptions={(options, state) => {
+                    const inputValue = state.inputValue.toLowerCase().trim();
+
+                    if (!inputValue) return options;
+
+                    return options.filter((option) => {
+                      const label = getPositionLabel(option).toLowerCase();
+                      return label.includes(inputValue);
+                    });
+                  }}
                   value={selectedPosition}
                   onChange={(_, newValue) => {
                     onChange(newValue?.id || null);
                   }}
-                  loading={isPositionsLoading}
                   disabled={false}
                   renderInput={(params) => (
                     <TextField
@@ -506,6 +540,11 @@ export const ToPositionFields = ({
                       error={!!errors.to_position_id}
                       helperText={errors.to_position_id?.message}
                     />
+                  )}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>
+                      {getPositionLabel(option)}
+                    </li>
                   )}
                 />
               );
@@ -525,19 +564,25 @@ export const ToPositionFields = ({
               return (
                 <Autocomplete
                   options={jobLevels}
-                  getOptionLabel={(option) => {
-                    if (!option || typeof option !== "object") return "";
-                    return option.name || "";
-                  }}
+                  getOptionLabel={getJobLevelLabel}
                   isOptionEqualToValue={(option, val) => {
                     if (!option || !val) return false;
                     return option.id === val.id;
+                  }}
+                  filterOptions={(options, state) => {
+                    const inputValue = state.inputValue.toLowerCase().trim();
+
+                    if (!inputValue) return options;
+
+                    return options.filter((option) => {
+                      const label = getJobLevelLabel(option).toLowerCase();
+                      return label.includes(inputValue);
+                    });
                   }}
                   value={selectedJobLevel}
                   onChange={(_, newValue) => {
                     onChange(newValue?.id || null);
                   }}
-                  loading={isJobLevelsLoading}
                   disabled={false}
                   renderInput={(params) => (
                     <TextField
@@ -546,6 +591,11 @@ export const ToPositionFields = ({
                       error={!!errors.to_job_level_id}
                       helperText={errors.to_job_level_id?.message}
                     />
+                  )}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>
+                      {getJobLevelLabel(option)}
+                    </li>
                   )}
                 />
               );

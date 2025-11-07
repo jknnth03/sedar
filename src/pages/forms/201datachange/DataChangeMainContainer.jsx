@@ -36,6 +36,7 @@ import {
   useUpdateDataChangeSubmissionMutation,
   useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -49,6 +50,7 @@ import DataChangeCancelled from "./DataChangeCancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import DataChangeMonitoringForMDAProcessing from "../../monitoring/DATACHANGE/DataChangeMonitoringForMDAProcessing";
 import MDAForApproval from "../../monitoring/DATACHANGE/MDAForApproval";
+
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
   borderRadius: "0",
@@ -63,27 +65,28 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
   },
 }));
 
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
+  ({ theme }) => ({
+    textTransform: "uppercase",
+    minWidth: 0,
+    fontWeight: 600,
+    fontSize: "0.875rem",
+    marginRight: theme.spacing(1),
+    color: "#666",
+    padding: "12px 16px",
+    "&:hover": {
+      color: theme.palette.primary.main,
+      opacity: 1,
+    },
+    "&.Mui-selected": {
+      color: theme.palette.primary.main,
+      fontWeight: 700,
+    },
+    "&.Mui-focusVisible": {
+      backgroundColor: "rgba(100, 95, 228, 0.32)",
+    },
+  })
+);
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -477,6 +480,20 @@ const DataChangeMainContainer = () => {
 
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
+  const { data: dashboardData } = useShowDashboardQuery();
+  const dataChangeCounts = {
+    forApproval: dashboardData?.result?.requisition?.data_change_approval || 0,
+    awaitingResubmission:
+      dashboardData?.result?.requisition?.data_change_awaiting_resubmission ||
+      0,
+    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0, // Add this line!
+    forMDAProcessing:
+      dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
+    mdaForApproval: dashboardData?.result?.approval?.mda_approval || 0,
+    completed: 0,
+    cancelled: 0,
+  };
+
   const tabMap = {
     0: "ForApproval",
     1: "AwaitingResubmission",
@@ -736,7 +753,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.forApproval,
     },
     {
       label: "Awaiting Resubmission",
@@ -752,7 +769,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.awaitingResubmission,
     },
     {
       label: "Rejected",
@@ -768,7 +785,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.rejected,
     },
     {
       label: "For MDA Processing",
@@ -784,7 +801,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.forMDAProcessing,
     },
     {
       label: "MDA For Approval",
@@ -800,7 +817,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.mdaForApproval,
     },
     {
       label: "Completed",
@@ -816,7 +833,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.completed,
     },
     {
       label: "Cancelled",
@@ -831,7 +848,7 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: dataChangeCounts.cancelled,
     },
   ];
 
@@ -972,7 +989,7 @@ const DataChangeMainContainer = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="Data change tabs"
+              aria-label="MDA submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -980,15 +997,18 @@ const DataChangeMainContainer = () => {
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
-                        badgeContent={tab.badgeCount}
+                        variant="dot"
                         color="error"
                         sx={{
-                          "& .MuiBadge-badge": {
-                            fontSize: "0.75rem",
-                            minWidth: 18,
-                            height: 18,
+                          "& .MuiBadge-dot": {
+                            minWidth: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            padding: 0,
+                            top: "8px",
+                            right: "-10px",
                           },
                         }}>
                         {tab.label}
@@ -1036,13 +1056,6 @@ const DataChangeMainContainer = () => {
             onResubmit={handleResubmit}
             isLoading={modalLoading}
             methods={methods}
-          />
-
-          <DateFilterDialog
-            open={filterDialogOpen}
-            onClose={() => setFilterDialogOpen(false)}
-            dateFilters={dateFilters}
-            onDateFiltersChange={handleDateFiltersChange}
           />
         </Box>
       </FormProvider>

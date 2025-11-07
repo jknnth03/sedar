@@ -103,14 +103,22 @@ export const createEnhancedModules = (dashboardData = {}) => {
     pendingMrfReceiving: apiResult.receiving?.pending_mrfs || 0,
     pendingDataChangeReceiving: apiResult.receiving?.pending_data_changes || 0,
 
-    rejectedReturnedSubmissions:
-      (apiResult.requisition?.manpower_form_rejected || 0) +
-      (apiResult.requisition?.manpower_form_returned || 0),
     manpowerFormTotal: apiResult.requisition?.manpower_form || 0,
+    manpowerFormRejected: apiResult.requisition?.manpower_form_rejected || 0,
+    manpowerFormReturned: apiResult.requisition?.manpower_form_returned || 0,
     dataChangeTotal: apiResult.requisition?.data_change || 0,
     dataChangeRejected: apiResult.requisition?.data_change_rejected || 0,
     dataChangeForMdaProcessing:
       apiResult.requisition?.data_change_for_mda_processing || 0,
+
+    totalRequisitionCount:
+      (apiResult.requisition?.manpower_form || 0) +
+      (apiResult.requisition?.manpower_form_rejected || 0) +
+      (apiResult.requisition?.manpower_form_returned || 0) +
+      (apiResult.requisition?.data_change || 0) +
+      (apiResult.requisition?.data_change_rejected || 0) +
+      (apiResult.requisition?.data_change_for_mda_processing || 0) +
+      (apiResult.employees?.pending_registrations || 0),
   };
 
   return {
@@ -147,20 +155,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
       path: "/employees",
       icon: <FolderSharedIcon sx={iconStyles.main} />,
       icon_on: null,
-      notificationCount: counts.pendingRegistrations,
+      notificationCount: 0,
       children: {
         EMPLOYEEINFORMATION: {
           name: "Employee Information",
           path: "employeeinformation",
           icon: <InfoIcon sx={iconStyles.child} />,
           icon_on: null,
-        },
-        PENDINGREGISTRATION: {
-          name: "Pending Registration",
-          path: "pendingregistration",
-          icon: <PendingActionsIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount: counts.pendingRegistrations,
         },
         ENABLEEDIT: {
           name: "Enable Edit",
@@ -272,21 +273,24 @@ export const createEnhancedModules = (dashboardData = {}) => {
       path: "/request",
       icon: <PendingActionsIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
-      notificationCount: counts.manpowerFormTotal + counts.dataChangeTotal,
+      notificationCount: counts.totalRequisitionCount,
       children: {
         MRFMAINCONTAINER: {
           name: "Manpower Form",
           path: "mrfmaincontainer",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.manpowerFormTotal,
+          notificationCount:
+            counts.manpowerFormTotal +
+            counts.manpowerFormRejected +
+            counts.manpowerFormReturned,
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
           path: "datachangemaincontainer",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.dataChangeTotal,
+          notificationCount: counts.dataChangeTotal + counts.dataChangeRejected,
         },
         MASTERDATAAUTHORITY: {
           name: "Master Data Authority",
@@ -294,6 +298,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <CreateNewFolderIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.dataChangeForMdaProcessing,
+        },
+        PENDINGREGISTRATION: {
+          name: "Pending Registration",
+          path: "pendingregistration",
+          icon: <PendingActionsIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.pendingRegistrations,
         },
       },
     },

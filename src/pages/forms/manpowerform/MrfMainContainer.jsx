@@ -60,27 +60,28 @@ const StyledTabs = styled(Tabs)(({ theme }) => ({
   },
 }));
 
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
+  ({ theme }) => ({
+    textTransform: "uppercase",
+    minWidth: 0,
+    fontWeight: 600,
+    fontSize: "0.875rem",
+    marginRight: theme.spacing(1),
+    color: "#666",
+    padding: "12px 16px",
+    "&:hover": {
+      color: theme.palette.primary.main,
+      opacity: 1,
+    },
+    "&.Mui-selected": {
+      color: theme.palette.primary.main,
+      fontWeight: 700,
+    },
+    "&.Mui-focusVisible": {
+      backgroundColor: "rgba(100, 95, 228, 0.32)",
+    },
+  })
+);
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -723,16 +724,16 @@ const MrfMainContainer = () => {
                   label={
                     tab.badgeCount && tab.badgeCount > 0 ? (
                       <Badge
-                        badgeContent={tab.badgeCount}
+                        variant="dot"
                         color="error"
                         sx={{
-                          "& .MuiBadge-badge": {
-                            fontSize: "0.55rem",
-                            minWidth: 14,
-                            height: 14,
+                          "& .MuiBadge-dot": {
+                            minWidth: "8px",
+                            height: "8px",
                             borderRadius: "50%",
-                            top: -2,
-                            right: -6,
+                            top: "50%",
+                            right: "-8px",
+                            transform: "translateY(-50%)",
                           },
                         }}>
                         {tab.label}

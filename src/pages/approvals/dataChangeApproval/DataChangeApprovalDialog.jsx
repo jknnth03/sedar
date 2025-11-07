@@ -10,6 +10,7 @@ import {
   IconButton,
   Box,
   CircularProgress,
+  Skeleton,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -17,6 +18,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import HelpIcon from "@mui/icons-material/Help";
 import { useGetDataChangeAttachmentQuery } from "../../../features/api/forms/datachangeApi";
+import * as styles from "./DataChangeApprovalStyles";
 
 const DataChangeApprovalDialog = ({
   open,
@@ -25,6 +27,7 @@ const DataChangeApprovalDialog = ({
   onApprove,
   onReject,
   isLoading = false,
+  isLoadingData = false,
 }) => {
   const [comments, setComments] = useState("");
   const [reason, setReason] = useState("");
@@ -157,9 +160,7 @@ const DataChangeApprovalDialog = ({
     }
   }, [fileViewerOpen, fileUrl]);
 
-  if (!approval) return null;
-
-  const submission = approval.submission || {};
+  const submission = approval?.submission || {};
   const formDetails = submission.form_details || {};
   const fromPosition = formDetails.from_position || {};
   const toPosition = formDetails.to_position || {};
@@ -168,6 +169,31 @@ const DataChangeApprovalDialog = ({
   const isProcessed = status === "approved" || status === "rejected";
   const hasAttachments = attachments.length > 0;
 
+  const renderSkeletonField = () => (
+    <Box sx={styles.fieldBoxStyles}>
+      <Skeleton variant="text" width="40%" height={16} sx={{ mb: 0.5 }} />
+      <Skeleton variant="text" width="80%" height={20} />
+    </Box>
+  );
+
+  const renderSkeletonSection = () => (
+    <Box sx={styles.sectionBoxStyles}>
+      <Skeleton variant="text" width="30%" height={24} sx={{ mb: 2 }} />
+      <Box>
+        <Box sx={styles.fieldContainerStyles}>
+          {renderSkeletonField()}
+          {renderSkeletonField()}
+          {renderSkeletonField()}
+        </Box>
+        <Box sx={styles.lastFieldContainerStyles}>
+          {renderSkeletonField()}
+          {renderSkeletonField()}
+          {renderSkeletonField()}
+        </Box>
+      </Box>
+    </Box>
+  );
+
   return (
     <>
       <Dialog
@@ -175,467 +201,253 @@ const DataChangeApprovalDialog = ({
         onClose={handleClose}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          },
-        }}>
-        <DialogTitle sx={{ padding: "18px 26px" }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        PaperProps={{ sx: styles.dialogPaperStyles }}>
+        <DialogTitle sx={styles.dialogTitleStyles}>
+          <Box sx={styles.titleBoxStyles}>
+            <Box sx={styles.titleInnerBoxStyles}>
               📋
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(33, 61, 112)",
-                  fontSize: "16px",
-                }}>
+              <Typography variant="h6" sx={styles.titleTextStyles}>
                 VIEW DATA CHANGE REQUEST
               </Typography>
             </Box>
             <IconButton onClick={handleClose} size="small">
-              <CloseIcon sx={{ color: "rgb(33, 61, 112)" }} />
+              <CloseIcon sx={styles.closeIconStyles} />
             </IconButton>
           </Box>
         </DialogTitle>
 
         <DialogContent>
-          <Box
-            sx={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #dee2e6",
-              borderRadius: 2,
-              p: 3,
-              mb: 2,
-            }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(33, 61, 112)",
-                mb: 2,
-                fontSize: "14px",
-              }}>
-              Employee Information
-            </Typography>
+          {isLoadingData ? (
+            <>
+              {renderSkeletonSection()}
+              {renderSkeletonSection()}
+            </>
+          ) : (
+            <>
+              <Box sx={styles.sectionBoxStyles}>
+                <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
+                  Employee Information
+                </Typography>
 
-            <Box>
-              <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EMPLOYEE CODE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formDetails.employee_code || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EMPLOYEE NAME
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formDetails.employee_name || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    REFERENCE NUMBER
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formDetails.reference_number || "N/A"}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 6 }}>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    DEPARTMENT
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {fromPosition.charging?.department_name || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    SUB UNIT
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {fromPosition.charging?.sub_unit_name || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    SCHEDULE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {fromPosition.schedule?.name || "N/A"}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #dee2e6",
-              borderRadius: 2,
-              p: 3,
-              mb: 2,
-            }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(33, 61, 112)",
-                mb: 2,
-                fontSize: "14px",
-              }}>
-              Movement Details
-            </Typography>
-
-            <Box>
-              <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    MOVEMENT TYPE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formDetails.movement_type || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EFFECTIVE DATE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formatDate(formDetails.effective_date)}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    REQUESTED BY
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {submission.requested_by || "N/A"}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    FROM POSITION
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {fromPosition.title?.name || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    TO POSITION
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {toPosition.title?.name || "N/A"}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    PAY FREQUENCY
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {toPosition.pay_frequency || "N/A"}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 6 }}>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    FROM JOB RATE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formatCurrency(formDetails.from_job_rate)}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    TO JOB RATE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#000000ff", fontSize: "13px" }}>
-                    {formatCurrency(formDetails.to_job_rate)}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1, minHeight: "60px" }} />
-              </Box>
-            </Box>
-          </Box>
-
-          {hasAttachments && (
-            <Box
-              sx={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #dee2e6",
-                borderRadius: 2,
-                p: 3,
-                mb: 2,
-              }}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(33, 61, 112)",
-                  mb: 1.5,
-                  fontSize: "14px",
-                }}>
-                Supporting Documents ({attachments.length})
-              </Typography>
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                {attachments.map((attachment) => (
-                  <Box
-                    key={attachment.id}
-                    sx={{
-                      border: "2px dashed #d1d5db",
-                      borderRadius: 2,
-                      p: 2.5,
-                      textAlign: "center",
-                      backgroundColor: "#ffffff",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        backgroundColor: "#f8f9fa",
-                        borderColor: "#007bff",
-                      },
-                    }}
-                    onClick={() => handleFileViewerOpen(attachment.id)}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 1,
-                      }}>
-                      <AttachFileIcon sx={{ color: "#007bff", fontSize: 24 }} />
+                <Box>
+                  <Box sx={styles.fieldContainerStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
                       <Typography
-                        sx={{
-                          color: "#007bff",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          textDecoration: "underline",
-                          cursor: "pointer",
-                        }}>
-                        {attachment.original_filename}
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        EMPLOYEE CODE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.employee_code || "N/A"}
                       </Typography>
                     </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#666",
-                        fontSize: "11px",
-                        display: "block",
-                        mt: 0.5,
-                      }}>
-                      Click to view file
-                    </Typography>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        EMPLOYEE NAME
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.employee_name || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        REFERENCE NUMBER
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.reference_number || "N/A"}
+                      </Typography>
+                    </Box>
                   </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
 
-          {isProcessed && (
-            <Box
-              sx={{
-                textAlign: "center",
-                py: 2,
-                backgroundColor: "#ffffff",
-                borderRadius: 2,
-              }}>
-              <Typography
-                variant="h6"
-                color="text.secondary"
-                sx={{ fontSize: "16px" }}>
-                This data change request has already been {status}
-              </Typography>
-            </Box>
+                  <Box sx={styles.lastFieldContainerStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        DEPARTMENT
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {fromPosition.charging?.department_name || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        SUB UNIT
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {fromPosition.charging?.sub_unit_name || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        SCHEDULE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {fromPosition.schedule?.name || "N/A"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box sx={styles.sectionBoxStyles}>
+                <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
+                  Movement Details
+                </Typography>
+
+                <Box>
+                  <Box sx={styles.fieldContainerStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        MOVEMENT TYPE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.movement_type || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        EFFECTIVE DATE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatDate(formDetails.effective_date)}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        REQUESTED BY
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {submission.requested_by || "N/A"}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={styles.fieldContainerStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        FROM POSITION
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {fromPosition.title?.name || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TO POSITION
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {toPosition.title?.name || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        PAY FREQUENCY
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {toPosition.pay_frequency || "N/A"}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={styles.lastFieldContainerStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        FROM JOB RATE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatCurrency(formDetails.from_job_rate)}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TO JOB RATE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatCurrency(formDetails.to_job_rate)}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles} />
+                  </Box>
+                </Box>
+              </Box>
+
+              {hasAttachments && (
+                <Box sx={styles.sectionBoxStyles}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={styles.attachmentSectionTitleStyles}>
+                    Supporting Documents ({attachments.length})
+                  </Typography>
+
+                  <Box sx={styles.attachmentContainerStyles}>
+                    {attachments.map((attachment) => (
+                      <Box
+                        key={attachment.id}
+                        sx={styles.attachmentItemStyles}
+                        onClick={() => handleFileViewerOpen(attachment.id)}>
+                        <Box sx={styles.attachmentInnerBoxStyles}>
+                          <AttachFileIcon sx={styles.attachmentIconStyles} />
+                          <Typography sx={styles.attachmentFilenameStyles}>
+                            {attachment.original_filename}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="caption"
+                          sx={styles.attachmentHintStyles}>
+                          Click to view file
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {isProcessed && (
+                <Box sx={styles.processedBoxStyles}>
+                  <Typography
+                    variant="h6"
+                    color="text.secondary"
+                    sx={styles.processedTextStyles}>
+                    This data change request has already been {status}
+                  </Typography>
+                </Box>
+              )}
+            </>
           )}
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            px: 4.4,
-            pb: 2,
-            pt: 2,
-            justifyContent: "flex-end",
-            gap: 2,
-          }}>
-          {!isProcessed && (
+        <DialogActions sx={styles.dialogActionsStyles}>
+          {!isLoadingData && !isProcessed && (
             <>
               <Button
                 onClick={handleReject}
                 variant="contained"
-                sx={{
-                  backgroundColor: "#dc3545",
-                  color: "white",
-                  minWidth: "100px",
-                  height: "40px",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#c82333",
-                  },
-                }}
+                sx={styles.rejectButtonStyles}
                 disabled={isLoading}
                 startIcon={
                   isLoading && actionType === "reject" ? (
@@ -651,19 +463,7 @@ const DataChangeApprovalDialog = ({
               <Button
                 onClick={handleApprove}
                 variant="contained"
-                sx={{
-                  backgroundColor: "#28a745",
-                  color: "white",
-                  minWidth: "100px",
-                  height: "40px",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#218838",
-                  },
-                }}
+                sx={styles.approveButtonStyles}
                 disabled={isLoading}
                 startIcon={
                   isLoading && actionType === "approve" ? (
@@ -686,36 +486,27 @@ const DataChangeApprovalDialog = ({
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          },
-        }}>
-        <DialogTitle sx={{ textAlign: "center", pt: 3 }}>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            mb={2}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+        PaperProps={{ sx: styles.dialogPaperStyles }}>
+        <DialogTitle sx={styles.confirmDialogTitleStyles}>
+          <Box sx={styles.confirmIconBoxStyles}>
+            <HelpIcon sx={styles.confirmIconStyles} />
           </Box>
           <Typography
             variant="h6"
             fontWeight="bold"
             textAlign="center"
-            sx={{ color: "#213d70", fontSize: "18px" }}>
+            sx={styles.confirmTitleStyles}>
             {confirmAction === "approve"
               ? "Confirm Approval"
               : "Confirm Rejection"}
           </Typography>
         </DialogTitle>
 
-        <DialogContent sx={{ textAlign: "center", px: 3 }}>
+        <DialogContent sx={styles.confirmContentStyles}>
           <Typography
             variant="body1"
             gutterBottom
-            sx={{ fontSize: "14px", mb: 2 }}>
+            sx={styles.confirmMessageStyles}>
             {confirmAction === "approve"
               ? "Are you sure you want to Approve this data change request?"
               : "Are you sure you want to Reject this data change request?"}
@@ -723,7 +514,7 @@ const DataChangeApprovalDialog = ({
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ fontSize: "13px", mb: 3 }}>
+            sx={styles.confirmIdStyles}>
             Data Change Request ID: {approval?.id || "N/A"}
           </Typography>
 
@@ -738,48 +529,24 @@ const DataChangeApprovalDialog = ({
               fullWidth
               required
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                },
-              }}
+              sx={styles.confirmTextFieldStyles}
             />
           )}
         </DialogContent>
 
-        <DialogActions sx={{ justifyContent: "center", pb: 3, px: 3 }}>
-          <Box display="flex" gap={2}>
+        <DialogActions sx={styles.confirmActionsStyles}>
+          <Box sx={styles.confirmButtonBoxStyles}>
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              sx={{
-                borderRadius: 2,
-                minWidth: 80,
-                height: "40px",
-                borderColor: "#dc3545",
-                color: "#dc3545",
-                "&:hover": {
-                  borderColor: "#c82333",
-                  backgroundColor: "rgba(220, 53, 69, 0.04)",
-                },
-              }}
+              sx={styles.cancelButtonStyles}
               disabled={isLoading}>
               Cancel
             </Button>
             <Button
               onClick={handleActionConfirm}
               variant="contained"
-              sx={{
-                borderRadius: 2,
-                minWidth: 80,
-                height: "40px",
-                backgroundColor:
-                  confirmAction === "approve" ? "#28a745" : "#dc3545",
-                "&:hover": {
-                  backgroundColor:
-                    confirmAction === "approve" ? "#218838" : "#c82333",
-                },
-              }}
+              sx={styles.confirmActionButtonStyles(confirmAction)}
               disabled={
                 isLoading || (confirmAction === "reject" && !reason.trim())
               }>
@@ -800,28 +567,9 @@ const DataChangeApprovalDialog = ({
         onClose={handleFileViewerClose}
         maxWidth={false}
         fullWidth={false}
-        PaperProps={{
-          sx: {
-            width: "80vw",
-            height: "90vh",
-            maxWidth: "none",
-            maxHeight: "none",
-            margin: 0,
-            borderRadius: 2,
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          },
-        }}>
-        <DialogTitle
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderBottom: 1,
-            borderColor: "divider",
-            padding: "12px 24px",
-            backgroundColor: "#f8f9fa",
-          }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "16px" }}>
+        PaperProps={{ sx: styles.fileViewerPaperStyles }}>
+        <DialogTitle sx={styles.fileViewerTitleStyles}>
+          <Typography variant="h6" sx={styles.fileViewerTitleTextStyles}>
             Attachment - {getCurrentAttachmentFilename()}
           </Typography>
           <IconButton onClick={handleFileViewerClose} size="small">
@@ -829,86 +577,50 @@ const DataChangeApprovalDialog = ({
           </IconButton>
         </DialogTitle>
 
-        <DialogContent
-          sx={{ p: 0, height: "calc(90vh - 64px)", overflow: "hidden" }}>
+        <DialogContent sx={styles.fileViewerContentStyles}>
           {isLoadingAttachment ? (
-            <Box
-              sx={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#f5f5f5",
-                flexDirection: "column",
-              }}>
+            <Box sx={styles.loadingBoxStyles}>
               <CircularProgress size={48} />
-              <Typography
-                variant="body1"
-                sx={{ mt: 2, color: "text.secondary" }}>
+              <Typography variant="body1" sx={styles.loadingTextStyles}>
                 Loading attachment...
               </Typography>
             </Box>
           ) : attachmentError ? (
-            <Box
-              sx={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#f5f5f5",
-                flexDirection: "column",
-              }}>
-              <Typography variant="h6" color="error" gutterBottom>
+            <Box sx={styles.loadingBoxStyles}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={styles.errorTitleStyles}>
                 Error loading attachment
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={styles.errorMessageStyles}>
                 Unable to load the attachment. Please try again.
               </Typography>
             </Box>
           ) : fileUrl ? (
-            <Box
-              sx={{
-                width: "100%",
-                height: "100%",
-                backgroundColor: "#f5f5f5",
-              }}>
+            <Box sx={styles.fileViewerBoxStyles}>
               <iframe
                 src={fileUrl}
                 width="100%"
                 height="100%"
-                style={{
-                  border: "none",
-                  borderRadius: "0 0 8px 8px",
-                }}
+                style={styles.iframeStyles}
                 title="File Attachment"
               />
             </Box>
           ) : (
-            <Box
-              sx={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#f5f5f5",
-              }}>
+            <Box sx={styles.noPreviewBoxStyles}>
               <Box textAlign="center">
-                <AttachFileIcon
-                  sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
-                />
+                <AttachFileIcon sx={styles.noPreviewIconStyles} />
                 <Typography
                   variant="h6"
                   color="text.secondary"
-                  sx={{ fontSize: "18px" }}>
+                  sx={styles.noPreviewTitleStyles}>
                   {getCurrentAttachmentFilename()}
                 </Typography>
                 <Typography
                   variant="body2"
                   color="text.secondary"
-                  sx={{ mt: 1, fontSize: "14px" }}>
+                  sx={styles.noPreviewMessageStyles}>
                   File preview not available
                 </Typography>
               </Box>

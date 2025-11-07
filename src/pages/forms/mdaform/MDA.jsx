@@ -48,6 +48,7 @@ import {
   useUpdateMdaMutation,
 } from "../../../features/api/forms/mdaApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -475,6 +476,8 @@ const MDA = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
+  const { data: dashboardData } = useShowDashboardQuery();
+
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
@@ -515,6 +518,16 @@ const MDA = () => {
   const [cancelMDASubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const mdaCounts = {
+    forMDAProcessing:
+      dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
+    forApproval: dashboardData?.result?.approval?.mda_approval || 0,
+    rejected: 0,
+    awaitingResubmission: 0,
+    approved: 0,
+    cancelled: 0,
+  };
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -682,7 +695,7 @@ const MDA = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaCounts.forMDAProcessing,
     },
     {
       label: "For Approval",
@@ -697,7 +710,7 @@ const MDA = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaCounts.forApproval,
     },
     {
       label: "Rejected",
@@ -712,7 +725,7 @@ const MDA = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaCounts.rejected,
     },
     {
       label: "Awaiting Resubmission",
@@ -727,7 +740,7 @@ const MDA = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaCounts.awaitingResubmission,
     },
     {
       label: "Approved",
@@ -742,7 +755,7 @@ const MDA = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaCounts.approved,
     },
     {
       label: "Cancelled",
@@ -756,7 +769,7 @@ const MDA = () => {
           currentParams={currentParams}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaCounts.cancelled,
     },
   ];
 
@@ -848,15 +861,22 @@ const MDA = () => {
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
-                        badgeContent={tab.badgeCount}
+                        variant="dot"
                         color="error"
+                        anchorOrigin={{
+                          vertical: "top",
+                          horizontal: "right",
+                        }}
                         sx={{
                           "& .MuiBadge-badge": {
-                            fontSize: "0.75rem",
-                            minWidth: 18,
-                            height: 18,
+                            minWidth: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            padding: 0,
+                            top: "8px",
+                            right: "-10px",
                           },
                         }}>
                         {tab.label}

@@ -57,6 +57,8 @@ const MDAFormModalFields = ({
   isPrefillLoading,
   setSelectedMovementId,
   currentMode,
+  positions = [],
+  jobLevels = [],
 }) => {
   const {
     control,
@@ -229,6 +231,8 @@ const MDAFormModalFields = ({
             showSummary={false}
             formValues={formValues}
             currentMode={currentMode}
+            positions={positions}
+            jobLevels={jobLevels}
           />
         </>
       ) : (
@@ -516,6 +520,8 @@ const MDAFormModalFields = ({
             showSummary={false}
             formValues={formValues}
             currentMode={currentMode}
+            positions={positions}
+            jobLevels={jobLevels}
           />
         </>
       )}

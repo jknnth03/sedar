@@ -95,7 +95,7 @@ const PdpApproved = ({
       pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      status: "APPROVED",
+      status: "KICKOFF_COMPLETE",
     },
     {
       refetchOnMountOrArgChange: true,

@@ -644,7 +644,8 @@ const DataChangeApproval = () => {
           approval={selectedApprovalData?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReject={handleReject}
-          isLoading={approveLoading || rejectLoading || selectedApprovalLoading}
+          isLoading={approveLoading || rejectLoading}
+          isLoadingData={selectedApprovalLoading}
           styles={styles}
         />
       </Box>

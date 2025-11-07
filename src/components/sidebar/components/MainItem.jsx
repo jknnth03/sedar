@@ -14,6 +14,7 @@ const MenuItem = ({
   className = "",
   sidebarOpen = false,
   notificationCount = 0,
+  showDotOnly = false,
 }) => {
   const renderContent = () => {
     if (sidebarOpen) {
@@ -59,22 +60,33 @@ const MenuItem = ({
         </Box>
         {notificationCount > 0 && (
           <Box sx={{ marginRight: "8px" }}>
-            <Box
-              sx={{
-                backgroundColor: "#ff5252",
-                color: "white",
-                fontSize: "0.65rem",
-                height: "18px",
-                minWidth: "18px",
-                borderRadius: "9px",
-                fontWeight: "bold",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "0 4px",
-              }}>
-              {notificationCount > 99 ? "99+" : notificationCount}
-            </Box>
+            {showDotOnly ? (
+              <Box
+                sx={{
+                  backgroundColor: "#ff5252",
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  backgroundColor: "#ff5252",
+                  color: "white",
+                  fontSize: isChild ? "0.6rem" : "0.65rem",
+                  height: isChild ? "16px" : "18px",
+                  minWidth: isChild ? "16px" : "18px",
+                  borderRadius: isChild ? "8px" : "9px",
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 4px",
+                }}>
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </Box>
+            )}
           </Box>
         )}
       </Box>
@@ -88,11 +100,23 @@ const MenuItem = ({
       style={{
         cursor: "pointer",
         paddingLeft: isChild ? "32px" : "16px",
+        position: "relative",
       }}>
       <Box className={`icon ${active ? "active-icon" : ""}`}>
-        <NotificationBadge count={notificationCount} position="icon">
-          {icon || <span className="sidebar__placeholder-icon">📄</span>}
-        </NotificationBadge>
+        {icon || <span className="sidebar__placeholder-icon">📄</span>}
+        {notificationCount > 0 && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: "8px",
+              right: "8px",
+              backgroundColor: "#ff5252",
+              width: isChild ? "6px" : "8px",
+              height: isChild ? "6px" : "8px",
+              borderRadius: "50%",
+            }}
+          />
+        )}
       </Box>
     </Box>
   );
@@ -108,6 +132,7 @@ MenuItem.propTypes = {
   className: PropTypes.string,
   sidebarOpen: PropTypes.bool,
   notificationCount: PropTypes.number,
+  showDotOnly: PropTypes.bool,
 };
 
 export const MainItem = ({
@@ -124,11 +149,32 @@ export const MainItem = ({
   const [openChildren, setOpenChildren] = useState(false);
   const [isParentActive, setIsParentActive] = useState(false);
 
+  const hasChildNotifications = subItem
+    ? Object.values(subItem).some((item) => (item.notificationCount || 0) > 0)
+    : false;
+
+  const totalChildNotifications = subItem
+    ? Object.values(subItem).reduce(
+        (sum, item) => sum + (item.notificationCount || 0),
+        0
+      )
+    : 0;
+
+  const displayNotificationCount = subItem
+    ? totalChildNotifications
+    : notificationCount;
+
+  const showDotOnly = subItem && hasChildNotifications;
+
   useEffect(() => {
     if (subItem) {
-      const anyChildActive = Object.values(subItem).some((item) =>
-        location.pathname.startsWith(`/${item.path}`)
-      );
+      const anyChildActive = Object.values(subItem).some((item) => {
+        const fullChildPath = `${path}/${item.path}`;
+        return (
+          location.pathname === fullChildPath ||
+          location.pathname.startsWith(`${fullChildPath}/`)
+        );
+      });
       setOpenChildren(anyChildActive);
       setIsParentActive(anyChildActive);
     } else {
@@ -161,26 +207,34 @@ export const MainItem = ({
         onClick={handleChildren}
         className="main-item"
         sidebarOpen={sidebarOpen}
-        notificationCount={notificationCount}
+        notificationCount={displayNotificationCount}
+        showDotOnly={showDotOnly}
       />
       {subItem && sidebarOpen && (
         <Collapse in={openChildren}>
           {Object.values(subItem).map(
-            ({ name, path, icon, notificationCount = 0 }, subIndex) => {
-              const isSubItemActive = location.pathname.startsWith(`/${path}`);
+            (
+              { name, path: childPath, icon, notificationCount = 0 },
+              subIndex
+            ) => {
+              const fullChildPath = `${path}/${childPath}`;
+              const isSubItemActive =
+                location.pathname === fullChildPath ||
+                location.pathname.startsWith(`${fullChildPath}/`);
 
               return (
                 <MenuItem
                   key={subIndex}
                   name={name}
-                  path={path}
+                  path={fullChildPath}
                   icon={icon}
                   active={isSubItemActive}
                   isChild={true}
-                  onClick={() => handleNavigation(path)}
+                  onClick={() => handleNavigation(fullChildPath)}
                   className="sub-item"
                   sidebarOpen={sidebarOpen}
                   notificationCount={notificationCount}
+                  showDotOnly={false}
                 />
               );
             }

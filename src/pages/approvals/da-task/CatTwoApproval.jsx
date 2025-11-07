@@ -1,7 +1,635 @@
-import React from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 
-function CatTwoApproval() {
-  return <div>CatTwoApproval</div>;
-}
+import {
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  CircularProgress,
+  TableRow,
+  Box,
+  TextField,
+  Chip,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { FormProvider, useForm } from "react-hook-form";
+import { useSnackbar } from "notistack";
+import "../../../pages/GeneralStyle.scss";
+import {
+  useGetCatTwoApprovalsQuery,
+  useGetCatTwoTaskByIdQuery,
+  useApproveCatTwoMutation,
+  useReturnCatTwoMutation,
+} from "../../../features/api/approving/catTwoApproval.js";
+import { CONSTANT } from "../../../config";
+import dayjs from "dayjs";
+import { createSubmissionApprovalStyles } from "../submissionApproval/SubmissionApprovalStyles.jsx";
+import CatTwoApprovalDialog from "./CatTwoApprovalDialog.jsx";
+
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+const CustomSearchBar = ({
+  searchQuery,
+  setSearchQuery,
+  isLoading = false,
+  styles,
+}) => {
+  const isVerySmall = window.innerWidth <= 369;
+  const isMobile = window.innerWidth <= 600;
+
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <TextField
+        placeholder={
+          isVerySmall ? "Search..." : "Search Category 2 Approvals..."
+        }
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        disabled={isLoading}
+        size="small"
+        InputProps={{
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: isVerySmall ? "18px" : "20px",
+              }}
+            />
+          ),
+          endAdornment: isLoading && (
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+          ),
+          sx: {
+            height: "36px",
+            width: isVerySmall ? "100%" : "380px",
+            minWidth: isVerySmall ? "180px" : "280px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
+        }}
+        sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
+          "& .MuiInputBase-input": {
+            fontSize: isVerySmall ? "13px" : "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
+      />
+    </Box>
+  );
+};
+
+const CatTwoApproval = () => {
+  const styles = createSubmissionApprovalStyles();
+  const { enqueueSnackbar } = useSnackbar();
+  const isMobile = window.innerWidth <= 600;
+  const isTablet = window.innerWidth > 600 && window.innerWidth <= 1038;
+  const isVerySmall = window.innerWidth <= 369;
+
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedApprovalId, setSelectedApprovalId] = useState(null);
+  const [detailsDialog, setDetailsDialog] = useState({
+    open: false,
+    submission: null,
+  });
+
+  const methods = useForm({
+    defaultValues: {
+      status: "active",
+    },
+  });
+
+  const debounceValue = useDebounce(searchQuery, 500);
+
+  const [approveCatTwo, { isLoading: approveLoading }] =
+    useApproveCatTwoMutation();
+  const [returnCatTwo, { isLoading: returnLoading }] =
+    useReturnCatTwoMutation();
+
+  const queryParams = useMemo(() => {
+    const params = {
+      page,
+      per_page: rowsPerPage,
+      status: "active",
+      pagination: 1,
+    };
+
+    if (debounceValue && debounceValue.trim() !== "") {
+      params.search = debounceValue.trim();
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage]);
+
+  const {
+    data: catTwoApprovalsData,
+    isLoading: queryLoading,
+    isFetching,
+    refetch,
+    error,
+  } = useGetCatTwoApprovalsQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
+
+  const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
+    useGetCatTwoTaskByIdQuery(selectedApprovalId, {
+      skip: !selectedApprovalId,
+    });
+
+  const catTwoApprovalsList = useMemo(
+    () => catTwoApprovalsData?.result?.data || [],
+    [catTwoApprovalsData]
+  );
+
+  const handleSearchChange = useCallback((newSearchQuery) => {
+    setSearchQuery(newSearchQuery);
+    setPage(1);
+  }, []);
+
+  const handleRowClick = useCallback((approval) => {
+    setSelectedApprovalId(approval.id);
+    setDetailsDialog({
+      open: true,
+      submission: approval,
+    });
+  }, []);
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const handleApprove = useCallback(
+    async ({ comments }) => {
+      const { submission } = detailsDialog;
+      try {
+        const payload = {
+          id: submission.id,
+        };
+
+        if (comments && comments.trim()) {
+          payload.comments = comments.trim();
+        }
+
+        await approveCatTwo(payload).unwrap();
+        enqueueSnackbar("Category 2 approved successfully!", {
+          variant: "success",
+        });
+        setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
+        refetch();
+      } catch (error) {
+        enqueueSnackbar(
+          error?.data?.message || "Failed to approve Category 2",
+          {
+            variant: "error",
+          }
+        );
+      }
+    },
+    [detailsDialog, approveCatTwo, enqueueSnackbar, refetch]
+  );
+
+  const handleReturn = useCallback(
+    async ({ correction_remarks }) => {
+      console.log("=== handleReturn in MAIN component ===");
+      console.log("Received correction_remarks:", correction_remarks);
+      const { submission } = detailsDialog;
+      console.log("submission.id:", submission?.id);
+
+      try {
+        const payload = {
+          id: submission.id,
+          correction_remarks,
+        };
+
+        console.log("FINAL PAYLOAD to API:", payload);
+        console.log("Payload stringified:", JSON.stringify(payload));
+
+        await returnCatTwo(payload).unwrap();
+        enqueueSnackbar("Category 2 returned successfully!", {
+          variant: "success",
+        });
+        setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
+        refetch();
+      } catch (error) {
+        console.error("ERROR in handleReturn:", error);
+        enqueueSnackbar(error?.data?.message || "Failed to return Category 2", {
+          variant: "error",
+        });
+      }
+    },
+    [detailsDialog, returnCatTwo, enqueueSnackbar, refetch]
+  );
+
+  const handleDetailsDialogClose = useCallback(() => {
+    setDetailsDialog({ open: false, submission: null });
+    setSelectedApprovalId(null);
+  }, []);
+
+  const renderStatusChip = useCallback((status) => {
+    const statusLower = status?.toLowerCase() || "pending";
+    const statusConfig = {
+      for_approval: { label: "FOR APPROVAL", color: "#ff9800" },
+      approved: { label: "APPROVED", color: "#4caf50" },
+      returned: { label: "RETURNED", color: "#f44336" },
+      pending: { label: "PENDING", color: "#2196f3" },
+    };
+
+    const config = statusConfig[statusLower] || statusConfig.pending;
+
+    return (
+      <Chip
+        label={config.label}
+        size="small"
+        sx={{
+          backgroundColor: config.color,
+          color: "white",
+          fontWeight: 600,
+          fontSize: "12px",
+        }}
+      />
+    );
+  }, []);
+
+  const isLoadingState = queryLoading || isFetching || isLoading;
+
+  return (
+    <FormProvider {...methods}>
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          backgroundColor: "white",
+        }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: isMobile || isTablet ? "flex-start" : "center",
+            justifyContent:
+              isMobile || isTablet ? "flex-start" : "space-between",
+            flexDirection: isMobile || isTablet ? "column" : "row",
+            flexShrink: 0,
+            minHeight: isMobile || isTablet ? "auto" : "60px",
+            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
+            backgroundColor: "white",
+            borderBottom: "1px solid #e0e0e0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            gap: isMobile || isTablet ? "16px" : "0",
+          }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+              width: isMobile || isTablet ? "100%" : "auto",
+              justifyContent: "flex-start",
+            }}>
+            <Typography className="header">CAT 2 APPROVAL</Typography>
+          </Box>
+
+          <CustomSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={handleSearchChange}
+            isLoading={isLoadingState}
+            styles={styles}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "white",
+          }}>
+          <TableContainer
+            sx={{
+              flex: 1,
+              overflow: "auto",
+              "& .MuiTableCell-head": {
+                backgroundColor: "#f8f9fa",
+                fontWeight: 700,
+                fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
+                color: "rgb(33, 61, 112)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                borderBottom: "2px solid #e0e0e0",
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+                height: isMobile ? "44px" : "48px",
+                padding: isMobile ? "6px 12px" : "8px 16px",
+              },
+              "& .MuiTableCell-body": {
+                fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
+                color: "#333",
+                borderBottom: "1px solid #f0f0f0",
+                padding: isMobile ? "6px 12px" : "8px 16px",
+                height: isMobile ? "48px" : "52px",
+              },
+              "& .MuiTableRow-root": {
+                transition: "background-color 0.2s ease-in-out",
+                "&:hover": {
+                  backgroundColor: "#f8f9fa",
+                },
+              },
+            }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall
+                        ? "180px"
+                        : isMobile
+                        ? "220px"
+                        : "280px",
+                      minWidth: isVerySmall
+                        ? "180px"
+                        : isMobile
+                        ? "220px"
+                        : "280px",
+                    }}>
+                    {isVerySmall ? "NAME" : "TEMPLATE NAME"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall
+                        ? "150px"
+                        : isMobile
+                        ? "200px"
+                        : "250px",
+                      minWidth: isVerySmall
+                        ? "150px"
+                        : isMobile
+                        ? "200px"
+                        : "250px",
+                    }}>
+                    EMPLOYEE NAME
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall
+                        ? "120px"
+                        : isMobile
+                        ? "150px"
+                        : "180px",
+                      minWidth: isVerySmall
+                        ? "120px"
+                        : isMobile
+                        ? "150px"
+                        : "180px",
+                    }}>
+                    {isVerySmall ? "DEPT" : "DEPARTMENT"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall
+                        ? "150px"
+                        : isMobile
+                        ? "180px"
+                        : "220px",
+                      minWidth: isVerySmall
+                        ? "150px"
+                        : isMobile
+                        ? "180px"
+                        : "220px",
+                    }}>
+                    {isVerySmall ? "SUPERIOR" : "SUPERIOR NAME"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: isVerySmall
+                        ? "120px"
+                        : isMobile
+                        ? "140px"
+                        : "170px",
+                      minWidth: isVerySmall
+                        ? "120px"
+                        : isMobile
+                        ? "140px"
+                        : "170px",
+                    }}>
+                    {isVerySmall ? "SUBMITTED" : "SUBMITTED AT"}
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isLoadingState ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <CircularProgress
+                        size={32}
+                        sx={{ color: "rgb(33, 61, 112)" }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <Typography
+                        color="error"
+                        sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                        Error loading data: {error.message || "Unknown error"}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : catTwoApprovalsList.length > 0 ? (
+                  catTwoApprovalsList.map((approval) => {
+                    return (
+                      <TableRow
+                        key={approval.id}
+                        onClick={() => handleRowClick(approval)}
+                        sx={{
+                          cursor: "pointer",
+                          "&:hover": {
+                            backgroundColor: "#f8f9fa",
+                          },
+                        }}>
+                        <TableCell
+                          sx={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontWeight: 600,
+                          }}>
+                          {approval.name || "-"}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                          {approval?.employee?.employee_name || "-"}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                          {approval?.employee?.department || "-"}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                          {approval?.superior?.name || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {approval.submitted_at
+                            ? dayjs(approval.submitted_at).format(
+                                isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                              )
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      align="center"
+                      sx={{
+                        py: 8,
+                        color: "#666",
+                        fontSize: isMobile ? "14px" : "16px",
+                      }}>
+                      <Box sx={{ textAlign: "center" }}>
+                        <Typography
+                          variant="h6"
+                          color="text.secondary"
+                          sx={{ fontSize: isVerySmall ? "14px" : "16px" }}>
+                          No CAT 2 submissions found
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                          {searchQuery
+                            ? `No results for "${searchQuery}"`
+                            : "No pending submissions found"}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Box
+            sx={{
+              backgroundColor: "#f8f9fa",
+              flexShrink: 0,
+              "& .MuiTablePagination-root": {
+                color: "#666",
+                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                  {
+                    fontSize: isMobile ? "12px" : "14px",
+                    fontWeight: 500,
+                  },
+                "& .MuiTablePagination-select": {
+                  fontSize: isMobile ? "12px" : "14px",
+                },
+                "& .MuiIconButton-root": {
+                  color: "rgb(33, 61, 112)",
+                  "&:hover": {
+                    backgroundColor: "rgba(33, 61, 112, 0.04)",
+                  },
+                  "&.Mui-disabled": {
+                    color: "#ccc",
+                  },
+                },
+              },
+            }}>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50, 100]}
+              component="div"
+              count={catTwoApprovalsData?.result?.total || 0}
+              rowsPerPage={rowsPerPage}
+              page={Math.max(0, page - 1)}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              sx={{
+                "& .MuiTablePagination-toolbar": {
+                  paddingLeft: isMobile ? "12px" : "24px",
+                  paddingRight: isMobile ? "12px" : "24px",
+                },
+              }}
+            />
+          </Box>
+        </Box>
+
+        <CatTwoApprovalDialog
+          open={detailsDialog.open}
+          onClose={handleDetailsDialogClose}
+          approval={selectedApprovalData?.result || detailsDialog.submission}
+          onApprove={handleApprove}
+          onReturn={handleReturn}
+          isLoading={approveLoading || returnLoading}
+          isLoadingData={selectedApprovalLoading}
+          styles={styles}
+        />
+      </Box>
+    </FormProvider>
+  );
+};
 
 export default CatTwoApproval;

@@ -28,6 +28,7 @@ import {
   useLazyGetMdaPrefillQuery,
   useLazyGetSingleMdaSubmissionQuery,
   useGetAllJobLevelsQuery,
+  useGetAllPositionsQuery,
 } from "../../../../features/api/forms/mdaApi";
 import MDAFormModalFields from "./MDAFormModalFields";
 import {
@@ -82,6 +83,14 @@ const MDAFormModal = ({
       refetchOnMountOrArgChange: true,
     });
   const jobLevels = jobLevelsData?.result || [];
+
+  const shouldLoadPositions = open;
+  const { data: positionsData, isLoading: isPositionsLoading } =
+    useGetAllPositionsQuery(undefined, {
+      skip: !shouldLoadPositions,
+      refetchOnMountOrArgChange: true,
+    });
+  const positionsFromApi = positionsData?.result || [];
 
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
@@ -419,7 +428,8 @@ const MDAFormModal = ({
   const isEditMode = currentMode === "edit";
   const showLoadingState =
     (isPrefillLoading && isCreate && submissionId) ||
-    (isJobLevelsLoading && (mode === "view" || mode === "edit"));
+    (isJobLevelsLoading && (mode === "view" || mode === "edit")) ||
+    (isPositionsLoading && (mode === "edit" || mode === "create"));
   const isProcessing = isLoading || isUpdating || isPrintLoading;
 
   const formKey = `mda-form-${currentMode}-${open ? "open" : "closed"}`;
@@ -509,7 +519,7 @@ const MDAFormModal = ({
                 }}>
                 <CircularProgress size={48} />
                 <Typography variant="body1" color="text.secondary">
-                  {isJobLevelsLoading
+                  {isJobLevelsLoading || isPositionsLoading
                     ? "Loading form data..."
                     : "Loading employee data..."}
                 </Typography>
@@ -524,6 +534,8 @@ const MDAFormModal = ({
                 isPrefillLoading={isPrefillLoading}
                 setSelectedMovementId={setSelectedMovementId}
                 currentMode={currentMode}
+                positions={positionsFromApi}
+                jobLevels={jobLevels}
               />
             )}
           </DialogContent>
