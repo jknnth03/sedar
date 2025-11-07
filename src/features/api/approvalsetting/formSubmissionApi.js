@@ -109,13 +109,13 @@ const formSubmissionApi = sedarApi
         providesTags: ["mrfSubmissions"],
       }),
 
-      getMrfSubmissionsCounts: build.query({
-        query: () => ({
-          url: "me/mrf-submissions/counts",
-          method: "GET",
-        }),
-        providesTags: ["mrfSubmissions"],
-      }),
+      // getMrfSubmissionsCounts: build.query({
+      //   query: () => ({
+      //     url: "me/mrf-submissions/counts",
+      //     method: "GET",
+      //   }),
+      //   providesTags: ["mrfSubmissions"],
+      // }),
 
       getSingleFormSubmission: build.query({
         query: (formSubmissionId) => ({

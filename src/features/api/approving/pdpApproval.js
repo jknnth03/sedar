@@ -56,13 +56,10 @@ const pdpApprovalApi = sedarApi
       }),
 
       approvePdp: build.mutation({
-        query: ({ id, comments, reason }) => {
+        query: ({ id, comments }) => {
           const body = {};
           if (comments && comments.trim()) {
             body.comments = comments.trim();
-          }
-          if (reason && reason.trim()) {
-            body.reason = reason.trim();
           }
           return {
             url: `da-approvals/pdp/${id}/approve`,
@@ -77,20 +74,13 @@ const pdpApprovalApi = sedarApi
       }),
 
       returnPdp: build.mutation({
-        query: ({ id, comments, reason }) => {
-          const body = {};
-          if (comments && comments.trim()) {
-            body.comments = comments.trim();
-          }
-          if (reason && reason.trim()) {
-            body.reason = reason.trim();
-          }
-          return {
-            url: `da-approvals/pdp/${id}/return`,
-            method: "POST",
-            body,
-          };
-        },
+        query: ({ id, correction_remarks }) => ({
+          url: `da-approvals/pdp/${id}/return`,
+          method: "POST",
+          body: {
+            correction_remarks,
+          },
+        }),
         invalidatesTags: (result, error, { id }) => [
           { type: "pdpApprovals", id },
           "pdpApprovals",

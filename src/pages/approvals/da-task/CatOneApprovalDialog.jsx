@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -28,10 +28,11 @@ const CatOneApprovalDialog = ({
   isLoadingData = false,
 }) => {
   const [comments, setComments] = useState("");
+  const [reason, setReason] = useState("");
   const [actionType, setActionType] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const reasonRef = useRef(null);
+  const [reasonError, setReasonError] = useState(false);
 
   const handleApprove = () => {
     setActionType("approve");
@@ -45,15 +46,23 @@ const CatOneApprovalDialog = ({
     setConfirmOpen(true);
   };
 
-  const handleActionConfirm = () => {
+  const handleActionConfirm = async () => {
     if (confirmAction === "approve") {
-      onApprove({ comments });
+      const approveData = { comments: comments.trim() };
+      setConfirmOpen(false);
+      await onApprove(approveData);
+      handleReset();
     } else if (confirmAction === "return") {
-      const reasonValue = reasonRef.current?.value.trim() || "";
-      onReturn({ reason: reasonValue, comments });
+      const trimmedReason = reason.trim();
+      if (!trimmedReason) {
+        setReasonError(true);
+        return;
+      }
+      const returnData = { reason: trimmedReason };
+      setConfirmOpen(false);
+      await onReturn(returnData);
+      handleReset();
     }
-    setConfirmOpen(false);
-    handleReset();
   };
 
   const handleClose = () => {
@@ -63,9 +72,8 @@ const CatOneApprovalDialog = ({
 
   const handleReset = () => {
     setComments("");
-    if (reasonRef.current) {
-      reasonRef.current.value = "";
-    }
+    setReason("");
+    setReasonError(false);
     setActionType(null);
     setConfirmAction(null);
   };
@@ -570,14 +578,37 @@ const CatOneApprovalDialog = ({
 
           {confirmAction === "return" && (
             <TextField
-              inputRef={reasonRef}
               label="Reason for Return"
               placeholder="Please provide a reason for returning this request..."
-              defaultValue=""
+              value={reason}
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (reasonError) setReasonError(false);
+              }}
               multiline
               rows={3}
               fullWidth
               required
+              error={reasonError}
+              helperText={reasonError ? "Reason is required" : ""}
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+          )}
+
+          {confirmAction === "approve" && (
+            <TextField
+              label="Comments (Optional)"
+              placeholder="Add any additional comments..."
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
               variant="outlined"
               sx={{
                 "& .MuiOutlinedInput-root": {

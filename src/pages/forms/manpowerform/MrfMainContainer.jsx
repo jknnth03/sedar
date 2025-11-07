@@ -30,11 +30,8 @@ import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import { styles } from "./FormSubmissionStyles";
-import {
-  useCreateFormSubmissionMutation,
-  useGetMrfSubmissionsQuery,
-  useGetMrfSubmissionsCountsQuery,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useCreateFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import FormSubmission from "./FormSubmission";
 import MrfRejected from "./MrfRejected";
 import MrfAwaiting from "./MrfAwaiting";
@@ -310,6 +307,22 @@ const MrfMainContainer = () => {
   const [currentParams, setQueryParams, removeQueryParams] =
     useRememberQueryParams();
 
+  // Fetch dashboard counts
+  const { data: dashboardData } = useShowDashboardQuery();
+
+  // Extract MRF counts from dashboard
+  const mrfCounts = {
+    forApproval: dashboardData?.result?.approval?.manpower_form || 0,
+    awaitingResubmission:
+      dashboardData?.result?.requisition
+        ?.manpower_form_awaiting_for_resubmission || 0,
+    rejected: dashboardData?.result?.requisition?.manpower_form_rejected || 0,
+    forReceiving: dashboardData?.result?.receiving?.pending_mrfs || 0,
+    returned: dashboardData?.result?.requisition?.manpower_form_returned || 0,
+    received: 0, // Not in API, can be calculated or added later
+    cancelled: 0, // Not in API, can be calculated or added later
+  };
+
   const tabLabels = [
     "ForApproval",
     "AwaitingResubmission",
@@ -343,8 +356,6 @@ const MrfMainContainer = () => {
   const [pendingFormData, setPendingFormData] = useState(null);
 
   const [createSubmission] = useCreateFormSubmissionMutation();
-  const { data: countsData, isLoading: countsLoading } =
-    useGetMrfSubmissionsCountsQuery();
 
   const debounceValue = useDebounce(searchQuery, 500);
 
@@ -373,26 +384,6 @@ const MrfMainContainer = () => {
   const formatDateForAPI = (date) => {
     return date ? format(date, "yyyy-MM-dd") : null;
   };
-
-  const mrfQueryParams = useMemo(
-    () => ({
-      pagination: false,
-      search: debounceValue,
-      start_date: formatDateForAPI(dateFilters.startDate),
-      end_date: formatDateForAPI(dateFilters.endDate),
-    }),
-    [debounceValue, dateFilters.startDate, dateFilters.endDate]
-  );
-
-  const {
-    data: mrfSubmissions,
-    isLoading: mrfSubmissionsLoading,
-    refetch: refetchMrfSubmissions,
-  } = useGetMrfSubmissionsQuery(mrfQueryParams);
-
-  useEffect(() => {
-    setIsLoading(mrfSubmissionsLoading);
-  }, [mrfSubmissionsLoading]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -463,7 +454,6 @@ const MrfMainContainer = () => {
         autoHideDuration: 2000,
       });
 
-      refetchMrfSubmissions();
       handleCloseModal();
     } catch (error) {
       let errorMessage = "Failed to create manpower form. Please try again.";
@@ -482,13 +472,7 @@ const MrfMainContainer = () => {
       setFormIsLoading(false);
       setPendingFormData(null);
     }
-  }, [
-    pendingFormData,
-    createSubmission,
-    enqueueSnackbar,
-    handleCloseModal,
-    refetchMrfSubmissions,
-  ]);
+  }, [pendingFormData, createSubmission, enqueueSnackbar, handleCloseModal]);
 
   const handleResubmit = useCallback(
     async (submissionId) => {
@@ -501,7 +485,6 @@ const MrfMainContainer = () => {
           variant: "success",
         });
 
-        refetchMrfSubmissions();
         setFormModalOpen(false);
         setSelectedEntry(null);
         setModalMode("create");
@@ -513,49 +496,7 @@ const MrfMainContainer = () => {
         setFormIsLoading(false);
       }
     },
-    [enqueueSnackbar, refetchMrfSubmissions]
-  );
-
-  const getBadgeCount = useCallback(
-    (status) => {
-      if (!countsData?.result) return null;
-      return countsData.result[status] || null;
-    },
-    [countsData]
-  );
-
-  const getFilteredSubmissionsByStatus = useCallback(
-    (status) => {
-      if (!mrfSubmissions?.data) return [];
-      return mrfSubmissions.data.filter((submission) => {
-        if (status === "pending") {
-          return submission.approval_status === "pending";
-        }
-        if (status === "awaiting_resubmission") {
-          return submission.approval_status === "awaiting_resubmission";
-        }
-        if (status === "rejected") {
-          return submission.approval_status === "rejected";
-        }
-        if (status === "for_receiving") {
-          return (
-            submission.approval_status === "approved" &&
-            submission.status !== "received"
-          );
-        }
-        if (status === "returned") {
-          return submission.approval_status === "returned";
-        }
-        if (status === "received") {
-          return submission.status === "received";
-        }
-        if (status === "cancelled") {
-          return submission.status === "cancelled";
-        }
-        return false;
-      });
-    },
-    [mrfSubmissions]
+    [enqueueSnackbar]
   );
 
   const tabsData = [
@@ -566,11 +507,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("pending")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("pending"),
+      badgeCount: mrfCounts.forApproval,
     },
     {
       label: "Awaiting Resubmission",
@@ -579,11 +518,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("awaiting_resubmission")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("awaiting_resubmission"),
+      badgeCount: mrfCounts.awaitingResubmission,
     },
     {
       label: "Rejected",
@@ -592,11 +529,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("rejected")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("rejected"),
+      badgeCount: mrfCounts.rejected,
     },
     {
       label: "For Receiving",
@@ -605,11 +540,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("for_receiving")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("for_receiving"),
+      badgeCount: mrfCounts.forReceiving,
     },
     {
       label: "Returned",
@@ -618,11 +551,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("returned")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("returned"),
+      badgeCount: mrfCounts.returned,
     },
     {
       label: "Received",
@@ -631,11 +562,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("received")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("received"),
+      badgeCount: mrfCounts.received,
     },
     {
       label: "Cancelled",
@@ -644,11 +573,9 @@ const MrfMainContainer = () => {
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
-          submissions={getFilteredSubmissionsByStatus("cancelled")}
-          isLoading={mrfSubmissionsLoading}
         />
       ),
-      badgeCount: getBadgeCount("cancelled"),
+      badgeCount: mrfCounts.cancelled,
     },
   ];
 
@@ -732,7 +659,7 @@ const MrfMainContainer = () => {
                             height: "8px",
                             borderRadius: "50%",
                             top: "50%",
-                            right: "-8px",
+                            right: "-12px",
                             transform: "translateY(-50%)",
                           },
                         }}>

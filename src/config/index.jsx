@@ -103,19 +103,18 @@ export const createEnhancedModules = (dashboardData = {}) => {
     pendingMrfReceiving: apiResult.receiving?.pending_mrfs || 0,
     pendingDataChangeReceiving: apiResult.receiving?.pending_data_changes || 0,
 
-    manpowerFormTotal: apiResult.requisition?.manpower_form || 0,
     manpowerFormRejected: apiResult.requisition?.manpower_form_rejected || 0,
     manpowerFormReturned: apiResult.requisition?.manpower_form_returned || 0,
-    dataChangeTotal: apiResult.requisition?.data_change || 0,
+    manpowerFormAwaiting:
+      apiResult.requisition?.manpower_form_awaiting_for_resubmission || 0,
     dataChangeRejected: apiResult.requisition?.data_change_rejected || 0,
     dataChangeForMdaProcessing:
       apiResult.requisition?.data_change_for_mda_processing || 0,
 
     totalRequisitionCount:
-      (apiResult.requisition?.manpower_form || 0) +
       (apiResult.requisition?.manpower_form_rejected || 0) +
       (apiResult.requisition?.manpower_form_returned || 0) +
-      (apiResult.requisition?.data_change || 0) +
+      (apiResult.requisition?.manpower_form_awaiting_for_resubmission || 0) +
       (apiResult.requisition?.data_change_rejected || 0) +
       (apiResult.requisition?.data_change_for_mda_processing || 0) +
       (apiResult.employees?.pending_registrations || 0),
@@ -281,16 +280,16 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount:
-            counts.manpowerFormTotal +
             counts.manpowerFormRejected +
-            counts.manpowerFormReturned,
+            counts.manpowerFormReturned +
+            counts.manpowerFormAwaiting,
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
           path: "datachangemaincontainer",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.dataChangeTotal + counts.dataChangeRejected,
+          notificationCount: counts.dataChangeRejected,
         },
         MASTERDATAAUTHORITY: {
           name: "Master Data Authority",
@@ -376,7 +375,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
 
     DEVELOPMENTALASSIGNMENT: {
-      name: "Developmental Assignment",
+      name: "DA Tasks",
       path: "/developmental-assignment",
       icon: <AssignmentIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,

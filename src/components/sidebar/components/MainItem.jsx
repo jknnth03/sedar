@@ -16,29 +16,6 @@ const MenuItem = ({
   notificationCount = 0,
   showDotOnly = false,
 }) => {
-  const renderContent = () => {
-    if (sidebarOpen) {
-      return (
-        <NotificationBadge
-          count={notificationCount}
-          position="text"
-          text={name}>
-          <Box className={`icon ${active ? "active-icon" : ""}`}>
-            {icon || <span className="sidebar__placeholder-icon">📄</span>}
-          </Box>
-        </NotificationBadge>
-      );
-    } else {
-      return (
-        <Box className={`icon ${active ? "active-icon" : ""}`}>
-          <NotificationBadge count={notificationCount} position="icon">
-            {icon || <span className="sidebar__placeholder-icon">📄</span>}
-          </NotificationBadge>
-        </Box>
-      );
-    }
-  };
-
   if (sidebarOpen) {
     return (
       <Box
@@ -161,7 +138,9 @@ export const MainItem = ({
     : 0;
 
   const displayNotificationCount = subItem
-    ? totalChildNotifications
+    ? hasChildNotifications
+      ? 1
+      : 0
     : notificationCount;
 
   const showDotOnly = subItem && hasChildNotifications;

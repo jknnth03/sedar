@@ -16,6 +16,7 @@ import {
   Chip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -206,14 +207,16 @@ const CatOneApproval = () => {
   }, []);
 
   const handleApprove = useCallback(
-    async ({ comments, reason }) => {
+    async ({ comments }) => {
       const { submission } = detailsDialog;
       try {
         const payload = {
           id: submission.id,
-          comments,
-          reason,
         };
+
+        if (comments && comments.trim()) {
+          payload.comments = comments.trim();
+        }
 
         await approveCatOne(payload).unwrap();
         enqueueSnackbar("Category 1 approved successfully!", {
@@ -235,12 +238,12 @@ const CatOneApproval = () => {
   );
 
   const handleReturn = useCallback(
-    async ({ comments, reason }) => {
+    async ({ reason }) => {
       const { submission } = detailsDialog;
+
       try {
         const payload = {
           id: submission.id,
-          comments,
           reason,
         };
 
@@ -377,7 +380,11 @@ const CatOneApproval = () => {
                 },
               },
             }}>
-            <Table stickyHeader>
+            <Table
+              stickyHeader
+              sx={{
+                height: catOneApprovalsList.length === 0 ? "100%" : "auto",
+              }}>
               <TableHead>
                 <TableRow>
                   <TableCell
@@ -457,10 +464,16 @@ const CatOneApproval = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <TableBody
+                sx={{
+                  height: catOneApprovalsList.length === 0 ? "100%" : "auto",
+                }}>
                 {isLoadingState ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableRow sx={{ height: "100%" }}>
+                    <TableCell
+                      colSpan={6}
+                      align="center"
+                      sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                       <CircularProgress
                         size={32}
                         sx={{ color: "rgb(33, 61, 112)" }}
@@ -468,8 +481,11 @@ const CatOneApproval = () => {
                     </TableCell>
                   </TableRow>
                 ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableRow sx={{ height: "100%" }}>
+                    <TableCell
+                      colSpan={6}
+                      align="center"
+                      sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                       <Typography
                         color="error"
                         sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
@@ -533,29 +549,38 @@ const CatOneApproval = () => {
                     );
                   })
                 ) : (
-                  <TableRow>
+                  <TableRow sx={{ height: "100%" }}>
                     <TableCell
                       colSpan={6}
                       align="center"
                       sx={{
                         py: 8,
-                        color: "#666",
-                        fontSize: isMobile ? "14px" : "16px",
+                        height: "100%",
+                        verticalAlign: "middle",
+                        border: "none",
                       }}>
-                      <Box sx={{ textAlign: "center" }}>
-                        <Typography
-                          variant="h6"
-                          color="text.secondary"
-                          sx={{ fontSize: isVerySmall ? "14px" : "16px" }}>
-                          No CAT 1 submissions found
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          textAlign: "center",
+                        }}>
+                        <ErrorOutlineIcon
+                          sx={{
+                            fontSize: 80,
+                            color: "#ccc",
+                            marginBottom: 2,
+                          }}
+                        />
+                        <Typography variant="h6" color="text.secondary">
+                          No CAT 1 for approval found
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                        <Typography variant="body2" color="text.secondary">
                           {searchQuery
                             ? `No results for "${searchQuery}"`
-                            : "No pending submissions found"}
+                            : "No submissions found"}
                         </Typography>
                       </Box>
                     </TableCell>

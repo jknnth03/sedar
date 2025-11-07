@@ -54,26 +54,28 @@ const catOneApprovalApi = sedarApi
         providesTags: (result, error, id) => [{ type: "catOneApprovals", id }],
       }),
       approveCatOne: build.mutation({
-        query: ({ id, comments, reason }) => ({
-          url: `da-approvals/cat1/${id}/approve`,
-          method: "POST",
-          body: {
-            comments,
-            reason,
-          },
-        }),
+        query: ({ id, comments }) => {
+          const body = {};
+          if (comments && comments.trim()) {
+            body.comments = comments.trim();
+          }
+          return {
+            url: `da-approvals/cat1/${id}/approve`,
+            method: "POST",
+            body,
+          };
+        },
         invalidatesTags: (result, error, { id }) => [
           { type: "catOneApprovals", id },
           "catOneApprovals",
         ],
       }),
       returnCatOne: build.mutation({
-        query: ({ id, comments, reason }) => ({
+        query: ({ id, reason }) => ({
           url: `da-approvals/cat1/${id}/return`,
           method: "POST",
           body: {
-            comments,
-            reason,
+            correction_remarks: reason,
           },
         }),
         invalidatesTags: (result, error, { id }) => [

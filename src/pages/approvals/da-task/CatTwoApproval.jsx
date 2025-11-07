@@ -16,6 +16,7 @@ import {
   Chip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -238,19 +239,13 @@ const CatTwoApproval = () => {
 
   const handleReturn = useCallback(
     async ({ correction_remarks }) => {
-      console.log("=== handleReturn in MAIN component ===");
-      console.log("Received correction_remarks:", correction_remarks);
       const { submission } = detailsDialog;
-      console.log("submission.id:", submission?.id);
 
       try {
         const payload = {
           id: submission.id,
           correction_remarks,
         };
-
-        console.log("FINAL PAYLOAD to API:", payload);
-        console.log("Payload stringified:", JSON.stringify(payload));
 
         await returnCatTwo(payload).unwrap();
         enqueueSnackbar("Category 2 returned successfully!", {
@@ -260,7 +255,6 @@ const CatTwoApproval = () => {
         setSelectedApprovalId(null);
         refetch();
       } catch (error) {
-        console.error("ERROR in handleReturn:", error);
         enqueueSnackbar(error?.data?.message || "Failed to return Category 2", {
           variant: "error",
         });
@@ -386,7 +380,11 @@ const CatTwoApproval = () => {
                 },
               },
             }}>
-            <Table stickyHeader>
+            <Table
+              stickyHeader
+              sx={{
+                height: catTwoApprovalsList.length === 0 ? "100%" : "auto",
+              }}>
               <TableHead>
                 <TableRow>
                   <TableCell
@@ -466,10 +464,16 @@ const CatTwoApproval = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <TableBody
+                sx={{
+                  height: catTwoApprovalsList.length === 0 ? "100%" : "auto",
+                }}>
                 {isLoadingState ? (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <TableRow sx={{ height: "100%" }}>
+                    <TableCell
+                      colSpan={5}
+                      align="center"
+                      sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                       <CircularProgress
                         size={32}
                         sx={{ color: "rgb(33, 61, 112)" }}
@@ -477,8 +481,11 @@ const CatTwoApproval = () => {
                     </TableCell>
                   </TableRow>
                 ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <TableRow sx={{ height: "100%" }}>
+                    <TableCell
+                      colSpan={5}
+                      align="center"
+                      sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                       <Typography
                         color="error"
                         sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
@@ -542,29 +549,38 @@ const CatTwoApproval = () => {
                     );
                   })
                 ) : (
-                  <TableRow>
+                  <TableRow sx={{ height: "100%" }}>
                     <TableCell
                       colSpan={5}
                       align="center"
                       sx={{
                         py: 8,
-                        color: "#666",
-                        fontSize: isMobile ? "14px" : "16px",
+                        height: "100%",
+                        verticalAlign: "middle",
+                        border: "none",
                       }}>
-                      <Box sx={{ textAlign: "center" }}>
-                        <Typography
-                          variant="h6"
-                          color="text.secondary"
-                          sx={{ fontSize: isVerySmall ? "14px" : "16px" }}>
-                          No CAT 2 submissions found
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          textAlign: "center",
+                        }}>
+                        <ErrorOutlineIcon
+                          sx={{
+                            fontSize: 80,
+                            color: "#ccc",
+                            marginBottom: 2,
+                          }}
+                        />
+                        <Typography variant="h6" color="text.secondary">
+                          No CAT 2 for approval found
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                        <Typography variant="body2" color="text.secondary">
                           {searchQuery
                             ? `No results for "${searchQuery}"`
-                            : "No pending submissions found"}
+                            : "No submissions found"}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -623,8 +639,7 @@ const CatTwoApproval = () => {
           approval={selectedApprovalData?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReturn={handleReturn}
-          isLoading={approveLoading || returnLoading}
-          isLoadingData={selectedApprovalLoading}
+          isLoading={approveLoading || returnLoading || selectedApprovalLoading}
           styles={styles}
         />
       </Box>
