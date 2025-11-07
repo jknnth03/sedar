@@ -411,12 +411,20 @@ const Files = ({
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
+          <Table
+            stickyHeader
+            sx={{ minWidth: 1400, width: "100%", tableLayout: "fixed" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">CHARGING</TableCell>
-                <TableCell className="table-header">FILE COUNT</TableCell>
+                <TableCell className="table-header" sx={{ width: "30%" }}>
+                  EMPLOYEE
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "55%" }}>
+                  CHARGING
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "15%" }}>
+                  FILE COUNT
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -461,8 +469,7 @@ const Files = ({
                       <TableCell
                         className="table-cell"
                         sx={{
-                          width: "400px",
-                          minWidth: "400px",
+                          width: "30%",
                         }}>
                         <Box>
                           <Typography
@@ -512,8 +519,7 @@ const Files = ({
                       </TableCell>
                       <TableCell
                         sx={{
-                          width: "640px",
-                          minWidth: "640px",
+                          width: "55%",
                           paddingY: 1.5,
                         }}>
                         <Box>
@@ -542,7 +548,7 @@ const Files = ({
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell className="table-cell">
+                      <TableCell className="table-cell" sx={{ width: "15%" }}>
                         {employeeRecord.file_count}
                       </TableCell>
                     </TableRow>

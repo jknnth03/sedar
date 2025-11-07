@@ -263,6 +263,22 @@ const StatusesTable = ({
     }
   }, []);
 
+  const getActiveStatusChipStyle = useCallback((status) => {
+    const statusLower = status?.toLowerCase();
+
+    if (statusLower === "active") {
+      return {
+        backgroundColor: "#E8F5E8",
+        color: "#2E7D32",
+      };
+    } else {
+      return {
+        backgroundColor: "#FFEBEE",
+        color: "#C62828",
+      };
+    }
+  }, []);
+
   const handleRowClick = useCallback(
     (employeeStatus) => {
       onRowClick?.(employeeStatus);
@@ -289,16 +305,18 @@ const StatusesTable = ({
         maxWidth: "100%",
         minHeight: 0,
       }}>
-      <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
+      <Table
+        stickyHeader
+        sx={{ minWidth: 1400, width: "100%", tableLayout: "fixed" }}>
         <TableHead>
           <TableRow>
-            <TableCell className="table-header" sx={{ width: "400px" }}>
+            <TableCell className="table-header" sx={{ width: "20%" }}>
               FULL NAME
             </TableCell>
-            <TableCell className="table-header" sx={{ width: "350px" }}>
+            <TableCell className="table-header" sx={{ width: "35%" }}>
               CHARGING
             </TableCell>
-            <TableCell className="table-header" sx={{ width: "220px" }}>
+            <TableCell className="table-header" sx={{ width: "15%" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 STATUS
                 <Tooltip title="Filter by Status" arrow>
@@ -324,13 +342,13 @@ const StatusesTable = ({
                 </Tooltip>
               </Box>
             </TableCell>
-            <TableCell className="table-header" sx={{ width: "160px" }}>
+            <TableCell className="table-header" sx={{ width: "10%" }}>
               START DATE
             </TableCell>
-            <TableCell className="table-header" sx={{ width: "160px" }}>
+            <TableCell className="table-header" sx={{ width: "10%" }}>
               END DATE
             </TableCell>
-            <TableCell className="table-header" sx={{ width: "220px" }}>
+            <TableCell className="table-header" sx={{ width: "10%" }}>
               EFFECTIVITY DATE
             </TableCell>
           </TableRow>
@@ -358,6 +376,11 @@ const StatusesTable = ({
           ) : employeeStatusList.length > 0 ? (
             employeeStatusList.map((employeeStatus) => {
               const charging = employeeStatus.employee?.charging;
+              const employeeCurrentStatus =
+                employeeStatus.employee?.status ||
+                employeeStatus.employee?.current_status ||
+                employeeStatus.status ||
+                "N/A";
 
               return (
                 <TableRow
@@ -376,8 +399,7 @@ const StatusesTable = ({
                   <TableCell
                     className="table-cell"
                     sx={{
-                      width: "400px",
-                      minWidth: "350px",
+                      width: "20%",
                     }}>
                     <Box>
                       <Typography
@@ -399,13 +421,28 @@ const StatusesTable = ({
                           employeeStatus.employee?.employee_code
                         )}
                       </Typography>
+                      <Box sx={{ mt: 0.5 }}>
+                        <Chip
+                          label={employeeCurrentStatus}
+                          size="small"
+                          sx={{
+                            height: "18px",
+                            fontSize: "0.65rem",
+                            fontWeight: 500,
+                            borderRadius: "12px",
+                            ...getActiveStatusChipStyle(employeeCurrentStatus),
+                            "& .MuiChip-label": {
+                              padding: "0 6px",
+                            },
+                          }}
+                        />
+                      </Box>
                     </Box>
                   </TableCell>
 
                   <TableCell
                     sx={{
-                      width: "350px",
-                      minWidth: "300px",
+                      width: "35%",
                       paddingY: 1.5,
                     }}>
                     <Box>
@@ -504,7 +541,7 @@ const StatusesTable = ({
                   <TableCell
                     className="table-cell2"
                     sx={{
-                      width: "220px",
+                      width: "15%",
                       overflow: "hidden",
                     }}>
                     <Chip
@@ -537,21 +574,21 @@ const StatusesTable = ({
                     />
                   </TableCell>
 
-                  <TableCell className="table-cell" sx={{ width: "160px" }}>
+                  <TableCell className="table-cell" sx={{ width: "10%" }}>
                     {formatDateWithStatus(
                       employeeStatus.employee_status_start_date,
                       employeeStatus.employee_status_label,
                       "start_date"
                     )}
                   </TableCell>
-                  <TableCell className="table-cell" sx={{ width: "160px" }}>
+                  <TableCell className="table-cell" sx={{ width: "10%" }}>
                     {formatDateWithStatus(
                       employeeStatus.employee_status_end_date,
                       employeeStatus.employee_status_label,
                       "end_date"
                     )}
                   </TableCell>
-                  <TableCell className="table-cell" sx={{ width: "220px" }}>
+                  <TableCell className="table-cell" sx={{ width: "10%" }}>
                     {formatDateWithStatus(
                       employeeStatus.employee_status_effectivity_date,
                       employeeStatus.employee_status_label,

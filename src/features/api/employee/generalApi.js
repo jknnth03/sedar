@@ -42,7 +42,7 @@ const generalApi = sedarApi
             pagination: pagination.toString(),
             page: page.toString(),
             per_page: per_page.toString(),
-            status: status,
+            status,
           });
 
           if (search && search.trim()) {

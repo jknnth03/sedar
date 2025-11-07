@@ -314,15 +314,29 @@ const Contacts = ({
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
+          <Table
+            stickyHeader
+            sx={{ minWidth: 1400, width: "100%", tableLayout: "fixed" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">CHARGING</TableCell>
-                <TableCell className="table-header">MOBILE NUMBER</TableCell>
-                <TableCell className="table-header">EMAIL ADDRESS</TableCell>
-                <TableCell className="table-header">EMAIL REMARKS</TableCell>
-                <TableCell className="table-header">MOBILE REMARKS</TableCell>
+                <TableCell className="table-header" sx={{ width: "18%" }}>
+                  EMPLOYEE
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "28%" }}>
+                  CHARGING
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "13%" }}>
+                  MOBILE NUMBER
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "18%" }}>
+                  EMAIL ADDRESS
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "11.5%" }}>
+                  EMAIL REMARKS
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "11.5%" }}>
+                  MOBILE REMARKS
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -358,8 +372,7 @@ const Contacts = ({
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "280px",
-                        minWidth: "250px",
+                        width: "18%",
                       }}>
                       <Box>
                         <Typography
@@ -407,8 +420,7 @@ const Contacts = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        width: "350px",
-                        minWidth: "300px",
+                        width: "28%",
                         paddingY: 1.5,
                       }}>
                       <Box>
@@ -440,8 +452,7 @@ const Contacts = ({
                     <TableCell
                       className="table-cell2"
                       sx={{
-                        width: "140px",
-                        minWidth: "120px",
+                        width: "13%",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -452,8 +463,7 @@ const Contacts = ({
                     <TableCell
                       className="table-cell2"
                       sx={{
-                        width: "220px",
-                        minWidth: "180px",
+                        width: "18%",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -464,8 +474,7 @@ const Contacts = ({
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "180px",
-                        minWidth: "150px",
+                        width: "11.5%",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -476,8 +485,7 @@ const Contacts = ({
                     <TableCell
                       className="table-cell2"
                       sx={{
-                        width: "180px",
-                        minWidth: "150px",
+                        width: "11.5%",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",

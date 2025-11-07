@@ -69,9 +69,9 @@ const General = ({
       params.search = debounceValue;
     }
 
-    // if (filters?.status) {
-    //   params.employment_status = filters.status;
-    // }
+    if (filters?.status) {
+      params.employment_status = filters.status;
+    }
 
     if (filters?.name) {
       params.employee_name = filters.name;

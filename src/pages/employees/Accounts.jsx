@@ -312,16 +312,32 @@ const Accounts = ({
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: 1200, width: "max-content" }}>
+          <Table
+            stickyHeader
+            sx={{ minWidth: 1200, width: "100%", tableLayout: "fixed" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">CHARGING</TableCell>
-                <TableCell className="table-header">SSS</TableCell>
-                <TableCell className="table-header">PAG-IBIG</TableCell>
-                <TableCell className="table-header">PHILHEALTH</TableCell>
-                <TableCell className="table-header">TIN</TableCell>
-                <TableCell className="table-header">BANK</TableCell>
+                <TableCell className="table-header" sx={{ width: "20%" }}>
+                  EMPLOYEE
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "28%" }}>
+                  CHARGING
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "11%" }}>
+                  SSS
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "11%" }}>
+                  PAG-IBIG
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "11%" }}>
+                  PHILHEALTH
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "11%" }}>
+                  TIN
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "8%" }}>
+                  BANK
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -357,8 +373,7 @@ const Accounts = ({
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "280px",
-                        minWidth: "250px",
+                        width: "20%",
                       }}>
                       <Box>
                         <Typography
@@ -406,8 +421,7 @@ const Accounts = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        width: "350px",
-                        minWidth: "300px",
+                        width: "28%",
                         paddingY: 1.5,
                       }}>
                       <Box>
@@ -436,19 +450,19 @@ const Accounts = ({
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell" sx={{ width: "11%" }}>
                       {safelyDisplayValue(account.sss_number)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell" sx={{ width: "11%" }}>
                       {safelyDisplayValue(account.pag_ibig_number)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell" sx={{ width: "11%" }}>
                       {safelyDisplayValue(account.philhealth_number)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell" sx={{ width: "11%" }}>
                       {safelyDisplayValue(account.tin_number)}
                     </TableCell>
-                    <TableCell className="table-cell">
+                    <TableCell className="table-cell" sx={{ width: "8%" }}>
                       {formatBankName(account.bank)}
                     </TableCell>
                   </TableRow>

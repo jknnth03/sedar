@@ -288,17 +288,29 @@ const EmployeeTypes = ({
             maxWidth: "100%",
             minHeight: 0,
           }}>
-          <Table stickyHeader sx={{ minWidth: 1400, width: "max-content" }}>
+          <Table
+            stickyHeader
+            sx={{ minWidth: 1400, width: "100%", tableLayout: "fixed" }}>
             <TableHead>
               <TableRow>
-                <TableCell className="table-header">EMPLOYEE</TableCell>
-                <TableCell className="table-header">CHARGING</TableCell>
-                <TableCell className="table-header">EMPLOYMENT TYPE</TableCell>
-                <TableCell className="table-header">START DATE</TableCell>
-                <TableCell className="table-header">END DATE</TableCell>
+                <TableCell className="table-header" sx={{ width: "17%" }}>
+                  EMPLOYEE
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "30%" }}>
+                  CHARGING
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "15%" }}>
+                  EMPLOYMENT TYPE
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "13%" }}>
+                  START DATE
+                </TableCell>
+                <TableCell className="table-header" sx={{ width: "12%" }}>
+                  END DATE
+                </TableCell>
                 <TableCell
                   className="table-header2"
-                  sx={{ whiteSpace: "nowrap" }}>
+                  sx={{ width: "15%", whiteSpace: "nowrap" }}>
                   REGULARIZATION DATE
                 </TableCell>
               </TableRow>
@@ -336,8 +348,7 @@ const EmployeeTypes = ({
                     <TableCell
                       className="table-cell"
                       sx={{
-                        width: "280px",
-                        minWidth: "250px",
+                        width: "17%",
                       }}>
                       <Box>
                         <Typography
@@ -387,8 +398,7 @@ const EmployeeTypes = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        width: "350px",
-                        minWidth: "300px",
+                        width: "30%",
                         paddingY: 1.5,
                       }}>
                       <Box>
@@ -417,7 +427,7 @@ const EmployeeTypes = ({
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell2" sx={{ width: "15%" }}>
                       <Chip
                         label={safelyDisplayValue(
                           employmentType.employment_type_label
@@ -430,13 +440,13 @@ const EmployeeTypes = ({
                         sx={{ fontWeight: 500 }}
                       />
                     </TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell2" sx={{ width: "12%" }}>
                       {formatDate(
                         employmentType.employment_start_date ||
                           employmentType.start_date
                       )}
                     </TableCell>
-                    <TableCell className="table-cell2">
+                    <TableCell className="table-cell2" sx={{ width: "13%" }}>
                       {formatDate(
                         employmentType.employment_end_date ||
                           employmentType.end_date
@@ -444,8 +454,7 @@ const EmployeeTypes = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        width: 100,
-                        minWidth: 90,
+                        width: "13%",
                         whiteSpace: "nowrap",
                         fontSize: "1rem",
                       }}>

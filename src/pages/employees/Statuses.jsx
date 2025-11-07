@@ -173,6 +173,7 @@ const Status = ({
           middle_name: item.employee?.middle_name,
           last_name: item.employee?.last_name,
           email: item.employee?.email,
+          status: item.employee?.status,
           current_status: item.employee?.current_status,
           charging: item.employee?.charging,
         },

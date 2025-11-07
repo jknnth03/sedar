@@ -84,7 +84,6 @@ const Attainmentsemp = ({
 
   const queryParams = useMemo(() => {
     const params = {
-      pagination: page,
       page: page,
       per_page: rowsPerPage,
       status: "all",
@@ -92,6 +91,10 @@ const Attainmentsemp = ({
 
     if (debounceValue && debounceValue.trim()) {
       params.search = debounceValue;
+    }
+
+    if (filters?.status) {
+      params.employment_status = filters.status;
     }
 
     if (filters?.name) {

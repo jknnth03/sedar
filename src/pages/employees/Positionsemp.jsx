@@ -63,7 +63,6 @@ const Positions = ({
       params.search = debounceValue;
     }
 
-    // Add this block ⬇️
     if (filters?.status) {
       params.employment_status = filters.status;
     }
