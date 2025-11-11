@@ -19,14 +19,14 @@ import {
   useGetMrfSubmissionsQuery,
   useCreateMrfSubmissionMutation,
   useUpdateMrfSubmissionMutation,
+  useGetSingleMrfSubmissionQuery,
   useResubmitMrfSubmissionMutation,
   useCancelMrfSubmissionMutation,
-  useGetSingleMrfSubmissionQuery,
 } from "../../../features/api/forms/mrfApi";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 
-const MrfReturned = ({
+const MrfForApproval = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -78,7 +78,7 @@ const MrfReturned = ({
       per_page: 10,
       status: "active",
       pagination: true,
-      approval_status: "returned",
+      approval_status: "pending",
     };
   }, []);
 
@@ -344,28 +344,32 @@ const MrfReturned = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        try {
-          const result = await updateMrfSubmission({
-            id: selectedSubmissionForAction.id,
-            data: pendingFormData,
-          }).unwrap();
+        await updateMrfSubmission({
+          id: selectedSubmissionForAction.id,
+          body: pendingFormData,
+        }).unwrap();
 
-          enqueueSnackbar("MRF submission updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          handleModalClose();
-        } catch (updateError) {
-          throw updateError;
-        }
-      } else if (confirmAction === "resubmit" && pendingFormData) {
-        await resubmitMrfSubmission(pendingFormData).unwrap();
+        enqueueSnackbar("MRF submission updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        handleModalClose();
+      } else if (
+        confirmAction === "resubmit" &&
+        pendingFormData &&
+        selectedSubmissionForAction
+      ) {
+        await resubmitMrfSubmission({
+          id: selectedSubmissionForAction.id,
+          data: pendingFormData,
+        }).unwrap();
         enqueueSnackbar("MRF submission resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
+        handleModalClose();
         if (modalSuccessHandler) {
           modalSuccessHandler();
         }
@@ -540,6 +544,7 @@ const MrfReturned = ({
           selectedEntry={submissionDetails?.result || submissionDetails}
           isLoading={modalLoading || detailsLoading}
           onSave={handleModalSave}
+          onResubmit={handleModalSave}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}
         />
@@ -671,4 +676,4 @@ const MrfReturned = ({
   );
 };
 
-export default MrfReturned;
+export default MrfForApproval;

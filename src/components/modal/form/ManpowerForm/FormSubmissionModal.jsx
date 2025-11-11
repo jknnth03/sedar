@@ -29,89 +29,22 @@ import {
   formSubmissionDefaultValues,
 } from "../../../../schema/approver/formSubmissionSchema";
 import FormSubmissionFields from "./FormSubmissionFields";
+import { modalStyles } from "./FormSubmissionFieldStyles";
 
 const ErrorDialog = ({ open, message, onClose }) => {
   if (!open) return null;
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        paddingTop: "30vh",
-        zIndex: 9999,
-      }}>
-      <Box
-        sx={{
-          backgroundColor: "white",
-          borderRadius: "8px",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-          p: 3,
-          minWidth: "480px",
-          maxWidth: "520px",
-          minHeight: "120px",
-          border: "1px solid #e0e0e0",
-          position: "relative",
-        }}>
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            width: 24,
-            height: 24,
-            padding: 0,
-            "&:hover": {
-              backgroundColor: "#f5f5f5",
-            },
-          }}>
-          <CloseIcon sx={{ fontSize: "16px", color: "#666" }} />
+    <Box sx={modalStyles.errorDialogOverlay}>
+      <Box sx={modalStyles.errorDialogBox}>
+        <IconButton onClick={onClose} sx={modalStyles.errorDialogCloseButton}>
+          <CloseIcon sx={modalStyles.errorDialogCloseIcon} />
         </IconButton>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-            pr: 4,
-          }}>
-          <Box
-            sx={{
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              backgroundColor: "#f44336",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}>
-            <Typography
-              sx={{
-                color: "white",
-                fontSize: "12px",
-                fontWeight: "bold",
-              }}>
-              !
-            </Typography>
+        <Box sx={modalStyles.errorDialogContent}>
+          <Box sx={modalStyles.errorDialogIconContainer}>
+            <Typography sx={modalStyles.errorDialogIconText}>!</Typography>
           </Box>
-          <Typography
-            variant="body1"
-            sx={{
-              color: "#333",
-              fontSize: "16px",
-              textAlign: "center",
-              width: "100%",
-            }}>
+          <Typography variant="body1" sx={modalStyles.errorDialogMessage}>
             {typeof message === "string" ? message : "An error occurred"}
           </Typography>
         </Box>
@@ -137,10 +70,9 @@ const FormContent = ({
     setValue,
     watch,
     handleSubmit,
-    getValues,
     trigger,
-    clearErrors,
     setError,
+    getValues,
   } = useFormContext();
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -148,6 +80,7 @@ const FormContent = ({
   const [originalMode, setOriginalMode] = useState(mode);
   const [apiError, setApiError] = useState(null);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const watchedRequisitionType = watch("requisition_type_id");
   const watchedPositionId = watch("position_id");
@@ -173,23 +106,142 @@ const FormContent = ({
   };
 
   const shouldEnableEditButton = () => {
-    if (!selectedEntry || !selectedEntry.actions) {
+    if (!selectedEntry) {
       return false;
     }
-    return selectedEntry.actions.can_update === true;
+
+    const entry = selectedEntry?.result || selectedEntry;
+    const status = entry?.status?.toUpperCase() || "";
+
+    if (status === "RECEIVED" || status === "CANCELLED") {
+      return false;
+    }
+
+    return true;
   };
 
   const shouldEnableResubmitButton = () => {
     if (!selectedEntry || !selectedEntry.actions) {
       return false;
     }
+    const status = selectedEntry.status?.toUpperCase() || "";
+    if (
+      status === "APPROVED" ||
+      status === "CANCELLED" ||
+      status === "RECEIVED"
+    ) {
+      return false;
+    }
     return selectedEntry.actions.can_resubmit === true;
+  };
+
+  const shouldShowResubmitButton = () => {
+    if (!selectedEntry) return false;
+    const status = selectedEntry.status?.toUpperCase() || "";
+    return (
+      status !== "COMPLETED" &&
+      status !== "CANCELLED" &&
+      status !== "APPROVED" &&
+      status !== "RECEIVED"
+    );
   };
 
   const initializeForm = () => {
     if (currentMode === "create") {
       reset(formSubmissionDefaultValues);
       setSelectedFile(null);
+    }
+  };
+
+  const populateFormWithEntry = (entry) => {
+    if (!entry) return;
+
+    const submittable = entry.submittable || entry.data || entry;
+
+    if (submittable.position_id || submittable.position) {
+      setValue(
+        "position_id",
+        submittable.position || { id: submittable.position_id }
+      );
+    }
+
+    if (submittable.job_level_id || submittable.job_level) {
+      setValue(
+        "job_level_id",
+        submittable.job_level || { id: submittable.job_level_id }
+      );
+    }
+
+    if (submittable.requisition_type_id || submittable.requisition_type) {
+      setValue(
+        "requisition_type_id",
+        submittable.requisition_type || { id: submittable.requisition_type_id }
+      );
+    }
+
+    if (
+      submittable.employee_to_be_replaced_id ||
+      submittable.employee_to_be_replaced
+    ) {
+      setValue(
+        "employee_to_be_replaced_id",
+        submittable.employee_to_be_replaced || {
+          id: submittable.employee_to_be_replaced_id,
+        }
+      );
+    }
+
+    if (submittable.expected_salary) {
+      setValue("expected_salary", submittable.expected_salary);
+    }
+
+    if (submittable.employment_type) {
+      setValue("employment_type", submittable.employment_type);
+    }
+
+    if (submittable.justification) {
+      setValue("justification", submittable.justification);
+    }
+
+    if (submittable.remarks) {
+      setValue("remarks", submittable.remarks);
+    }
+
+    if (submittable.employee_movement_details) {
+      const movement = submittable.employee_movement_details;
+
+      if (movement.employee_id || movement.employee) {
+        setValue(
+          "movement_employee_id",
+          movement.employee || { id: movement.employee_id }
+        );
+      }
+
+      if (movement.new_position_id || movement.new_position) {
+        setValue(
+          "movement_new_position_id",
+          movement.new_position || { id: movement.new_position_id }
+        );
+      }
+
+      if (movement.reason_for_change) {
+        setValue("movement_reason_for_change", movement.reason_for_change);
+      }
+
+      if (movement.is_developmental_assignment !== undefined) {
+        setValue(
+          "movement_is_da",
+          Boolean(movement.is_developmental_assignment)
+        );
+      }
+
+      if (movement.da_start_date) {
+        setValue("movement_da_start_date", dayjs(movement.da_start_date));
+      }
+
+      if (movement.da_end_date) {
+        setValue("movement_da_end_date", dayjs(movement.da_end_date));
+      }
     }
   };
 
@@ -201,8 +253,13 @@ const FormContent = ({
   useEffect(() => {
     if (currentMode === "create") {
       initializeForm();
+    } else if (
+      (currentMode === "view" || currentMode === "edit") &&
+      selectedEntry
+    ) {
+      populateFormWithEntry(selectedEntry);
     }
-  }, [currentMode]);
+  }, [currentMode, selectedEntry]);
 
   useEffect(() => {
     if (backendErrors && Object.keys(backendErrors).length > 0) {
@@ -229,6 +286,7 @@ const FormContent = ({
     if (newMode === "edit" && selectedEntry) {
       setSelectedFile(null);
       setValue("manpower_form_attachment", null, { shouldValidate: false });
+      populateFormWithEntry(selectedEntry);
     }
   };
 
@@ -236,6 +294,9 @@ const FormContent = ({
     setCurrentMode(originalMode);
     if (onModeChange) {
       onModeChange(originalMode);
+    }
+    if (selectedEntry) {
+      populateFormWithEntry(selectedEntry);
     }
   };
 
@@ -276,7 +337,7 @@ const FormContent = ({
     if (isAdditionalManpower()) {
       setValue("employee_to_be_replaced_id", null);
     }
-  }, [watchedRequisitionType, setValue, isAdditionalManpower]);
+  }, [watchedRequisitionType, setValue]);
 
   const handleFileChange = (file) => {
     setSelectedFile(file);
@@ -484,12 +545,12 @@ const FormContent = ({
         }
       }
     } else if (currentMode === "edit" && selectedEntry?.id) {
-      const updateData = {};
-
-      updateData.form_id = 1;
+      const updateData = {
+        _method: "PATCH",
+      };
 
       if (data.position_id?.id) {
-        updateData.position_id = data.position_id.id;
+        updateData.to_position_id = data.position_id.id;
       }
 
       if (data.job_level_id?.id) {
@@ -521,8 +582,7 @@ const FormContent = ({
         !isAdditionalManpower() &&
         !isReplacementDueToEmployeeMovement()
       ) {
-        updateData.employee_to_be_replaced_id =
-          data.employee_to_be_replaced_id.id;
+        updateData.employee_id = data.employee_to_be_replaced_id.id;
       }
 
       if (isReplacementDueToEmployeeMovement()) {
@@ -531,7 +591,7 @@ const FormContent = ({
         }
 
         if (data.movement_new_position_id?.id) {
-          updateData.new_position_id = data.movement_new_position_id.id;
+          updateData.to_position_id = data.movement_new_position_id.id;
         }
 
         if (
@@ -548,31 +608,120 @@ const FormContent = ({
             data.movement_da_start_date
           );
           if (formattedStartDate) {
-            updateData.movement_da_start_date = formattedStartDate;
+            updateData.da_start_date = formattedStartDate;
           }
 
           const formattedEndDate = formatDateForPayload(
             data.movement_da_end_date
           );
           if (formattedEndDate) {
-            updateData.movement_da_end_date = formattedEndDate;
+            updateData.da_end_date = formattedEndDate;
           }
         }
       }
 
       if (selectedFile && selectedFile instanceof File) {
-        updateData.manpower_form_attachment = selectedFile;
-      }
+        const formData = new FormData();
+        formData.append("id", selectedEntry.id);
+        Object.keys(updateData).forEach((key) => {
+          formData.append(key, updateData[key]);
+        });
+        formData.append("manpower_form_attachment", selectedFile);
 
-      if (onSave) {
-        onSave({ id: selectedEntry.id, data: updateData }, currentMode);
+        if (onSave) {
+          onSave(formData, currentMode);
+        }
+      } else {
+        if (onSave) {
+          onSave({ id: selectedEntry.id, ...updateData }, currentMode);
+        }
       }
     }
   };
 
-  const handleResubmit = () => {
-    if (onResubmit && selectedEntry) {
-      onResubmit(selectedEntry.id);
+  const handleResubmit = async () => {
+    const isValid = await trigger();
+
+    if (isValid) {
+      const data = getValues();
+      const submissionId = selectedEntry?.id || selectedEntry?.submittable?.id;
+
+      const resubmitData = {};
+
+      if (data.position_id?.id) {
+        resubmitData.position_id = data.position_id.id;
+      }
+
+      if (data.job_level_id?.id) {
+        resubmitData.job_level_id = data.job_level_id.id;
+      }
+
+      if (data.employment_type && data.employment_type.trim() !== "") {
+        resubmitData.employment_type = data.employment_type;
+      }
+
+      if (data.expected_salary) {
+        resubmitData.expected_salary = data.expected_salary;
+      }
+
+      if (data.requisition_type_id?.id) {
+        resubmitData.requisition_type_id = data.requisition_type_id.id;
+      }
+
+      if (data.justification && data.justification.trim() !== "") {
+        resubmitData.justification = data.justification;
+      }
+
+      if (data.remarks && data.remarks.trim() !== "") {
+        resubmitData.remarks = data.remarks;
+      }
+
+      if (
+        data.employee_to_be_replaced_id?.id &&
+        !isAdditionalManpower() &&
+        !isReplacementDueToEmployeeMovement()
+      ) {
+        resubmitData.employee_id = data.employee_to_be_replaced_id.id;
+      }
+
+      if (isReplacementDueToEmployeeMovement()) {
+        if (data.movement_employee_id?.id) {
+          resubmitData.employee_id = data.movement_employee_id.id;
+        }
+
+        if (data.movement_new_position_id?.id) {
+          resubmitData.to_position_id = data.movement_new_position_id.id;
+        }
+
+        if (
+          data.movement_reason_for_change &&
+          data.movement_reason_for_change.trim() !== ""
+        ) {
+          resubmitData.reason_for_change = data.movement_reason_for_change;
+        }
+
+        resubmitData.is_developmental_assignment = data.movement_is_da || false;
+
+        if (data.movement_is_da) {
+          const formattedStartDate = formatDateForPayload(
+            data.movement_da_start_date
+          );
+          if (formattedStartDate) {
+            resubmitData.da_start_date = formattedStartDate;
+          }
+
+          const formattedEndDate = formatDateForPayload(
+            data.movement_da_end_date
+          );
+          if (formattedEndDate) {
+            resubmitData.da_end_date = formattedEndDate;
+          }
+        }
+      }
+
+      if (onResubmit && submissionId) {
+        onResubmit(resubmitData, "resubmit", submissionId);
+      }
     }
   };
 
@@ -591,6 +740,8 @@ const FormContent = ({
     return text || "";
   };
 
+  const isProcessing = isLoading || isUpdating;
+
   return (
     <>
       <ErrorDialog
@@ -599,45 +750,20 @@ const FormContent = ({
         onClose={handleErrorDialogClose}
       />
 
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          pb: 1,
-          backgroundColor: "#fff",
-          flexShrink: 0,
-        }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+      <DialogTitle sx={modalStyles.dialogTitle}>
+        <Box sx={modalStyles.titleContainer}>
+          <AssignmentIcon sx={modalStyles.titleIcon} />
+          <Typography variant="h6" component="div" sx={modalStyles.titleText}>
             {safeRenderText(getModalTitle())}
           </Typography>
           {isViewMode && shouldEnableEditButton() && (
             <Tooltip title="EDIT FORM" arrow placement="top">
               <IconButton
                 onClick={() => handleModeChange("edit")}
-                disabled={isLoading}
+                disabled={isProcessing}
                 size="small"
-                sx={{
-                  ml: 1,
-                  padding: "8px",
-                  "&:hover": {
-                    backgroundColor: "rgba(0, 136, 32, 0.08)",
-                    transform: "scale(1.1)",
-                    transition: "all 0.2s ease-in-out",
-                  },
-                }}>
-                <EditIcon
-                  sx={{
-                    fontSize: "20px",
-                    "& path": {
-                      fill: isLoading
-                        ? "rgba(0, 0, 0, 0.26)"
-                        : "rgba(0, 136, 32, 1)",
-                    },
-                  }}
-                />
+                sx={modalStyles.editButton(isProcessing)}>
+                <EditIcon sx={modalStyles.editIcon(isProcessing)} />
               </IconButton>
             </Tooltip>
           )}
@@ -645,83 +771,28 @@ const FormContent = ({
             <Tooltip title="CANCEL EDIT">
               <IconButton
                 onClick={handleCancelEdit}
-                disabled={isLoading}
+                disabled={isProcessing}
                 size="small"
-                sx={{
-                  ml: 1,
-                  padding: "8px",
-                  "&:hover": {
-                    backgroundColor: "rgba(235, 0, 0, 0.08)",
-                    transform: "scale(1.1)",
-                    transition: "all 0.2s ease-in-out",
-                  },
-                }}>
-                <EditOffIcon
-                  sx={{
-                    fontSize: "20px",
-                    "& path": {
-                      fill: "rgba(235, 0, 0, 1)",
-                    },
-                  }}
-                />
+                sx={modalStyles.cancelEditButton(isProcessing)}>
+                <EditOffIcon sx={modalStyles.cancelEditIcon} />
               </IconButton>
             </Tooltip>
           )}
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton
-            onClick={handleClose}
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              backgroundColor: "#fff",
-              "&:hover": {
-                backgroundColor: "#f5f5f5",
-              },
-              transition: "all 0.2s ease-in-out",
-            }}>
-            <CloseIcon
-              sx={{
-                fontSize: "18px",
-                color: "#333",
-              }}
-            />
+        <Box sx={modalStyles.closeButtonContainer}>
+          <IconButton onClick={handleClose} sx={modalStyles.closeButton}>
+            <CloseIcon sx={modalStyles.closeIcon} />
           </IconButton>
         </Box>
       </DialogTitle>
 
-      <DialogContent
-        sx={{
-          backgroundColor: "#fff",
-          flex: 1,
-          overflow: "auto",
-          padding: "16px 24px",
-          "&::-webkit-scrollbar": {
-            width: "8px",
-          },
-          "&::-webkit-scrollbar-track": {
-            backgroundColor: "#f1f1f1",
-            borderRadius: "4px",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "#c1c1c1",
-            borderRadius: "4px",
-            "&:hover": {
-              backgroundColor: "#a1a1a1",
-            },
-          },
-        }}>
+      <DialogContent sx={modalStyles.dialogContent}>
         {hasBackendError && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              backgroundColor: "#ffebee",
-              border: "1px solid #f44336",
-              borderRadius: 1,
-            }}>
-            <Typography variant="body2" color="error" sx={{ fontWeight: 500 }}>
+          <Box sx={modalStyles.errorBanner}>
+            <Typography
+              variant="body2"
+              color="error"
+              sx={modalStyles.errorText}>
               Error: The manpower form attachment field must be a file of type:
               pdf, doc, docx, jpg, png.
             </Typography>
@@ -729,7 +800,7 @@ const FormContent = ({
         )}
 
         {!isCreateMode && selectedEntry && (
-          <Box sx={{ mb: 2, p: 0.5, borderRadius: 1 }}>
+          <Box sx={modalStyles.metadataContainer}>
             {selectedEntry.updated_at && (
               <Typography variant="body2" color="text.secondary">
                 Last Updated:{" "}
@@ -749,38 +820,34 @@ const FormContent = ({
         />
       </DialogContent>
 
-      <DialogActions
-        sx={{
-          px: 3,
-          py: 2,
-          backgroundColor: "#fff",
-          justifyContent: "flex-end",
-          flexShrink: 0,
-        }}>
-        {isViewMode && (
-          <Box>
-            <Button
-              onClick={handleResubmit}
-              variant="contained"
-              disabled={!shouldEnableResubmitButton()}
-              startIcon={<SendIcon />}
-              sx={{
-                backgroundColor: shouldEnableResubmitButton()
+      <DialogActions sx={modalStyles.dialogActions}>
+        {isViewMode && shouldShowResubmitButton() && (
+          <Button
+            onClick={handleResubmit}
+            variant="contained"
+            disabled={!shouldEnableResubmitButton() || isProcessing}
+            startIcon={
+              isProcessing ? <CircularProgress size={16} /> : <SendIcon />
+            }
+            sx={{
+              backgroundColor:
+                shouldEnableResubmitButton() && !isProcessing
                   ? "rgb(33, 61, 112)"
                   : "rgba(33, 61, 112, 0.3)",
-                "&:hover": {
-                  backgroundColor: shouldEnableResubmitButton()
+              "&:hover": {
+                backgroundColor:
+                  shouldEnableResubmitButton() && !isProcessing
                     ? "rgb(25, 45, 84)"
                     : "rgba(33, 61, 112, 0.3)",
-                },
-                "&:disabled": {
-                  backgroundColor: "rgba(33, 61, 112, 0.3)",
-                  color: "rgba(255, 255, 255, 0.5)",
-                },
-              }}>
-              {safeRenderText("Resubmit")}
-            </Button>
-          </Box>
+              },
+              "&:disabled": {
+                backgroundColor: "rgba(33, 61, 112, 0.3)",
+                color: "rgba(255, 255, 255, 0.5)",
+              },
+              mr: 2,
+            }}>
+            {isProcessing ? "Resubmitting..." : "Resubmit"}
+          </Button>
         )}
 
         {(isCreateMode || isEditMode) && (
@@ -788,9 +855,9 @@ const FormContent = ({
             <Button
               onClick={handleSaveClick}
               variant="contained"
-              disabled={isLoading}
+              disabled={isProcessing}
               startIcon={
-                isLoading ? (
+                isProcessing ? (
                   <CircularProgress size={16} />
                 ) : isCreateMode ? (
                   <AddIcon />
@@ -798,28 +865,9 @@ const FormContent = ({
                   <EditIcon />
                 )
               }
-              sx={{
-                backgroundColor: "#4CAF50 !important",
-                color: "white !important",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                px: 3,
-                py: 1,
-                borderRadius: "8px",
-                border: "none !important",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                "&:hover": {
-                  backgroundColor: "#45a049 !important",
-                  border: "none !important",
-                },
-                "&:disabled": {
-                  backgroundColor: "#cccccc !important",
-                  color: "#666666 !important",
-                  border: "none !important",
-                },
-              }}>
+              sx={modalStyles.saveButton}>
               {safeRenderText(
-                isLoading ? "Saving..." : isCreateMode ? "Create" : "Update"
+                isProcessing ? "Saving..." : isCreateMode ? "Create" : "Update"
               )}
             </Button>
           </Box>
@@ -860,7 +908,9 @@ const FormSubmissionModal = ({
   useEffect(() => {
     if (prevOpenRef.current !== open) {
       if (open) {
-        methods.reset(formSubmissionDefaultValues);
+        if (mode === "create") {
+          methods.reset(formSubmissionDefaultValues);
+        }
         setResetKey(Date.now());
       } else {
         setTimeout(() => {
@@ -870,7 +920,7 @@ const FormSubmissionModal = ({
       }
       prevOpenRef.current = open;
     }
-  }, [open, methods]);
+  }, [open, methods, mode]);
 
   const handleClose = () => {
     methods.reset(formSubmissionDefaultValues);
@@ -888,9 +938,9 @@ const FormSubmissionModal = ({
     }
   };
 
-  const handleResubmit = (submissionId) => {
+  const handleResubmit = (formData, mode, submissionId) => {
     if (onResubmit) {
-      onResubmit(submissionId);
+      onResubmit(formData, mode, submissionId);
     }
   };
 
@@ -908,15 +958,7 @@ const FormSubmissionModal = ({
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: {
-            height: "80vh",
-            maxHeight: "80vh",
-            minHeight: "80vh",
-            width: "100%",
-            maxWidth: "900px",
-            display: "flex",
-            flexDirection: "column",
-          },
+          sx: modalStyles.dialogPaper,
         }}>
         <FormProvider {...methods}>
           <FormContent

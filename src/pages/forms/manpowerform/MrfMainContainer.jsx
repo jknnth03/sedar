@@ -32,9 +32,9 @@ import { useSnackbar } from "notistack";
 import { styles } from "./FormSubmissionStyles";
 import { useCreateFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import FormSubmission from "./FormSubmission";
+import MrfForApproval from "./MrfForApproval";
 import MrfRejected from "./MrfRejected";
-import MrfAwaiting from "./MrfAwaiting";
+import MrfAwaitingResubmission from "./MrfAwaitingResubmission";
 import MrfForreceiving from "./MrfForreceiving";
 import MrfReturned from "./MrfReturned";
 import MrfReceived from "./MrfReceived";
@@ -503,7 +503,7 @@ const MrfMainContainer = () => {
     {
       label: "For Approval",
       component: (
-        <FormSubmission
+        <MrfForApproval
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}
@@ -514,7 +514,7 @@ const MrfMainContainer = () => {
     {
       label: "Awaiting Resubmission",
       component: (
-        <MrfAwaiting
+        <MrfAwaitingResubmission
           searchQuery={debounceValue}
           startDate={formatDateForAPI(dateFilters.startDate)}
           endDate={formatDateForAPI(dateFilters.endDate)}

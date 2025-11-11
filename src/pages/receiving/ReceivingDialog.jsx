@@ -19,7 +19,7 @@ import {
   Undo as ReturnIcon,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
-import { useGetFormSubmissionAttachmentQuery } from "../../features/api/approvalsetting/formSubmissionApi";
+import { useGetMrfSubmissionAttachmentQuery } from "../../features/api/forms/mrfApi";
 
 const SubmissionDialog = ({
   open,
@@ -39,7 +39,7 @@ const SubmissionDialog = ({
     data: attachmentData,
     isLoading: isLoadingAttachment,
     error: attachmentError,
-  } = useGetFormSubmissionAttachmentQuery(currentFormSubmissionId, {
+  } = useGetMrfSubmissionAttachmentQuery(currentFormSubmissionId, {
     skip: !fileViewerOpen || !currentFormSubmissionId,
   });
 

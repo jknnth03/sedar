@@ -20,7 +20,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import HelpIcon from "@mui/icons-material/Help";
-import { useGetFormSubmissionAttachmentQuery } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useGetMrfSubmissionAttachmentQuery } from "../../../features/api/forms/mrfApi";
 
 const SubmissionDetailsDialog = ({
   open,
@@ -48,7 +48,7 @@ const SubmissionDetailsDialog = ({
     data: attachmentData,
     isLoading: isLoadingAttachment,
     error: attachmentError,
-  } = useGetFormSubmissionAttachmentQuery(currentFormSubmissionId, {
+  } = useGetMrfSubmissionAttachmentQuery(currentFormSubmissionId, {
     skip: !fileViewerOpen || !currentFormSubmissionId,
   });
 

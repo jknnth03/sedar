@@ -119,19 +119,17 @@ export const createFormSubmissionSchema = (
 
     remarks: yup.string().nullable(),
 
-    // Updated attachment validation - conditionally required
     manpower_form_attachment: (() => {
-      // Base schema
       let schema = yup.mixed();
 
-      // Make it required only if it's create mode OR edit mode without existing file
-      if (mode === "create" || (mode === "edit" && !hasExistingFile)) {
+      if (mode === "view" || mode === "resubmit") {
+        schema = schema.nullable();
+      } else if (mode === "edit" && hasExistingFile) {
+        schema = schema.nullable();
+      } else {
         schema = schema.required(
           "The manpower form attachment field is required."
         );
-      } else {
-        // In edit mode with existing file, make it nullable
-        schema = schema.nullable();
       }
 
       return schema
@@ -139,9 +137,16 @@ export const createFormSubmissionSchema = (
           "isValidAttachment",
           "The manpower form attachment field must be a file.",
           function (value) {
-            // If not required and no value provided, it's valid
+            if (mode === "view" || mode === "resubmit") {
+              return true;
+            }
+
             if (mode === "edit" && hasExistingFile && !value) {
               return true;
+            }
+
+            if (mode === "edit" && !hasExistingFile && !value) {
+              return false;
             }
 
             if (!value) return false;
