@@ -40,6 +40,7 @@ import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistra
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
+import DAForm from "../../pages/forms/daform/DAForm.jsx";
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
@@ -56,6 +57,7 @@ import Pdp from "../../pages/developmental-assignment/pdp/Pdp.jsx";
 import CatOneApproval from "../../pages/approvals/da-task/CatOneApproval.jsx";
 import CatTwoApproval from "../../pages/approvals/da-task/CatTwoApproval.jsx";
 import PdpApproval from "../../pages/approvals/da-task/PdpApproval.jsx";
+import DAFormApproval from "../../pages/approvals/daform/DAFormApproval.jsx";
 
 export const ROUTES = [
   {
@@ -122,6 +124,14 @@ export const ROUTES = [
         element: <MrfMainContainer />,
         handle: {
           permission: MODULES.REQUEST.children.MRFMAINCONTAINER.name,
+        },
+      },
+      {
+        id: "REQUEST.DAFORM",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DAFORM.path}`,
+        element: <DAForm />,
+        handle: {
+          permission: MODULES.REQUEST.children.DAFORM.name,
         },
       },
       {
@@ -219,6 +229,14 @@ export const ROUTES = [
         element: <MdaApproval />,
         handle: {
           permission: MODULES.APPROVING.children.MDAAPPROVAL.name,
+        },
+      },
+      {
+        id: "APPROVING.DAFORMAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DAFORMAPPROVAL.path}`,
+        element: <DAFormApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.DAFORMAPPROVAL.name,
         },
       },
       {

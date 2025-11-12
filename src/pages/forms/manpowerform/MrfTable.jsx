@@ -322,17 +322,6 @@ const MrfTable = ({
                             sx={{
                               zIndex: 10000,
                             }}>
-                            {canUpdateSubmission(submission) && (
-                              <MenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUpdateClick(submission);
-                                }}
-                                sx={styles.editMenuItem}>
-                                <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                                Update Request
-                              </MenuItem>
-                            )}
                             {canResubmitSubmission(submission) && (
                               <MenuItem
                                 onClick={(e) => {

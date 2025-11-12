@@ -113,7 +113,11 @@ const FormContent = ({
     const entry = selectedEntry?.result || selectedEntry;
     const status = entry?.status?.toUpperCase() || "";
 
-    if (status === "RECEIVED" || status === "CANCELLED") {
+    if (
+      status === "RECEIVED" ||
+      status === "CANCELLED" ||
+      status === "FOR RECEIVING"
+    ) {
       return false;
     }
 

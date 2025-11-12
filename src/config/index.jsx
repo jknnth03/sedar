@@ -60,6 +60,7 @@ import LooksOneIcon from "@mui/icons-material/LooksOne";
 import LooksTwoIcon from "@mui/icons-material/LooksTwo";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -86,6 +87,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
       (apiResult.approval?.registration_approval || 0) +
       (apiResult.approval?.data_change_approval || 0) +
       (apiResult.approval?.mda_approval || 0) +
+      (apiResult.approval?.da_form_approval || 0) +
       (apiResult.approval?.cat_one_approval || 0) +
       (apiResult.approval?.cat_two_approval || 0) +
       (apiResult.approval?.pdp_approval || 0),
@@ -93,6 +95,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
     registrationApprovals: apiResult.approval?.registration_approval || 0,
     dataChangeApprovals: apiResult.approval?.data_change_approval || 0,
     mdaApprovals: apiResult.approval?.mda_approval || 0,
+    daFormApprovals: apiResult.approval?.da_form_approval || 0,
     catOneApprovals: apiResult.approval?.cat_one_approval || 0,
     catTwoApprovals: apiResult.approval?.cat_two_approval || 0,
     pdpApprovals: apiResult.approval?.pdp_approval || 0,
@@ -243,6 +246,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon_on: null,
           notificationCount: counts.mdaApprovals,
         },
+        DAFORMAPPROVAL: {
+          name: "DA Form",
+          path: "daformapproval",
+          icon: <DescriptionIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.daFormApprovals,
+        },
         CATONEAPPROVAL: {
           name: "Cat One",
           path: "catoneapproval",
@@ -283,6 +293,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
             counts.manpowerFormRejected +
             counts.manpowerFormReturned +
             counts.manpowerFormAwaiting,
+        },
+        DAFORM: {
+          name: "DA Form",
+          path: "daform",
+          icon: <DescriptionIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
