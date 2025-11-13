@@ -308,9 +308,9 @@ const Banks = () => {
         label={isActive ? "ACTIVE" : "INACTIVE"}
         size="small"
         sx={{
-          backgroundColor: isActive ? "#e8f5e8" : "#fff3e0",
-          color: isActive ? "#2e7d32" : "#ed6c02",
-          border: `1px solid ${isActive ? "#4caf50" : "#ff9800"}`,
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
           fontWeight: 600,
           fontSize: "11px",
           height: "24px",
@@ -468,16 +468,6 @@ const Banks = () => {
               height: isMobile ? "48px" : "52px",
               backgroundColor: "white",
             },
-            "& .MuiTableRow-root": {
-              transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-                cursor: "pointer",
-                "& .MuiTableCell-root": {
-                  backgroundColor: "transparent",
-                },
-              },
-            },
           }}>
           <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
@@ -553,21 +543,7 @@ const Banks = () => {
                 </TableRow>
               ) : bankList.length > 0 ? (
                 bankList.map((bank) => (
-                  <TableRow
-                    key={bank.id}
-                    sx={{
-                      cursor: "pointer",
-                      "&:hover": {
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          0.04
-                        ),
-                        "& .MuiTableCell-root": {
-                          backgroundColor: "transparent",
-                        },
-                      },
-                      transition: "background-color 0.2s ease",
-                    }}>
+                  <TableRow key={bank.id}>
                     <TableCell
                       align="left"
                       sx={{

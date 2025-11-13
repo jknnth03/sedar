@@ -31,6 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import { styles } from "../manpowerform/FormSubmissionStyles";
+import { daFormStyles } from "./DAFormStyles";
 
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -39,7 +40,8 @@ import useDebounce from "../../../hooks/useDebounce";
 import DAFormForApproval from "./DAFormForApproval";
 import DAFormAwaitingResubmission from "./DAFormAwaitingResubmission";
 import DAFormRejected from "./DAFormRejected";
-import DAFormApproved from "./DAFormApproved";
+import DAFormMDAForApproval from "./DAFormMDAForApproval";
+import DAFormCompleted from "./DAFormCompleted";
 import DAFormCancelled from "./DAFormCancelled";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
 import {
@@ -48,6 +50,7 @@ import {
 } from "../../../features/api/forms/daformApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+import DAFormForMDAProcessing from "./DAFormForMDAProcessing";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -92,25 +95,9 @@ const TabPanel = ({ children, value, index, ...other }) => {
       hidden={value !== index}
       id={`daform-tabpanel-${index}`}
       aria-labelledby={`daform-tab-${index}`}
-      style={{
-        height: "100%",
-        minWidth: 0,
-        display: value === index ? "flex" : "none",
-        flexDirection: "column",
-      }}
+      style={daFormStyles.tabPanelContainer(value, index)}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={daFormStyles.tabPanelInner}>{children}</Box>}
     </div>
   );
 };
@@ -212,7 +199,7 @@ const DateFilterDialog = ({
 
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <Box sx={daFormStyles.datePickerContainer}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -274,16 +261,20 @@ const DAForm = () => {
     0: "ForApproval",
     1: "AwaitingResubmission",
     2: "Rejected",
-    3: "Approved",
-    4: "Cancelled",
+    3: "ForMDAProcessing",
+    4: "MDAForApproval",
+    5: "Completed",
+    6: "Cancelled",
   };
 
   const reverseTabMap = {
     ForApproval: 0,
     AwaitingResubmission: 1,
     Rejected: 2,
-    Approved: 3,
-    Cancelled: 4,
+    ForMDAProcessing: 3,
+    MDAForApproval: 4,
+    Completed: 5,
+    Cancelled: 6,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -311,7 +302,9 @@ const DAForm = () => {
     forApproval: dashboardData?.result?.approval?.da_approval || 0,
     awaitingResubmission: 0,
     rejected: 0,
-    approved: 0,
+    forMDAProcessing: 0,
+    mdaForApproval: 0,
+    completed: 0,
     cancelled: 0,
   };
 
@@ -509,9 +502,9 @@ const DAForm = () => {
       badgeCount: daCounts.rejected,
     },
     {
-      label: "Approved",
+      label: "For MDA Processing",
       component: (
-        <DAFormApproved
+        <DAFormForMDAProcessing
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -521,7 +514,37 @@ const DAForm = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: daCounts.approved,
+      badgeCount: daCounts.forMDAProcessing,
+    },
+    {
+      label: "MDA For Approval",
+      component: (
+        <DAFormMDAForApproval
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: daCounts.mdaForApproval,
+    },
+    {
+      label: "Completed",
+      component: (
+        <DAFormCompleted
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: daCounts.completed,
     },
     {
       label: "Cancelled",
@@ -572,58 +595,18 @@ const DAForm = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
-            }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
-              }}>
+        <Box sx={daFormStyles.mainContainer}>
+          <Box sx={daFormStyles.innerContainer}>
+            <Box sx={daFormStyles.headerContainer(isMobile, isTablet)}>
               <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                  width: isMobile || isTablet ? "100%" : "auto",
-                  justifyContent: "flex-start",
-                }}>
+                sx={daFormStyles.headerLeftSection(
+                  isMobile,
+                  isTablet,
+                  isVerySmall
+                )}>
                 <Typography
                   className="header"
-                  sx={{
-                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                    fontWeight: 500,
-                    color: "rgb(33, 61, 112)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
+                  sx={daFormStyles.headerTitle(isVerySmall, isMobile)}>
                   {isVerySmall ? "DA" : "DA Form"}
                 </Typography>
 
@@ -632,88 +615,24 @@ const DAForm = () => {
                   startIcon={<AddIcon />}
                   onClick={handleAddNew}
                   disabled={isLoadingState}
-                  sx={{
-                    height: "36px",
-                    backgroundColor: "rgb(33, 61, 112)",
-                    color: "white",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    fontSize: isVerySmall ? "11px" : "12px",
-                    padding: isVerySmall ? "0 12px" : "0 16px",
-                    borderRadius: "8px",
-                    whiteSpace: "nowrap",
-                    minWidth: isVerySmall ? "auto" : "120px",
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover": {
-                      backgroundColor: "rgb(23, 51, 102)",
-                      boxShadow: "0 4px 8px rgba(33, 61, 112, 0.3)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "#ccc",
-                      color: "#999",
-                    },
-                    "& .MuiButton-startIcon": {
-                      marginRight: isVerySmall ? "4px" : "8px",
-                      marginLeft: 0,
-                    },
-                  }}>
+                  sx={daFormStyles.createButton(isVerySmall, isLoadingState)}>
                   {isVerySmall ? "" : "Create"}
                 </Button>
               </Box>
 
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : 1.5,
-                }}>
+              <Box sx={daFormStyles.headerRightSection(isVerySmall)}>
                 {isVerySmall ? (
                   <IconButton
                     onClick={handleFilterClick}
                     disabled={isLoadingState}
                     size="small"
-                    sx={{
-                      width: "36px",
-                      height: "36px",
-                      border: `1px solid ${
-                        hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-                      }`,
-                      borderRadius: "8px",
-                      backgroundColor: hasActiveFilters
-                        ? "rgba(0, 133, 49, 0.04)"
-                        : "white",
-                      color: iconColor,
-                      position: "relative",
-                      transition: "all 0.2s ease-in-out",
-                      "&:hover": {
-                        backgroundColor: hasActiveFilters
-                          ? "rgba(0, 133, 49, 0.08)"
-                          : "#f5f5f5",
-                        borderColor: hasActiveFilters
-                          ? "rgba(0, 133, 49, 1)"
-                          : "rgb(33, 61, 112)",
-                      },
-                    }}>
-                    <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+                    sx={daFormStyles.filterIconButton(
+                      hasActiveFilters,
+                      iconColor
+                    )}>
+                    <CalendarTodayIcon sx={daFormStyles.filterIcon} />
                     {hasActiveFilters && (
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          top: "-6px",
-                          right: "-6px",
-                          backgroundColor: "rgba(0, 133, 49, 1)",
-                          color: "white",
-                          borderRadius: "50%",
-                          width: "16px",
-                          height: "16px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "10px",
-                          fontWeight: 600,
-                        }}>
-                        1
-                      </Box>
+                      <Box sx={daFormStyles.filterBadge}>1</Box>
                     )}
                   </IconButton>
                 ) : (
@@ -732,45 +651,11 @@ const DAForm = () => {
                         />
                       }
                       label={
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                          }}>
+                        <Box sx={daFormStyles.filterLabelBox}>
                           <span>{getFilterLabel()}</span>
                         </Box>
                       }
-                      sx={{
-                        margin: 0,
-                        border: `1px solid ${
-                          hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-                        }`,
-                        borderRadius: "8px",
-                        paddingLeft: "8px",
-                        paddingRight: "12px",
-                        height: "36px",
-                        backgroundColor: hasActiveFilters
-                          ? "rgba(0, 133, 49, 0.04)"
-                          : "white",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: hasActiveFilters
-                            ? "rgba(0, 133, 49, 0.08)"
-                            : "#f5f5f5",
-                          borderColor: hasActiveFilters
-                            ? "rgba(0, 133, 49, 1)"
-                            : "rgb(33, 61, 112)",
-                        },
-                        "& .MuiFormControlLabel-label": {
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          color: hasActiveFilters
-                            ? "rgba(0, 133, 49, 1)"
-                            : "rgb(33, 61, 112)",
-                          letterSpacing: "0.5px",
-                        },
-                      }}
+                      sx={daFormStyles.filterCheckboxLabel(hasActiveFilters)}
                     />
                   </Tooltip>
                 )}
@@ -784,53 +669,24 @@ const DAForm = () => {
                   InputProps={{
                     startAdornment: (
                       <SearchIcon
-                        sx={{
-                          color: isLoadingState ? "#ccc" : "#666",
-                          marginRight: 1,
-                          fontSize: isVerySmall ? "18px" : "20px",
-                        }}
+                        sx={daFormStyles.searchIcon(
+                          isLoadingState,
+                          isVerySmall
+                        )}
                       />
                     ),
                     endAdornment: isLoadingState && (
                       <CircularProgress
                         size={16}
-                        sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
+                        sx={daFormStyles.searchLoader}
                       />
                     ),
-                    sx: {
-                      height: "36px",
-                      width: isVerySmall ? "100%" : "320px",
-                      minWidth: isVerySmall ? "160px" : "200px",
-                      backgroundColor: "white",
-                      transition: "all 0.2s ease-in-out",
-                      "& .MuiOutlinedInput-root": {
-                        height: "36px",
-                        "& fieldset": {
-                          borderColor: "#ccc",
-                          transition: "border-color 0.2s ease-in-out",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "rgb(33, 61, 112)",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "rgb(33, 61, 112)",
-                          borderWidth: "2px",
-                        },
-                        "&.Mui-disabled": {
-                          backgroundColor: "#f5f5f5",
-                        },
-                      },
-                    },
+                    sx: daFormStyles.searchInputProps(
+                      isLoadingState,
+                      isVerySmall
+                    ),
                   }}
-                  sx={{
-                    flex: isVerySmall ? 1 : "0 0 auto",
-                    "& .MuiInputBase-input": {
-                      fontSize: isVerySmall ? "13px" : "14px",
-                      "&::placeholder": {
-                        opacity: 0.7,
-                      },
-                    },
-                  }}
+                  sx={daFormStyles.searchField(isVerySmall)}
                 />
               </Box>
             </Box>
@@ -854,16 +710,7 @@ const DAForm = () => {
                           vertical: "top",
                           horizontal: "right",
                         }}
-                        sx={{
-                          "& .MuiBadge-badge": {
-                            minWidth: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            padding: 0,
-                            top: "8px",
-                            right: "-10px",
-                          },
-                        }}>
+                        sx={daFormStyles.tabBadge}>
                         {tab.label}
                       </Badge>
                     ) : (
@@ -875,14 +722,7 @@ const DAForm = () => {
               ))}
             </StyledTabs>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
+            <Box sx={daFormStyles.contentContainer}>
               {tabsData.map((tab, index) => (
                 <TabPanel key={index} value={activeTab} index={index}>
                   {tab.component}

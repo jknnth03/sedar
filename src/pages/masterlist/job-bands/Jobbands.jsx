@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  Fade,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArchiveIcon from "@mui/icons-material/Archive";
@@ -183,6 +184,7 @@ const Jobbands = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -192,7 +194,7 @@ const Jobbands = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedJobband, setSelectedJobband] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
+  const [isLoading, setIsLoading] = useState(false);
 
   const debounceValue = useDebounce(searchQuery, 500);
 
@@ -208,9 +210,10 @@ const Jobbands = () => {
 
   const {
     data: jobbands,
-    isLoading,
+    isLoading: queryLoading,
     isFetching,
     refetch,
+    error,
   } = useGetJobbandsQuery(queryParams);
 
   const [deleteJobband] = useDeleteJobbandMutation();
@@ -227,28 +230,37 @@ const Jobbands = () => {
     setPage(1);
   }, []);
 
-  const handleMenuOpen = (event, jobbandId) => {
-    setMenuAnchor({ [jobbandId]: event.currentTarget });
-  };
+  const handleMenuOpen = useCallback((event, jobband) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({ ...prev, [jobband.id]: event.currentTarget }));
+  }, []);
 
-  const handleMenuClose = (jobbandId) => {
+  const handleMenuClose = useCallback((jobbandId) => {
     setMenuAnchor((prev) => ({ ...prev, [jobbandId]: null }));
-  };
+  }, []);
 
-  const handleArchiveRestoreClick = (jobband) => {
-    setSelectedJobband(jobband);
-    setConfirmOpen(true);
-    handleMenuClose(jobband.id);
-  };
+  const handleArchiveRestoreClick = useCallback(
+    (jobband, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedJobband(jobband);
+      setConfirmOpen(true);
+      handleMenuClose(jobband.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedJobband) return;
+
+    setIsLoading(true);
     try {
       await deleteJobband(selectedJobband.id).unwrap();
       enqueueSnackbar(
         selectedJobband.deleted_at
-          ? "Jobband restored successfully!"
-          : "Jobband archived successfully!",
+          ? "Job band restored successfully!"
+          : "Job band archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
       refetch();
@@ -260,19 +272,57 @@ const Jobbands = () => {
     } finally {
       setConfirmOpen(false);
       setSelectedJobband(null);
+      setIsLoading(false);
     }
   };
 
-  const handleAddJobband = () => {
+  const handleAddJobband = useCallback(() => {
     setSelectedJobband(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (jobband) => {
-    setSelectedJobband(jobband);
-    setModalOpen(true);
-    handleMenuClose(jobband.id);
-  };
+  const handleEditClick = useCallback(
+    (jobband) => {
+      setSelectedJobband(jobband);
+      setModalOpen(true);
+      handleMenuClose(jobband.id);
+    },
+    [handleMenuClose]
+  );
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const renderStatusChip = useCallback((jobband) => {
+    const isActive = !jobband.deleted_at;
+
+    return (
+      <Chip
+        label={isActive ? "ACTIVE" : "INACTIVE"}
+        size="small"
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
+      />
+    );
+  }, []);
+
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
     <Box
@@ -291,8 +341,8 @@ const Jobbands = () => {
           justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
           flexDirection: isMobile || isTablet ? "column" : "row",
           flexShrink: 0,
-          minHeight: isMobile || isTablet ? "auto" : "60px",
-          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
+          minHeight: isMobile || isTablet ? "auto" : "72px",
+          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
           backgroundColor: "white",
           borderBottom: "1px solid #e0e0e0",
           boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
@@ -313,6 +363,7 @@ const Jobbands = () => {
           {isVerySmall ? (
             <IconButton
               onClick={handleAddJobband}
+              disabled={isLoadingState}
               sx={{
                 backgroundColor: "rgb(33, 61, 112)",
                 color: "white",
@@ -334,38 +385,41 @@ const Jobbands = () => {
               <AddIcon sx={{ fontSize: "18px" }} />
             </IconButton>
           ) : (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddJobband}
-              className="create-button"
-              sx={{
-                backgroundColor: "rgb(33, 61, 112)",
-                height: isMobile ? "36px" : "38px",
-                width: isMobile ? "auto" : "140px",
-                minWidth: isMobile ? "100px" : "140px",
-                padding: isMobile ? "0 16px" : "0 20px",
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: isMobile ? "12px" : "14px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                transition: "all 0.2s ease-in-out",
-                "& .MuiButton-startIcon": {
-                  marginRight: isMobile ? "4px" : "8px",
-                },
-                "&:hover": {
-                  backgroundColor: "rgb(25, 45, 84)",
-                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                  transform: "translateY(-1px)",
-                },
-                "&:disabled": {
-                  backgroundColor: "#ccc",
-                  boxShadow: "none",
-                },
-              }}>
-              CREATE
-            </Button>
+            <Fade in={!isLoadingState}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddJobband}
+                className="create-button"
+                disabled={isLoadingState}
+                sx={{
+                  backgroundColor: "rgb(33, 61, 112)",
+                  height: isMobile ? "36px" : "38px",
+                  width: isMobile ? "auto" : "160px",
+                  minWidth: isMobile ? "100px" : "160px",
+                  padding: isMobile ? "0 16px" : "0 20px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: isMobile ? "12px" : "14px",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                  transition: "all 0.2s ease-in-out",
+                  "& .MuiButton-startIcon": {
+                    marginRight: isMobile ? "4px" : "8px",
+                  },
+                  "&:hover": {
+                    backgroundColor: "rgb(25, 45, 84)",
+                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                    transform: "translateY(-1px)",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "#ccc",
+                    boxShadow: "none",
+                  },
+                }}>
+                CREATE
+              </Button>
+            </Fade>
           )}
         </Box>
 
@@ -374,7 +428,7 @@ const Jobbands = () => {
           setSearchQuery={handleSearchChange}
           showArchived={showArchived}
           setShowArchived={handleChangeArchived}
-          isLoading={isLoading || isFetching}
+          isLoading={isLoadingState}
         />
       </Box>
 
@@ -390,6 +444,7 @@ const Jobbands = () => {
           sx={{
             flex: 1,
             overflow: "auto",
+            backgroundColor: isMobile ? "white" : "#fafafa",
             "& .MuiTableCell-head": {
               backgroundColor: "#f8f9fa",
               fontWeight: 700,
@@ -410,46 +465,63 @@ const Jobbands = () => {
               borderBottom: "1px solid #f0f0f0",
               padding: isMobile ? "6px 12px" : "8px 16px",
               height: isMobile ? "48px" : "52px",
+              backgroundColor: "white",
             },
             "& .MuiTableRow-root": {
               transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-              },
             },
           }}>
-          <Table stickyHeader>
+          <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
               <TableRow>
                 <TableCell
                   align="left"
-                  sx={{ width: isVerySmall ? "40px" : "60px" }}>
+                  sx={{
+                    width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                    minWidth: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                  }}>
                   ID
                 </TableCell>
                 <TableCell
                   align="left"
-                  sx={{ width: isMobile ? "120px" : "300px" }}>
+                  sx={{
+                    width: isMobile ? "120px" : "300px",
+                    minWidth: isMobile ? "100px" : "300px",
+                  }}>
                   JOB BAND
                 </TableCell>
                 <TableCell
-                  align="left"
-                  sx={{ width: isVerySmall ? "60px" : "100px" }}>
+                  sx={{
+                    width: isVerySmall ? "70px" : isMobile ? "80px" : "150px",
+                    minWidth: isVerySmall
+                      ? "70px"
+                      : isMobile
+                      ? "80px"
+                      : "150px",
+                  }}>
                   CODE
                 </TableCell>
                 {!isMobile && (
-                  <TableCell align="center" sx={{ width: "140px" }}>
+                  <TableCell
+                    sx={{
+                      width: "100px",
+                      minWidth: "100px",
+                    }}>
                     STATUS
                   </TableCell>
                 )}
                 <TableCell
                   align="center"
-                  sx={{ width: isMobile ? "80px" : "100px" }}>
-                  ACTION
+                  sx={{
+                    width: isMobile ? "80px" : "100px",
+                    minWidth: isMobile ? "80px" : "100px",
+                  }}>
+                  ACTIONS
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading || isFetching ? (
+              {isLoadingState ? (
                 <TableRow>
                   <TableCell
                     colSpan={isMobile ? 4 : 5}
@@ -461,14 +533,44 @@ const Jobbands = () => {
                     />
                   </TableCell>
                 </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={isMobile ? 4 : 5}
+                    align="center"
+                    sx={{ py: 4 }}>
+                    <Typography color="error">
+                      Error loading data: {error.message || "Unknown error"}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
               ) : jobbandList.length > 0 ? (
                 jobbandList.map((jobband) => (
-                  <TableRow key={jobband.id}>
-                    <TableCell align="left">{jobband.id}</TableCell>
+                  <TableRow
+                    key={jobband.id}
+                    sx={{
+                      transition: "background-color 0.2s ease",
+                    }}>
+                    <TableCell
+                      align="left"
+                      sx={{
+                        width: isVerySmall
+                          ? "40px"
+                          : isMobile
+                          ? "50px"
+                          : "60px",
+                        minWidth: isVerySmall
+                          ? "40px"
+                          : isMobile
+                          ? "50px"
+                          : "60px",
+                      }}>
+                      {jobband.id}
+                    </TableCell>
                     <TableCell
                       sx={{
                         width: isMobile ? "120px" : "300px",
-                        minWidth: isMobile ? "100px" : "180px",
+                        minWidth: isMobile ? "100px" : "300px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -478,47 +580,93 @@ const Jobbands = () => {
                       {jobband.name}
                     </TableCell>
                     <TableCell
-                      align="left"
                       sx={{
+                        width: isVerySmall
+                          ? "70px"
+                          : isMobile
+                          ? "80px"
+                          : "150px",
+                        minWidth: isVerySmall
+                          ? "70px"
+                          : isMobile
+                          ? "80px"
+                          : "150px",
                         fontFamily: "monospace",
                         fontSize: isVerySmall ? "10px" : "12px",
+                        color: "#666",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        textOverflow: "ellipsis",
                       }}>
                       {jobband.code}
                     </TableCell>
                     {!isMobile && (
-                      <TableCell align="center">
-                        <Chip
-                          label={jobband.deleted_at ? "Inactive" : "Active"}
-                          color={jobband.deleted_at ? "error" : "success"}
-                          size="small"
-                        />
+                      <TableCell
+                        sx={{
+                          width: "100px",
+                          minWidth: "100px",
+                        }}>
+                        {renderStatusChip(jobband)}
                       </TableCell>
                     )}
-                    <TableCell align="center">
+                    <TableCell
+                      align="center"
+                      sx={{
+                        width: isMobile ? "80px" : "100px",
+                        minWidth: isMobile ? "80px" : "100px",
+                      }}>
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, jobband.id)}
-                        size="small">
-                        <MoreVertIcon />
+                        onClick={(e) => handleMenuOpen(e, jobband)}
+                        size="small"
+                        sx={{
+                          color: "rgb(33, 61, 112)",
+                          "&:hover": {
+                            backgroundColor: "rgba(33, 61, 112, 0.04)",
+                          },
+                        }}>
+                        <MoreVertIcon fontSize="small" />
                       </IconButton>
                       <Menu
                         anchorEl={menuAnchor[jobband.id]}
                         open={Boolean(menuAnchor[jobband.id])}
-                        onClose={() => handleMenuClose(jobband.id)}>
+                        onClose={() => handleMenuClose(jobband.id)}
+                        transformOrigin={{
+                          horizontal: "right",
+                          vertical: "top",
+                        }}
+                        anchorOrigin={{
+                          horizontal: "right",
+                          vertical: "bottom",
+                        }}>
                         {!jobband.deleted_at && (
-                          <MenuItem onClick={() => handleEditClick(jobband)}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          <MenuItem
+                            onClick={() => handleEditClick(jobband)}
+                            sx={{
+                              fontSize: "0.875rem",
+                            }}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                            Edit
                           </MenuItem>
                         )}
                         <MenuItem
-                          onClick={() => handleArchiveRestoreClick(jobband)}>
+                          onClick={(e) => handleArchiveRestoreClick(jobband, e)}
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: jobband.deleted_at
+                              ? theme.palette.success.main
+                              : "#d32f2f",
+                          }}>
                           {jobband.deleted_at ? (
                             <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
                               Restore
                             </>
                           ) : (
                             <>
-                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              <ArchiveIcon
+                                fontSize="small"
+                                sx={{ mr: 1, color: "#d32f2f" }}
+                              />
                               Archive
                             </>
                           )}
@@ -538,13 +686,24 @@ const Jobbands = () => {
                       color: "#666",
                       fontSize: isMobile ? "14px" : "16px",
                     }}>
-                    {searchQuery && !isLoading ? (
-                      <Typography>
-                        No results found for "{searchQuery}"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      <Typography variant="h6" color="text.secondary">
+                        No job bands found
                       </Typography>
-                    ) : (
-                      <Typography>No data available</Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived job bands"
+                          : "No active job bands"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -584,11 +743,8 @@ const Jobbands = () => {
             count={jobbands?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={Math.max(0, page - 1)}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
               "& .MuiTablePagination-toolbar": {
                 paddingLeft: isMobile ? "12px" : "24px",
@@ -599,37 +755,47 @@ const Jobbands = () => {
         </Box>
       </Box>
 
-      <JobbandsModal
-        open={modalOpen}
-        handleClose={() => setModalOpen(false)}
-        refetch={refetch}
-        selectedJobband={selectedJobband}
-      />
-
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        maxWidth="xs">
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
             <strong>
               {selectedJobband?.deleted_at ? "restore" : "archive"}
             </strong>{" "}
-            this job-band?
+            this job band?
           </Typography>
+          {selectedJobband && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {selectedJobband.name}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Box
@@ -641,18 +807,28 @@ const Jobbands = () => {
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error">
-              No
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success">
-              Yes
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
             </Button>
           </Box>
         </DialogActions>
       </Dialog>
+
+      <JobbandsModal
+        open={modalOpen}
+        handleClose={() => setModalOpen(false)}
+        refetch={refetch}
+        selectedJobband={selectedJobband}
+        showArchived={showArchived}
+      />
     </Box>
   );
 };

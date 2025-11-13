@@ -61,6 +61,9 @@ import LooksTwoIcon from "@mui/icons-material/LooksTwo";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import DescriptionIcon from "@mui/icons-material/Description";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import WeekendIcon from "@mui/icons-material/Weekend";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -557,6 +560,24 @@ export const createEnhancedModules = (dashboardData = {}) => {
           name: "Movement Types",
           path: "movementtypes",
           icon: <LowPriorityIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        WORKWEEKS: {
+          name: "Work Weeks",
+          path: "workweeks",
+          icon: <EventAvailableIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        WORKHOURS: {
+          name: "Work Hours",
+          path: "workhours",
+          icon: <AccessTimeIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        RESTDAYS: {
+          name: "Rest Days",
+          path: "restdays",
+          icon: <WeekendIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBBANDS: {

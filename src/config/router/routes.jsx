@@ -58,6 +58,9 @@ import CatOneApproval from "../../pages/approvals/da-task/CatOneApproval.jsx";
 import CatTwoApproval from "../../pages/approvals/da-task/CatTwoApproval.jsx";
 import PdpApproval from "../../pages/approvals/da-task/PdpApproval.jsx";
 import DAFormApproval from "../../pages/approvals/daform/DAFormApproval.jsx";
+import WorkWeeks from "../../pages/extras/WorkWeeks.jsx";
+import WorkHours from "../../pages/extras/WorkHours.jsx";
+import RestDays from "../../pages/extras/RestDays.jsx";
 
 export const ROUTES = [
   {
@@ -503,6 +506,30 @@ export const ROUTES = [
         element: <MovementTypes />,
         handle: {
           permission: MODULES.EXTRAS.children.MOVEMENTTYPES.name,
+        },
+      },
+      {
+        id: "EXTRAS.WORKWEEKS",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.WORKWEEKS.path}`,
+        element: <WorkWeeks />,
+        handle: {
+          permission: MODULES.EXTRAS.children.WORKWEEKS.name,
+        },
+      },
+      {
+        id: "EXTRAS.WORKHOURS",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.WORKHOURS.path}`,
+        element: <WorkHours />,
+        handle: {
+          permission: MODULES.EXTRAS.children.WORKHOURS.name,
+        },
+      },
+      {
+        id: "EXTRAS.RESTDAYS",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.RESTDAYS.path}`,
+        element: <RestDays />,
+        handle: {
+          permission: MODULES.EXTRAS.children.RESTDAYS.name,
         },
       },
       {

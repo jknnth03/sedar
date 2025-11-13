@@ -24,7 +24,6 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
@@ -73,6 +72,26 @@ const DAFormTable = ({
         color: "#f57c00",
         bgColor: "#fff8e1",
         label: "PENDING",
+      },
+      "pending mda creation": {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "PENDING MDA CREATION",
+      },
+      "for mda processing": {
+        color: "#1976d2",
+        bgColor: "#e3f2fd",
+        label: "FOR MDA PROCESSING",
+      },
+      "mda for approval": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "MDA FOR APPROVAL",
+      },
+      completed: {
+        color: "#2e7d32",
+        bgColor: "#e8f5e8",
+        label: "COMPLETED",
       },
       approved: {
         color: "#2e7d32",
@@ -185,36 +204,14 @@ const DAFormTable = ({
     );
   };
 
-  const filteredSubmissions = React.useMemo(() => {
-    if (!statusFilter) return submissionsList;
-    return submissionsList.filter(
-      (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
-    );
-  }, [submissionsList, statusFilter]);
-
   const getNoDataMessage = () => {
-    if (statusFilter) {
-      const statusLabels = {
-        PENDING: "pending",
-        APPROVED: "approved",
-        REJECTED: "rejected",
-        AWAITING_RESUBMISSION: "awaiting resubmission",
-        CANCELLED: "cancelled",
-      };
-      const statusLabel =
-        statusLabels[statusFilter] || statusFilter.toLowerCase();
-      return searchQuery
-        ? `No ${statusLabel} submissions found for "${searchQuery}"`
-        : `No ${statusLabel} submissions found`;
-    }
     return searchQuery
       ? `No results for "${searchQuery}"`
       : "No submissions found";
   };
 
   const shouldHideActions =
-    statusFilter === "APPROVED" || statusFilter === "CANCELLED";
+    statusFilter === "CANCELLED" || statusFilter === "COMPLETED";
   const shouldShowActionsColumn = !shouldHideActions;
   const totalColumns = shouldShowActionsColumn ? 8 : 7;
 
@@ -269,8 +266,8 @@ const DAFormTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : filteredSubmissions.length > 0 ? (
-              filteredSubmissions.map((submission) => {
+            ) : submissionsList.length > 0 ? (
+              submissionsList.map((submission) => {
                 return (
                   <TableRow
                     key={submission.id}

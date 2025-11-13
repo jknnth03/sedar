@@ -65,22 +65,7 @@ const CustomSearchBar = ({
         <IconButton
           onClick={() => setShowArchived(!showArchived)}
           disabled={isLoading}
-          size="small"
-          sx={{
-            width: "36px",
-            height: "36px",
-            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
-            borderRadius: "8px",
-            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
-            color: iconColor,
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              backgroundColor: showArchived
-                ? "rgba(211, 47, 47, 0.08)"
-                : "#f5f5f5",
-              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
-            },
-          }}>
+          size="small">
           <ArchiveIcon sx={{ fontSize: "18px" }} />
         </IconButton>
       ) : (
@@ -308,9 +293,9 @@ const Tools = () => {
         label={isActive ? "ACTIVE" : "INACTIVE"}
         size="small"
         sx={{
-          backgroundColor: isActive ? "#e8f5e8" : "#fff3e0",
-          color: isActive ? "#2e7d32" : "#ed6c02",
-          border: `1px solid ${isActive ? "#4caf50" : "#ff9800"}`,
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
           fontWeight: 600,
           fontSize: "11px",
           height: "24px",
@@ -468,16 +453,6 @@ const Tools = () => {
               height: isMobile ? "48px" : "52px",
               backgroundColor: "white",
             },
-            "& .MuiTableRow-root": {
-              transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-                cursor: "pointer",
-                "& .MuiTableCell-root": {
-                  backgroundColor: "transparent",
-                },
-              },
-            },
           }}>
           <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
@@ -553,21 +528,7 @@ const Tools = () => {
                 </TableRow>
               ) : toolList.length > 0 ? (
                 toolList.map((tool) => (
-                  <TableRow
-                    key={tool.id}
-                    sx={{
-                      cursor: "pointer",
-                      "&:hover": {
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          0.04
-                        ),
-                        "& .MuiTableCell-root": {
-                          backgroundColor: "transparent",
-                        },
-                      },
-                      transition: "background-color 0.2s ease",
-                    }}>
+                  <TableRow key={tool.id}>
                     <TableCell
                       align="left"
                       sx={{

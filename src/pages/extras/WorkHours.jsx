@@ -38,10 +38,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import { useSnackbar } from "notistack";
 import "../GeneralStyle.scss";
 import {
-  useDeleteHonorTitlesMutation,
-  useGetShowHonorTitlesQuery,
-} from "../../features/api/extras/honortitlesApi";
-import HonorTitleModal from "../../components/modal/extras/HonorTitlesModal";
+  useDeleteWorkHoursMutation,
+  useGetShowWorkHoursQuery,
+} from "../../features/api/extras/workhoursApi";
+import WorkHoursModal from "../../components/modal/extras/WorkHoursModal";
 import useDebounce from "../../hooks/useDebounce";
 
 const CustomSearchBar = ({
@@ -122,7 +122,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search Honor Titles..."}
+        placeholder={isVerySmall ? "Search..." : "Search Work Hours..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
@@ -180,7 +180,7 @@ const CustomSearchBar = ({
   );
 };
 
-const HonorTitles = () => {
+const WorkHours = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -193,7 +193,7 @@ const HonorTitles = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedTitle, setSelectedTitle] = useState(null);
+  const [selectedWorkHour, setSelectedWorkHour] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -205,23 +205,24 @@ const HonorTitles = () => {
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
+      pagination: "true",
     }),
     [debounceValue, page, rowsPerPage, showArchived]
   );
 
   const {
-    data: honorTitles,
+    data: workHours,
     isLoading: queryLoading,
     isFetching,
     refetch,
     error,
-  } = useGetShowHonorTitlesQuery(queryParams);
+  } = useGetShowWorkHoursQuery(queryParams);
 
-  const [deleteHonorTitle] = useDeleteHonorTitlesMutation();
+  const [deleteWorkHour] = useDeleteWorkHoursMutation();
 
-  const honorTitleList = useMemo(
-    () => honorTitles?.result?.data || [],
-    [honorTitles]
+  const workHourList = useMemo(
+    () => workHours?.result?.data || [],
+    [workHours]
   );
 
   const handleSearchChange = useCallback((newSearchQuery) => {
@@ -234,37 +235,37 @@ const HonorTitles = () => {
     setPage(1);
   }, []);
 
-  const handleMenuOpen = useCallback((event, title) => {
+  const handleMenuOpen = useCallback((event, workHour) => {
     event.stopPropagation();
-    setMenuAnchor((prev) => ({ ...prev, [title.id]: event.currentTarget }));
+    setMenuAnchor((prev) => ({ ...prev, [workHour.id]: event.currentTarget }));
   }, []);
 
-  const handleMenuClose = useCallback((titleId) => {
-    setMenuAnchor((prev) => ({ ...prev, [titleId]: null }));
+  const handleMenuClose = useCallback((workHourId) => {
+    setMenuAnchor((prev) => ({ ...prev, [workHourId]: null }));
   }, []);
 
   const handleArchiveRestoreClick = useCallback(
-    (title, event) => {
+    (workHour, event) => {
       if (event) {
         event.stopPropagation();
       }
-      setSelectedTitle(title);
+      setSelectedWorkHour(workHour);
       setConfirmOpen(true);
-      handleMenuClose(title.id);
+      handleMenuClose(workHour.id);
     },
     [handleMenuClose]
   );
 
   const handleArchiveRestoreConfirm = async () => {
-    if (!selectedTitle) return;
+    if (!selectedWorkHour) return;
 
     setIsLoading(true);
     try {
-      await deleteHonorTitle(selectedTitle.id).unwrap();
+      await deleteWorkHour(selectedWorkHour.id).unwrap();
       enqueueSnackbar(
-        selectedTitle.deleted_at
-          ? "Honor title restored successfully!"
-          : "Honor title archived successfully!",
+        selectedWorkHour.deleted_at
+          ? "Work Hour restored successfully!"
+          : "Work Hour archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
       refetch();
@@ -275,21 +276,21 @@ const HonorTitles = () => {
       });
     } finally {
       setConfirmOpen(false);
-      setSelectedTitle(null);
+      setSelectedWorkHour(null);
       setIsLoading(false);
     }
   };
 
-  const handleAddTitle = useCallback(() => {
-    setSelectedTitle(null);
+  const handleAddWorkHour = useCallback(() => {
+    setSelectedWorkHour(null);
     setModalOpen(true);
   }, []);
 
   const handleEditClick = useCallback(
-    (title) => {
-      setSelectedTitle(title);
+    (workHour) => {
+      setSelectedWorkHour(workHour);
       setModalOpen(true);
-      handleMenuClose(title.id);
+      handleMenuClose(workHour.id);
     },
     [handleMenuClose]
   );
@@ -303,8 +304,8 @@ const HonorTitles = () => {
     setPage(1);
   }, []);
 
-  const renderStatusChip = useCallback((title) => {
-    const isActive = !title.deleted_at;
+  const renderStatusChip = useCallback((workHour) => {
+    const isActive = !workHour.deleted_at;
 
     return (
       <Chip
@@ -361,12 +362,12 @@ const HonorTitles = () => {
             justifyContent: "flex-start",
           }}>
           <Typography className="header">
-            {isVerySmall ? "HONOR TITLES" : "HONOR TITLES"}
+            {isVerySmall ? "WORK HOURS" : "WORK HOURS"}
           </Typography>
 
           {isVerySmall ? (
             <IconButton
-              onClick={handleAddTitle}
+              onClick={handleAddWorkHour}
               disabled={isLoadingState}
               sx={{
                 backgroundColor: "rgb(33, 61, 112)",
@@ -392,7 +393,7 @@ const HonorTitles = () => {
             <Fade in={!isLoadingState}>
               <Button
                 variant="contained"
-                onClick={handleAddTitle}
+                onClick={handleAddWorkHour}
                 startIcon={<AddIcon />}
                 disabled={isLoadingState}
                 className="create-button"
@@ -471,6 +472,9 @@ const HonorTitles = () => {
               height: isMobile ? "48px" : "52px",
               backgroundColor: "white",
             },
+            "& .MuiTableRow-root": {
+              transition: "background-color 0.2s ease-in-out",
+            },
           }}>
           <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
@@ -499,7 +503,7 @@ const HonorTitles = () => {
                     width: isMobile ? "120px" : "300px",
                     minWidth: isMobile ? "100px" : "300px",
                   }}>
-                  HONOR TITLE
+                  WORK HOUR
                 </TableCell>
                 {!isMobile && (
                   <TableCell
@@ -544,9 +548,13 @@ const HonorTitles = () => {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : honorTitleList.length > 0 ? (
-                honorTitleList.map((title) => (
-                  <TableRow key={title.id}>
+              ) : workHourList.length > 0 ? (
+                workHourList.map((workHour) => (
+                  <TableRow
+                    key={workHour.id}
+                    sx={{
+                      transition: "background-color 0.2s ease",
+                    }}>
                     <TableCell
                       align="left"
                       sx={{
@@ -561,7 +569,7 @@ const HonorTitles = () => {
                           ? "50px"
                           : "60px",
                       }}>
-                      {title.id}
+                      {workHour.id}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -582,7 +590,7 @@ const HonorTitles = () => {
                         whiteSpace: "nowrap",
                         textOverflow: "ellipsis",
                       }}>
-                      {title.code}
+                      {workHour.code}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -593,7 +601,7 @@ const HonorTitles = () => {
                         whiteSpace: "nowrap",
                         fontWeight: 600,
                       }}>
-                      {title.name}
+                      {workHour.name}
                     </TableCell>
                     {!isMobile && (
                       <TableCell
@@ -601,7 +609,7 @@ const HonorTitles = () => {
                           width: "100px",
                           minWidth: "100px",
                         }}>
-                        {renderStatusChip(title)}
+                        {renderStatusChip(workHour)}
                       </TableCell>
                     )}
                     <TableCell
@@ -611,7 +619,7 @@ const HonorTitles = () => {
                         minWidth: isMobile ? "80px" : "100px",
                       }}>
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, title)}
+                        onClick={(e) => handleMenuOpen(e, workHour)}
                         size="small"
                         sx={{
                           color: "rgb(33, 61, 112)",
@@ -622,9 +630,9 @@ const HonorTitles = () => {
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
                       <Menu
-                        anchorEl={menuAnchor[title.id]}
-                        open={Boolean(menuAnchor[title.id])}
-                        onClose={() => handleMenuClose(title.id)}
+                        anchorEl={menuAnchor[workHour.id]}
+                        open={Boolean(menuAnchor[workHour.id])}
+                        onClose={() => handleMenuClose(workHour.id)}
                         transformOrigin={{
                           horizontal: "right",
                           vertical: "top",
@@ -633,9 +641,9 @@ const HonorTitles = () => {
                           horizontal: "right",
                           vertical: "bottom",
                         }}>
-                        {!title.deleted_at && (
+                        {!workHour.deleted_at && (
                           <MenuItem
-                            onClick={() => handleEditClick(title)}
+                            onClick={() => handleEditClick(workHour)}
                             sx={{
                               fontSize: "0.875rem",
                             }}>
@@ -644,14 +652,16 @@ const HonorTitles = () => {
                           </MenuItem>
                         )}
                         <MenuItem
-                          onClick={(e) => handleArchiveRestoreClick(title, e)}
+                          onClick={(e) =>
+                            handleArchiveRestoreClick(workHour, e)
+                          }
                           sx={{
                             fontSize: "0.875rem",
-                            color: title.deleted_at
+                            color: workHour.deleted_at
                               ? theme.palette.success.main
                               : "#d32f2f",
                           }}>
-                          {title.deleted_at ? (
+                          {workHour.deleted_at ? (
                             <>
                               <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
                               Restore
@@ -689,14 +699,14 @@ const HonorTitles = () => {
                         gap: 2,
                       }}>
                       <Typography variant="h6" color="text.secondary">
-                        No honor titles found
+                        No work hours found
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : showArchived
-                          ? "No archived honor titles"
-                          : "No active honor titles"}
+                          ? "No archived work hours"
+                          : "No active work hours"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -735,7 +745,7 @@ const HonorTitles = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={honorTitles?.result?.total || 0}
+            count={workHours?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={Math.max(0, page - 1)}
             onPageChange={handlePageChange}
@@ -777,16 +787,18 @@ const HonorTitles = () => {
         <DialogContent>
           <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
-            <strong>{selectedTitle?.deleted_at ? "restore" : "archive"}</strong>{" "}
-            this honor title?
+            <strong>
+              {selectedWorkHour?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this work hour?
           </Typography>
-          {selectedTitle && (
+          {selectedWorkHour && (
             <Typography
               variant="body2"
               color="text.secondary"
               textAlign="center"
               sx={{ mt: 1 }}>
-              {selectedTitle.name}
+              {selectedWorkHour.name}
             </Typography>
           )}
         </DialogContent>
@@ -815,14 +827,15 @@ const HonorTitles = () => {
         </DialogActions>
       </Dialog>
 
-      <HonorTitleModal
+      <WorkHoursModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}
-        selectedHonorTitle={selectedTitle}
+        selectedWorkHour={selectedWorkHour}
+        showArchived={showArchived}
         refetch={refetch}
       />
     </Box>
   );
 };
 
-export default HonorTitles;
+export default WorkHours;

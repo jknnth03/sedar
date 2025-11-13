@@ -279,6 +279,29 @@ const JobLevels = () => {
     handleMenuClose(joblevel.id);
   };
 
+  const renderStatusChip = useCallback((joblevel) => {
+    const isActive = !joblevel.deleted_at;
+
+    return (
+      <Chip
+        label={isActive ? "ACTIVE" : "INACTIVE"}
+        size="small"
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
+      />
+    );
+  }, []);
+
   return (
     <Box
       sx={{
@@ -418,9 +441,6 @@ const JobLevels = () => {
             },
             "& .MuiTableRow-root": {
               transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-              },
             },
           }}>
           <Table stickyHeader>
@@ -528,11 +548,7 @@ const JobLevels = () => {
                     )}
                     {!isVerySmall && (
                       <TableCell align="center">
-                        <Chip
-                          label={joblevel.deleted_at ? "Inactive" : "Active"}
-                          color={joblevel.deleted_at ? "error" : "success"}
-                          size="small"
-                        />
+                        {renderStatusChip(joblevel)}
                       </TableCell>
                     )}
                     <TableCell align="center">
@@ -657,20 +673,33 @@ const JobLevels = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
             <strong>
               {selectedJoblevel?.deleted_at ? "restore" : "archive"}
             </strong>{" "}
             this job level?
           </Typography>
+          {selectedJoblevel && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {selectedJoblevel.name}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Box
@@ -682,14 +711,16 @@ const JobLevels = () => {
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error">
-              No
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success">
-              Yes
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
             </Button>
           </Box>
         </DialogActions>

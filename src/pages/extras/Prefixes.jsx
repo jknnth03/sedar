@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  Fade,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArchiveIcon from "@mui/icons-material/Archive";
@@ -229,20 +230,26 @@ const Prefixes = () => {
     setPage(1);
   }, []);
 
-  const handleMenuOpen = (event, prefixId) => {
-    setMenuAnchor({ [prefixId]: event.currentTarget });
-  };
+  const handleMenuOpen = useCallback((event, prefix) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({ ...prev, [prefix.id]: event.currentTarget }));
+  }, []);
 
-  const handleMenuClose = (prefixId) => {
+  const handleMenuClose = useCallback((prefixId) => {
     setMenuAnchor((prev) => ({ ...prev, [prefixId]: null }));
-  };
+  }, []);
 
-  const handleArchiveRestoreClick = (prefix) => {
-    console.log("Clicked archive/restore for:", prefix);
-    setSelectedPrefix(prefix);
-    setConfirmOpen(true);
-    handleMenuClose(prefix.id);
-  };
+  const handleArchiveRestoreClick = useCallback(
+    (prefix, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedPrefix(prefix);
+      setConfirmOpen(true);
+      handleMenuClose(prefix.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedPrefix) return;
@@ -269,16 +276,51 @@ const Prefixes = () => {
     }
   };
 
-  const handleAddPrefix = () => {
+  const handleAddPrefix = useCallback(() => {
     setSelectedPrefix(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (prefix) => {
-    setSelectedPrefix(prefix);
-    setModalOpen(true);
-    handleMenuClose(prefix.id);
-  };
+  const handleEditClick = useCallback(
+    (prefix) => {
+      setSelectedPrefix(prefix);
+      setModalOpen(true);
+      handleMenuClose(prefix.id);
+    },
+    [handleMenuClose]
+  );
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const renderStatusChip = useCallback((prefix) => {
+    const isActive = !prefix.deleted_at;
+
+    return (
+      <Chip
+        label={isActive ? "ACTIVE" : "INACTIVE"}
+        size="small"
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
+      />
+    );
+  }, []);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
@@ -299,8 +341,8 @@ const Prefixes = () => {
           justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
           flexDirection: isMobile || isTablet ? "column" : "row",
           flexShrink: 0,
-          minHeight: isMobile || isTablet ? "auto" : "60px",
-          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
+          minHeight: isMobile || isTablet ? "auto" : "72px",
+          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
           backgroundColor: "white",
           borderBottom: "1px solid #e0e0e0",
           boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
@@ -321,6 +363,7 @@ const Prefixes = () => {
           {isVerySmall ? (
             <IconButton
               onClick={handleAddPrefix}
+              disabled={isLoadingState}
               sx={{
                 backgroundColor: "rgb(33, 61, 112)",
                 color: "white",
@@ -342,39 +385,41 @@ const Prefixes = () => {
               <AddIcon sx={{ fontSize: "18px" }} />
             </IconButton>
           ) : (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddPrefix}
-              className="create-button"
-              disabled={isLoadingState}
-              sx={{
-                backgroundColor: "rgb(33, 61, 112)",
-                height: isMobile ? "36px" : "38px",
-                width: isMobile ? "auto" : "140px",
-                minWidth: isMobile ? "100px" : "140px",
-                padding: isMobile ? "0 16px" : "0 20px",
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: isMobile ? "12px" : "14px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                transition: "all 0.2s ease-in-out",
-                "& .MuiButton-startIcon": {
-                  marginRight: isMobile ? "4px" : "8px",
-                },
-                "&:hover": {
-                  backgroundColor: "rgb(25, 45, 84)",
-                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                  transform: "translateY(-1px)",
-                },
-                "&:disabled": {
-                  backgroundColor: "#ccc",
-                  boxShadow: "none",
-                },
-              }}>
-              CREATE
-            </Button>
+            <Fade in={!isLoadingState}>
+              <Button
+                variant="contained"
+                onClick={handleAddPrefix}
+                startIcon={<AddIcon />}
+                disabled={isLoadingState}
+                className="create-button"
+                sx={{
+                  backgroundColor: "rgb(33, 61, 112)",
+                  height: isMobile ? "36px" : "38px",
+                  width: isMobile ? "auto" : "160px",
+                  minWidth: isMobile ? "100px" : "160px",
+                  padding: isMobile ? "0 16px" : "0 20px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: isMobile ? "12px" : "14px",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                  transition: "all 0.2s ease-in-out",
+                  "& .MuiButton-startIcon": {
+                    marginRight: isMobile ? "4px" : "8px",
+                  },
+                  "&:hover": {
+                    backgroundColor: "rgb(25, 45, 84)",
+                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                    transform: "translateY(-1px)",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "#ccc",
+                    boxShadow: "none",
+                  },
+                }}>
+                CREATE
+              </Button>
+            </Fade>
           )}
         </Box>
 
@@ -399,6 +444,7 @@ const Prefixes = () => {
           sx={{
             flex: 1,
             overflow: "auto",
+            backgroundColor: isMobile ? "white" : "#fafafa",
             "& .MuiTableCell-head": {
               backgroundColor: "#f8f9fa",
               fontWeight: 700,
@@ -419,48 +465,57 @@ const Prefixes = () => {
               borderBottom: "1px solid #f0f0f0",
               padding: isMobile ? "6px 12px" : "8px 16px",
               height: isMobile ? "48px" : "52px",
+              backgroundColor: "white",
             },
             "& .MuiTableRow-root": {
               transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-              },
             },
           }}>
-          <Table stickyHeader>
+          <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
               <TableRow>
                 <TableCell
                   align="left"
-                  sx={{ width: isVerySmall ? "40px" : "60px" }}>
+                  sx={{
+                    width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                    minWidth: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                  }}>
                   ID
                 </TableCell>
                 <TableCell
-                  align="left"
                   sx={{
-                    width: isVerySmall ? "70px" : isMobile ? "80px" : "100px",
+                    width: isVerySmall ? "70px" : isMobile ? "80px" : "150px",
                     minWidth: isVerySmall
                       ? "70px"
                       : isMobile
                       ? "80px"
-                      : "100px",
+                      : "150px",
                   }}>
                   CODE
                 </TableCell>
                 <TableCell
-                  align="left"
-                  sx={{ width: isMobile ? "120px" : "300px" }}>
+                  sx={{
+                    width: isMobile ? "120px" : "300px",
+                    minWidth: isMobile ? "100px" : "300px",
+                  }}>
                   PREFIX
                 </TableCell>
                 {!isMobile && (
-                  <TableCell align="center" sx={{ width: "140px" }}>
+                  <TableCell
+                    sx={{
+                      width: "100px",
+                      minWidth: "100px",
+                    }}>
                     STATUS
                   </TableCell>
                 )}
                 <TableCell
                   align="center"
-                  sx={{ width: isMobile ? "80px" : "100px" }}>
-                  ACTION
+                  sx={{
+                    width: isMobile ? "80px" : "100px",
+                    minWidth: isMobile ? "80px" : "100px",
+                  }}>
+                  ACTIONS
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -490,23 +545,42 @@ const Prefixes = () => {
                 </TableRow>
               ) : prefixList.length > 0 ? (
                 prefixList.map((prefix) => (
-                  <TableRow key={prefix.id}>
-                    <TableCell align="left">{prefix.id}</TableCell>
+                  <TableRow
+                    key={prefix.id}
+                    sx={{
+                      transition: "background-color 0.2s ease",
+                    }}>
                     <TableCell
                       align="left"
+                      sx={{
+                        width: isVerySmall
+                          ? "40px"
+                          : isMobile
+                          ? "50px"
+                          : "60px",
+                        minWidth: isVerySmall
+                          ? "40px"
+                          : isMobile
+                          ? "50px"
+                          : "60px",
+                      }}>
+                      {prefix.id}
+                    </TableCell>
+                    <TableCell
                       sx={{
                         width: isVerySmall
                           ? "70px"
                           : isMobile
                           ? "80px"
-                          : "100px",
+                          : "150px",
                         minWidth: isVerySmall
                           ? "70px"
                           : isMobile
                           ? "80px"
-                          : "100px",
-                        fontFamily: "monospace",
+                          : "150px",
                         fontSize: isVerySmall ? "10px" : "12px",
+                        color: "#666",
+                        fontFamily: "monospace",
                         overflow: "hidden",
                         whiteSpace: "nowrap",
                         textOverflow: "ellipsis",
@@ -514,10 +588,9 @@ const Prefixes = () => {
                       {prefix.code}
                     </TableCell>
                     <TableCell
-                      align="left"
                       sx={{
                         width: isMobile ? "120px" : "300px",
-                        minWidth: isMobile ? "100px" : "180px",
+                        minWidth: isMobile ? "100px" : "300px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -526,39 +599,72 @@ const Prefixes = () => {
                       {prefix.name}
                     </TableCell>
                     {!isMobile && (
-                      <TableCell align="center">
-                        <Chip
-                          label={prefix.deleted_at ? "Inactive" : "Active"}
-                          color={prefix.deleted_at ? "error" : "success"}
-                          size="small"
-                        />
+                      <TableCell
+                        sx={{
+                          width: "100px",
+                          minWidth: "100px",
+                        }}>
+                        {renderStatusChip(prefix)}
                       </TableCell>
                     )}
-                    <TableCell align="center">
+                    <TableCell
+                      align="center"
+                      sx={{
+                        width: isMobile ? "80px" : "100px",
+                        minWidth: isMobile ? "80px" : "100px",
+                      }}>
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, prefix.id)}
-                        size="small">
-                        <MoreVertIcon />
+                        onClick={(e) => handleMenuOpen(e, prefix)}
+                        size="small"
+                        sx={{
+                          color: "rgb(33, 61, 112)",
+                          "&:hover": {
+                            backgroundColor: "rgba(33, 61, 112, 0.04)",
+                          },
+                        }}>
+                        <MoreVertIcon fontSize="small" />
                       </IconButton>
                       <Menu
                         anchorEl={menuAnchor[prefix.id]}
                         open={Boolean(menuAnchor[prefix.id])}
-                        onClose={() => handleMenuClose(prefix.id)}>
+                        onClose={() => handleMenuClose(prefix.id)}
+                        transformOrigin={{
+                          horizontal: "right",
+                          vertical: "top",
+                        }}
+                        anchorOrigin={{
+                          horizontal: "right",
+                          vertical: "bottom",
+                        }}>
                         {!prefix.deleted_at && (
-                          <MenuItem onClick={() => handleEditClick(prefix)}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                          <MenuItem
+                            onClick={() => handleEditClick(prefix)}
+                            sx={{
+                              fontSize: "0.875rem",
+                            }}>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                            Edit
                           </MenuItem>
                         )}
                         <MenuItem
-                          onClick={() => handleArchiveRestoreClick(prefix)}>
+                          onClick={(e) => handleArchiveRestoreClick(prefix, e)}
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: prefix.deleted_at
+                              ? theme.palette.success.main
+                              : "#d32f2f",
+                          }}>
                           {prefix.deleted_at ? (
                             <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
                               Restore
                             </>
                           ) : (
                             <>
-                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />{" "}
+                              <ArchiveIcon
+                                fontSize="small"
+                                sx={{ mr: 1, color: "#d32f2f" }}
+                              />
                               Archive
                             </>
                           )}
@@ -578,13 +684,24 @@ const Prefixes = () => {
                       color: "#666",
                       fontSize: isMobile ? "14px" : "16px",
                     }}>
-                    {searchQuery && !isLoadingState ? (
-                      <Typography>
-                        No results found for "{searchQuery}"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      <Typography variant="h6" color="text.secondary">
+                        No prefixes found
                       </Typography>
-                    ) : (
-                      <Typography>No data available</Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived prefixes"
+                          : "No active prefixes"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -624,11 +741,8 @@ const Prefixes = () => {
             count={prefixes?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={Math.max(0, page - 1)}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             sx={{
               "& .MuiTablePagination-toolbar": {
                 paddingLeft: isMobile ? "12px" : "24px",
@@ -639,37 +753,47 @@ const Prefixes = () => {
         </Box>
       </Box>
 
-      <PrefixesModal
-        open={modalOpen}
-        handleClose={() => setModalOpen(false)}
-        refetch={refetch}
-        selectedPrefix={selectedPrefix}
-      />
-
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        maxWidth="xs">
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
             <strong>
               {selectedPrefix?.deleted_at ? "restore" : "archive"}
             </strong>{" "}
             this prefix?
           </Typography>
+          {selectedPrefix && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {selectedPrefix.name}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Box
@@ -681,18 +805,28 @@ const Prefixes = () => {
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error">
-              No
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success">
-              Yes
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
             </Button>
           </Box>
         </DialogActions>
       </Dialog>
+
+      <PrefixesModal
+        open={modalOpen}
+        handleClose={() => setModalOpen(false)}
+        selectedPrefix={selectedPrefix}
+        showArchived={showArchived}
+        refetch={refetch}
+      />
     </Box>
   );
 };

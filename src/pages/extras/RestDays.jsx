@@ -38,10 +38,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import { useSnackbar } from "notistack";
 import "../GeneralStyle.scss";
 import {
-  useDeleteHonorTitlesMutation,
-  useGetShowHonorTitlesQuery,
-} from "../../features/api/extras/honortitlesApi";
-import HonorTitleModal from "../../components/modal/extras/HonorTitlesModal";
+  useDeleteRestDaysMutation,
+  useGetShowRestDaysQuery,
+} from "../../features/api/extras/restdaysApi";
+import RestDaysModal from "../../components/modal/extras/RestDaysModal";
 import useDebounce from "../../hooks/useDebounce";
 
 const CustomSearchBar = ({
@@ -122,7 +122,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search Honor Titles..."}
+        placeholder={isVerySmall ? "Search..." : "Search Rest Days..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
@@ -180,7 +180,7 @@ const CustomSearchBar = ({
   );
 };
 
-const HonorTitles = () => {
+const RestDays = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -193,7 +193,7 @@ const HonorTitles = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedTitle, setSelectedTitle] = useState(null);
+  const [selectedRestDay, setSelectedRestDay] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -205,24 +205,22 @@ const HonorTitles = () => {
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
+      pagination: "true",
     }),
     [debounceValue, page, rowsPerPage, showArchived]
   );
 
   const {
-    data: honorTitles,
+    data: restDays,
     isLoading: queryLoading,
     isFetching,
     refetch,
     error,
-  } = useGetShowHonorTitlesQuery(queryParams);
+  } = useGetShowRestDaysQuery(queryParams);
 
-  const [deleteHonorTitle] = useDeleteHonorTitlesMutation();
+  const [deleteRestDay] = useDeleteRestDaysMutation();
 
-  const honorTitleList = useMemo(
-    () => honorTitles?.result?.data || [],
-    [honorTitles]
-  );
+  const restDayList = useMemo(() => restDays?.result?.data || [], [restDays]);
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
@@ -234,37 +232,37 @@ const HonorTitles = () => {
     setPage(1);
   }, []);
 
-  const handleMenuOpen = useCallback((event, title) => {
+  const handleMenuOpen = useCallback((event, restDay) => {
     event.stopPropagation();
-    setMenuAnchor((prev) => ({ ...prev, [title.id]: event.currentTarget }));
+    setMenuAnchor((prev) => ({ ...prev, [restDay.id]: event.currentTarget }));
   }, []);
 
-  const handleMenuClose = useCallback((titleId) => {
-    setMenuAnchor((prev) => ({ ...prev, [titleId]: null }));
+  const handleMenuClose = useCallback((restDayId) => {
+    setMenuAnchor((prev) => ({ ...prev, [restDayId]: null }));
   }, []);
 
   const handleArchiveRestoreClick = useCallback(
-    (title, event) => {
+    (restDay, event) => {
       if (event) {
         event.stopPropagation();
       }
-      setSelectedTitle(title);
+      setSelectedRestDay(restDay);
       setConfirmOpen(true);
-      handleMenuClose(title.id);
+      handleMenuClose(restDay.id);
     },
     [handleMenuClose]
   );
 
   const handleArchiveRestoreConfirm = async () => {
-    if (!selectedTitle) return;
+    if (!selectedRestDay) return;
 
     setIsLoading(true);
     try {
-      await deleteHonorTitle(selectedTitle.id).unwrap();
+      await deleteRestDay(selectedRestDay.id).unwrap();
       enqueueSnackbar(
-        selectedTitle.deleted_at
-          ? "Honor title restored successfully!"
-          : "Honor title archived successfully!",
+        selectedRestDay.deleted_at
+          ? "Rest Day restored successfully!"
+          : "Rest Day archived successfully!",
         { variant: "success", autoHideDuration: 2000 }
       );
       refetch();
@@ -275,21 +273,21 @@ const HonorTitles = () => {
       });
     } finally {
       setConfirmOpen(false);
-      setSelectedTitle(null);
+      setSelectedRestDay(null);
       setIsLoading(false);
     }
   };
 
-  const handleAddTitle = useCallback(() => {
-    setSelectedTitle(null);
+  const handleAddRestDay = useCallback(() => {
+    setSelectedRestDay(null);
     setModalOpen(true);
   }, []);
 
   const handleEditClick = useCallback(
-    (title) => {
-      setSelectedTitle(title);
+    (restDay) => {
+      setSelectedRestDay(restDay);
       setModalOpen(true);
-      handleMenuClose(title.id);
+      handleMenuClose(restDay.id);
     },
     [handleMenuClose]
   );
@@ -303,8 +301,8 @@ const HonorTitles = () => {
     setPage(1);
   }, []);
 
-  const renderStatusChip = useCallback((title) => {
-    const isActive = !title.deleted_at;
+  const renderStatusChip = useCallback((restDay) => {
+    const isActive = !restDay.deleted_at;
 
     return (
       <Chip
@@ -361,12 +359,12 @@ const HonorTitles = () => {
             justifyContent: "flex-start",
           }}>
           <Typography className="header">
-            {isVerySmall ? "HONOR TITLES" : "HONOR TITLES"}
+            {isVerySmall ? "REST DAYS" : "REST DAYS"}
           </Typography>
 
           {isVerySmall ? (
             <IconButton
-              onClick={handleAddTitle}
+              onClick={handleAddRestDay}
               disabled={isLoadingState}
               sx={{
                 backgroundColor: "rgb(33, 61, 112)",
@@ -392,7 +390,7 @@ const HonorTitles = () => {
             <Fade in={!isLoadingState}>
               <Button
                 variant="contained"
-                onClick={handleAddTitle}
+                onClick={handleAddRestDay}
                 startIcon={<AddIcon />}
                 disabled={isLoadingState}
                 className="create-button"
@@ -471,6 +469,9 @@ const HonorTitles = () => {
               height: isMobile ? "48px" : "52px",
               backgroundColor: "white",
             },
+            "& .MuiTableRow-root": {
+              transition: "background-color 0.2s ease-in-out",
+            },
           }}>
           <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
@@ -499,7 +500,7 @@ const HonorTitles = () => {
                     width: isMobile ? "120px" : "300px",
                     minWidth: isMobile ? "100px" : "300px",
                   }}>
-                  HONOR TITLE
+                  REST DAY
                 </TableCell>
                 {!isMobile && (
                   <TableCell
@@ -544,9 +545,13 @@ const HonorTitles = () => {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : honorTitleList.length > 0 ? (
-                honorTitleList.map((title) => (
-                  <TableRow key={title.id}>
+              ) : restDayList.length > 0 ? (
+                restDayList.map((restDay) => (
+                  <TableRow
+                    key={restDay.id}
+                    sx={{
+                      transition: "background-color 0.2s ease",
+                    }}>
                     <TableCell
                       align="left"
                       sx={{
@@ -561,7 +566,7 @@ const HonorTitles = () => {
                           ? "50px"
                           : "60px",
                       }}>
-                      {title.id}
+                      {restDay.id}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -582,7 +587,7 @@ const HonorTitles = () => {
                         whiteSpace: "nowrap",
                         textOverflow: "ellipsis",
                       }}>
-                      {title.code}
+                      {restDay.code}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -593,7 +598,7 @@ const HonorTitles = () => {
                         whiteSpace: "nowrap",
                         fontWeight: 600,
                       }}>
-                      {title.name}
+                      {restDay.name}
                     </TableCell>
                     {!isMobile && (
                       <TableCell
@@ -601,7 +606,7 @@ const HonorTitles = () => {
                           width: "100px",
                           minWidth: "100px",
                         }}>
-                        {renderStatusChip(title)}
+                        {renderStatusChip(restDay)}
                       </TableCell>
                     )}
                     <TableCell
@@ -611,7 +616,7 @@ const HonorTitles = () => {
                         minWidth: isMobile ? "80px" : "100px",
                       }}>
                       <IconButton
-                        onClick={(e) => handleMenuOpen(e, title)}
+                        onClick={(e) => handleMenuOpen(e, restDay)}
                         size="small"
                         sx={{
                           color: "rgb(33, 61, 112)",
@@ -622,9 +627,9 @@ const HonorTitles = () => {
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
                       <Menu
-                        anchorEl={menuAnchor[title.id]}
-                        open={Boolean(menuAnchor[title.id])}
-                        onClose={() => handleMenuClose(title.id)}
+                        anchorEl={menuAnchor[restDay.id]}
+                        open={Boolean(menuAnchor[restDay.id])}
+                        onClose={() => handleMenuClose(restDay.id)}
                         transformOrigin={{
                           horizontal: "right",
                           vertical: "top",
@@ -633,9 +638,9 @@ const HonorTitles = () => {
                           horizontal: "right",
                           vertical: "bottom",
                         }}>
-                        {!title.deleted_at && (
+                        {!restDay.deleted_at && (
                           <MenuItem
-                            onClick={() => handleEditClick(title)}
+                            onClick={() => handleEditClick(restDay)}
                             sx={{
                               fontSize: "0.875rem",
                             }}>
@@ -644,14 +649,14 @@ const HonorTitles = () => {
                           </MenuItem>
                         )}
                         <MenuItem
-                          onClick={(e) => handleArchiveRestoreClick(title, e)}
+                          onClick={(e) => handleArchiveRestoreClick(restDay, e)}
                           sx={{
                             fontSize: "0.875rem",
-                            color: title.deleted_at
+                            color: restDay.deleted_at
                               ? theme.palette.success.main
                               : "#d32f2f",
                           }}>
-                          {title.deleted_at ? (
+                          {restDay.deleted_at ? (
                             <>
                               <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
                               Restore
@@ -689,14 +694,14 @@ const HonorTitles = () => {
                         gap: 2,
                       }}>
                       <Typography variant="h6" color="text.secondary">
-                        No honor titles found
+                        No rest days found
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : showArchived
-                          ? "No archived honor titles"
-                          : "No active honor titles"}
+                          ? "No archived rest days"
+                          : "No active rest days"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -735,7 +740,7 @@ const HonorTitles = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50, 100]}
             component="div"
-            count={honorTitles?.result?.total || 0}
+            count={restDays?.result?.total || 0}
             rowsPerPage={rowsPerPage}
             page={Math.max(0, page - 1)}
             onPageChange={handlePageChange}
@@ -777,16 +782,18 @@ const HonorTitles = () => {
         <DialogContent>
           <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
-            <strong>{selectedTitle?.deleted_at ? "restore" : "archive"}</strong>{" "}
-            this honor title?
+            <strong>
+              {selectedRestDay?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this rest day?
           </Typography>
-          {selectedTitle && (
+          {selectedRestDay && (
             <Typography
               variant="body2"
               color="text.secondary"
               textAlign="center"
               sx={{ mt: 1 }}>
-              {selectedTitle.name}
+              {selectedRestDay.name}
             </Typography>
           )}
         </DialogContent>
@@ -815,14 +822,15 @@ const HonorTitles = () => {
         </DialogActions>
       </Dialog>
 
-      <HonorTitleModal
+      <RestDaysModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}
-        selectedHonorTitle={selectedTitle}
+        selectedRestDay={selectedRestDay}
+        showArchived={showArchived}
         refetch={refetch}
       />
     </Box>
   );
 };
 
-export default HonorTitles;
+export default RestDays;

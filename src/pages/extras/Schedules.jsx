@@ -304,12 +304,19 @@ const Schedule = () => {
 
       return (
         <Chip
-          label={isActive ? "Active" : "Inactive"}
-          color={isActive ? "success" : "error"}
+          label={isActive ? "ACTIVE" : "INACTIVE"}
           size="small"
           sx={{
-            fontSize: isVerySmall ? "10px" : "11px",
-            height: isVerySmall ? "20px" : "24px",
+            backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+            color: isActive ? "#2e7d32" : "#d32f2f",
+            border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+            fontWeight: 600,
+            fontSize: "11px",
+            height: "24px",
+            borderRadius: "12px",
+            "& .MuiChip-label": {
+              padding: "0 8px",
+            },
           }}
         />
       );
@@ -456,12 +463,6 @@ const Schedule = () => {
               borderBottom: "1px solid #f0f0f0",
               padding: isMobile ? "6px 12px" : "8px 16px",
               height: isMobile ? "48px" : "52px",
-            },
-            "& .MuiTableRow-root": {
-              transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-              },
             },
           }}>
           <Table stickyHeader>

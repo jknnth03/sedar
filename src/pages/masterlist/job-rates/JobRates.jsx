@@ -295,6 +295,29 @@ const JobRates = () => {
 
   const getJobLevelName = (jobRate) => jobRate?.job_level?.label || "N/A";
 
+  const renderStatusChip = useCallback((jobRate) => {
+    const isActive = !jobRate.deleted_at;
+
+    return (
+      <Chip
+        label={isActive ? "ACTIVE" : "INACTIVE"}
+        size="small"
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
+      />
+    );
+  }, []);
+
   return (
     <Box
       sx={{
@@ -434,9 +457,6 @@ const JobRates = () => {
             },
             "& .MuiTableRow-root": {
               transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-              },
             },
           }}>
           <Table stickyHeader>
@@ -569,11 +589,7 @@ const JobRates = () => {
                     )}
                     {!isVerySmall && (
                       <TableCell align="center">
-                        <Chip
-                          label={jobRate.deleted_at ? "Inactive" : "Active"}
-                          color={jobRate.deleted_at ? "error" : "success"}
-                          size="small"
-                        />
+                        {renderStatusChip(jobRate)}
                       </TableCell>
                     )}
                     <TableCell align="center">
@@ -692,27 +708,45 @@ const JobRates = () => {
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        maxWidth="xs">
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
         <DialogTitle>
           <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
-          <Typography variant="h6" fontWeight="bold" textAlign="center">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
             Confirmation
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" gutterBottom>
+          <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
             <strong>
               {selectedJobRate?.deleted_at ? "restore" : "archive"}
             </strong>{" "}
             this job rate?
           </Typography>
+          {selectedJobRate && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {getPositionTitle(selectedJobRate)} -{" "}
+              {getJobLevelName(selectedJobRate)}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Box
@@ -724,14 +758,16 @@ const JobRates = () => {
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error">
-              No
+              color="error"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success">
-              Yes
+              color="success"
+              sx={{ borderRadius: 2, minWidth: 80 }}>
+              Confirm
             </Button>
           </Box>
         </DialogActions>

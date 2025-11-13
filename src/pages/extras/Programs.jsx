@@ -245,7 +245,6 @@ const Programs = () => {
       if (event) {
         event.stopPropagation();
       }
-      console.log("Clicked archive/restore for:", program);
       setSelectedProgram(program);
       setConfirmOpen(true);
       handleMenuClose(program.id);
@@ -306,9 +305,20 @@ const Programs = () => {
 
     return (
       <Chip
-        label={isActive ? "Active" : "Inactive"}
-        color={isActive ? "success" : "error"}
+        label={isActive ? "ACTIVE" : "INACTIVE"}
         size="small"
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
       />
     );
   }, []);
@@ -332,8 +342,8 @@ const Programs = () => {
           justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
           flexDirection: isMobile || isTablet ? "column" : "row",
           flexShrink: 0,
-          minHeight: isMobile || isTablet ? "auto" : "60px",
-          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
+          minHeight: isMobile || isTablet ? "auto" : "72px",
+          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
           backgroundColor: "white",
           borderBottom: "1px solid #e0e0e0",
           boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
@@ -354,6 +364,7 @@ const Programs = () => {
           {isVerySmall ? (
             <IconButton
               onClick={handleAddProgram}
+              disabled={isLoadingState}
               sx={{
                 backgroundColor: "rgb(33, 61, 112)",
                 color: "white",
@@ -375,39 +386,41 @@ const Programs = () => {
               <AddIcon sx={{ fontSize: "18px" }} />
             </IconButton>
           ) : (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddProgram}
-              className="create-button"
-              disabled={isLoadingState}
-              sx={{
-                backgroundColor: "rgb(33, 61, 112)",
-                height: isMobile ? "36px" : "38px",
-                width: isMobile ? "auto" : "140px",
-                minWidth: isMobile ? "100px" : "140px",
-                padding: isMobile ? "0 16px" : "0 20px",
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: isMobile ? "12px" : "14px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                transition: "all 0.2s ease-in-out",
-                "& .MuiButton-startIcon": {
-                  marginRight: isMobile ? "4px" : "8px",
-                },
-                "&:hover": {
-                  backgroundColor: "rgb(25, 45, 84)",
-                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                  transform: "translateY(-1px)",
-                },
-                "&:disabled": {
-                  backgroundColor: "#ccc",
-                  boxShadow: "none",
-                },
-              }}>
-              CREATE
-            </Button>
+            <Fade in={!isLoadingState}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddProgram}
+                className="create-button"
+                disabled={isLoadingState}
+                sx={{
+                  backgroundColor: "rgb(33, 61, 112)",
+                  height: isMobile ? "36px" : "38px",
+                  width: isMobile ? "auto" : "160px",
+                  minWidth: isMobile ? "100px" : "160px",
+                  padding: isMobile ? "0 16px" : "0 20px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: isMobile ? "12px" : "14px",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                  transition: "all 0.2s ease-in-out",
+                  "& .MuiButton-startIcon": {
+                    marginRight: isMobile ? "4px" : "8px",
+                  },
+                  "&:hover": {
+                    backgroundColor: "rgb(25, 45, 84)",
+                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                    transform: "translateY(-1px)",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "#ccc",
+                    boxShadow: "none",
+                  },
+                }}>
+                CREATE
+              </Button>
+            </Fade>
           )}
         </Box>
 
@@ -432,6 +445,7 @@ const Programs = () => {
           sx={{
             flex: 1,
             overflow: "auto",
+            backgroundColor: isMobile ? "white" : "#fafafa",
             "& .MuiTableCell-head": {
               backgroundColor: "#f8f9fa",
               fontWeight: 700,
@@ -452,47 +466,56 @@ const Programs = () => {
               borderBottom: "1px solid #f0f0f0",
               padding: isMobile ? "6px 12px" : "8px 16px",
               height: isMobile ? "48px" : "52px",
+              backgroundColor: "white",
             },
             "& .MuiTableRow-root": {
               transition: "background-color 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: "#f8f9fa",
-              },
             },
           }}>
-          <Table stickyHeader>
+          <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
             <TableHead>
               <TableRow>
                 <TableCell
                   align="left"
-                  sx={{ width: isVerySmall ? "40px" : "60px" }}>
+                  sx={{
+                    width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                    minWidth: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+                  }}>
                   ID
                 </TableCell>
                 <TableCell
-                  align="left"
                   sx={{
-                    width: isVerySmall ? "70px" : isMobile ? "80px" : "120px",
+                    width: isVerySmall ? "70px" : isMobile ? "80px" : "150px",
                     minWidth: isVerySmall
                       ? "70px"
                       : isMobile
                       ? "80px"
-                      : "120px",
+                      : "150px",
                   }}>
                   CODE
                 </TableCell>
                 <TableCell
-                  align="left"
-                  sx={{ width: isMobile ? "140px" : "300px" }}>
+                  sx={{
+                    width: isMobile ? "140px" : "300px",
+                    minWidth: isMobile ? "120px" : "300px",
+                  }}>
                   PROGRAM
                 </TableCell>
                 {!isMobile && (
-                  <TableCell align="center" sx={{ width: "120px" }}>
+                  <TableCell
+                    sx={{
+                      width: "100px",
+                      minWidth: "100px",
+                    }}>
                     STATUS
                   </TableCell>
                 )}
                 <TableCell
                   align="center"
-                  sx={{ width: isMobile ? "80px" : "100px" }}>
+                  sx={{
+                    width: isMobile ? "80px" : "100px",
+                    minWidth: isMobile ? "80px" : "100px",
+                  }}>
                   ACTIONS
                 </TableCell>
               </TableRow>
@@ -526,36 +549,36 @@ const Programs = () => {
                   <TableRow
                     key={program.id}
                     sx={{
-                      cursor: "pointer",
-                      "&:hover": {
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          0.04
-                        ),
-                        "& .MuiTableCell-root": {
-                          backgroundColor: "transparent",
-                        },
-                      },
                       transition: "background-color 0.2s ease",
                     }}>
                     <TableCell
                       align="left"
-                      sx={{ width: isVerySmall ? "40px" : "60px" }}>
+                      sx={{
+                        width: isVerySmall
+                          ? "40px"
+                          : isMobile
+                          ? "50px"
+                          : "60px",
+                        minWidth: isVerySmall
+                          ? "40px"
+                          : isMobile
+                          ? "50px"
+                          : "60px",
+                      }}>
                       {program.id}
                     </TableCell>
                     <TableCell
-                      align="left"
                       sx={{
                         width: isVerySmall
                           ? "70px"
                           : isMobile
                           ? "80px"
-                          : "120px",
+                          : "150px",
                         minWidth: isVerySmall
                           ? "70px"
                           : isMobile
                           ? "80px"
-                          : "120px",
+                          : "150px",
                         fontFamily: "monospace",
                         fontSize: isVerySmall ? "10px" : "12px",
                         color: "#666",
@@ -566,10 +589,9 @@ const Programs = () => {
                       {program.code}
                     </TableCell>
                     <TableCell
-                      align="left"
                       sx={{
                         width: isMobile ? "140px" : "300px",
-                        minWidth: isMobile ? "120px" : "180px",
+                        minWidth: isMobile ? "120px" : "300px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -578,13 +600,20 @@ const Programs = () => {
                       {program.name}
                     </TableCell>
                     {!isMobile && (
-                      <TableCell align="center" sx={{ width: "120px" }}>
+                      <TableCell
+                        sx={{
+                          width: "100px",
+                          minWidth: "100px",
+                        }}>
                         {renderStatusChip(program)}
                       </TableCell>
                     )}
                     <TableCell
                       align="center"
-                      sx={{ width: isMobile ? "80px" : "100px" }}>
+                      sx={{
+                        width: isMobile ? "80px" : "100px",
+                        minWidth: isMobile ? "80px" : "100px",
+                      }}>
                       <IconButton
                         onClick={(e) => handleMenuOpen(e, program)}
                         size="small"
@@ -656,13 +685,24 @@ const Programs = () => {
                       color: "#666",
                       fontSize: isMobile ? "14px" : "16px",
                     }}>
-                    {searchQuery && !isLoadingState ? (
-                      <Typography>
-                        No results found for "{searchQuery}"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}>
+                      <Typography variant="h6" color="text.secondary">
+                        No programs found
                       </Typography>
-                    ) : (
-                      <Typography>No data available</Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {searchQuery
+                          ? `No results for "${searchQuery}"`
+                          : showArchived
+                          ? "No archived programs"
+                          : "No active programs"}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -728,7 +768,7 @@ const Programs = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
           </Box>
           <Typography
             variant="h6"
@@ -768,14 +808,14 @@ const Programs = () => {
               variant="outlined"
               color="error"
               sx={{ borderRadius: 2, minWidth: 80 }}>
-              No
+              Cancel
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
               color="success"
               sx={{ borderRadius: 2, minWidth: 80 }}>
-              Yes
+              Confirm
             </Button>
           </Box>
         </DialogActions>
@@ -786,6 +826,7 @@ const Programs = () => {
         handleClose={() => setModalOpen(false)}
         refetch={refetch}
         selectedProgram={selectedProgram}
+        showArchived={showArchived}
       />
     </Box>
   );

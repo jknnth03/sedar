@@ -16,7 +16,7 @@ import {
   useCancelFormSubmissionMutation,
 } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const DAFormApproved = ({
+const DAFormMDAProcessing = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -52,7 +52,7 @@ const DAFormApproved = ({
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "APPROVED",
+      approval_status: "PENDING MDA CREATION",
       pagination: true,
       search: searchQuery || "",
     };
@@ -297,7 +297,7 @@ const DAFormApproved = ({
             handleMenuClose={handleMenuClose}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            statusFilter="APPROVED"
+            statusFilter="FOR MDA PROCESSING"
             onCancel={handleCancel}
           />
 
@@ -358,4 +358,4 @@ const DAFormApproved = ({
   );
 };
 
-export default DAFormApproved;
+export default DAFormMDAProcessing;
