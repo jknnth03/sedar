@@ -7,15 +7,18 @@ const pdpApi = sedarApi
   .injectEndpoints({
     endpoints: (build) => ({
       getPdpList: build.query({
-        query: ({
-          pagination = 1,
-          page = 1,
-          per_page = 10,
-          status = "active",
-        }) => ({
-          url: `da-tasks/pdp?pagination=${pagination}&page=${page}&per_page=${per_page}&status=${status}`,
-          method: "GET",
-        }),
+        query: ({ pagination = 1, page = 1, per_page = 10, status }) => {
+          let url = `da-tasks/pdp?pagination=${pagination}&page=${page}&per_page=${per_page}`;
+
+          if (status) {
+            url += `&status=${status}`;
+          }
+
+          return {
+            url: url,
+            method: "GET",
+          };
+        },
         providesTags: ["pdpList"],
       }),
 

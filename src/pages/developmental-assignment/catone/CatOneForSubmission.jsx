@@ -114,16 +114,38 @@ const CatOneForSubmission = ({
 
     const result = taskData.result;
 
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "AWAITING_RESUBMISSION");
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter(
+        (item) =>
+          item.status === "FOR_SUBMISSION" ||
+          item.status === "AWAITING_RESUBMISSION"
+      );
     }
 
-    if (result.status === "AWAITING_RESUBMISSION") {
+    if (Array.isArray(result)) {
+      return result.filter(
+        (item) =>
+          item.status === "FOR_SUBMISSION" ||
+          item.status === "AWAITING_RESUBMISSION"
+      );
+    }
+
+    if (
+      result.status === "FOR_SUBMISSION" ||
+      result.status === "AWAITING_RESUBMISSION"
+    ) {
       return [result];
     }
 
     return [];
   }, [taskData]);
+
+  const totalCount = useMemo(() => {
+    if (taskData?.result?.total) {
+      return taskData.result.total;
+    }
+    return submissionsData.length;
+  }, [taskData, submissionsData.length]);
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
@@ -148,12 +170,6 @@ const CatOneForSubmission = ({
     filterDataByDate,
     filterDataBySearch,
   ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -208,13 +224,19 @@ const CatOneForSubmission = ({
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
+      console.log("handleModalSave called with:", {
+        submissionData,
+        mode,
+        submissionId,
+      });
+
       if (mode === "edit") {
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
+        setPendingFormData({ ...submissionData, id: submissionId });
         setConfirmAction("update");
         setConfirmOpen(true);
         return;
@@ -226,21 +248,30 @@ const CatOneForSubmission = ({
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
+        setPendingFormData({ ...submissionData, id: submissionId });
         setConfirmAction("resubmit");
         setConfirmOpen(true);
         return;
       }
 
       try {
-        await submitCatOne(submissionData).unwrap();
+        if (!submissionId) {
+          throw new Error("Submission ID is missing");
+        }
+
+        const payload = { id: submissionId, ...submissionData };
+        console.log("Submitting with payload:", payload);
+
+        await submitCatOne(payload).unwrap();
         enqueueSnackbar("Submission processed successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
         handleModalClose();
+        return true;
       } catch (error) {
+        console.error("Submit error:", error);
         const errorMessage =
           error?.data?.message ||
           "Failed to save submission. Please try again.";
@@ -248,6 +279,7 @@ const CatOneForSubmission = ({
           variant: "error",
           autoHideDuration: 2000,
         });
+        return false;
       }
     },
     [
@@ -335,21 +367,16 @@ const CatOneForSubmission = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        try {
-          const result = await saveCatOneAsDraft(pendingFormData).unwrap();
-
-          enqueueSnackbar("CAT 1 submission updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          if (selectedSubmissionId) {
-            refetchDetails();
-          }
-          handleModalClose();
-        } catch (updateError) {
-          throw updateError;
+        await saveCatOneAsDraft(pendingFormData).unwrap();
+        enqueueSnackbar("CAT 1 submission updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        if (selectedSubmissionId) {
+          refetchDetails();
         }
+        handleModalClose();
       } else if (confirmAction === "resubmit" && pendingFormData) {
         await submitCatOne(pendingFormData).unwrap();
         enqueueSnackbar("CAT 1 submission resubmitted successfully!", {
@@ -456,7 +483,7 @@ const CatOneForSubmission = ({
             backgroundColor: "white",
           }}>
           <CatOneTable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -506,7 +533,7 @@ const CatOneForSubmission = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

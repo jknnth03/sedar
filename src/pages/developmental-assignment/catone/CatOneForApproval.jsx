@@ -115,8 +115,8 @@ const CatOneForApproval = ({
 
     const result = taskData.result;
 
-    if (Array.isArray(result)) {
-      return result.filter(
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter(
         (item) =>
           item.status === "FOR_APPROVAL" ||
           item.status === "PENDING_VALIDATION" ||
@@ -228,7 +228,7 @@ const CatOneForApproval = ({
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
+        setPendingFormData({ id: submissionId, ...submissionData });
         setConfirmAction("update");
         setConfirmOpen(true);
         return;
@@ -240,14 +240,14 @@ const CatOneForApproval = ({
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
+        setPendingFormData({ id: submissionId, ...submissionData });
         setConfirmAction("resubmit");
         setConfirmOpen(true);
         return;
       }
 
       try {
-        await submitCatOne(submissionData).unwrap();
+        await submitCatOne({ id: submissionId, ...submissionData }).unwrap();
         enqueueSnackbar("Submission processed successfully!", {
           variant: "success",
           autoHideDuration: 2000,
@@ -433,7 +433,9 @@ const CatOneForApproval = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "CAT 1 Request";
+      selectedSubmissionForAction?.developmental_assignment?.reference_number ||
+      selectedSubmissionForAction?.reference_number ||
+      "CAT 1 Request";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 

@@ -33,6 +33,7 @@ const CatOneModalFields = ({
   } = useFormContext();
 
   const [scores, setScores] = useState(null);
+  const [initialized, setInitialized] = useState(false);
 
   const dateAssessed = watch("date_assessed");
   const answers = watch("answers") || [];
@@ -48,30 +49,46 @@ const CatOneModalFields = ({
   }, [isViewMode, selectedEntry?.scores]);
 
   useEffect(() => {
-    if (formInitialized && templateData && answers.length === 0) {
-      const initialAnswers = [];
-
-      const collectRateableItems = (items) => {
-        items.forEach((item) => {
-          if (item.is_rateable) {
-            initialAnswers.push({
-              template_item_id: item.id,
-              rating_scale_id: item.rating_id,
-            });
-          }
-          if (item.children && item.children.length > 0) {
-            collectRateableItems(item.children);
-          }
+    if (formInitialized && selectedEntry && !initialized) {
+      if (selectedEntry.date_assessed) {
+        setValue("date_assessed", dayjs(selectedEntry.date_assessed), {
+          shouldValidate: false,
         });
-      };
+      }
 
-      templateData.sections.forEach((section) => {
-        collectRateableItems(section.items);
-      });
+      if (selectedEntry.answers && selectedEntry.answers.length > 0) {
+        setValue("answers", selectedEntry.answers, { shouldValidate: false });
+      } else if (templateData) {
+        const initialAnswers = [];
 
-      setValue("answers", initialAnswers);
+        const collectRateableItems = (items) => {
+          items.forEach((item) => {
+            if (item.is_rateable) {
+              initialAnswers.push({
+                template_item_id: item.id,
+                rating_scale_id: item.rating_id,
+              });
+            }
+            if (item.children && item.children.length > 0) {
+              collectRateableItems(item.children);
+            }
+          });
+        };
+
+        templateData.sections.forEach((section) => {
+          collectRateableItems(section.items);
+        });
+
+        setValue("answers", initialAnswers, { shouldValidate: false });
+      }
+
+      setInitialized(true);
     }
-  }, [formInitialized, templateData, answers.length, setValue]);
+
+    if (!formInitialized) {
+      setInitialized(false);
+    }
+  }, [formInitialized, selectedEntry, templateData, setValue, initialized]);
 
   useEffect(() => {
     if (onFormDataCreate) {
@@ -359,6 +376,10 @@ const CatOneModalFields = ({
               {...field}
               label="Date Assessed"
               disabled={isViewMode || isLoading}
+              value={field.value || null}
+              onChange={(newValue) => {
+                field.onChange(newValue);
+              }}
               slotProps={{
                 textField: {
                   fullWidth: true,

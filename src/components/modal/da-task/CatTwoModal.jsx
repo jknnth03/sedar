@@ -173,7 +173,8 @@ const CatTwoModal = ({
     if (
       status === "APPROVED" ||
       status === "CANCELLED" ||
-      status === "FINAL_COMPLETE"
+      status === "FINAL_COMPLETE" ||
+      status === "FOR_APPROVAL"
     ) {
       return false;
     }
@@ -183,6 +184,11 @@ const CatTwoModal = ({
   const shouldShowResubmitButton = () => {
     const status = selectedEntry?.status;
     return status === "AWAITING_RESUBMISSION";
+  };
+
+  const shouldShowActionButtons = () => {
+    const status = selectedEntry?.status;
+    return status !== "FOR_APPROVAL";
   };
 
   const handleModeChange = (newMode) => {
@@ -321,7 +327,10 @@ const CatTwoModal = ({
       console.log("Entry ID for draft:", entryIdToUse);
 
       if (onSaveAsDraft) {
-        await onSaveAsDraft(draftData, entryIdToUse);
+        const success = await onSaveAsDraft(draftData, entryIdToUse);
+        if (success) {
+          handleClose();
+        }
       }
     } catch (error) {
       console.error("Save draft error:", error);
@@ -520,7 +529,7 @@ const CatTwoModal = ({
               </Button>
             )}
 
-            {currentMode === "edit" && (
+            {currentMode === "edit" && shouldShowActionButtons() && (
               <>
                 <DraftButton
                   onClick={handleSaveAsDraft}

@@ -555,6 +555,10 @@ const CatOne = () => {
   }, []);
 
   const handleRowClick = useCallback((entry) => {
+    console.log("=== ROW CLICKED ===");
+    console.log("Entry object:", entry);
+    console.log("Entry ID:", entry?.id);
+    console.log("Entry keys:", entry ? Object.keys(entry) : "no entry");
     setSelectedEntry(entry);
     setModalMode("view");
     setModalOpen(true);
@@ -566,21 +570,26 @@ const CatOne = () => {
   }, []);
 
   const handleModalSave = useCallback(
-    async (data, isDraft = false) => {
+    async (formData, mode, entryId) => {
       try {
-        if (isDraft) {
-          await saveCatOneAsDraft(data).unwrap();
-          enqueueSnackbar("CAT 1 saved as draft successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        } else {
-          await submitCatOne(data).unwrap();
-          enqueueSnackbar("CAT 1 submitted successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
+        console.log("handleModalSave called with:", {
+          formData,
+          mode,
+          entryId,
+        });
+
+        if (!entryId) {
+          throw new Error("Entry ID is missing");
         }
+
+        const payload = { id: entryId, ...formData };
+        console.log("Submitting payload:", payload);
+
+        await submitCatOne(payload).unwrap();
+        enqueueSnackbar("CAT 1 submitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
 
         setModalOpen(false);
         setSelectedEntry(null);
@@ -588,9 +597,8 @@ const CatOne = () => {
 
         return true;
       } catch (error) {
-        let errorMessage = isDraft
-          ? "Failed to save draft. Please try again."
-          : "Failed to submit CAT 1. Please try again.";
+        console.error("Submit error:", error);
+        let errorMessage = "Failed to submit CAT 1. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -605,7 +613,53 @@ const CatOne = () => {
         return false;
       }
     },
-    [saveCatOneAsDraft, submitCatOne, enqueueSnackbar, handleRefreshDetails]
+    [submitCatOne, enqueueSnackbar, handleRefreshDetails]
+  );
+
+  const handleModalSaveAsDraft = useCallback(
+    async (formData, entryId) => {
+      try {
+        console.log("handleModalSaveAsDraft called with:", {
+          formData,
+          entryId,
+        });
+
+        if (!entryId) {
+          throw new Error("Entry ID is missing");
+        }
+
+        const payload = { id: entryId, ...formData };
+        console.log("Saving draft payload:", payload);
+
+        await saveCatOneAsDraft(payload).unwrap();
+        enqueueSnackbar("CAT 1 saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        setModalOpen(false);
+        setSelectedEntry(null);
+        handleRefreshDetails();
+
+        return true;
+      } catch (error) {
+        console.error("Save draft error:", error);
+        let errorMessage = "Failed to save draft. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
+    },
+    [saveCatOneAsDraft, enqueueSnackbar, handleRefreshDetails]
   );
 
   const handleCancel = useCallback(
@@ -717,6 +771,8 @@ const CatOne = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onSave={handleModalSave}
+          onSaveAsDraft={handleModalSaveAsDraft}
           data={null}
           isLoading={false}
           page={selectedPage}
@@ -889,12 +945,8 @@ const CatOne = () => {
             onClose={handleModalClose}
             mode={modalMode}
             selectedEntry={selectedEntry}
-            onSave={(formData, mode, entryId) =>
-              handleModalSave(formData, false)
-            }
-            onSaveAsDraft={(formData, entryId) =>
-              handleModalSave(formData, true)
-            }
+            onSave={handleModalSave}
+            onSaveAsDraft={handleModalSaveAsDraft}
             onRefreshDetails={handleRefreshDetails}
           />
         </Box>

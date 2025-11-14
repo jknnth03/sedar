@@ -129,6 +129,10 @@ const CatTwoForApproval = ({
 
     const result = dataSource.result;
 
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter((item) => item.status === "FOR_APPROVAL");
+    }
+
     if (Array.isArray(result)) {
       return result.filter((item) => item.status === "FOR_APPROVAL");
     }
@@ -139,6 +143,14 @@ const CatTwoForApproval = ({
 
     return [];
   }, [data, taskData]);
+
+  const totalCount = useMemo(() => {
+    const dataSource = data || taskData;
+    if (dataSource?.result?.total) {
+      return dataSource.result.total;
+    }
+    return submissionsData.length;
+  }, [data, taskData, submissionsData.length]);
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
@@ -432,7 +444,7 @@ const CatTwoForApproval = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

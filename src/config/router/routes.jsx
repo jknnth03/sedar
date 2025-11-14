@@ -61,6 +61,8 @@ import DAFormApproval from "../../pages/approvals/daform/DAFormApproval.jsx";
 import WorkWeeks from "../../pages/extras/WorkWeeks.jsx";
 import WorkHours from "../../pages/extras/WorkHours.jsx";
 import RestDays from "../../pages/extras/RestDays.jsx";
+import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
+import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 
 export const ROUTES = [
   {
@@ -530,6 +532,22 @@ export const ROUTES = [
         element: <RestDays />,
         handle: {
           permission: MODULES.EXTRAS.children.RESTDAYS.name,
+        },
+      },
+      {
+        id: "EXTRAS.SEPARATIONTYPES",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.SEPARATIONTYPES.path}`,
+        element: <SeparationTypes />,
+        handle: {
+          permission: MODULES.EXTRAS.children.SEPARATIONTYPES.name,
+        },
+      },
+      {
+        id: "EXTRAS.SEPARATIONREASONS",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.SEPARATIONREASONS.path}`,
+        element: <SeparationReasons />,
+        handle: {
+          permission: MODULES.EXTRAS.children.SEPARATIONREASONS.name,
         },
       },
       {

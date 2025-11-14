@@ -197,7 +197,8 @@ const CatTwoTable = ({
                       ...styles.columnStyles.id,
                       ...styles.cellContentStyles,
                     }}>
-                    {submission?.reference_number ||
+                    {submission?.developmental_assignment?.reference_number ||
+                      submission?.reference_number ||
                       submission?.data_change?.reference_number ||
                       "N/A"}
                   </TableCell>
@@ -242,7 +243,8 @@ const CatTwoTable = ({
                       ...styles.cellContentStyles,
                     }}>
                     {formatDate(
-                      submission?.date_assessed ||
+                      submission?.created_at ||
+                        submission?.date_assessed ||
                         submission?.data_change?.date_assessed
                     )}
                   </TableCell>

@@ -483,8 +483,8 @@ const MDA = () => {
   const tabMap = {
     0: "ForMDAProcessing",
     1: "ForApproval",
-    2: "Rejected",
-    3: "AwaitingResubmission",
+    2: "AwaitingResubmission",
+    3: "Rejected",
     4: "Approved",
     5: "Cancelled",
   };
@@ -492,8 +492,8 @@ const MDA = () => {
   const reverseTabMap = {
     ForMDAProcessing: 0,
     ForApproval: 1,
-    Rejected: 2,
-    AwaitingResubmission: 3,
+    AwaitingResubmission: 2,
+    Rejected: 3,
     Approved: 4,
     Cancelled: 5,
   };
@@ -713,21 +713,6 @@ const MDA = () => {
       badgeCount: mdaCounts.forApproval,
     },
     {
-      label: "Rejected",
-      component: (
-        <MDARejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaCounts.rejected,
-    },
-    {
       label: "Awaiting Resubmission",
       component: (
         <MDAAwaitingResubmission
@@ -741,6 +726,21 @@ const MDA = () => {
         />
       ),
       badgeCount: mdaCounts.awaitingResubmission,
+    },
+    {
+      label: "Rejected",
+      component: (
+        <MDARejected
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: mdaCounts.rejected,
     },
     {
       label: "Approved",

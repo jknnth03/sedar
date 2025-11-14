@@ -46,16 +46,16 @@ const catOneApi = sedarApi
         providesTags: ["catOne"],
       }),
       saveCatOneAsDraft: build.mutation({
-        query: (data) => ({
-          url: "da-tasks/cat1/1",
+        query: ({ id, ...data }) => ({
+          url: `da-tasks/cat1/${id}`,
           method: "PUT",
           body: data,
         }),
         invalidatesTags: ["catOne"],
       }),
       submitCatOne: build.mutation({
-        query: (data) => ({
-          url: "da-tasks/cat1/1",
+        query: ({ id, ...data }) => ({
+          url: `da-tasks/cat1/${id}`,
           method: "PUT",
           body: data,
         }),

@@ -138,6 +138,10 @@ const CatTwoForAssessment = ({
 
     const result = dataSource.result;
 
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter((item) => item.status === "FOR_ASSESSMENT");
+    }
+
     if (Array.isArray(result)) {
       return result.filter((item) => item.status === "FOR_ASSESSMENT");
     }
@@ -148,6 +152,12 @@ const CatTwoForAssessment = ({
 
     return [];
   }, [data, taskData]);
+
+  const totalCount = useMemo(() => {
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return 0;
+    return dataSource.result.total || submissionsData.length;
+  }, [data, taskData, submissionsData.length]);
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
@@ -498,7 +508,7 @@ const CatTwoForAssessment = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.data_change?.reference_number ||
+      selectedSubmissionForAction?.developmental_assignment?.reference_number ||
       selectedSubmissionForAction?.reference_number ||
       "CAT 2 Assessment";
     return submissionForAction;
@@ -554,6 +564,7 @@ const CatTwoForAssessment = ({
             hideStatusColumn={true}
             forAssessment={true}
             onCancel={handleCancelSubmission}
+            useRootStatus={true}
           />
 
           <Box
@@ -589,7 +600,7 @@ const CatTwoForAssessment = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

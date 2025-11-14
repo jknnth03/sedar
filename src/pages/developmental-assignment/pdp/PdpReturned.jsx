@@ -111,6 +111,10 @@ const PdpReturned = ({
 
     const result = dataSource.result;
 
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter((item) => item.status === "RETURNED");
+    }
+
     if (Array.isArray(result)) {
       return result.filter((item) => item.status === "RETURNED");
     }
@@ -145,6 +149,17 @@ const PdpReturned = ({
     filterDataByDate,
     filterDataBySearch,
   ]);
+
+  const totalCount = useMemo(() => {
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return 0;
+
+    if (dataSource.result.total !== undefined) {
+      return dataSource.result.total;
+    }
+
+    return filteredSubmissions.length;
+  }, [data, taskData, filteredSubmissions]);
 
   const handleRowClick = useCallback(
     (submission) => {
@@ -308,6 +323,7 @@ const PdpReturned = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
+      selectedSubmissionForAction?.developmental_assignment?.reference_number ||
       selectedSubmissionForAction?.data_change?.reference_number ||
       selectedSubmissionForAction?.reference_number ||
       "PDP Submission";
@@ -359,7 +375,7 @@ const PdpReturned = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
+            hideStatusColumn={false}
             forReturned={true}
             onCancel={handleCancelSubmission}
           />
@@ -397,7 +413,7 @@ const PdpReturned = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

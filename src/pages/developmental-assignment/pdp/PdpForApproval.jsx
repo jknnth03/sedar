@@ -113,11 +113,33 @@ const PdpForApproval = ({
 
     const result = dataSource.result;
 
-    if (Array.isArray(result)) {
-      return result;
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter(
+        (item) =>
+          item.status === "FOR_APPROVAL" ||
+          item.status === "PENDING_APPROVAL" ||
+          item.status === "PENDING_VALIDATION"
+      );
     }
 
-    return [result];
+    if (Array.isArray(result)) {
+      return result.filter(
+        (item) =>
+          item.status === "FOR_APPROVAL" ||
+          item.status === "PENDING_APPROVAL" ||
+          item.status === "PENDING_VALIDATION"
+      );
+    }
+
+    if (
+      result.status === "FOR_APPROVAL" ||
+      result.status === "PENDING_APPROVAL" ||
+      result.status === "PENDING_VALIDATION"
+    ) {
+      return [result];
+    }
+
+    return [];
   }, [data, taskData]);
 
   const filteredSubmissions = useMemo(() => {
@@ -143,6 +165,17 @@ const PdpForApproval = ({
     filterDataByDate,
     filterDataBySearch,
   ]);
+
+  const totalCount = useMemo(() => {
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return 0;
+
+    if (dataSource.result.total !== undefined) {
+      return dataSource.result.total;
+    }
+
+    return filteredSubmissions.length;
+  }, [data, taskData, filteredSubmissions]);
 
   const handleRowClick = useCallback(
     (submission) => {
@@ -358,6 +391,7 @@ const PdpForApproval = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
+      selectedSubmissionForAction?.developmental_assignment?.reference_number ||
       selectedSubmissionForAction?.data_change?.reference_number ||
       selectedSubmissionForAction?.reference_number ||
       "PDP Submission";
@@ -449,7 +483,7 @@ const PdpForApproval = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

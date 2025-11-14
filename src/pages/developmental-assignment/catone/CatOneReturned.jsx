@@ -18,9 +18,6 @@ import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
   useGetCatOneByIdQuery,
-  useGetCatOneScoreQuery,
-  useSaveCatOneAsDraftMutation,
-  useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
 import CatOneTable from "./CatOneTable";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
@@ -33,6 +30,8 @@ const CatOneReturned = ({
   filterDataBySearch,
   setQueryParams,
   currentParams,
+  onSave,
+  onSaveAsDraft,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -106,14 +105,16 @@ const CatOneReturned = ({
     return catOneDetails;
   }, [catOneDetails]);
 
-  const [submitCatOne] = useSubmitCatOneMutation();
-  const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
   const [cancelCatOneSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
     if (!taskData?.result) return [];
 
     const result = taskData.result;
+
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter((item) => item.status === "RETURNED");
+    }
 
     if (Array.isArray(result)) {
       return result.filter((item) => item.status === "RETURNED");
@@ -150,11 +151,21 @@ const CatOneReturned = ({
     filterDataBySearch,
   ]);
 
+  const totalCount = useMemo(() => {
+    if (!taskData?.result) return 0;
+
+    const result = taskData.result;
+
+    if (result.total !== undefined) {
+      return result.total;
+    }
+
+    return filteredSubmissions.length;
+  }, [taskData, filteredSubmissions]);
+
   const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return filteredSubmissions;
+  }, [filteredSubmissions]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -211,18 +222,40 @@ const CatOneReturned = ({
     async (submissionData, submissionId) => {
       try {
         setIsLoading(true);
-        await saveCatOneAsDraft(submissionData).unwrap();
-        enqueueSnackbar("CAT 1 submission saved as draft successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (selectedSubmissionId) {
-          refetchDetails();
+
+        if (!submissionId) {
+          enqueueSnackbar("Submission ID is missing. Please try again.", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+          return false;
         }
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
+
+        if (!onSaveAsDraft) {
+          enqueueSnackbar("Save function not available. Please try again.", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+          return false;
         }
+
+        const success = await onSaveAsDraft(submissionData, submissionId);
+
+        if (success) {
+          enqueueSnackbar("CAT 1 submission saved as draft successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+          refetch();
+          if (selectedSubmissionId) {
+            refetchDetails();
+          }
+          if (modalSuccessHandler) {
+            modalSuccessHandler();
+          }
+          handleModalClose();
+        }
+        return success;
       } catch (error) {
         const errorMessage =
           error?.data?.message || "Failed to save as draft. Please try again.";
@@ -230,17 +263,19 @@ const CatOneReturned = ({
           variant: "error",
           autoHideDuration: 2000,
         });
+        return false;
       } finally {
         setIsLoading(false);
       }
     },
     [
-      saveCatOneAsDraft,
-      enqueueSnackbar,
+      onSaveAsDraft,
       refetch,
       refetchDetails,
       selectedSubmissionId,
       modalSuccessHandler,
+      enqueueSnackbar,
+      handleModalClose,
     ]
   );
 
@@ -270,32 +305,17 @@ const CatOneReturned = ({
         return;
       }
 
-      try {
-        await submitCatOne(submissionData).unwrap();
-        enqueueSnackbar("Submission processed successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to save submission. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
+      if (onSave) {
+        const success = await onSave(submissionData, mode, submissionId);
+        if (success) {
+          refetch();
+          handleModalClose();
+        }
+        return success;
       }
+      return false;
     },
-    [
-      refetch,
-      enqueueSnackbar,
-      handleModalClose,
-      submissionDetails,
-      filteredSubmissions,
-      submitCatOne,
-    ]
+    [refetch, handleModalClose, submissionDetails, filteredSubmissions, onSave]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -373,9 +393,8 @@ const CatOneReturned = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        try {
-          const result = await saveCatOneAsDraft(pendingFormData).unwrap();
-
+        if (onSaveAsDraft) {
+          await onSaveAsDraft(pendingFormData, selectedSubmissionForAction.id);
           enqueueSnackbar("CAT 1 submission updated successfully!", {
             variant: "success",
             autoHideDuration: 2000,
@@ -385,20 +404,24 @@ const CatOneReturned = ({
             refetchDetails();
           }
           handleModalClose();
-        } catch (updateError) {
-          throw updateError;
         }
       } else if (confirmAction === "resubmit" && pendingFormData) {
-        await submitCatOne(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 submission resubmitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
+        if (onSave) {
+          await onSave(
+            pendingFormData,
+            "resubmit",
+            selectedSubmissionForAction?.id
+          );
+          enqueueSnackbar("CAT 1 submission resubmitted successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+          refetch();
+          if (modalSuccessHandler) {
+            modalSuccessHandler();
+          }
+          handleModalClose();
         }
-        handleModalClose();
       }
     } catch (error) {
       const errorMessage =
@@ -543,7 +566,7 @@ const CatOneReturned = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50, 100]}
               component="div"
-              count={filteredSubmissions.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={Math.max(0, page - 1)}
               onPageChange={handlePageChange}

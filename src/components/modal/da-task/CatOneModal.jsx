@@ -159,20 +159,15 @@ const CatOneModal = ({
   const [formInitialized, setFormInitialized] = useState(false);
   const [lastEntryId, setLastEntryId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [editingEntryId, setEditingEntryId] = useState(null);
-
-  useEffect(() => {
-    if (open && selectedEntry?.id) {
-      setEditingEntryId(selectedEntry.id);
-    }
-  }, [open, selectedEntry?.id]);
+  const [currentEntryId, setCurrentEntryId] = useState(null);
 
   const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
     if (
       status === "APPROVED" ||
       status === "CANCELLED" ||
-      status === "KICKOFF_COMPLETE"
+      status === "KICKOFF_COMPLETE" ||
+      status === "FOR_APPROVAL"
     ) {
       return false;
     }
@@ -182,6 +177,11 @@ const CatOneModal = ({
   const shouldShowResubmitButton = () => {
     const status = selectedEntry?.status;
     return status === "AWAITING_RESUBMISSION";
+  };
+
+  const shouldShowActionButtons = () => {
+    const status = selectedEntry?.status;
+    return status !== "FOR_APPROVAL";
   };
 
   const handleModeChange = (newMode) => {
@@ -208,7 +208,7 @@ const CatOneModal = ({
     setFormInitialized(false);
     setLastEntryId(null);
     setIsUpdating(false);
-    setEditingEntryId(null);
+    setCurrentEntryId(null);
     reset();
     onClose();
   };
@@ -245,6 +245,12 @@ const CatOneModal = ({
     }
   }, [onSuccessfulSave]);
 
+  useEffect(() => {
+    if (selectedEntry?.id) {
+      setCurrentEntryId(selectedEntry.id);
+    }
+  }, [selectedEntry?.id]);
+
   const onSubmit = async (data) => {
     try {
       setIsUpdating(true);
@@ -268,10 +274,19 @@ const CatOneModal = ({
         return;
       }
 
-      const entryIdToUse = editingEntryId || selectedEntry?.id;
+      const entryIdToUse = selectedEntry?.id;
 
-      await onSave(formData, currentMode, entryIdToUse);
+      if (!entryIdToUse) {
+        alert("Entry ID is missing. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
+
+      if (onSave) {
+        await onSave(formData, currentMode, entryIdToUse);
+      }
     } catch (error) {
+      console.error("onSubmit error:", error);
       alert("An error occurred while submitting the form. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -295,17 +310,27 @@ const CatOneModal = ({
         return;
       }
 
+      const entryIdToUse = selectedEntry?.id;
+
+      if (!entryIdToUse) {
+        alert("Entry ID is missing. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
+
       const draftData = {
         ...formData,
         action: "save_draft",
       };
 
-      const entryIdToUse = editingEntryId || selectedEntry?.id;
-
       if (onSaveAsDraft) {
-        await onSaveAsDraft(draftData, entryIdToUse);
+        const success = await onSaveAsDraft(draftData, entryIdToUse);
+        if (success) {
+          handleClose();
+        }
       }
     } catch (error) {
+      console.error("handleSaveAsDraft error:", error);
       alert("An error occurred while saving as draft. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -313,12 +338,11 @@ const CatOneModal = ({
   };
 
   const handleResubmit = async () => {
-    const entryId = selectedEntry?.id;
-
-    if (entryId && onResubmit) {
+    const entryIdToUse = selectedEntry?.id;
+    if (entryIdToUse && onResubmit) {
       try {
         setIsUpdating(true);
-        const success = await onResubmit(entryId);
+        const success = await onResubmit(entryIdToUse);
         if (success) {
           setFormInitialized(false);
           if (onRefreshDetails) {
@@ -501,7 +525,7 @@ const CatOneModal = ({
               </Button>
             )}
 
-            {currentMode === "edit" && (
+            {currentMode === "edit" && shouldShowActionButtons() && (
               <>
                 <DraftButton
                   onClick={handleSaveAsDraft}

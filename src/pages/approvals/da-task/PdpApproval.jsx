@@ -208,8 +208,11 @@ const PdpApproval = () => {
       try {
         const payload = {
           id: submission.id,
-          comments,
         };
+
+        if (comments && comments.trim()) {
+          payload.comments = comments.trim();
+        }
 
         await approvePdp(payload).unwrap();
         enqueueSnackbar("PDP approved successfully!", {
@@ -228,12 +231,13 @@ const PdpApproval = () => {
   );
 
   const handleReturn = useCallback(
-    async ({ correction_remarks }) => {
+    async ({ reason }) => {
       const { submission } = detailsDialog;
+
       try {
         const payload = {
           id: submission.id,
-          correction_remarks,
+          correction_remarks: reason,
         };
 
         await returnPdp(payload).unwrap();

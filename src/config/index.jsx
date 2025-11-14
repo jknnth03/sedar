@@ -64,6 +64,8 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import WeekendIcon from "@mui/icons-material/Weekend";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 export const updateDashboardNotifications = (dispatch) => {
   dispatch(moduleApi.util.invalidateTags(["dashboard"]));
@@ -578,6 +580,18 @@ export const createEnhancedModules = (dashboardData = {}) => {
           name: "Rest Days",
           path: "restdays",
           icon: <WeekendIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        SEPARATIONTYPES: {
+          name: "Separation Types",
+          path: "separationtypes",
+          icon: <ExitToAppIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        SEPARATIONREASONS: {
+          name: "Separation Reasons",
+          path: "separationreasons",
+          icon: <HelpOutlineIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBBANDS: {

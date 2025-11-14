@@ -51,10 +51,7 @@ const PdpApprovalDialog = ({
 
   const handleActionConfirm = async () => {
     if (confirmAction === "approve") {
-      const approveData = {
-        comments: comments.trim(),
-        reason: reason.trim(),
-      };
+      const approveData = { comments: comments.trim() };
       setConfirmOpen(false);
       await onApprove(approveData);
       handleReset();
@@ -64,10 +61,7 @@ const PdpApprovalDialog = ({
         setReasonError(true);
         return;
       }
-      const returnData = {
-        comments: comments.trim(),
-        reason: trimmedReason,
-      };
+      const returnData = { reason: trimmedReason };
       setConfirmOpen(false);
       await onReturn(returnData);
       handleReset();
@@ -790,39 +784,21 @@ const PdpApprovalDialog = ({
           )}
 
           {confirmAction === "approve" && (
-            <>
-              <TextField
-                label="Reason (Optional)"
-                placeholder="Add a reason for approval..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                multiline
-                rows={2}
-                fullWidth
-                variant="outlined"
-                sx={{
-                  mb: 2,
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                  },
-                }}
-              />
-              <TextField
-                label="Comments (Optional)"
-                placeholder="Add any additional comments..."
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                multiline
-                rows={2}
-                fullWidth
-                variant="outlined"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                  },
-                }}
-              />
-            </>
+            <TextField
+              label="Comments (Optional)"
+              placeholder="Add any additional comments..."
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
           )}
         </DialogContent>
 

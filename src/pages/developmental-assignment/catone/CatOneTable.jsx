@@ -51,6 +51,11 @@ const CatOneTable = ({
         color: "#f57c00",
         label: "FOR APPROVAL",
       },
+      FOR_APPROVAL: {
+        bg: "#fff4e6",
+        color: "#f57c00",
+        label: "FOR APPROVAL",
+      },
       FOR_ASSESSMENT: {
         bg: "#e3f2fd",
         color: "#1976d2",
@@ -74,6 +79,11 @@ const CatOneTable = ({
         color: "#9c27b0",
         label: "FOR SUBMISSION",
       },
+      FOR_SUBMISSION: {
+        bg: "#f3e5f5",
+        color: "#9c27b0",
+        label: "FOR SUBMISSION",
+      },
       DA_IN_PROGRESS: {
         bg: "#e3f2fd",
         color: "#1976d2",
@@ -83,6 +93,11 @@ const CatOneTable = ({
         bg: "#e8f5e9",
         color: "#2e7d32",
         label: "APPROVED",
+      },
+      DRAFT: {
+        bg: "#f5f5f5",
+        color: "#757575",
+        label: "DRAFT",
       },
     };
     return (
@@ -200,7 +215,9 @@ const CatOneTable = ({
                       ...styles.columnStyles.id,
                       ...styles.cellContentStyles,
                     }}>
-                    {submission?.data_change?.reference_number || "N/A"}
+                    {submission?.developmental_assignment?.reference_number ||
+                      submission?.data_change?.reference_number ||
+                      "N/A"}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -236,14 +253,20 @@ const CatOneTable = ({
                       ...styles.columnStyles.dateCreated,
                       ...styles.cellContentStyles,
                     }}>
-                    {formatDate(submission?.data_change?.start_date)}
+                    {formatDate(
+                      submission?.developmental_assignment?.start_date ||
+                        submission?.data_change?.start_date
+                    )}
                   </TableCell>
                   <TableCell
                     sx={{
                       ...styles.columnStyles.dateCreated,
                       ...styles.cellContentStyles,
                     }}>
-                    {formatDate(submission?.data_change?.end_date)}
+                    {formatDate(
+                      submission?.developmental_assignment?.end_date ||
+                        submission?.data_change?.end_date
+                    )}
                   </TableCell>
                   {(!hideStatusColumn || forAssessment) && (
                     <TableCell sx={styles.columnStyles.status}>

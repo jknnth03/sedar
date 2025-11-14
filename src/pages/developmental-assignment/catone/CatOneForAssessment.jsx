@@ -138,8 +138,8 @@ const CatOneForAssessment = ({
 
     const result = dataSource.result;
 
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "FOR_ASSESSMENT");
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter((item) => item.status === "FOR_ASSESSMENT");
     }
 
     if (result.status === "FOR_ASSESSMENT") {
@@ -228,7 +228,10 @@ const CatOneForAssessment = ({
     async (submissionData, submissionId) => {
       try {
         setIsLoading(true);
-        await saveCatOneAsDraft(submissionData).unwrap();
+        await saveCatOneAsDraft({
+          id: submissionId,
+          ...submissionData,
+        }).unwrap();
         enqueueSnackbar("CAT 1 assessment saved as draft successfully!", {
           variant: "success",
           autoHideDuration: 2000,
@@ -269,7 +272,7 @@ const CatOneForAssessment = ({
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
+        setPendingFormData({ id: submissionId, ...submissionData });
         setConfirmAction("update");
         setConfirmOpen(true);
         return;
@@ -281,14 +284,14 @@ const CatOneForAssessment = ({
           filteredSubmissions.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
+        setPendingFormData({ id: submissionId, ...submissionData });
         setConfirmAction("assess");
         setConfirmOpen(true);
         return;
       }
 
       try {
-        await submitCatOne(submissionData).unwrap();
+        await submitCatOne({ id: submissionId, ...submissionData }).unwrap();
         enqueueSnackbar("Assessment submitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
