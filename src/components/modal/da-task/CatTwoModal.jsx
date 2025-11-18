@@ -150,7 +150,7 @@ const CatTwoModal = ({
   onRefreshDetails,
   onSuccessfulSave,
 }) => {
-  const { handleSubmit, reset, trigger, setValue, getValues } =
+  const { handleSubmit, reset, trigger, setValue, getValues, formState } =
     useFormContext();
 
   const [getFormDataForSubmission, setGetFormDataForSubmission] =
@@ -173,8 +173,7 @@ const CatTwoModal = ({
     if (
       status === "APPROVED" ||
       status === "CANCELLED" ||
-      status === "FINAL_COMPLETE" ||
-      status === "FOR_APPROVAL"
+      status === "FINAL_COMPLETE"
     ) {
       return false;
     }
@@ -186,9 +185,14 @@ const CatTwoModal = ({
     return status === "AWAITING_RESUBMISSION";
   };
 
-  const shouldShowActionButtons = () => {
+  const shouldShowSaveAsDraftButton = () => {
     const status = selectedEntry?.status;
     return status !== "FOR_APPROVAL";
+  };
+
+  const isForApprovalStatus = () => {
+    const status = selectedEntry?.status;
+    return status === "FOR_APPROVAL";
   };
 
   const handleModeChange = (newMode) => {
@@ -260,6 +264,8 @@ const CatTwoModal = ({
       const isFormValid = await trigger();
       if (!isFormValid) {
         console.error("Form validation failed");
+        console.error("Form Errors:", formState.errors);
+        alert("Please check all required fields");
         setIsUpdating(false);
         return;
       }
@@ -280,16 +286,23 @@ const CatTwoModal = ({
         return;
       }
 
-      console.log("Submitting form data:", formData);
-
       const entryIdToUse = editingEntryId || selectedEntry?.id;
-      console.log("Entry ID:", entryIdToUse);
+
+      if (!entryIdToUse) {
+        console.error("No entry ID available");
+        alert("Entry ID is missing. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
 
       if (onSave) {
         await onSave(formData, currentMode, entryIdToUse);
+      } else {
+        console.error("onSave function not provided");
       }
     } catch (error) {
       console.error("Submit error:", error);
+      console.error("Error stack:", error.stack);
       alert("An error occurred while submitting the form. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -321,16 +334,10 @@ const CatTwoModal = ({
         action: "save_draft",
       };
 
-      console.log("Saving draft data:", draftData);
-
       const entryIdToUse = editingEntryId || selectedEntry?.id;
-      console.log("Entry ID for draft:", entryIdToUse);
 
       if (onSaveAsDraft) {
-        const success = await onSaveAsDraft(draftData, entryIdToUse);
-        if (success) {
-          handleClose();
-        }
+        await onSaveAsDraft(draftData, entryIdToUse);
       }
     } catch (error) {
       console.error("Save draft error:", error);
@@ -529,28 +536,39 @@ const CatTwoModal = ({
               </Button>
             )}
 
-            {currentMode === "edit" && shouldShowActionButtons() && (
+            {currentMode === "edit" && (
               <>
-                <DraftButton
-                  onClick={handleSaveAsDraft}
-                  disabled={isProcessing}
-                  sx={{ mr: 2 }}>
-                  {isProcessing ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <>
-                      <SaveIcon sx={{ fontSize: 16 }} />
-                      SAVE AS DRAFT
-                    </>
-                  )}
-                </DraftButton>
+                {shouldShowSaveAsDraftButton() && (
+                  <DraftButton
+                    onClick={handleSaveAsDraft}
+                    disabled={isProcessing}
+                    sx={{ mr: 2 }}>
+                    {isProcessing ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <>
+                        <SaveIcon sx={{ fontSize: 16 }} />
+                        SAVE AS DRAFT
+                      </>
+                    )}
+                  </DraftButton>
+                )}
                 <SubmitButton type="submit" disabled={isProcessing}>
                   {isProcessing ? (
                     <CircularProgress size={16} />
                   ) : (
                     <>
-                      <SendIcon sx={{ fontSize: 16 }} />
-                      SUBMIT
+                      {isForApprovalStatus() ? (
+                        <>
+                          <EditIcon sx={{ fontSize: 16 }} />
+                          UPDATE
+                        </>
+                      ) : (
+                        <>
+                          <SendIcon sx={{ fontSize: 16 }} />
+                          SUBMIT
+                        </>
+                      )}
                     </>
                   )}
                 </SubmitButton>

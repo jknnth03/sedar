@@ -11,6 +11,9 @@ import {
   Button,
   CircularProgress,
 } from "@mui/material";
+import SaveAsIcon from "@mui/icons-material/SaveAs";
+import SendIcon from "@mui/icons-material/Send";
+import CloseIcon from "@mui/icons-material/Close";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -238,99 +241,30 @@ const CatTwoForSubmission = ({
 
   const handleModalSaveAsDraft = useCallback(
     async (submissionData, submissionId) => {
-      try {
-        setIsLoading(true);
-        await saveCatTwoAsDraft({
-          taskId: submissionId,
-          ...submissionData,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 assessment saved as draft successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (selectedSubmissionId) {
-          refetchDetails();
-        }
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message || "Failed to save as draft. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      } finally {
-        setIsLoading(false);
-      }
+      const submission =
+        submissionDetails?.result ||
+        filteredSubmissions.find((sub) => sub.id === submissionId);
+
+      setSelectedSubmissionForAction(submission);
+      setPendingFormData(submissionData);
+      setConfirmAction("draft");
+      setConfirmOpen(true);
     },
-    [
-      saveCatTwoAsDraft,
-      enqueueSnackbar,
-      refetch,
-      refetchDetails,
-      selectedSubmissionId,
-      modalSuccessHandler,
-    ]
+    [submissionDetails, filteredSubmissions]
   );
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
-      if (mode === "edit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
+      const submission =
+        submissionDetails?.result ||
+        filteredSubmissions.find((sub) => sub.id === submissionId);
 
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
-        return;
-      }
-
-      if (mode === "submit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("submit");
-        setConfirmOpen(true);
-        return;
-      }
-
-      try {
-        await submitCatTwo({
-          taskId: submissionId,
-          ...submissionData,
-        }).unwrap();
-        enqueueSnackbar("Assessment submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to submit assessment. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
+      setSelectedSubmissionForAction(submission);
+      setPendingFormData(submissionData);
+      setConfirmAction("submit");
+      setConfirmOpen(true);
     },
-    [
-      refetch,
-      enqueueSnackbar,
-      handleModalClose,
-      submissionDetails,
-      filteredSubmissions,
-      submitCatTwo,
-    ]
+    [submissionDetails, filteredSubmissions]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -413,28 +347,26 @@ const CatTwoForSubmission = ({
         });
         refetch();
       } else if (
-        confirmAction === "update" &&
+        confirmAction === "draft" &&
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        try {
-          const result = await saveCatTwoAsDraft({
-            taskId: selectedSubmissionForAction.id,
-            ...pendingFormData,
-          }).unwrap();
-
-          enqueueSnackbar("CAT 2 assessment updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          if (selectedSubmissionId) {
-            refetchDetails();
-          }
-          handleModalClose();
-        } catch (updateError) {
-          throw updateError;
+        await saveCatTwoAsDraft({
+          taskId: selectedSubmissionForAction.id,
+          ...pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 assessment saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        if (selectedSubmissionId) {
+          refetchDetails();
         }
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
+        }
+        handleModalClose();
       } else if (confirmAction === "submit" && pendingFormData) {
         await submitCatTwo({
           taskId: selectedSubmissionForAction.id,
@@ -476,16 +408,11 @@ const CatTwoForSubmission = ({
 
   const getConfirmationMessage = useCallback(() => {
     if (confirmAction === "cancel") {
+      return "Are you sure you want to Cancel this CAT 2 Assessment?";
+    } else if (confirmAction === "draft") {
       return (
         <>
-          Are you sure you want to <strong>Cancel</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this CAT 2
+          Are you sure you want to <strong>Save as Draft</strong> this CAT 2
           Assessment?
         </>
       );
@@ -518,9 +445,18 @@ const CatTwoForSubmission = ({
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
-      cancel: { color: "#ff4400", icon: "?" },
-      update: { color: "#2196f3", icon: "✎" },
-      submit: { color: "#4caf50", icon: "✓" },
+      cancel: {
+        color: "#ff4400",
+        IconComponent: CloseIcon,
+      },
+      draft: {
+        color: "#2196F3",
+        IconComponent: SaveAsIcon,
+      },
+      submit: {
+        color: "#2196F3",
+        IconComponent: SendIcon,
+      },
     };
 
     const config = iconConfig[confirmAction] || iconConfig.cancel;
@@ -653,14 +589,12 @@ const CatTwoForSubmission = ({
                   alignItems: "center",
                   justifyContent: "center",
                 }}>
-                <Typography
-                  sx={{
+                {React.createElement(getConfirmationIcon().IconComponent, {
+                  sx: {
                     color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
+                    fontSize: "32px",
+                  },
+                })}
               </Box>
             </Box>
             <Typography

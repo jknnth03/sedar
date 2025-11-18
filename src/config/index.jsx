@@ -314,11 +314,18 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.dataChangeRejected,
         },
         MASTERDATAAUTHORITY: {
-          name: "Master Data Authority",
+          name: "MDA (For Data Change)",
           path: "masterdataauthority",
           icon: <CreateNewFolderIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.dataChangeForMdaProcessing,
+        },
+        MDADA: {
+          name: "MDA (For DA)",
+          path: "mdada",
+          icon: <VerifiedIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
         },
         PENDINGREGISTRATION: {
           name: "Pending Registration",

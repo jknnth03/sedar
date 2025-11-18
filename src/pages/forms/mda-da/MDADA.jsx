@@ -27,22 +27,28 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import {
-  useSaveCatTwoAsDraftMutation,
-  useSubmitCatTwoMutation,
-} from "../../../features/api/da-task/catTwoApi";
+import { styles } from "../manpowerform/FormSubmissionStyles";
+
 import { format, parseISO, isWithinInterval } from "date-fns";
-import CatTwoForAssessment from "./CatTwoForAssessment";
-import CatTwoForSubmission from "./CatTwoForSubmission";
-import CatTwoForApproval from "./CatTwoForApproval";
-import CatTwoReturned from "./CatTwoReturned";
-import CatTwoApproved from "./CatTwoApproved";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
-import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
+
+import MDADAForMDAProcessing from "./MDADAForMDAProcessing";
+import MDADAForApproval from "./MDADAForApproval";
+import MDARejected from "./MDADARejected";
+import MDADAAwaitingResubmission from "./MDADAAwaitingResubmission";
+import MDADAApproved from "./MDADAApproved";
+import MDADACancelled from "./MDADACancelled";
+import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
+import {
+  useCreateMdaDaMutation,
+  useUpdateMdaDaMutation,
+} from "../../../features/api/forms/mdaDaApi";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -85,8 +91,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`cattwo-tabpanel-${index}`}
-      aria-labelledby={`cattwo-tab-${index}`}
+      id={`mdada-tabpanel-${index}`}
+      aria-labelledby={`mdada-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -141,10 +147,10 @@ const filterDataBySearch = (data, searchQuery) => {
   const query = searchQuery.toLowerCase();
   return data.filter(
     (item) =>
-      item.reference_number?.toLowerCase().includes(query) ||
-      item.employee_name?.toLowerCase().includes(query) ||
-      item.employee_code?.toLowerCase().includes(query) ||
-      item.status?.toLowerCase().includes(query)
+      item.reference_number.toLowerCase().includes(query) ||
+      item.employee_name.toLowerCase().includes(query) ||
+      item.employee_code.toLowerCase().includes(query) ||
+      item.action_type.toLowerCase().includes(query)
   );
 };
 
@@ -402,7 +408,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search CAT 2..."}
+        placeholder={isVerySmall ? "Search..." : "Search MDADA..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -462,7 +468,7 @@ const CustomSearchBar = ({
   );
 };
 
-const CatTwo = () => {
+const MDADA = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -470,21 +476,26 @@ const CatTwo = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
+  const { data: dashboardData } = useShowDashboardQuery();
+
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForAssessment",
-    1: "ForSubmission",
-    2: "ForApproval",
-    3: "Returned",
+    0: "ForMDAProcessing",
+    1: "ForApproval",
+    2: "AwaitingResubmission",
+    3: "Rejected",
     4: "Approved",
+    5: "Cancelled",
   };
+
   const reverseTabMap = {
-    ForAssessment: 0,
-    ForSubmission: 1,
-    ForApproval: 2,
-    Returned: 3,
+    ForMDAProcessing: 0,
+    ForApproval: 1,
+    AwaitingResubmission: 2,
+    Rejected: 3,
     Approved: 4,
+    Cancelled: 5,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -498,13 +509,24 @@ const CatTwo = () => {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalMode, setModalMode] = useState("create");
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
 
-  const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
-  const [submitCatTwo] = useSubmitCatTwoMutation();
+  const [createMDADASubmission] = useCreateMdaDaMutation();
+  const [updateMDADASubmission] = useUpdateMdaDaMutation();
+  const [cancelMDADASubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const mdaDaCounts = {
+    forMDAProcessing: 0,
+    forApproval: 0,
+    rejected: 0,
+    awaitingResubmission: 0,
+    approved: 0,
+    cancelled: 0,
+  };
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -517,7 +539,7 @@ const CatTwo = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -531,7 +553,7 @@ const CatTwo = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -542,128 +564,43 @@ const CatTwo = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const handleRefreshDetails = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-  }, []);
-
-  const handleRowClick = useCallback((entry) => {
-    setSelectedEntry(entry);
-    setModalMode("view");
+  const handleAddNew = useCallback(() => {
+    setSelectedEntry(null);
+    setModalMode("create");
+    methods.reset();
     setModalOpen(true);
-  }, []);
+  }, [methods]);
 
-  const handleModalClose = useCallback(() => {
+  const handleCloseModal = useCallback(() => {
     setModalOpen(false);
     setSelectedEntry(null);
+    setModalMode("create");
+    setModalLoading(false);
+    methods.reset();
+  }, [methods]);
+
+  const handleModeChange = useCallback((newMode) => {
+    setModalMode(newMode);
   }, []);
 
-  const handleModalSave = useCallback(
-    async (formData, mode, entryId) => {
-      try {
-        await submitCatTwo({
-          taskId: entryId,
-          ...formData,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to submit CAT 2. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        return false;
-      }
-    },
-    [submitCatTwo, enqueueSnackbar, handleRefreshDetails]
-  );
-
-  const handleSaveAsDraft = useCallback(
-    async (data, entryId) => {
-      try {
-        await saveCatTwoAsDraft({
-          taskId: entryId,
-          ...data,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 saved as draft successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to save draft. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        return false;
-      }
-    },
-    [saveCatTwoAsDraft, enqueueSnackbar, handleRefreshDetails]
-  );
-
-  const handleResubmit = useCallback(
-    async (entryId) => {
-      try {
-        await submitCatTwo({
-          taskId: entryId,
-          action: "resubmit",
-        }).unwrap();
-        enqueueSnackbar("CAT 2 resubmitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleRefreshDetails();
-        return true;
-      } catch (error) {
-        enqueueSnackbar("Failed to resubmit. Please try again.", {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        return false;
-      }
-    },
-    [submitCatTwo, enqueueSnackbar, handleRefreshDetails]
-  );
-
   const handleCancel = useCallback(
-    async (entryId, cancellationReason = "") => {
+    async (entryId, cancellationReason) => {
       try {
-        enqueueSnackbar("CAT 2 cancelled successfully!", {
+        await cancelMDADASubmission({
+          id: entryId,
+          cancellation_reason: cancellationReason,
+        }).unwrap();
+
+        enqueueSnackbar("MDADA cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
-        handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage = "Failed to cancel CAT 2. Please try again.";
+        console.error("Error in handleCancel:", error);
+
+        let errorMessage = "Failed to cancel MDADA. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -679,14 +616,75 @@ const CatTwo = () => {
         return false;
       }
     },
-    [enqueueSnackbar, handleRefreshDetails]
+    [cancelMDADASubmission, enqueueSnackbar]
+  );
+
+  const handleSave = useCallback(
+    async (formData, mode, entryId) => {
+      setModalLoading(true);
+
+      try {
+        let result;
+
+        if (mode === "edit") {
+          if (!entryId) {
+            throw new Error("Entry ID is required for updating");
+          }
+
+          result = await updateMDADASubmission({
+            id: entryId,
+            data: formData,
+          }).unwrap();
+
+          enqueueSnackbar("MDADA updated successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        } else {
+          result = await createMDADASubmission(formData).unwrap();
+
+          enqueueSnackbar("MDADA created successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        }
+
+        handleCloseModal();
+      } catch (error) {
+        console.error("Error in handleSave:", error);
+
+        let errorMessage =
+          mode === "edit"
+            ? "Failed to update MDADA. Please try again."
+            : "Failed to create MDADA. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [
+      createMDADASubmission,
+      updateMDADASubmission,
+      enqueueSnackbar,
+      handleCloseModal,
+    ]
   );
 
   const tabsData = [
     {
-      label: "For Assessment",
+      label: "For MDA Processing",
       component: (
-        <CatTwoForAssessment
+        <MDADAForMDAProcessing
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -694,31 +692,14 @@ const CatTwo = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
-          onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
-    },
-    {
-      label: "For Submission",
-      component: (
-        <CatTwoForSubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
+      badgeCount: mdaDaCounts.forMDAProcessing,
     },
     {
       label: "For Approval",
       component: (
-        <CatTwoForApproval
+        <MDADAForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -726,15 +707,14 @@ const CatTwo = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
-          onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaDaCounts.forApproval,
     },
     {
-      label: "Returned",
+      label: "Awaiting Resubmission",
       component: (
-        <CatTwoReturned
+        <MDADAAwaitingResubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -742,15 +722,29 @@ const CatTwo = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
-          onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaDaCounts.awaitingResubmission,
+    },
+    {
+      label: "Rejected",
+      component: (
+        <MDARejected
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: mdaDaCounts.rejected,
     },
     {
       label: "Approved",
       component: (
-        <CatTwoApproved
+        <MDADAApproved
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -758,17 +752,30 @@ const CatTwo = () => {
           setQueryParams={setQueryParams}
           currentParams={currentParams}
           onCancel={handleCancel}
-          onRowClick={handleRowClick}
         />
       ),
-      badgeCount: null,
+      badgeCount: mdaDaCounts.approved,
+    },
+    {
+      label: "Cancelled",
+      component: (
+        <MDADACancelled
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+        />
+      ),
+      badgeCount: mdaDaCounts.cancelled,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `cattwo-tab-${index}`,
-      "aria-controls": `cattwo-tabpanel-${index}`,
+      id: `mdada-tab-${index}`,
+      "aria-controls": `mdada-tabpanel-${index}`,
     };
   };
 
@@ -812,17 +819,26 @@ const CatTwo = () => {
                 boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                 gap: isMobile || isTablet ? "16px" : "0",
               }}>
-              <Typography
-                className="header"
+              <Box
                 sx={{
-                  fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                  fontWeight: 500,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+                  width: isMobile || isTablet ? "100%" : "auto",
+                  justifyContent: "flex-start",
                 }}>
-                CAT 2
-              </Typography>
+                <Typography
+                  className="header"
+                  sx={{
+                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
+                    fontWeight: 500,
+                    color: "rgb(33, 61, 112)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}>
+                  {isVerySmall ? "MDADA" : "MDA (For DA)"}
+                </Typography>
+              </Box>
 
               <CustomSearchBar
                 searchQuery={searchQuery}
@@ -836,7 +852,7 @@ const CatTwo = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="CAT 2 tabs"
+              aria-label="MDADA submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile>
@@ -844,15 +860,22 @@ const CatTwo = () => {
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
-                        badgeContent={tab.badgeCount}
+                        variant="dot"
                         color="error"
+                        anchorOrigin={{
+                          vertical: "top",
+                          horizontal: "right",
+                        }}
                         sx={{
                           "& .MuiBadge-badge": {
-                            fontSize: "0.75rem",
-                            minWidth: 18,
-                            height: 18,
+                            minWidth: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            padding: 0,
+                            top: "8px",
+                            right: "-10px",
                           },
                         }}>
                         {tab.label}
@@ -889,17 +912,15 @@ const CatTwo = () => {
             onDateFiltersChange={handleDateFiltersChange}
           />
 
-          <CatTwoModal
+          <MDADAModal
+            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
             open={modalOpen}
-            onClose={handleModalClose}
-            onSave={handleModalSave}
-            onSaveAsDraft={handleSaveAsDraft}
-            onResubmit={handleResubmit}
+            onClose={handleCloseModal}
+            onSave={handleSave}
             selectedEntry={selectedEntry}
-            isLoading={isLoading}
+            isLoading={modalLoading}
             mode={modalMode}
-            onModeChange={setModalMode}
-            onRefreshDetails={handleRefreshDetails}
+            onModeChange={handleModeChange}
           />
         </Box>
       </FormProvider>
@@ -907,4 +928,4 @@ const CatTwo = () => {
   );
 };
 
-export default CatTwo;
+export default MDADA;

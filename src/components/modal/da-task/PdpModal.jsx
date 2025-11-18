@@ -252,6 +252,9 @@ const PdpModal = ({
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   const [actionsExpanded, setActionsExpanded] = useState(true);
   const [resourcesExpanded, setResourcesExpanded] = useState(true);
@@ -328,6 +331,16 @@ const PdpModal = ({
     return status !== "APPROVED" && status !== "CANCELLED";
   };
 
+  const shouldShowSaveAsDraftButton = () => {
+    const status = pdpData?.status;
+    return status !== "FOR_APPROVAL";
+  };
+
+  const isForApprovalStatus = () => {
+    const status = pdpData?.status;
+    return status === "FOR_APPROVAL";
+  };
+
   const handleModeChange = (newMode) => setCurrentMode(newMode);
 
   const handleCancelEdit = () => {
@@ -348,6 +361,9 @@ const PdpModal = ({
     setCurrentMode("view");
     setOriginalMode("view");
     setIsUpdating(false);
+    setConfirmOpen(false);
+    setConfirmAction(null);
+    setPendingFormData(null);
     reset();
     onClose();
   };
@@ -366,123 +382,117 @@ const PdpModal = ({
   const generateTempId = (prefix) =>
     `temp-${prefix}-${Date.now()}-${Math.random()}`;
 
+  const prepareFormData = (data, actionType) => {
+    return {
+      action: actionType,
+      development_plan_objective: data.development_plan_objective,
+      goals: data.goals.map((goal, index) => ({
+        id: goal.id ? String(goal.id) : generateTempId("goal"),
+        goal_number: index + 1,
+        description: goal.description,
+        target_date: goal.target_date
+          ? dayjs(goal.target_date).format("YYYY-MM-DD")
+          : null,
+      })),
+      actions: data.actions.map((action) => ({
+        id: action.id ? String(action.id) : generateTempId("action"),
+        pdp_goal_id: action.pdp_goal_id ? String(action.pdp_goal_id) : "",
+        activity: action.activity,
+        due_date: action.due_date
+          ? dayjs(action.due_date).format("YYYY-MM-DD")
+          : null,
+        date_accomplished: action.date_accomplished
+          ? dayjs(action.date_accomplished).format("YYYY-MM-DD")
+          : null,
+        expected_progress: action.expected_progress,
+      })),
+      resources: data.resources.map((resource) => ({
+        id: resource.id ? String(resource.id) : generateTempId("resource"),
+        pdp_goal_id: resource.pdp_goal_id ? String(resource.pdp_goal_id) : "",
+        resource_item: resource.resource_item,
+        description: resource.description,
+        person_in_charge: resource.person_in_charge,
+        due_date: resource.due_date
+          ? dayjs(resource.due_date).format("YYYY-MM-DD")
+          : null,
+      })),
+      coaching_sessions: data.coaching_sessions.map((session) => ({
+        id: session.id ? String(session.id) : generateTempId("session"),
+        month_label: session.month_label,
+        session_date: session.session_date
+          ? dayjs(session.session_date).format("YYYY-MM-DD")
+          : null,
+        commitment: session.commitment,
+      })),
+    };
+  };
+
   const onSubmit = async (data) => {
-    try {
-      setIsUpdating(true);
-
-      const formData = {
-        action: "submit_for_validation",
-        development_plan_objective: data.development_plan_objective,
-        goals: data.goals.map((goal, index) => ({
-          id: goal.id ? String(goal.id) : generateTempId("goal"),
-          goal_number: index + 1,
-          description: goal.description,
-          target_date: goal.target_date
-            ? dayjs(goal.target_date).format("YYYY-MM-DD")
-            : null,
-        })),
-        actions: data.actions.map((action) => ({
-          id: action.id ? String(action.id) : generateTempId("action"),
-          pdp_goal_id: action.pdp_goal_id ? String(action.pdp_goal_id) : "",
-          activity: action.activity,
-          due_date: action.due_date
-            ? dayjs(action.due_date).format("YYYY-MM-DD")
-            : null,
-          date_accomplished: action.date_accomplished
-            ? dayjs(action.date_accomplished).format("YYYY-MM-DD")
-            : null,
-          expected_progress: action.expected_progress,
-        })),
-        resources: data.resources.map((resource) => ({
-          id: resource.id ? String(resource.id) : generateTempId("resource"),
-          pdp_goal_id: resource.pdp_goal_id ? String(resource.pdp_goal_id) : "",
-          resource_item: resource.resource_item,
-          description: resource.description,
-          person_in_charge: resource.person_in_charge,
-          due_date: resource.due_date
-            ? dayjs(resource.due_date).format("YYYY-MM-DD")
-            : null,
-        })),
-        coaching_sessions: data.coaching_sessions.map((session) => ({
-          id: session.id ? String(session.id) : generateTempId("session"),
-          month_label: session.month_label,
-          session_date: session.session_date
-            ? dayjs(session.session_date).format("YYYY-MM-DD")
-            : null,
-          commitment: session.commitment,
-        })),
-      };
-
-      const success = await onSave(formData, false);
-      if (success) {
-        await refetch();
-        handleClose();
-      }
-    } catch (error) {
-      console.error("Submit error:", error);
-    } finally {
-      setIsUpdating(false);
-    }
+    const formData = prepareFormData(data, "submit_for_validation");
+    setPendingFormData(formData);
+    setConfirmAction(isForApprovalStatus() ? "update" : "submit");
+    setConfirmOpen(true);
   };
 
   const handleSaveAsDraft = async () => {
+    const data = watch();
+    const formData = prepareFormData(data, "save_draft");
+    setPendingFormData(formData);
+    setConfirmAction("draft");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingFormData) return;
+
+    setIsUpdating(true);
+
     try {
-      setIsUpdating(true);
-      const data = watch();
-
-      const formData = {
-        action: "save_draft",
-        development_plan_objective: data.development_plan_objective,
-        goals: data.goals.map((goal, index) => ({
-          id: goal.id ? String(goal.id) : generateTempId("goal"),
-          goal_number: index + 1,
-          description: goal.description,
-          target_date: goal.target_date
-            ? dayjs(goal.target_date).format("YYYY-MM-DD")
-            : null,
-        })),
-        actions: data.actions.map((action) => ({
-          id: action.id ? String(action.id) : generateTempId("action"),
-          pdp_goal_id: action.pdp_goal_id ? String(action.pdp_goal_id) : "",
-          activity: action.activity,
-          due_date: action.due_date
-            ? dayjs(action.due_date).format("YYYY-MM-DD")
-            : null,
-          date_accomplished: action.date_accomplished
-            ? dayjs(action.date_accomplished).format("YYYY-MM-DD")
-            : null,
-          expected_progress: action.expected_progress,
-        })),
-        resources: data.resources.map((resource) => ({
-          id: resource.id ? String(resource.id) : generateTempId("resource"),
-          pdp_goal_id: resource.pdp_goal_id ? String(resource.pdp_goal_id) : "",
-          resource_item: resource.resource_item,
-          description: resource.description,
-          person_in_charge: resource.person_in_charge,
-          due_date: resource.due_date
-            ? dayjs(resource.due_date).format("YYYY-MM-DD")
-            : null,
-        })),
-        coaching_sessions: data.coaching_sessions.map((session) => ({
-          id: session.id ? String(session.id) : generateTempId("session"),
-          month_label: session.month_label,
-          session_date: session.session_date
-            ? dayjs(session.session_date).format("YYYY-MM-DD")
-            : null,
-          commitment: session.commitment,
-        })),
-      };
-
-      const success = await onSave(formData, true);
+      const success = await onSave(pendingFormData, confirmAction === "draft");
       if (success) {
         await refetch();
         handleClose();
       }
     } catch (error) {
-      console.error("Save draft error:", error);
+      console.error("Action error:", error);
     } finally {
       setIsUpdating(false);
+      setConfirmOpen(false);
+      setConfirmAction(null);
+      setPendingFormData(null);
     }
+  };
+
+  const handleConfirmationCancel = () => {
+    setConfirmOpen(false);
+    setConfirmAction(null);
+    setPendingFormData(null);
+  };
+
+  const getConfirmationMessage = () => {
+    if (confirmAction === "update") {
+      return "Are you sure you want to Update this PDP Request?";
+    } else if (confirmAction === "submit") {
+      return "Are you sure you want to Submit this PDP Request?";
+    } else if (confirmAction === "draft") {
+      return "Are you sure you want to Save this PDP as Draft?";
+    }
+    return "";
+  };
+
+  const getConfirmationIcon = () => {
+    const iconConfig = {
+      update: { color: "#2196F3", icon: "✎" },
+      submit: { color: "#4CAF50", icon: "✓" },
+      draft: { color: "#2196F3", icon: "💾" },
+    };
+    return iconConfig[confirmAction] || iconConfig.submit;
+  };
+
+  const getSubmissionDisplayName = () => {
+    if (confirmAction === "update") return "PDP REQUEST";
+    if (confirmAction === "draft") return "PDP DRAFT";
+    return pdpData?.reference_number || "PDP SUBMISSION";
   };
 
   const handleAddGoal = () => {
@@ -709,26 +719,37 @@ const PdpModal = ({
             <StyledDialogActions>
               {currentMode === "edit" && !showLoadingState && (
                 <>
-                  <DraftButton
-                    onClick={handleSaveAsDraft}
-                    disabled={isProcessing}
-                    sx={{ mr: 2 }}>
-                    {isUpdating ? (
-                      <CircularProgress size={16} sx={{ color: "white" }} />
-                    ) : (
-                      <>
-                        <SaveIcon sx={{ fontSize: 16 }} />
-                        SAVE AS DRAFT
-                      </>
-                    )}
-                  </DraftButton>
+                  {shouldShowSaveAsDraftButton() && (
+                    <DraftButton
+                      onClick={handleSaveAsDraft}
+                      disabled={isProcessing}
+                      sx={{ mr: 2 }}>
+                      {isUpdating ? (
+                        <CircularProgress size={16} sx={{ color: "white" }} />
+                      ) : (
+                        <>
+                          <SaveIcon sx={{ fontSize: 16 }} />
+                          SAVE AS DRAFT
+                        </>
+                      )}
+                    </DraftButton>
+                  )}
                   <SubmitButton type="submit" disabled={isProcessing}>
                     {isUpdating ? (
                       <CircularProgress size={16} sx={{ color: "white" }} />
                     ) : (
                       <>
-                        <SendIcon sx={{ fontSize: 16 }} />
-                        SUBMIT
+                        {isForApprovalStatus() ? (
+                          <>
+                            <EditIcon sx={{ fontSize: 16 }} />
+                            UPDATE
+                          </>
+                        ) : (
+                          <>
+                            <SendIcon sx={{ fontSize: 16 }} />
+                            SUBMIT
+                          </>
+                        )}
                       </>
                     )}
                   </SubmitButton>
@@ -737,6 +758,129 @@ const PdpModal = ({
             </StyledDialogActions>
           </form>
         </StyledDialog>
+
+        <Dialog
+          open={confirmOpen}
+          onClose={handleConfirmationCancel}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              padding: 2,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+              textAlign: "center",
+            },
+          }}>
+          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: 2,
+              }}>
+              <Box
+                sx={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: "50%",
+                  backgroundColor: getConfirmationIcon().color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                <Typography
+                  sx={{
+                    color: "white",
+                    fontSize: "30px",
+                    fontWeight: "normal",
+                  }}>
+                  {getConfirmationIcon().icon}
+                </Typography>
+              </Box>
+            </Box>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                color: "rgb(25, 45, 84)",
+                marginBottom: 0,
+              }}>
+              Confirmation
+            </Typography>
+          </DialogTitle>
+          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+            <Typography
+              variant="body1"
+              sx={{
+                marginBottom: 2,
+                fontSize: "16px",
+                color: "#333",
+                fontWeight: 400,
+              }}>
+              {getConfirmationMessage()}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {getSubmissionDisplayName()}
+            </Typography>
+          </DialogContent>
+          <DialogActions
+            sx={{
+              justifyContent: "center",
+              padding: 0,
+              marginTop: 3,
+              gap: 2,
+            }}>
+            <Button
+              onClick={handleConfirmationCancel}
+              variant="outlined"
+              sx={{
+                textTransform: "uppercase",
+                fontWeight: 600,
+                borderColor: "#f44336",
+                color: "#f44336",
+                paddingX: 3,
+                paddingY: 1,
+                borderRadius: 2,
+                "&:hover": {
+                  borderColor: "#d32f2f",
+                  backgroundColor: "rgba(244, 67, 54, 0.04)",
+                },
+              }}
+              disabled={isUpdating}>
+              CANCEL
+            </Button>
+            <Button
+              onClick={handleConfirmAction}
+              variant="contained"
+              sx={{
+                textTransform: "uppercase",
+                fontWeight: 600,
+                backgroundColor: "#4caf50",
+                paddingX: 3,
+                paddingY: 1,
+                borderRadius: 2,
+                "&:hover": {
+                  backgroundColor: "#388e3c",
+                },
+              }}
+              disabled={isUpdating}>
+              {isUpdating ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "CONFIRM"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </LocalizationProvider>
     </FormProvider>
   );

@@ -617,6 +617,30 @@ const Pdp = () => {
     ]
   );
 
+  const handleApprove = useCallback(
+    async (entryId) => {
+      try {
+        handleRefreshDetails();
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    [handleRefreshDetails]
+  );
+
+  const handleReject = useCallback(
+    async (entryId) => {
+      try {
+        handleRefreshDetails();
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    [handleRefreshDetails]
+  );
+
   const handleCancel = useCallback(
     async (entryId, cancellationReason = "") => {
       try {
@@ -692,6 +716,8 @@ const Pdp = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onApprove={handleApprove}
+          onReject={handleReject}
         />
       ),
       badgeCount: null,

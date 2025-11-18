@@ -36,8 +36,8 @@ const PdpForApproval = ({
   onPageChange,
   onRowsPerPageChange,
   onRowClick,
-  onApprove,
-  onReject,
+  onApprove: onApproveFromParent,
+  onReject: onRejectFromParent,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -56,6 +56,12 @@ const PdpForApproval = ({
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
   const [remarks, setRemarks] = useState("");
+
+  useEffect(() => {
+    console.log("confirmOpen changed:", confirmOpen);
+    console.log("confirmAction:", confirmAction);
+    console.log("selectedSubmissionForAction:", selectedSubmissionForAction);
+  }, [confirmOpen, confirmAction, selectedSubmissionForAction]);
 
   const methods = useForm({
     defaultValues: {
@@ -199,10 +205,12 @@ const PdpForApproval = ({
 
   const handleApproveSubmission = useCallback(
     async (submissionId) => {
+      console.log("Approve clicked for ID:", submissionId);
       const submission = filteredSubmissions.find(
         (sub) => sub.id === submissionId
       );
       if (submission) {
+        console.log("Opening approve confirmation");
         setSelectedSubmissionForAction(submission);
         setConfirmAction("approve");
         setRemarks("");
@@ -219,10 +227,12 @@ const PdpForApproval = ({
 
   const handleRejectSubmission = useCallback(
     async (submissionId) => {
+      console.log("Reject clicked for ID:", submissionId);
       const submission = filteredSubmissions.find(
         (sub) => sub.id === submissionId
       );
       if (submission) {
+        console.log("Opening reject confirmation");
         setSelectedSubmissionForAction(submission);
         setConfirmAction("reject");
         setRemarks("");
@@ -335,10 +345,10 @@ const PdpForApproval = ({
 
       refetch();
 
-      if (confirmAction === "approve" && onApprove) {
-        onApprove(selectedSubmissionForAction.id);
-      } else if (confirmAction === "reject" && onReject) {
-        onReject(selectedSubmissionForAction.id);
+      if (confirmAction === "approve" && onApproveFromParent) {
+        onApproveFromParent(selectedSubmissionForAction.id);
+      } else if (confirmAction === "reject" && onRejectFromParent) {
+        onRejectFromParent(selectedSubmissionForAction.id);
       }
     } catch (error) {
       const errorMessage =
@@ -366,17 +376,9 @@ const PdpForApproval = ({
 
   const getConfirmationMessage = useCallback(() => {
     if (confirmAction === "approve") {
-      return (
-        <>
-          Are you sure you want to <strong>Approve</strong> this PDP Submission?
-        </>
-      );
+      return "Are you sure you want to Approve this PDP Submission?";
     } else if (confirmAction === "reject") {
-      return (
-        <>
-          Are you sure you want to <strong>Reject</strong> this PDP Submission?
-        </>
-      );
+      return "Are you sure you want to Reject this PDP Submission?";
     }
     return "";
   }, [confirmAction]);
@@ -400,8 +402,8 @@ const PdpForApproval = ({
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
-      approve: { color: "#4caf50", icon: "?" },
-      reject: { color: "#f44336", icon: "?" },
+      approve: { color: "#4caf50", icon: "✓" },
+      reject: { color: "#ff4400", icon: "✕" },
     };
 
     const config = iconConfig[confirmAction] || iconConfig.approve;

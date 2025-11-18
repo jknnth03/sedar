@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   Grid,
@@ -74,6 +74,10 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const [shouldFetchPositions, setShouldFetchPositions] = useState(false);
   const [isKpisLoading, setIsKpisLoading] = useState(false);
 
+  // Add refs to prevent infinite loops and track initialization
+  const isInitialMount = useRef(true);
+  const prevModeRef = useRef(currentMode);
+
   const { data: employeesData, isLoading: isEmployeesLoading } =
     useGetAllEmployeesDaQuery(undefined, {
       skip: !shouldFetchEmployees,
@@ -92,9 +96,24 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
     ? positionsData.result
     : [];
 
+  // Reset on modal close/open or mode change
   useEffect(() => {
-    if (!isCreate && formValues.kpis) {
-      setKpisList(formValues.kpis);
+    if (!isCreate && currentMode !== prevModeRef.current) {
+      // Mode changed, reset to allow re-initialization
+      isInitialMount.current = true;
+      prevModeRef.current = currentMode;
+    }
+  }, [currentMode, isCreate]);
+
+  // Initialize KPIs only once when form values are loaded
+  useEffect(() => {
+    if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
+      // Only update if we haven't initialized yet OR if the data actually changed
+      if (isInitialMount.current && formValues.kpis.length > 0) {
+        console.log("Initializing KPIs from form values:", formValues.kpis);
+        setKpisList(formValues.kpis);
+        isInitialMount.current = false;
+      }
     }
   }, [isCreate, formValues.kpis]);
 
@@ -140,12 +159,16 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               target_percentage: kpi.target_percentage,
             }));
             setKpisList(autoFilledKpis);
+            // Directly set form value here to avoid additional effect
+            setValue("kpis", autoFilledKpis);
           } else {
             setKpisList([]);
+            setValue("kpis", []);
           }
         } catch (error) {
           console.error("Error fetching KPIs:", error);
           setKpisList([]);
+          setValue("kpis", []);
         } finally {
           setIsKpisLoading(false);
         }
@@ -155,19 +178,21 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
     loadPositionKpis();
   }, [selectedToPosition, setValue, fetchPositionKpis]);
 
-  useEffect(() => {
-    setValue("kpis", kpisList);
-  }, [kpisList, setValue]);
+  // Remove the problematic useEffect that was causing the loop
+  // This effect was syncing kpisList to form values constantly
+  // Now we only update form values when kpisList changes via user interaction
 
   const handleKpiChange = (index, field, value) => {
-    setKpisList(
-      kpisList.map((kpi, i) => {
-        if (i === index) {
-          return { ...kpi, [field]: value };
-        }
-        return kpi;
-      })
-    );
+    const updatedKpis = kpisList.map((kpi, i) => {
+      if (i === index) {
+        return { ...kpi, [field]: value };
+      }
+      return kpi;
+    });
+
+    setKpisList(updatedKpis);
+    // Update form value immediately when user makes changes
+    setValue("kpis", updatedKpis);
   };
 
   const formatDate = (date) => {

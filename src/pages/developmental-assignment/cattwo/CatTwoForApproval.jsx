@@ -185,6 +185,13 @@ const CatTwoForApproval = ({
     setModalOpen(true);
   }, []);
 
+  const handleModalSave = useCallback(async (formData, mode, entryId) => {
+    setSelectedSubmissionForAction({ id: entryId });
+    setPendingFormData(formData);
+    setConfirmAction("update");
+    setConfirmOpen(true);
+  }, []);
+
   const handleApproveSubmission = useCallback((submission) => {
     setSelectedSubmissionForAction(submission);
     setPendingFormData({ action: "approve" });
@@ -285,22 +292,36 @@ const CatTwoForApproval = ({
     setIsLoading(true);
 
     try {
-      await submitCatTwo({
-        taskId: selectedSubmissionForAction.id,
-        ...pendingFormData,
-      }).unwrap();
+      if (confirmAction === "update") {
+        await submitCatTwo({
+          taskId: selectedSubmissionForAction.id,
+          ...pendingFormData,
+        }).unwrap();
 
-      const successMessage =
-        confirmAction === "approve"
-          ? "CAT 2 assessment approved successfully!"
-          : "CAT 2 assessment rejected successfully!";
+        enqueueSnackbar("CAT 2 updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        handleModalClose();
+      } else {
+        await submitCatTwo({
+          taskId: selectedSubmissionForAction.id,
+          ...pendingFormData,
+        }).unwrap();
 
-      enqueueSnackbar(successMessage, {
-        variant: "success",
-        autoHideDuration: 2000,
-      });
-      refetch();
-      handleModalClose();
+        const successMessage =
+          confirmAction === "approve"
+            ? "CAT 2 assessment approved successfully!"
+            : "CAT 2 assessment rejected successfully!";
+
+        enqueueSnackbar(successMessage, {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        handleModalClose();
+      }
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
@@ -326,7 +347,13 @@ const CatTwoForApproval = ({
   }, []);
 
   const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "approve") {
+    if (confirmAction === "update") {
+      return (
+        <>
+          Are you sure you want to <strong>Update</strong> this CAT 2 Request?
+        </>
+      );
+    } else if (confirmAction === "approve") {
       return (
         <>
           Are you sure you want to <strong>Approve</strong> this CAT 2
@@ -353,15 +380,19 @@ const CatTwoForApproval = ({
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
+    if (confirmAction === "update") {
+      return "CAT 2 REQUEST";
+    }
     const submissionForAction =
       selectedSubmissionForAction?.data_change?.reference_number ||
       selectedSubmissionForAction?.reference_number ||
       "CAT 2 Assessment";
     return submissionForAction;
-  }, [selectedSubmissionForAction]);
+  }, [selectedSubmissionForAction, confirmAction]);
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
+      update: { color: "#2196F3", icon: "✎" },
       approve: { color: "#4caf50", icon: "✓" },
       reject: { color: "#ff4400", icon: "✕" },
     };
@@ -456,6 +487,7 @@ const CatTwoForApproval = ({
         <CatTwoModal
           open={modalOpen}
           onClose={handleModalClose}
+          onSave={handleModalSave}
           mode={modalMode}
           onModeChange={handleModeChange}
           selectedEntry={submissionDetails?.result || selectedSubmission}

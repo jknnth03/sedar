@@ -184,7 +184,7 @@ const DataChangeForApprovalTable = ({
     submissionsList.some(
       (submission) => submission.status !== "PENDING MDA CREATION"
     );
-  const totalColumns = shouldShowActionsColumn ? 8 : 7;
+  const totalColumns = shouldShowActionsColumn ? 7 : 6;
 
   return (
     <>
@@ -192,9 +192,6 @@ const DataChangeForApprovalTable = ({
         <Table stickyHeader sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={styles.columnStyles.id}>
-                ID
-              </TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -243,9 +240,6 @@ const DataChangeForApprovalTable = ({
                   key={submission.id}
                   onClick={() => handleRowClick(submission)}
                   sx={styles.tableRowHover(theme)}>
-                  <TableCell align="left" sx={styles.columnStyles.id}>
-                    {submission.id}
-                  </TableCell>
                   <TableCell
                     sx={{
                       ...styles.columnStyles.referenceNumber,

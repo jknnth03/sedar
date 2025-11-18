@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -166,8 +166,7 @@ const CatOneModal = ({
     if (
       status === "APPROVED" ||
       status === "CANCELLED" ||
-      status === "KICKOFF_COMPLETE" ||
-      status === "FOR_APPROVAL"
+      status === "KICKOFF_COMPLETE"
     ) {
       return false;
     }
@@ -179,9 +178,14 @@ const CatOneModal = ({
     return status === "AWAITING_RESUBMISSION";
   };
 
-  const shouldShowActionButtons = () => {
+  const shouldShowSaveAsDraftButton = () => {
     const status = selectedEntry?.status;
     return status !== "FOR_APPROVAL";
+  };
+
+  const isForApprovalStatus = () => {
+    const status = selectedEntry?.status;
+    return status === "FOR_APPROVAL";
   };
 
   const handleModeChange = (newMode) => {
@@ -209,13 +213,14 @@ const CatOneModal = ({
     setLastEntryId(null);
     setIsUpdating(false);
     setCurrentEntryId(null);
+    setGetFormDataForSubmission(null);
     reset();
     onClose();
   };
 
-  const handleFormDataCallback = (getFormDataFn) => {
+  const handleFormDataCallback = useCallback((getFormDataFn) => {
     setGetFormDataForSubmission(() => getFormDataFn);
-  };
+  }, []);
 
   const getModalTitle = () => {
     switch (currentMode) {
@@ -228,7 +233,7 @@ const CatOneModal = ({
     }
   };
 
-  const handleSuccessfulSaveComplete = () => {
+  const handleSuccessfulSaveComplete = useCallback(() => {
     setCurrentMode("view");
     setOriginalMode("view");
     setFormInitialized(false);
@@ -237,13 +242,13 @@ const CatOneModal = ({
         onRefreshDetails();
       }, 200);
     }
-  };
+  }, [onRefreshDetails]);
 
   useEffect(() => {
     if (onSuccessfulSave && typeof onSuccessfulSave === "function") {
       onSuccessfulSave(handleSuccessfulSaveComplete);
     }
-  }, [onSuccessfulSave]);
+  }, [onSuccessfulSave, handleSuccessfulSaveComplete]);
 
   useEffect(() => {
     if (selectedEntry?.id) {
@@ -298,6 +303,7 @@ const CatOneModal = ({
       setIsUpdating(true);
 
       if (!getFormDataForSubmission) {
+        console.error("Form data function not available");
         alert("Form data function not available. Please try again.");
         setIsUpdating(false);
         return;
@@ -305,6 +311,7 @@ const CatOneModal = ({
 
       const formData = getFormDataForSubmission();
       if (!formData) {
+        console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
         setIsUpdating(false);
         return;
@@ -313,6 +320,7 @@ const CatOneModal = ({
       const entryIdToUse = selectedEntry?.id;
 
       if (!entryIdToUse) {
+        console.error("Entry ID is missing");
         alert("Entry ID is missing. Please try again.");
         setIsUpdating(false);
         return;
@@ -324,10 +332,7 @@ const CatOneModal = ({
       };
 
       if (onSaveAsDraft) {
-        const success = await onSaveAsDraft(draftData, entryIdToUse);
-        if (success) {
-          handleClose();
-        }
+        await onSaveAsDraft(draftData, entryIdToUse);
       }
     } catch (error) {
       console.error("handleSaveAsDraft error:", error);
@@ -525,28 +530,39 @@ const CatOneModal = ({
               </Button>
             )}
 
-            {currentMode === "edit" && shouldShowActionButtons() && (
+            {currentMode === "edit" && (
               <>
-                <DraftButton
-                  onClick={handleSaveAsDraft}
-                  disabled={isProcessing}
-                  sx={{ mr: 2 }}>
-                  {isProcessing ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <>
-                      <SaveIcon sx={{ fontSize: 16 }} />
-                      SAVE AS DRAFT
-                    </>
-                  )}
-                </DraftButton>
+                {shouldShowSaveAsDraftButton() && (
+                  <DraftButton
+                    onClick={handleSaveAsDraft}
+                    disabled={isProcessing}
+                    sx={{ mr: 2 }}>
+                    {isProcessing ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <>
+                        <SaveIcon sx={{ fontSize: 16 }} />
+                        SAVE AS DRAFT
+                      </>
+                    )}
+                  </DraftButton>
+                )}
                 <SubmitButton type="submit" disabled={isProcessing}>
                   {isProcessing ? (
                     <CircularProgress size={16} />
                   ) : (
                     <>
-                      <SendIcon sx={{ fontSize: 16 }} />
-                      SUBMIT
+                      {isForApprovalStatus() ? (
+                        <>
+                          <EditIcon sx={{ fontSize: 16 }} />
+                          UPDATE
+                        </>
+                      ) : (
+                        <>
+                          <SendIcon sx={{ fontSize: 16 }} />
+                          SUBMIT
+                        </>
+                      )}
                     </>
                   )}
                 </SubmitButton>

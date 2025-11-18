@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   Dialog,
@@ -46,6 +46,11 @@ const DAFormModal = ({
   const [hasInitialized, setHasInitialized] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
+  const [isFormReady, setIsFormReady] = useState(false);
+
+  // Use refs to track previous values
+  const prevOpenRef = useRef(open);
+  const prevModeRef = useRef(mode);
 
   const formValues = watch();
 
@@ -75,44 +80,74 @@ const DAFormModal = ({
     return actions?.can_resubmit === true;
   };
 
+  // Main initialization effect
   useEffect(() => {
+    // Reset form ready state when modal closes
     if (!open) {
       setHasInitialized(false);
-      return;
-    }
-    if (hasInitialized) return;
-
-    if (mode === "create") {
-      setCurrentMode(mode);
-      setOriginalMode(mode);
-      setHasInitialized(true);
-      reset(getCreateModeInitialValues());
+      setIsFormReady(false);
+      prevOpenRef.current = false;
       return;
     }
 
-    if ((mode === "view" || mode === "edit") && selectedEntry) {
-      setCurrentMode(mode);
-      setOriginalMode(mode);
-      setHasInitialized(true);
-      const formData = getViewEditModeFormData(selectedEntry);
-      reset(formData);
-    }
+    // Skip if already initialized and modal was already open
+    if (hasInitialized && prevOpenRef.current === open) return;
+
+    const initializeForm = async () => {
+      if (mode === "create") {
+        setCurrentMode(mode);
+        setOriginalMode(mode);
+        const initialValues = getCreateModeInitialValues();
+        reset(initialValues);
+        setHasInitialized(true);
+        setIsFormReady(true);
+        prevOpenRef.current = true;
+        prevModeRef.current = mode;
+        return;
+      }
+
+      if ((mode === "view" || mode === "edit") && selectedEntry) {
+        setCurrentMode(mode);
+        setOriginalMode(mode);
+        const formData = getViewEditModeFormData(selectedEntry);
+        console.log("Resetting form with data:", formData);
+
+        // Use setTimeout to ensure reset completes before marking as ready
+        reset(formData);
+        setTimeout(() => {
+          setHasInitialized(true);
+          setIsFormReady(true);
+          prevOpenRef.current = true;
+          prevModeRef.current = mode;
+        }, 50);
+      }
+    };
+
+    initializeForm();
   }, [open, mode, hasInitialized, selectedEntry, reset]);
 
+  // Handle edit mode switching
   useEffect(() => {
     if (
       open &&
       currentMode === "edit" &&
       originalMode === "view" &&
-      selectedEntry
+      selectedEntry &&
+      prevModeRef.current !== currentMode
     ) {
-      reset(getViewEditModeFormData(selectedEntry));
+      const formData = getViewEditModeFormData(selectedEntry);
+      console.log("Switching to edit mode with data:", formData);
+      reset(formData);
+      prevModeRef.current = currentMode;
     }
   }, [currentMode, open, originalMode, selectedEntry, reset]);
 
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
-    if (selectedEntry) reset(getViewEditModeFormData(selectedEntry));
+    if (selectedEntry) {
+      const formData = getViewEditModeFormData(selectedEntry);
+      reset(formData);
+    }
   };
 
   const onSubmit = async (data) => {
@@ -214,6 +249,8 @@ const DAFormModal = ({
     setIsUpdating(false);
     setEditingEntryId(null);
     setHasInitialized(false);
+    setIsFormReady(false);
+    prevOpenRef.current = false;
     onClose();
   };
 
@@ -238,7 +275,11 @@ const DAFormModal = ({
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
   const isProcessing = isLoading || isUpdating;
-  const formKey = `da-form-${currentMode}-${open ? "open" : "closed"}`;
+
+  // Use a stable key that only changes when we want to completely remount
+  const formKey = `da-form-${
+    open ? "open" : "closed"
+  }-${mode}-${hasInitialized}`;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -294,13 +335,25 @@ const DAFormModal = ({
 
         <form onSubmit={handleSubmit(onSubmit)} key={formKey}>
           <DialogContent sx={styles.dialogContentStyles}>
-            <DAFormModalFields
-              key={formKey}
-              isCreate={isCreate}
-              isReadOnly={isReadOnly}
-              submissionId={submissionId}
-              currentMode={currentMode}
-            />
+            {isFormReady ? (
+              <DAFormModalFields
+                key={formKey}
+                isCreate={isCreate}
+                isReadOnly={isReadOnly}
+                submissionId={submissionId}
+                currentMode={currentMode}
+              />
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "400px",
+                }}>
+                <CircularProgress />
+              </Box>
+            )}
           </DialogContent>
 
           <DialogActions sx={styles.dialogActionsStyles}>
@@ -323,7 +376,7 @@ const DAFormModal = ({
               <Button
                 type="submit"
                 variant="contained"
-                disabled={isProcessing}
+                disabled={isProcessing || !isFormReady}
                 startIcon={
                   isProcessing ? (
                     <CircularProgress size={16} />

@@ -24,13 +24,13 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "./MDAHistoryDialog";
+import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
 
-const MDAForApprovalTable = ({
+const MDADATable = ({
   submissionsList,
   isLoadingState,
   error,
@@ -39,7 +39,7 @@ const MDAForApprovalTable = ({
   handleMenuClose,
   menuAnchor,
   searchQuery,
-  statusFilter,
+  onCreateMDA,
   onCancel,
 }) => {
   const theme = useTheme();
@@ -57,18 +57,25 @@ const MDAForApprovalTable = ({
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
           {submission.employee_name}
         </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontSize: "14px" }}>
-          {submission.employee_number || ""}
-        </Typography>
+        {submission.employee_code && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "14px" }}>
+            {submission.employee_code}
+          </Typography>
+        )}
       </Box>
     );
   };
 
   const renderStatusChip = (submission) => {
     const statusConfig = {
+      "pending mda creation": {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "PENDING MDA CREATION",
+      },
       pending: {
         color: "#f57c00",
         bgColor: "#fff8e1",
@@ -98,11 +105,6 @@ const MDAForApprovalTable = ({
         color: "#d32f2f",
         bgColor: "#ffebee",
         label: "RETURNED",
-      },
-      awaiting_resubmission: {
-        color: "#ed6c02",
-        bgColor: "#fff4e5",
-        label: "AWAITING RESUBMISSION",
       },
     };
 
@@ -166,8 +168,20 @@ const MDAForApprovalTable = ({
     }
   };
 
+  const handleCreateMDAClick = (e, submission) => {
+    e.stopPropagation();
+    if (onCreateMDA) {
+      onCreateMDA(submission);
+    }
+    handleMenuClose(submission.id);
+  };
+
   const canCancelSubmission = (submission) => {
     return submission?.actions?.can_cancel === true;
+  };
+
+  const canCreateMDA = (submission) => {
+    return submission?.status?.toUpperCase() === "PENDING MDA CREATION";
   };
 
   const renderActivityLog = (submission) => {
@@ -183,38 +197,11 @@ const MDAForApprovalTable = ({
     );
   };
 
-  const filteredSubmissions = React.useMemo(() => {
-    if (!statusFilter) return submissionsList;
-    return submissionsList.filter(
-      (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
-    );
-  }, [submissionsList, statusFilter]);
-
   const getNoDataMessage = () => {
-    if (statusFilter) {
-      const statusLabels = {
-        PENDING: "pending",
-        APPROVED: "approved",
-        REJECTED: "rejected",
-        AWAITING_RESUBMISSION: "awaiting resubmission",
-        CANCELLED: "cancelled",
-      };
-      const statusLabel =
-        statusLabels[statusFilter] || statusFilter.toLowerCase();
-      return searchQuery
-        ? `No ${statusLabel} submissions found for "${searchQuery}"`
-        : `No ${statusLabel} submissions found`;
-    }
     return searchQuery
       ? `No results for "${searchQuery}"`
-      : "No submissions found";
+      : "No DA submissions found";
   };
-
-  const shouldHideActions =
-    statusFilter === "APPROVED" || statusFilter === "CANCELLED";
-  const shouldShowActionsColumn = !shouldHideActions;
-  const totalColumns = shouldShowActionsColumn ? 8 : 7;
 
   return (
     <>
@@ -225,54 +212,45 @@ const MDAForApprovalTable = ({
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
-              <TableCell sx={styles.columnStyles.formName}>
-                MOVEMENT TYPE
-              </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
-              <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
-              <TableCell sx={styles.columnStyles.dateCreated}>
-                EFFECTIVE DATE
+              <TableCell sx={styles.columnStyles.formName}>
+                CHARGING NAME
               </TableCell>
+              <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
               </TableCell>
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
-              {shouldShowActionsColumn && (
-                <TableCell align="center" sx={styles.columnStyles.actions}>
-                  ACTIONS
-                </TableCell>
-              )}
+              <TableCell align="center" sx={styles.columnStyles.actions}>
+                ACTIONS
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoadingState ? (
               <TableRow>
-                <TableCell
-                  colSpan={totalColumns}
-                  align="center"
-                  sx={styles.loadingCell}>
+                <TableCell colSpan={7} align="center" sx={styles.loadingCell}>
                   <CircularProgress size={32} sx={styles.loadingSpinner} />
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell
-                  colSpan={totalColumns}
-                  align="center"
-                  sx={styles.errorCell}>
+                <TableCell colSpan={7} align="center" sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : filteredSubmissions.length > 0 ? (
-              filteredSubmissions.map((submission) => {
+            ) : submissionsList.length > 0 ? (
+              submissionsList.map((submission) => {
                 return (
                   <TableRow
                     key={submission.id}
-                    onClick={() => handleRowClick(submission)}
+                    onClick={() => {
+                      handleRowClick(submission);
+                    }}
                     sx={styles.tableRowHover(theme)}>
                     <TableCell
                       sx={{
@@ -284,29 +262,20 @@ const MDAForApprovalTable = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.formName,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {submission.movement_type || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
                         ...styles.columnStyles.position,
                         ...styles.cellContentStyles,
                       }}>
                       {renderEmployee(submission)}
                     </TableCell>
-                    <TableCell sx={styles.columnStyles.status}>
-                      {renderStatusChip(submission)}
-                    </TableCell>
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.dateCreated,
+                        ...styles.columnStyles.formName,
                         ...styles.cellContentStyles,
                       }}>
-                      {submission.effective_date
-                        ? dayjs(submission.effective_date).format("MMM D, YYYY")
-                        : "-"}
+                      {submission.charging_name || "-"}
+                    </TableCell>
+                    <TableCell sx={styles.columnStyles.status}>
+                      {renderStatusChip(submission)}
                     </TableCell>
                     <TableCell align="center" sx={styles.columnStyles.history}>
                       {renderActivityLog(submission)}
@@ -320,66 +289,88 @@ const MDAForApprovalTable = ({
                         ? dayjs(submission.created_at).format("MMM D, YYYY")
                         : "-"}
                     </TableCell>
-                    {shouldShowActionsColumn && (
-                      <TableCell
-                        align="center"
-                        sx={styles.columnStyles.actions}>
-                        <Tooltip title="Actions">
-                          <IconButton
-                            onClick={(e) => handleMenuOpen(e, submission)}
-                            size="small"
-                            sx={styles.actionIconButton(theme)}>
-                            <MoreVertIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Menu
-                          anchorEl={menuAnchor[submission.id]}
-                          open={Boolean(menuAnchor[submission.id])}
-                          onClose={() => handleMenuClose(submission.id)}
-                          transformOrigin={{
-                            horizontal: "right",
-                            vertical: "top",
+                    <TableCell align="center" sx={styles.columnStyles.actions}>
+                      <Tooltip title="Actions">
+                        <IconButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMenuOpen(e, submission);
                           }}
-                          anchorOrigin={{
-                            horizontal: "right",
-                            vertical: "bottom",
-                          }}
-                          PaperProps={{
-                            sx: styles.actionMenu(theme),
-                          }}
+                          size="small"
+                          sx={styles.actionIconButton(theme)}>
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Menu
+                        anchorEl={menuAnchor[submission.id]}
+                        open={Boolean(menuAnchor[submission.id])}
+                        onClose={() => handleMenuClose(submission.id)}
+                        transformOrigin={{
+                          horizontal: "right",
+                          vertical: "top",
+                        }}
+                        anchorOrigin={{
+                          horizontal: "right",
+                          vertical: "bottom",
+                        }}
+                        PaperProps={{
+                          sx: styles.actionMenu(theme),
+                        }}
+                        sx={{
+                          zIndex: 10000,
+                        }}>
+                        <MenuItem
+                          onClick={(e) => handleCreateMDAClick(e, submission)}
+                          disabled={!canCreateMDA(submission)}
                           sx={{
-                            zIndex: 10000,
+                            fontSize: "14px",
+                            color: canCreateMDA(submission)
+                              ? "#2e7d32"
+                              : "#ccc",
+                            "&:hover": {
+                              backgroundColor: canCreateMDA(submission)
+                                ? "rgba(46, 125, 50, 0.08)"
+                                : "transparent",
+                            },
+                            "&.Mui-disabled": {
+                              opacity: 0.5,
+                            },
                           }}>
-                          <MenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancelClick(submission);
-                            }}
-                            disabled={!canCancelSubmission(submission)}
-                            sx={
-                              canCancelSubmission(submission)
-                                ? styles.cancelMenuItem
-                                : styles.cancelMenuItemDisabled
-                            }>
-                            <CancelIcon fontSize="small" sx={{ mr: 1 }} />
-                            Cancel Request
-                          </MenuItem>
-                        </Menu>
-                      </TableCell>
-                    )}
+                          <AddCircleOutlineIcon
+                            fontSize="small"
+                            sx={{ mr: 1 }}
+                          />
+                          Create MDA
+                        </MenuItem>
+                        <MenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelClick(submission);
+                          }}
+                          disabled={!canCancelSubmission(submission)}
+                          sx={
+                            canCancelSubmission(submission)
+                              ? styles.cancelMenuItem
+                              : styles.cancelMenuItemDisabled
+                          }>
+                          <CancelIcon fontSize="small" sx={{ mr: 1 }} />
+                          Cancel Request
+                        </MenuItem>
+                      </Menu>
+                    </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={totalColumns}
+                  colSpan={7}
                   align="center"
                   sx={styles.noDataContainer}>
                   <Box sx={styles.noDataBox}>
                     {CONSTANT.BUTTONS.NODATA.icon}
                     <Typography variant="h6" color="text.secondary">
-                      No MDA submissions found
+                      No DA submissions found
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {getNoDataMessage()}
@@ -457,8 +448,7 @@ const MDAForApprovalTable = ({
               color: "#333",
               fontWeight: 400,
             }}>
-            Are you sure you want to <strong>Cancel</strong> this Data Change
-            Request?
+            Are you sure you want to <strong>Cancel</strong> this DA Submission?
           </Typography>
           {selectedSubmissionToCancel && (
             <Typography
@@ -527,4 +517,4 @@ const MDAForApprovalTable = ({
   );
 };
 
-export default MDAForApprovalTable;
+export default MDADATable;

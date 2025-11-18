@@ -11,6 +11,10 @@ import {
   Button,
   CircularProgress,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import SendIcon from "@mui/icons-material/Send";
+import CloseIcon from "@mui/icons-material/Close";
+import SaveAsIcon from "@mui/icons-material/SaveAs";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -222,14 +226,22 @@ const CatOneForSubmission = ({
     }
   }, [refetch, refetchDetails, selectedSubmissionId]);
 
+  const handleModalSaveAsDraft = useCallback(
+    async (submissionData, submissionId) => {
+      const submission =
+        submissionDetails?.result ||
+        filteredSubmissions.find((sub) => sub.id === submissionId);
+
+      setSelectedSubmissionForAction(submission);
+      setPendingFormData({ id: submissionId, ...submissionData });
+      setConfirmAction("draft");
+      setConfirmOpen(true);
+    },
+    [submissionDetails, filteredSubmissions]
+  );
+
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
-      console.log("handleModalSave called with:", {
-        submissionData,
-        mode,
-        submissionId,
-      });
-
       if (mode === "edit") {
         const submission =
           submissionDetails?.result ||
@@ -260,7 +272,6 @@ const CatOneForSubmission = ({
         }
 
         const payload = { id: submissionId, ...submissionData };
-        console.log("Submitting with payload:", payload);
 
         await submitCatOne(payload).unwrap();
         enqueueSnackbar("Submission processed successfully!", {
@@ -271,7 +282,6 @@ const CatOneForSubmission = ({
         handleModalClose();
         return true;
       } catch (error) {
-        console.error("Submit error:", error);
         const errorMessage =
           error?.data?.message ||
           "Failed to save submission. Please try again.";
@@ -363,6 +373,24 @@ const CatOneForSubmission = ({
         });
         refetch();
       } else if (
+        confirmAction === "draft" &&
+        pendingFormData &&
+        selectedSubmissionForAction
+      ) {
+        await saveCatOneAsDraft(pendingFormData).unwrap();
+        enqueueSnackbar("CAT 1 submission saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        if (selectedSubmissionId) {
+          refetchDetails();
+        }
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
+        }
+        handleModalClose();
+      } else if (
         confirmAction === "update" &&
         pendingFormData &&
         selectedSubmissionForAction
@@ -420,6 +448,13 @@ const CatOneForSubmission = ({
           Are you sure you want to <strong>Cancel</strong> this CAT 1 Request?
         </>
       );
+    } else if (confirmAction === "draft") {
+      return (
+        <>
+          Are you sure you want to <strong>Save as Draft</strong> this CAT 1
+          Request?
+        </>
+      );
     } else if (confirmAction === "update") {
       return (
         <>
@@ -452,9 +487,22 @@ const CatOneForSubmission = ({
 
   const getConfirmationIcon = useCallback(() => {
     const iconConfig = {
-      cancel: { color: "#ff4400", icon: "?" },
-      update: { color: "#2196f3", icon: "✎" },
-      resubmit: { color: "#ff9800", icon: "↻" },
+      cancel: {
+        color: "#ff4400",
+        IconComponent: CloseIcon,
+      },
+      draft: {
+        color: "#2196F3",
+        IconComponent: SaveAsIcon,
+      },
+      update: {
+        color: "#2196F3",
+        IconComponent: EditIcon,
+      },
+      resubmit: {
+        color: "#2196F3",
+        IconComponent: SendIcon,
+      },
     };
 
     const config = iconConfig[confirmAction] || iconConfig.cancel;
@@ -550,6 +598,7 @@ const CatOneForSubmission = ({
           selectedEntry={submissionDetails?.result || selectedSubmission}
           isLoading={detailsLoading}
           onSave={handleModalSave}
+          onSaveAsDraft={handleModalSaveAsDraft}
           onRefreshDetails={handleRefreshDetails}
           onSuccessfulSave={handleModalSuccessCallback}
         />
@@ -584,14 +633,12 @@ const CatOneForSubmission = ({
                   alignItems: "center",
                   justifyContent: "center",
                 }}>
-                <Typography
-                  sx={{
+                {React.createElement(getConfirmationIcon().IconComponent, {
+                  sx: {
                     color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
+                    fontSize: "32px",
+                  },
+                })}
               </Box>
             </Box>
             <Typography

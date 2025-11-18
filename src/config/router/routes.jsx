@@ -63,6 +63,7 @@ import WorkHours from "../../pages/extras/WorkHours.jsx";
 import RestDays from "../../pages/extras/RestDays.jsx";
 import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
 import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
+import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
 
 export const ROUTES = [
   {
@@ -153,6 +154,14 @@ export const ROUTES = [
         element: <MASTERDATAAUTHORITY />,
         handle: {
           permission: MODULES.REQUEST.children.MASTERDATAAUTHORITY.name,
+        },
+      },
+      {
+        id: "REQUEST.MDADA",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDADA.path}`,
+        element: <MDADA />,
+        handle: {
+          permission: MODULES.REQUEST.children.MDADA.name,
         },
       },
       {
