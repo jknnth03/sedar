@@ -32,16 +32,16 @@ const Sidebar = ({
         if (MODULE.children) {
           const permittedChildren = Object.values(MODULE.children).filter(
             (CHILD) =>
-              accessUserPermission?.includes(CHILD.name) &&
-              CHILD.name !== "Enable Edit"
+              accessUserPermission?.includes(CHILD.permissionId) &&
+              CHILD.permissionId !== "EMPLOYEES.ENABLEEDIT"
           );
 
           if (permittedChildren.length > 0) {
             return { ...MODULE, children: permittedChildren };
           }
         } else if (
-          accessUserPermission?.includes(MODULE.name) &&
-          MODULE.name !== "Enable Edit"
+          accessUserPermission?.includes(MODULE.permissionId) &&
+          MODULE.permissionId !== "EMPLOYEES.ENABLEEDIT"
         ) {
           return MODULE;
         }

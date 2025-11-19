@@ -261,20 +261,20 @@ const DAForm = () => {
     0: "ForApproval",
     1: "AwaitingResubmission",
     2: "Rejected",
-    3: "ForMDAProcessing",
-    4: "MDAForApproval",
-    5: "Completed",
-    6: "Cancelled",
+    3: "Cancelled",
+    4: "ForMDAProcessing",
+    5: "MDAInProgress",
+    6: "Completed",
   };
 
   const reverseTabMap = {
     ForApproval: 0,
     AwaitingResubmission: 1,
     Rejected: 2,
-    ForMDAProcessing: 3,
-    MDAForApproval: 4,
-    Completed: 5,
-    Cancelled: 6,
+    Cancelled: 3,
+    ForMDAProcessing: 4,
+    MDAInProgress: 5,
+    Completed: 6,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -302,10 +302,10 @@ const DAForm = () => {
     forApproval: dashboardData?.result?.approval?.da_approval || 0,
     awaitingResubmission: 0,
     rejected: 0,
-    forMDAProcessing: 0,
-    mdaForApproval: 0,
-    completed: 0,
     cancelled: 0,
+    forMDAProcessing: 0,
+    mdaInProgress: 0,
+    completed: 0,
   };
 
   const handleTabChange = useCallback(
@@ -502,6 +502,20 @@ const DAForm = () => {
       badgeCount: daCounts.rejected,
     },
     {
+      label: "Cancelled",
+      component: (
+        <DAFormCancelled
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+        />
+      ),
+      badgeCount: daCounts.cancelled,
+    },
+    {
       label: "For MDA Processing",
       component: (
         <DAFormForMDAProcessing
@@ -517,7 +531,7 @@ const DAForm = () => {
       badgeCount: daCounts.forMDAProcessing,
     },
     {
-      label: "MDA For Approval",
+      label: "MDA In Progress",
       component: (
         <DAFormMDAForApproval
           searchQuery={debouncedSearchQuery}
@@ -529,7 +543,7 @@ const DAForm = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: daCounts.mdaForApproval,
+      badgeCount: daCounts.mdaInProgress,
     },
     {
       label: "Completed",
@@ -545,20 +559,6 @@ const DAForm = () => {
         />
       ),
       badgeCount: daCounts.completed,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <DAFormCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.cancelled,
     },
   ];
 

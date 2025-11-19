@@ -126,7 +126,12 @@ const KpiModal = ({
         let existingKpis = [];
         let kpiData = null;
 
-        if (positionKpisData?.result?.kpis) {
+        if (
+          positionKpisData?.result &&
+          Array.isArray(positionKpisData.result)
+        ) {
+          kpiData = positionKpisData.result;
+        } else if (positionKpisData?.result?.kpis) {
           kpiData = positionKpisData.result.kpis;
         } else if (positionKpisData?.kpis) {
           kpiData = positionKpisData.kpis;
@@ -180,7 +185,9 @@ const KpiModal = ({
     ) {
       let kpiData = null;
 
-      if (positionKpisData?.result?.kpis) {
+      if (positionKpisData?.result && Array.isArray(positionKpisData.result)) {
+        kpiData = positionKpisData.result;
+      } else if (positionKpisData?.result?.kpis) {
         kpiData = positionKpisData.result.kpis;
       } else if (positionKpisData?.kpis) {
         kpiData = positionKpisData.kpis;
@@ -228,7 +235,9 @@ const KpiModal = ({
       let existingKpis = [];
       let kpiData = null;
 
-      if (positionKpisData?.result?.kpis) {
+      if (positionKpisData?.result && Array.isArray(positionKpisData.result)) {
+        kpiData = positionKpisData.result;
+      } else if (positionKpisData?.result?.kpis) {
         kpiData = positionKpisData.result.kpis;
       } else if (positionKpisData?.kpis) {
         kpiData = positionKpisData.kpis;

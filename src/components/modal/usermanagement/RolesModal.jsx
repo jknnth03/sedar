@@ -32,8 +32,7 @@ import {
   usePostRoleMutation,
   useUpdateRoleMutation,
 } from "../../../features/api/usermanagement/rolesApi";
-import { ROUTES } from "../../../config/router/routes.jsx";
-import { CONSTANT } from "../../../config/index.jsx";
+import { useEnhancedModules } from "../../../config/index.jsx";
 
 export default function RolesModal({
   open,
@@ -50,65 +49,32 @@ export default function RolesModal({
   const [postRole, { isLoading: adding }] = usePostRoleMutation();
   const [updateRole, { isLoading: updating }] = useUpdateRoleMutation();
   const { enqueueSnackbar } = useSnackbar();
+  const { modules } = useEnhancedModules();
 
   const isLoading = adding || updating;
 
   const createHierarchicalPermissions = () => {
-    const permissionList = ROUTES.flatMap((route) => {
-      if (route.children && Array.isArray(route.children)) {
-        return route.children
-          .filter((child) => child.handle && child.handle.permission)
-          .map((child) => ({
-            label: child.id,
-            value: child.handle.permission,
-          }));
-      }
-      return [];
-    });
-
     const grouped = {};
 
-    const dashboardPermission = permissionList.find(
-      (p) => p.value === "Dashboard"
-    );
-    if (dashboardPermission) {
-      const dashboardModule = CONSTANT.PAGES.DASHBOARD;
-      grouped["Dashboard"] = {
-        parent: {
-          name: dashboardModule.name,
-          icon: dashboardModule.icon,
-          permission: dashboardPermission.value,
-        },
-        children: [],
-        isStandalone: true,
-      };
-    }
+    Object.keys(modules).forEach((moduleKey) => {
+      const module = modules[moduleKey];
 
-    Object.keys(CONSTANT.PAGES).forEach((moduleKey) => {
-      const module = CONSTANT.PAGES[moduleKey];
-
-      if (module.children && moduleKey !== "DASHBOARD") {
+      if (module.children) {
         const childPermissions = [];
 
         Object.keys(module.children).forEach((childKey) => {
           const child = module.children[childKey];
-          const foundPermission = permissionList.find(
-            (p) => p.value === child.name
-          );
-
-          if (foundPermission) {
-            childPermissions.push({
-              name: child.name,
-              permission: foundPermission.value,
-              icon: child.icon,
-            });
-          }
+          childPermissions.push({
+            name: child.displayName || child.name,
+            permission: child.permissionId,
+            icon: child.icon,
+          });
         });
 
         if (childPermissions.length > 0) {
           grouped[module.name] = {
             parent: {
-              name: module.name,
+              name: module.displayName || module.name,
               icon: module.icon,
               permission: null,
             },
@@ -116,6 +82,16 @@ export default function RolesModal({
             isStandalone: false,
           };
         }
+      } else if (module.permissionId === "DASHBOARD") {
+        grouped["Dashboard"] = {
+          parent: {
+            name: module.displayName || module.name,
+            icon: module.icon,
+            permission: module.permissionId,
+          },
+          children: [],
+          isStandalone: true,
+        };
       }
     });
 

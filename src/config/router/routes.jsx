@@ -65,6 +65,7 @@ import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
 import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
 import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
+import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
 
 export const ROUTES = [
   {
@@ -90,7 +91,7 @@ export const ROUTES = [
         path: MODULES.DASHBOARD.path,
         element: <Dashboard />,
         handle: {
-          permission: MODULES.DASHBOARD.name,
+          permission: MODULES.DASHBOARD.permissionId,
         },
       },
       {
@@ -98,7 +99,7 @@ export const ROUTES = [
         path: `${MODULES.USERMANAGEMENT.path}/${MODULES.USERMANAGEMENT.children.USER.path}`,
         element: <User />,
         handle: {
-          permission: MODULES.USERMANAGEMENT.children.USER.name,
+          permission: MODULES.USERMANAGEMENT.children.USER.permissionId,
         },
       },
       {
@@ -106,7 +107,7 @@ export const ROUTES = [
         path: `${MODULES.USERMANAGEMENT.path}/${MODULES.USERMANAGEMENT.children.ROLES.path}`,
         element: <Roles />,
         handle: {
-          permission: MODULES.USERMANAGEMENT.children.ROLES.name,
+          permission: MODULES.USERMANAGEMENT.children.ROLES.permissionId,
         },
       },
       {
@@ -114,7 +115,8 @@ export const ROUTES = [
         path: `${MODULES.APPROVALSETTINGS.path}/${MODULES.APPROVALSETTINGS.children.APPROVALFORM.path}`,
         element: <ApprovalForm />,
         handle: {
-          permission: MODULES.APPROVALSETTINGS.children.APPROVALFORM.name,
+          permission:
+            MODULES.APPROVALSETTINGS.children.APPROVALFORM.permissionId,
         },
       },
       {
@@ -122,7 +124,8 @@ export const ROUTES = [
         path: `${MODULES.APPROVALSETTINGS.path}/${MODULES.APPROVALSETTINGS.children.APPROVALFLOW.path}`,
         element: <ApprovalFlow />,
         handle: {
-          permission: MODULES.APPROVALSETTINGS.children.APPROVALFLOW.name,
+          permission:
+            MODULES.APPROVALSETTINGS.children.APPROVALFLOW.permissionId,
         },
       },
       {
@@ -130,7 +133,7 @@ export const ROUTES = [
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MRFMAINCONTAINER.path}`,
         element: <MrfMainContainer />,
         handle: {
-          permission: MODULES.REQUEST.children.MRFMAINCONTAINER.name,
+          permission: MODULES.REQUEST.children.MRFMAINCONTAINER.permissionId,
         },
       },
       {
@@ -138,7 +141,15 @@ export const ROUTES = [
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DAFORM.path}`,
         element: <DAForm />,
         handle: {
-          permission: MODULES.REQUEST.children.DAFORM.name,
+          permission: MODULES.REQUEST.children.DAFORM.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.DARECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DARECOMMENDATION.path}`,
+        element: <DARecommendation />,
+        handle: {
+          permission: MODULES.REQUEST.children.DAFORM.permissionId,
         },
       },
       {
@@ -146,7 +157,8 @@ export const ROUTES = [
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.path}`,
         element: <DATACHANGEMAINCONTAINER />,
         handle: {
-          permission: MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.name,
+          permission:
+            MODULES.REQUEST.children.DATACHANGEMAINCONTAINER.permissionId,
         },
       },
       {
@@ -154,7 +166,7 @@ export const ROUTES = [
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MASTERDATAAUTHORITY.path}`,
         element: <MASTERDATAAUTHORITY />,
         handle: {
-          permission: MODULES.REQUEST.children.MASTERDATAAUTHORITY.name,
+          permission: MODULES.REQUEST.children.MASTERDATAAUTHORITY.permissionId,
         },
       },
       {
@@ -162,7 +174,7 @@ export const ROUTES = [
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDADA.path}`,
         element: <MDADA />,
         handle: {
-          permission: MODULES.REQUEST.children.MDADA.name,
+          permission: MODULES.REQUEST.children.MDADA.permissionId,
         },
       },
       {
@@ -170,7 +182,7 @@ export const ROUTES = [
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.PENDINGREGISTRATION.path}`,
         element: <PENDINGREGISTRATION />,
         handle: {
-          permission: MODULES.REQUEST.children.PENDINGREGISTRATION.name,
+          permission: MODULES.REQUEST.children.PENDINGREGISTRATION.permissionId,
         },
       },
       {
@@ -178,7 +190,8 @@ export const ROUTES = [
         path: `${MODULES.REQUESTMONITORING.path}/${MODULES.REQUESTMONITORING.children.MRFMONITORING.path}`,
         element: <MRFMonitoring />,
         handle: {
-          permission: MODULES.REQUESTMONITORING.children.MRFMONITORING.name,
+          permission:
+            MODULES.REQUESTMONITORING.children.MRFMONITORING.permissionId,
         },
       },
       {
@@ -187,7 +200,8 @@ export const ROUTES = [
         element: <DataChangeMonitoring />,
         handle: {
           permission:
-            MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING.name,
+            MODULES.REQUESTMONITORING.children.DATACHANGEMONITORING
+              .permissionId,
         },
       },
       {
@@ -195,7 +209,8 @@ export const ROUTES = [
         path: `${MODULES.REQUESTMONITORING.path}/${MODULES.REQUESTMONITORING.children.MDAMONITORING.path}`,
         element: <MDAMonitoring />,
         handle: {
-          permission: MODULES.REQUESTMONITORING.children.MDAMONITORING.name,
+          permission:
+            MODULES.REQUESTMONITORING.children.MDAMONITORING.permissionId,
         },
       },
       {
@@ -203,7 +218,7 @@ export const ROUTES = [
         path: MODULES.EVALUATION.path,
         element: <Evaluation />,
         handle: {
-          permission: MODULES.EVALUATION.name,
+          permission: MODULES.EVALUATION.permissionId,
         },
       },
       {
@@ -211,7 +226,7 @@ export const ROUTES = [
         path: `${MODULES.EVALUATION.path}/${MODULES.EVALUATION.children.KPI.path}`,
         element: <KPI />,
         handle: {
-          permission: MODULES.EVALUATION.children.KPI.name,
+          permission: MODULES.EVALUATION.children.KPI.permissionId,
         },
       },
       {
@@ -219,7 +234,8 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.SUBMISSIONAPPROVAL.path}`,
         element: <SubmissionApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.SUBMISSIONAPPROVAL.name,
+          permission:
+            MODULES.APPROVING.children.SUBMISSIONAPPROVAL.permissionId,
         },
       },
       {
@@ -227,7 +243,8 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.REGISTRATIONAPPROVAL.path}`,
         element: <RegistrationApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.REGISTRATIONAPPROVAL.name,
+          permission:
+            MODULES.APPROVING.children.REGISTRATIONAPPROVAL.permissionId,
         },
       },
       {
@@ -235,7 +252,8 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DATACHANGEAPPROVAL.path}`,
         element: <DataChangeApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.DATACHANGEAPPROVAL.name,
+          permission:
+            MODULES.APPROVING.children.DATACHANGEAPPROVAL.permissionId,
         },
       },
       {
@@ -243,7 +261,7 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDAAPPROVAL.path}`,
         element: <MdaApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.MDAAPPROVAL.name,
+          permission: MODULES.APPROVING.children.MDAAPPROVAL.permissionId,
         },
       },
       {
@@ -251,7 +269,7 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DAMDAAPPROVAL.path}`,
         element: <DAMDAApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.DAMDAAPPROVAL.name,
+          permission: MODULES.APPROVING.children.DAMDAAPPROVAL.permissionId,
         },
       },
       {
@@ -259,15 +277,23 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DAFORMAPPROVAL.path}`,
         element: <DAFormApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.DAFORMAPPROVAL.name,
+          permission: MODULES.APPROVING.children.DAFORMAPPROVAL.permissionId,
         },
       },
+      // {
+      //   id: "APPROVING.DARECOMMENDATION",
+      //   path: `${MODULES.APPROVING.path}/darecommendation`,
+      //   element: <DARecommendation />,
+      //   handle: {
+      //     permission: "APPROVING.DARECOMMENDATION",
+      //   },
+      // },
       {
         id: "APPROVING.CATONEAPPROVAL",
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.CATONEAPPROVAL.path}`,
         element: <CatOneApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.CATONEAPPROVAL.name,
+          permission: MODULES.APPROVING.children.CATONEAPPROVAL.permissionId,
         },
       },
       {
@@ -275,7 +301,7 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.CATTWOAPPROVAL.path}`,
         element: <CatTwoApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.CATTWOAPPROVAL.name,
+          permission: MODULES.APPROVING.children.CATTWOAPPROVAL.permissionId,
         },
       },
       {
@@ -283,7 +309,7 @@ export const ROUTES = [
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.PDPAPPROVAL.path}`,
         element: <PdpApproval />,
         handle: {
-          permission: MODULES.APPROVING.children.PDPAPPROVAL.name,
+          permission: MODULES.APPROVING.children.PDPAPPROVAL.permissionId,
         },
       },
       {
@@ -291,7 +317,7 @@ export const ROUTES = [
         path: `${MODULES.RECEIVING.path}/${MODULES.RECEIVING.children.PENDINGFORMS.path}`,
         element: <PendingForms />,
         handle: {
-          permission: MODULES.RECEIVING.children.PENDINGFORMS.name,
+          permission: MODULES.RECEIVING.children.PENDINGFORMS.permissionId,
         },
       },
       {
@@ -299,7 +325,7 @@ export const ROUTES = [
         path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.ONERDF.path}`,
         element: <ONERDF />,
         handle: {
-          permission: MODULES.MASTERLIST.children.ONERDF.name,
+          permission: MODULES.MASTERLIST.children.ONERDF.permissionId,
         },
       },
       {
@@ -307,7 +333,7 @@ export const ROUTES = [
         path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.POSITIONS.path}`,
         element: <Positions />,
         handle: {
-          permission: MODULES.MASTERLIST.children.POSITIONS.name,
+          permission: MODULES.MASTERLIST.children.POSITIONS.permissionId,
         },
       },
       {
@@ -315,7 +341,8 @@ export const ROUTES = [
         path: `${MODULES.DEVELOPMENTALASSIGNMENT.path}/${MODULES.DEVELOPMENTALASSIGNMENT.children.CATONE.path}`,
         element: <CatOne />,
         handle: {
-          permission: MODULES.DEVELOPMENTALASSIGNMENT.children.CATONE.name,
+          permission:
+            MODULES.DEVELOPMENTALASSIGNMENT.children.CATONE.permissionId,
         },
       },
       {
@@ -323,7 +350,8 @@ export const ROUTES = [
         path: `${MODULES.DEVELOPMENTALASSIGNMENT.path}/${MODULES.DEVELOPMENTALASSIGNMENT.children.CATTWO.path}`,
         element: <CatTwo />,
         handle: {
-          permission: MODULES.DEVELOPMENTALASSIGNMENT.children.CATTWO.name,
+          permission:
+            MODULES.DEVELOPMENTALASSIGNMENT.children.CATTWO.permissionId,
         },
       },
       {
@@ -331,7 +359,7 @@ export const ROUTES = [
         path: `${MODULES.DEVELOPMENTALASSIGNMENT.path}/${MODULES.DEVELOPMENTALASSIGNMENT.children.PDP.path}`,
         element: <Pdp />,
         handle: {
-          permission: MODULES.DEVELOPMENTALASSIGNMENT.children.PDP.name,
+          permission: MODULES.DEVELOPMENTALASSIGNMENT.children.PDP.permissionId,
         },
       },
       {
@@ -339,7 +367,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.JOBBANDS.path}`,
         element: <Jobbands />,
         handle: {
-          permission: MODULES.EXTRAS.children.JOBBANDS.name,
+          permission: MODULES.EXTRAS.children.JOBBANDS.permissionId,
         },
       },
       {
@@ -347,7 +375,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.JOBLEVELS.path}`,
         element: <Joblevels />,
         handle: {
-          permission: MODULES.EXTRAS.children.JOBLEVELS.name,
+          permission: MODULES.EXTRAS.children.JOBLEVELS.permissionId,
         },
       },
       {
@@ -355,7 +383,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.JOBRATES.path}`,
         element: <Jobrates />,
         handle: {
-          permission: MODULES.EXTRAS.children.JOBRATES.name,
+          permission: MODULES.EXTRAS.children.JOBRATES.permissionId,
         },
       },
       {
@@ -363,7 +391,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.TITLES.path}`,
         element: <Titles />,
         handle: {
-          permission: MODULES.EXTRAS.children.TITLES.name,
+          permission: MODULES.EXTRAS.children.TITLES.permissionId,
         },
       },
       {
@@ -371,7 +399,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.TEAMS.path}`,
         element: <Teams />,
         handle: {
-          permission: MODULES.EXTRAS.children.TEAMS.name,
+          permission: MODULES.EXTRAS.children.TEAMS.permissionId,
         },
       },
       {
@@ -379,7 +407,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.RELIGIONS.path}`,
         element: <Religions />,
         handle: {
-          permission: MODULES.EXTRAS.children.RELIGIONS.name,
+          permission: MODULES.EXTRAS.children.RELIGIONS.permissionId,
         },
       },
       {
@@ -387,7 +415,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.ATTAINMENTS.path}`,
         element: <Attainments />,
         handle: {
-          permission: MODULES.EXTRAS.children.ATTAINMENTS.name,
+          permission: MODULES.EXTRAS.children.ATTAINMENTS.permissionId,
         },
       },
       {
@@ -395,7 +423,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.BANKS.path}`,
         element: <Banks />,
         handle: {
-          permission: MODULES.EXTRAS.children.BANKS.name,
+          permission: MODULES.EXTRAS.children.BANKS.permissionId,
         },
       },
       {
@@ -403,7 +431,8 @@ export const ROUTES = [
         path: `${MODULES.ADMINISTRATIVEDIVISION.path}/${MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.path}`,
         element: <Barangays />,
         handle: {
-          permission: MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.name,
+          permission:
+            MODULES.ADMINISTRATIVEDIVISION.children.BARANGAYS.permissionId,
         },
       },
       {
@@ -411,7 +440,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.CABINETS.path}`,
         element: <Cabinets />,
         handle: {
-          permission: MODULES.EXTRAS.children.CABINETS.name,
+          permission: MODULES.EXTRAS.children.CABINETS.permissionId,
         },
       },
       {
@@ -419,7 +448,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.DEGREES.path}`,
         element: <Degrees />,
         handle: {
-          permission: MODULES.EXTRAS.children.DEGREES.name,
+          permission: MODULES.EXTRAS.children.DEGREES.permissionId,
         },
       },
       {
@@ -427,7 +456,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.FILETYPES.path}`,
         element: <FileTypes />,
         handle: {
-          permission: MODULES.EXTRAS.children.FILETYPES.name,
+          permission: MODULES.EXTRAS.children.FILETYPES.permissionId,
         },
       },
       {
@@ -435,7 +464,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.HONORTITLES.path}`,
         element: <HonorTitles />,
         handle: {
-          permission: MODULES.EXTRAS.children.HONORTITLES.name,
+          permission: MODULES.EXTRAS.children.HONORTITLES.permissionId,
         },
       },
       {
@@ -444,7 +473,7 @@ export const ROUTES = [
         element: <Municipalities />,
         handle: {
           permission:
-            MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.name,
+            MODULES.ADMINISTRATIVEDIVISION.children.MUNICIPALITIES.permissionId,
         },
       },
       {
@@ -453,7 +482,8 @@ export const ROUTES = [
         element: <SubMunicipalities />,
         handle: {
           permission:
-            MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES.name,
+            MODULES.ADMINISTRATIVEDIVISION.children.SUBMUNICIPALITIES
+              .permissionId,
         },
       },
       {
@@ -461,7 +491,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.OBJECTIVES.path}`,
         element: <Objectives />,
         handle: {
-          permission: MODULES.EXTRAS.children.OBJECTIVES.name,
+          permission: MODULES.EXTRAS.children.OBJECTIVES.permissionId,
         },
       },
       {
@@ -469,7 +499,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.PREFIXES.path}`,
         element: <Prefixes />,
         handle: {
-          permission: MODULES.EXTRAS.children.PREFIXES.name,
+          permission: MODULES.EXTRAS.children.PREFIXES.permissionId,
         },
       },
       {
@@ -477,7 +507,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.PROGRAMS.path}`,
         element: <Programs />,
         handle: {
-          permission: MODULES.EXTRAS.children.PROGRAMS.name,
+          permission: MODULES.EXTRAS.children.PROGRAMS.permissionId,
         },
       },
       {
@@ -485,7 +515,8 @@ export const ROUTES = [
         path: `${MODULES.ADMINISTRATIVEDIVISION.path}/${MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.path}`,
         element: <Provinces />,
         handle: {
-          permission: MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.name,
+          permission:
+            MODULES.ADMINISTRATIVEDIVISION.children.PROVINCES.permissionId,
         },
       },
       {
@@ -493,7 +524,8 @@ export const ROUTES = [
         path: `${MODULES.ADMINISTRATIVEDIVISION.path}/${MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.path}`,
         element: <Regions />,
         handle: {
-          permission: MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.name,
+          permission:
+            MODULES.ADMINISTRATIVEDIVISION.children.REGIONS.permissionId,
         },
       },
       {
@@ -501,7 +533,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.SCHEDULES.path}`,
         element: <Schedules />,
         handle: {
-          permission: MODULES.EXTRAS.children.SCHEDULES.name,
+          permission: MODULES.EXTRAS.children.SCHEDULES.permissionId,
         },
       },
       {
@@ -509,7 +541,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.TOOLS.path}`,
         element: <Tools />,
         handle: {
-          permission: MODULES.EXTRAS.children.TOOLS.name,
+          permission: MODULES.EXTRAS.children.TOOLS.permissionId,
         },
       },
       {
@@ -517,7 +549,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.REQUISITION.path}`,
         element: <RequisitionTypes />,
         handle: {
-          permission: MODULES.EXTRAS.children.REQUISITION.name,
+          permission: MODULES.EXTRAS.children.REQUISITION.permissionId,
         },
       },
       {
@@ -525,7 +557,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.MOVEMENTTYPES.path}`,
         element: <MovementTypes />,
         handle: {
-          permission: MODULES.EXTRAS.children.MOVEMENTTYPES.name,
+          permission: MODULES.EXTRAS.children.MOVEMENTTYPES.permissionId,
         },
       },
       {
@@ -533,7 +565,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.WORKWEEKS.path}`,
         element: <WorkWeeks />,
         handle: {
-          permission: MODULES.EXTRAS.children.WORKWEEKS.name,
+          permission: MODULES.EXTRAS.children.WORKWEEKS.permissionId,
         },
       },
       {
@@ -541,7 +573,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.WORKHOURS.path}`,
         element: <WorkHours />,
         handle: {
-          permission: MODULES.EXTRAS.children.WORKHOURS.name,
+          permission: MODULES.EXTRAS.children.WORKHOURS.permissionId,
         },
       },
       {
@@ -549,7 +581,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.RESTDAYS.path}`,
         element: <RestDays />,
         handle: {
-          permission: MODULES.EXTRAS.children.RESTDAYS.name,
+          permission: MODULES.EXTRAS.children.RESTDAYS.permissionId,
         },
       },
       {
@@ -557,7 +589,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.SEPARATIONTYPES.path}`,
         element: <SeparationTypes />,
         handle: {
-          permission: MODULES.EXTRAS.children.SEPARATIONTYPES.name,
+          permission: MODULES.EXTRAS.children.SEPARATIONTYPES.permissionId,
         },
       },
       {
@@ -565,7 +597,7 @@ export const ROUTES = [
         path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.SEPARATIONREASONS.path}`,
         element: <SeparationReasons />,
         handle: {
-          permission: MODULES.EXTRAS.children.SEPARATIONREASONS.name,
+          permission: MODULES.EXTRAS.children.SEPARATIONREASONS.permissionId,
         },
       },
       {
@@ -573,7 +605,8 @@ export const ROUTES = [
         path: `${MODULES.EMPLOYEES.path}/${MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.path}`,
         element: <EMPLOYEEINFORMATION />,
         handle: {
-          permission: MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.name,
+          permission:
+            MODULES.EMPLOYEES.children.EMPLOYEEINFORMATION.permissionId,
         },
       },
       {
@@ -581,7 +614,7 @@ export const ROUTES = [
         path: `${MODULES.EMPLOYEES.path}/${MODULES.EMPLOYEES.children.ENABLEEDIT.path}`,
         element: <EnableEdit />,
         handle: {
-          permission: MODULES.EMPLOYEES.children.ENABLEEDIT.name,
+          permission: MODULES.EMPLOYEES.children.ENABLEEDIT.permissionId,
         },
       },
     ],

@@ -64,6 +64,7 @@ import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import WeekendIcon from "@mui/icons-material/Weekend";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import RecommendIcon from "@mui/icons-material/Recommend";
 import { calculateCounts } from "./NotificationBadge";
 
 export const createEnhancedModules = (dashboardData = {}) => {
@@ -301,6 +302,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Form",
           path: "daform",
           icon: <DescriptionIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
+        },
+        DARECOMMENDATION: {
+          name: "DA Recommendation",
+          permissionId: "REQUEST.DARECOMMENDATION",
+          displayName: "DA Recommendation",
+          path: "darecommendation",
+          icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: 0,
         },
