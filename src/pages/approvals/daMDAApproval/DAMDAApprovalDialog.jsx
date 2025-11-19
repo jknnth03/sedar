@@ -16,9 +16,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import HelpIcon from "@mui/icons-material/Help";
-import * as styles from "../daMDAApproval/DAMDAApprovalDialogStyles";
+import * as styles from "./DAMDAApprovalDialogStyles";
 
-const MdaApprovalDialog = ({
+const DAMDAApprovalDialog = ({
   open,
   onClose,
   approval,
@@ -80,20 +80,13 @@ const MdaApprovalDialog = ({
     });
   };
 
-  const formatCurrency = (amount) => {
-    if (!amount) return "N/A";
-    return `₱${parseFloat(amount).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
   const submission = approval?.submission || {};
   const formDetails = submission.form_details || {};
   const status = approval?.status?.toLowerCase() || "pending";
   const isProcessed = status === "approved" || status === "rejected";
-  const fromPosition = formDetails.from || {};
-  const toPosition = formDetails.to || {};
+
+  const fromDetails = formDetails.from || {};
+  const toDetails = formDetails.to || {};
 
   const renderSkeletonField = () => (
     <Box sx={styles.skeletonFieldBoxStyles}>
@@ -135,7 +128,7 @@ const MdaApprovalDialog = ({
         <DialogTitle sx={styles.dialogTitleStyles}>
           <Box sx={styles.titleBoxStyles}>
             <Typography variant="h6" sx={styles.titleTextStyles}>
-              VIEW MDA REQUEST
+              VIEW DA MDA REQUEST
             </Typography>
             <IconButton onClick={handleClose} size="small">
               <CloseIcon sx={styles.closeIconStyles} />
@@ -146,8 +139,8 @@ const MdaApprovalDialog = ({
         <DialogContent>
           {isLoadingData ? (
             <>
-              {renderSkeletonSection("Employee Information", 3)}
-              {renderSkeletonSection("MDA Details", 4)}
+              {renderSkeletonSection("Employee Information", 6)}
+              {renderSkeletonSection("Developmental Assignment Details", 4)}
             </>
           ) : (
             <>
@@ -205,12 +198,25 @@ const MdaApprovalDialog = ({
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
+                        BIRTH PLACE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.birth_place || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
                         GENDER
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
                         {formDetails.gender || "N/A"}
                       </Typography>
                     </Box>
+                  </Box>
+
+                  <Box sx={styles.fieldRowStyles}>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
@@ -221,9 +227,53 @@ const MdaApprovalDialog = ({
                         {formDetails.nationality || "N/A"}
                       </Typography>
                     </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TIN NUMBER
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.tin_number || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        SSS NUMBER
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.sss_number || "N/A"}
+                      </Typography>
+                    </Box>
                   </Box>
 
-                  <Box sx={styles.fieldRowLastStyles}>
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        PAG-IBIG NUMBER
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.pag_ibig_number || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        PHILHEALTH NUMBER
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.philhealth_number || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles} />
+                  </Box>
+
+                  <Box sx={styles.fieldRowStyles}>
                     <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
@@ -234,7 +284,10 @@ const MdaApprovalDialog = ({
                         {formDetails.address || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={{ flex: 1 }}>
+                  </Box>
+
+                  <Box sx={styles.fieldRowLastStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
@@ -244,14 +297,15 @@ const MdaApprovalDialog = ({
                         {submission.requested_by || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={{ flex: 1 }} />
+                    <Box sx={styles.fieldBoxStyles} />
+                    <Box sx={styles.fieldBoxStyles} />
                   </Box>
                 </Box>
               </Box>
 
               <Box sx={styles.sectionBoxStyles}>
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
-                  MDA Details
+                  Developmental Assignment Details
                 </Typography>
 
                 <Box>
@@ -279,7 +333,6 @@ const MdaApprovalDialog = ({
                     <Box sx={styles.fieldBoxStyles} />
                   </Box>
 
-                  {/* FROM and TO Position side by side like DAMDA */}
                   <Box sx={styles.fieldRowStyles}>
                     <Box sx={{ flex: 1 }}>
                       <Typography
@@ -288,7 +341,7 @@ const MdaApprovalDialog = ({
                         FROM POSITION
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.position || "N/A"}
+                        {fromDetails.position || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -298,7 +351,7 @@ const MdaApprovalDialog = ({
                         TO POSITION
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.position || "N/A"}
+                        {toDetails.position || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -311,7 +364,7 @@ const MdaApprovalDialog = ({
                         FROM DEPARTMENT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.department || "N/A"}
+                        {fromDetails.department || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -321,7 +374,7 @@ const MdaApprovalDialog = ({
                         TO DEPARTMENT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.department || "N/A"}
+                        {toDetails.department || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -334,7 +387,7 @@ const MdaApprovalDialog = ({
                         FROM SUB UNIT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.sub_unit || "N/A"}
+                        {fromDetails.sub_unit || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -344,53 +397,7 @@ const MdaApprovalDialog = ({
                         TO SUB UNIT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.sub_unit || "N/A"}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={styles.fieldRowStyles}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        FROM JOB LEVEL
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.job_level || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        TO JOB LEVEL
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.job_level || "N/A"}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={styles.fieldRowStyles}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        FROM JOB RATE
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatCurrency(fromPosition.job_rate)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        TO JOB RATE
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatCurrency(toPosition.job_rate)}
+                        {toDetails.sub_unit || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -400,20 +407,20 @@ const MdaApprovalDialog = ({
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        FROM ALLOWANCE
+                        FROM JOB LEVEL
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatCurrency(fromPosition.allowance)}
+                        {fromDetails.job_level || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        TO ALLOWANCE
+                        TO JOB LEVEL
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatCurrency(toPosition.allowance)}
+                        {toDetails.job_level || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -426,7 +433,7 @@ const MdaApprovalDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={styles.processedTextStyles}>
-                    This MDA request has already been {status}
+                    This DA MDA request has already been {status}
                   </Typography>
                 </Box>
               )}
@@ -501,14 +508,14 @@ const MdaApprovalDialog = ({
             gutterBottom
             sx={styles.confirmMessageStyles}>
             {confirmAction === "approve"
-              ? "Are you sure you want to Approve this MDA request?"
-              : "Are you sure you want to Reject this MDA request?"}
+              ? "Are you sure you want to Approve this DA MDA request?"
+              : "Are you sure you want to Reject this DA MDA request?"}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={styles.confirmIdStyles}>
-            MDA Request ID: {approval?.id || "N/A"}
+            DA MDA Request ID: {approval?.id || "N/A"}
           </Typography>
 
           {confirmAction === "reject" && (
@@ -556,4 +563,4 @@ const MdaApprovalDialog = ({
   );
 };
 
-export default MdaApprovalDialog;
+export default DAMDAApprovalDialog;

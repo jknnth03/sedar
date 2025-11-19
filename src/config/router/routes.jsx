@@ -64,6 +64,7 @@ import RestDays from "../../pages/extras/RestDays.jsx";
 import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
 import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
+import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
 
 export const ROUTES = [
   {
@@ -243,6 +244,14 @@ export const ROUTES = [
         element: <MdaApproval />,
         handle: {
           permission: MODULES.APPROVING.children.MDAAPPROVAL.name,
+        },
+      },
+      {
+        id: "APPROVING.DAMDAAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DAMDAAPPROVAL.path}`,
+        element: <DAMDAApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.DAMDAAPPROVAL.name,
         },
       },
       {

@@ -48,8 +48,8 @@ import DataChangeRejected from "./DataChangeRejected";
 import DataChangeCompleted from "./DataChangeCompleted";
 import DataChangeCancelled from "./DataChangeCancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
-import DataChangeMonitoringForMDAProcessing from "../../monitoring/DATACHANGE/DataChangeMonitoringForMDAProcessing";
-import MDAForApproval from "../../monitoring/DATACHANGE/MDAForApproval";
+import DataChangeForMDAProcessing from "./DataChangeForMDAProcessing";
+import DataChangeMDAInProgress from "./DataChangeMDAInProgress";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -486,32 +486,32 @@ const DataChangeMainContainer = () => {
     awaitingResubmission:
       dashboardData?.result?.requisition?.data_change_awaiting_resubmission ||
       0,
-    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0, // Add this line!
+    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0,
+    cancelled: 0,
     forMDAProcessing:
       dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
     mdaForApproval: dashboardData?.result?.approval?.mda_approval || 0,
     completed: 0,
-    cancelled: 0,
   };
 
   const tabMap = {
     0: "ForApproval",
     1: "AwaitingResubmission",
     2: "Rejected",
-    3: "ForMDAProcessing",
-    4: "MDAForApproval",
-    5: "Completed",
-    6: "Cancelled",
+    3: "Cancelled",
+    4: "ForMDAProcessing",
+    5: "MDAForApproval",
+    6: "Completed",
   };
 
   const reverseTabMap = {
     ForApproval: 0,
     AwaitingResubmission: 1,
     Rejected: 2,
-    ForMDAProcessing: 3,
-    MDAForApproval: 4,
-    Completed: 5,
-    Cancelled: 6,
+    Cancelled: 3,
+    ForMDAProcessing: 4,
+    MDAForApproval: 5,
+    Completed: 6,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -788,9 +788,24 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.rejected,
     },
     {
+      label: "Cancelled",
+      component: (
+        <DataChangeCancelled
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: dataChangeCounts.cancelled,
+    },
+    {
       label: "For MDA Processing",
       component: (
-        <DataChangeMonitoringForMDAProcessing
+        <DataChangeForMDAProcessing
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -804,9 +819,9 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.forMDAProcessing,
     },
     {
-      label: "MDA For Approval",
+      label: "MDA In Progress",
       component: (
-        <MDAForApproval
+        <DataChangeMDAInProgress
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -834,21 +849,6 @@ const DataChangeMainContainer = () => {
         />
       ),
       badgeCount: dataChangeCounts.completed,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <DataChangeCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.cancelled,
     },
   ];
 

@@ -584,22 +584,21 @@ const MDADA = () => {
   }, []);
 
   const handleCancel = useCallback(
-    async (entryId, cancellationReason) => {
+    async (entryId, onSuccess) => {
       try {
-        await cancelMDADASubmission({
-          id: entryId,
-          cancellation_reason: cancellationReason,
-        }).unwrap();
+        const result = await cancelMDADASubmission(entryId).unwrap();
 
         enqueueSnackbar("MDADA cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
+        if (onSuccess && typeof onSuccess === "function") {
+          onSuccess();
+        }
+
         return true;
       } catch (error) {
-        console.error("Error in handleCancel:", error);
-
         let errorMessage = "Failed to cancel MDADA. Please try again.";
 
         if (error?.data?.message) {
@@ -651,8 +650,6 @@ const MDADA = () => {
 
         handleCloseModal();
       } catch (error) {
-        console.error("Error in handleSave:", error);
-
         let errorMessage =
           mode === "edit"
             ? "Failed to update MDADA. Please try again."

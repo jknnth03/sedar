@@ -15,6 +15,7 @@ import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
 } from "../../../features/api/approvalsetting/formSubmissionApi";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 
 const DAFormAwaitingResubmission = ({
   searchQuery,
@@ -38,6 +39,12 @@ const DAFormAwaitingResubmission = ({
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
+    useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
@@ -110,107 +117,113 @@ const DAFormAwaitingResubmission = ({
 
   const handleSave = useCallback(
     async (formData, mode) => {
-      try {
-        console.log("Saving DA Form submission:", formData, mode);
-
-        if (mode === "edit" && selectedSubmissionId) {
-          const response = await updateDaSubmission({
-            id: selectedSubmissionId,
-            data: formData,
-          }).unwrap();
-
-          enqueueSnackbar("DA Form submission updated successfully", {
-            variant: "success",
-          });
-
-          await refetchDetails();
-          await refetch();
-
-          handleModalClose();
-        }
-      } catch (error) {
-        console.error("Error saving DA Form submission:", error);
-        enqueueSnackbar(
-          error?.data?.message || "Failed to update DA Form submission",
-          {
-            variant: "error",
-          }
-        );
+      if (mode === "edit" && selectedSubmissionId) {
+        const submission =
+          submissionDetails?.result ||
+          submissionsList.find((sub) => sub.id === selectedSubmissionId);
+        setSelectedSubmissionForAction(submission);
+        setPendingFormData(formData);
+        setConfirmAction("update");
+        setConfirmOpen(true);
       }
     },
-    [
-      selectedSubmissionId,
-      updateDaSubmission,
-      enqueueSnackbar,
-      refetchDetails,
-      refetch,
-      handleModalClose,
-    ]
+    [selectedSubmissionId, submissionDetails, submissionsList]
   );
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      try {
-        console.log("Resubmitting DA Form submission:", submissionId);
-
-        await resubmitDaSubmission(submissionId).unwrap();
-
-        enqueueSnackbar("DA Form submission resubmitted successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        await refetchDetails();
-        await refetch();
-      } catch (error) {
-        console.error("Error resubmitting DA Form submission:", error);
-        enqueueSnackbar(
-          error?.data?.message || "Failed to resubmit DA Form submission",
-          {
-            variant: "error",
-            autoHideDuration: 2000,
-          }
-        );
-      }
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      setSelectedSubmissionForAction(submission);
+      setConfirmAction("resubmit");
+      setConfirmOpen(true);
     },
-    [resubmitDaSubmission, enqueueSnackbar, refetchDetails, refetch]
+    [submissionsList]
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      try {
-        console.log("Cancelling DA Form submission:", submissionId);
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      if (submission) {
+        setSelectedSubmissionForAction(submission);
+        setConfirmAction("cancel");
+        setConfirmOpen(true);
+      } else {
+        enqueueSnackbar("Submission not found. Please try again.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [submissionsList, enqueueSnackbar]
+  );
 
-        await cancelDaSubmission(submissionId).unwrap();
+  const handleActionConfirm = async () => {
+    if (!confirmAction) return;
 
+    setIsLoading(true);
+
+    try {
+      if (confirmAction === "cancel" && selectedSubmissionForAction) {
+        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Form submission cancelled successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-
-        await refetch();
-
-        return true;
-      } catch (error) {
-        console.error("Error cancelling DA Form submission:", error);
-
-        let errorMessage = "Failed to cancel DA Form submission";
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
+        refetch();
+      } else if (
+        confirmAction === "update" &&
+        pendingFormData &&
+        selectedSubmissionId
+      ) {
+        await updateDaSubmission({
+          id: selectedSubmissionId,
+          data: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("DA Form submission updated successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
         });
-
-        return false;
+        await refetchDetails();
+        await refetch();
+        handleModalClose();
+      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
+        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
+        enqueueSnackbar("DA Form submission resubmitted successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        await refetchDetails();
+        await refetch();
       }
-    },
-    [cancelDaSubmission, enqueueSnackbar, refetch]
-  );
+    } catch (error) {
+      const errorMessage =
+        error?.data?.message ||
+        `Failed to ${confirmAction} submission. Please try again.`;
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 2000,
+      });
+    } finally {
+      setConfirmOpen(false);
+      setSelectedSubmissionForAction(null);
+      setConfirmAction(null);
+      setPendingFormData(null);
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setSelectedSubmissionForAction(null);
+    setConfirmAction(null);
+    setPendingFormData(null);
+  }, []);
+
+  const getSubmissionDisplayName = useCallback(() => {
+    const submissionForAction =
+      selectedSubmissionForAction?.reference_number || "DA Form";
+    return submissionForAction;
+  }, [selectedSubmissionForAction]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -265,7 +278,7 @@ const DAFormAwaitingResubmission = ({
     [setQueryParams, queryParams]
   );
 
-  const isLoadingState = queryLoading || isFetching;
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   const totalCount = submissionsData?.result?.total || 0;
 
@@ -352,6 +365,15 @@ const DAFormAwaitingResubmission = ({
           isLoading={detailsLoading}
           mode={modalMode}
           submissionId={selectedSubmissionId}
+        />
+
+        <ConfirmationDialog
+          open={confirmOpen}
+          onClose={handleConfirmationCancel}
+          onConfirm={handleActionConfirm}
+          isLoading={isLoading}
+          action={confirmAction}
+          itemName={getSubmissionDisplayName()}
         />
       </Box>
     </FormProvider>

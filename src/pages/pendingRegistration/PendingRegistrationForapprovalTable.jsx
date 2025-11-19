@@ -133,7 +133,6 @@ const PendingRegistrationForapprovalTable = ({
         onRefetch();
       }
     } catch (error) {
-      console.error("Failed to cancel registration:", error);
     } finally {
       setIsProcessing(false);
       setPendingCancelRegistration(null);
@@ -305,7 +304,6 @@ const PendingRegistrationForapprovalTable = ({
   };
 
   const columnStyles = {
-    id: { width: "35px", minWidth: "35px" },
     employeeName: { width: "160px", minWidth: "160px" },
     position: { width: "110px", minWidth: "110px" },
     status: { width: "85px", minWidth: "85px" },
@@ -334,9 +332,6 @@ const PendingRegistrationForapprovalTable = ({
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={columnStyles.id}>
-                ID
-              </TableCell>
               <TableCell sx={columnStyles.employeeName}>FULL NAME</TableCell>
               <TableCell sx={columnStyles.position}>ID NUMBER</TableCell>
               <TableCell sx={columnStyles.status}>STATUS</TableCell>
@@ -353,7 +348,7 @@ const PendingRegistrationForapprovalTable = ({
             {isLoadingState ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   align="center"
                   sx={{ py: 4, backgroundColor: "white" }}>
                   <CircularProgress
@@ -365,7 +360,7 @@ const PendingRegistrationForapprovalTable = ({
             ) : error ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   align="center"
                   sx={{ py: 4, backgroundColor: "white" }}>
                   <Typography color="error">
@@ -389,9 +384,6 @@ const PendingRegistrationForapprovalTable = ({
                     },
                     transition: "background-color 0.2s ease",
                   }}>
-                  <TableCell align="left" sx={columnStyles.id}>
-                    {registration?.id}
-                  </TableCell>
                   <TableCell
                     sx={{
                       ...columnStyles.employeeName,
@@ -455,7 +447,7 @@ const PendingRegistrationForapprovalTable = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Box
                     sx={{
                       display: "flex",

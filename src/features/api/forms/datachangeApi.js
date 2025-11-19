@@ -55,6 +55,44 @@ const dataChangeApi = sedarApi
         providesTags: ["dataChangeSubmissions"],
       }),
 
+      getMyDataChangeSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = 1,
+            page = 1,
+            per_page = 10,
+            status = "active",
+            approval_status = "",
+            search = "",
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination.toString());
+          queryParams.append("page", page.toString());
+          queryParams.append("per_page", per_page.toString());
+          queryParams.append("status", status);
+          queryParams.append("approval_status", approval_status);
+          queryParams.append("search", search);
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = `me/data-change-submissions?${queryString}`;
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["dataChangeSubmissions"],
+      }),
+
       getDataChangeSubmissionDetails: build.query({
         query: (id) => ({
           url: `me/data-change-submissions/${id}`,
@@ -229,6 +267,8 @@ const dataChangeApi = sedarApi
 export const {
   useGetDataChangeSubmissionsQuery,
   useLazyGetDataChangeSubmissionsQuery,
+  useGetMyDataChangeSubmissionsQuery,
+  useLazyGetMyDataChangeSubmissionsQuery,
   useGetDataChangeSubmissionDetailsQuery,
   useLazyGetDataChangeSubmissionDetailsQuery,
   useGetDataChangeAttachmentQuery,

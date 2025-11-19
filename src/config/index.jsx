@@ -92,6 +92,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
       (apiResult.approval?.registration_approval || 0) +
       (apiResult.approval?.data_change_approval || 0) +
       (apiResult.approval?.mda_approval || 0) +
+      (apiResult.approval?.da_mda_approval || 0) +
       (apiResult.approval?.da_form_approval || 0) +
       (apiResult.approval?.cat_one_approval || 0) +
       (apiResult.approval?.cat_two_approval || 0) +
@@ -100,6 +101,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
     registrationApprovals: apiResult.approval?.registration_approval || 0,
     dataChangeApprovals: apiResult.approval?.data_change_approval || 0,
     mdaApprovals: apiResult.approval?.mda_approval || 0,
+    daMdaApprovals: apiResult.approval?.da_mda_approval || 0,
     daFormApprovals: apiResult.approval?.da_form_approval || 0,
     catOneApprovals: apiResult.approval?.cat_one_approval || 0,
     catTwoApprovals: apiResult.approval?.cat_two_approval || 0,
@@ -245,11 +247,18 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.dataChangeApprovals,
         },
         MDAAPPROVAL: {
-          name: "MDA",
+          name: "MDA (For Data Change)",
           path: "mdaapproval",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.mdaApprovals,
+        },
+        DAMDAAPPROVAL: {
+          name: "MDA (For DA)",
+          path: "damdaapproval",
+          icon: <VerifiedIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.daMdaApprovals,
         },
         DAFORMAPPROVAL: {
           name: "DA Form",

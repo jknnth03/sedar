@@ -24,7 +24,6 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
@@ -39,8 +38,8 @@ const MDADATable = ({
   handleMenuClose,
   menuAnchor,
   searchQuery,
-  onCreateMDA,
   onCancel,
+  onRefetch,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
@@ -73,22 +72,22 @@ const MDADATable = ({
     const statusConfig = {
       "pending mda creation": {
         color: "#f57c00",
-        bgColor: "#fff8e1",
+        bgColor: "#fff4e6",
         label: "PENDING MDA CREATION",
       },
       pending: {
         color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
+        bgColor: "#fff4e6",
+        label: "FOR APPROVAL",
       },
       approved: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "APPROVED",
       },
       received: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "RECEIVED",
       },
       rejected: {
@@ -105,6 +104,16 @@ const MDADATable = ({
         color: "#d32f2f",
         bgColor: "#ffebee",
         label: "RETURNED",
+      },
+      "awaiting approval": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "AWAITING APPROVAL",
+      },
+      "awaiting resubmission": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "FOR SUBMISSION",
       },
     };
 
@@ -148,11 +157,21 @@ const MDADATable = ({
       return;
     }
 
+    const submissionId = selectedSubmissionToCancel.id;
+
+    if (!submissionId || typeof submissionId === "object") {
+      return;
+    }
+
     setIsCancelling(true);
 
     try {
       if (onCancel) {
-        const success = await onCancel(selectedSubmissionToCancel.id);
+        const success = await onCancel(submissionId, () => {
+          if (onRefetch && typeof onRefetch === "function") {
+            onRefetch();
+          }
+        });
 
         if (success) {
           handleCancelDialogClose();
@@ -168,20 +187,8 @@ const MDADATable = ({
     }
   };
 
-  const handleCreateMDAClick = (e, submission) => {
-    e.stopPropagation();
-    if (onCreateMDA) {
-      onCreateMDA(submission);
-    }
-    handleMenuClose(submission.id);
-  };
-
   const canCancelSubmission = (submission) => {
     return submission?.actions?.can_cancel === true;
-  };
-
-  const canCreateMDA = (submission) => {
-    return submission?.status?.toUpperCase() === "PENDING MDA CREATION";
   };
 
   const renderActivityLog = (submission) => {
@@ -331,29 +338,6 @@ const MDADATable = ({
                         sx={{
                           zIndex: 10000,
                         }}>
-                        <MenuItem
-                          onClick={(e) => handleCreateMDAClick(e, submission)}
-                          disabled={!canCreateMDA(submission)}
-                          sx={{
-                            fontSize: "14px",
-                            color: canCreateMDA(submission)
-                              ? "#2e7d32"
-                              : "#ccc",
-                            "&:hover": {
-                              backgroundColor: canCreateMDA(submission)
-                                ? "rgba(46, 125, 50, 0.08)"
-                                : "transparent",
-                            },
-                            "&.Mui-disabled": {
-                              opacity: 0.5,
-                            },
-                          }}>
-                          <AddCircleOutlineIcon
-                            fontSize="small"
-                            sx={{ mr: 1 }}
-                          />
-                          Create MDA
-                        </MenuItem>
                         <MenuItem
                           onClick={(e) => {
                             e.stopPropagation();

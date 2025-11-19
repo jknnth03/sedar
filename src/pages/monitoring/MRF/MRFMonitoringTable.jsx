@@ -369,9 +369,6 @@ const MRFMonitoringTable = ({
         <Table stickyHeader sx={{ minWidth: 1000 }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={styles.columnStyles.id}>
-                ID
-              </TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -409,9 +406,6 @@ const MRFMonitoringTable = ({
                   key={submission.id}
                   onClick={() => handleRowClick && handleRowClick(submission)}
                   sx={styles.tableRowHover(theme)}>
-                  <TableCell align="left" sx={styles.columnStyles.id}>
-                    {submission.id}
-                  </TableCell>
                   <TableCell
                     sx={{
                       ...styles.columnStyles.referenceNumber,

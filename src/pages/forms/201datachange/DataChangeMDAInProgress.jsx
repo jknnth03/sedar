@@ -4,20 +4,16 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetDaSubmissionsQuery,
-  useGetSingleDaSubmissionQuery,
-  useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
-import DAFormTable from "./DAFormTable";
+  useGetMyDataChangeSubmissionsQuery,
+  useGetDataChangeSubmissionDetailsQuery,
+  useUpdateDataChangeSubmissionMutation,
+} from "../../../features/api/forms/datachangeApi";
+import DataChangeMDATable from "./DataChangeMDATable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
+import { useUpdateMdaMutation } from "../../../features/api/forms/mdaApi";
 
-const DAFormForApproval = ({
+const DataChangeMDAInProgress = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -39,28 +35,21 @@ const DAFormForApproval = ({
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
-    useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
   });
 
-  const [updateDaSubmission] = useUpdateDaMutation();
-  const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
+  const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
+  const [updateMda] = useUpdateMdaMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "PENDING",
-      pagination: true,
+      approval_status: "MDA IN PROGRESS",
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);
@@ -75,7 +64,7 @@ const DAFormForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetDaSubmissionsQuery(apiQueryParams, {
+  } = useGetMyDataChangeSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -84,7 +73,7 @@ const DAFormForApproval = ({
     data: submissionDetails,
     isLoading: detailsLoading,
     refetch: refetchDetails,
-  } = useGetSingleDaSubmissionQuery(selectedSubmissionId, {
+  } = useGetDataChangeSubmissionDetailsQuery(selectedSubmissionId, {
     skip: !selectedSubmissionId,
     refetchOnMountOrArgChange: true,
   });
@@ -117,113 +106,47 @@ const DAFormForApproval = ({
 
   const handleSave = useCallback(
     async (formData, mode) => {
-      if (mode === "edit" && selectedSubmissionId) {
-        const submission =
-          submissionDetails?.result ||
-          submissionsList.find((sub) => sub.id === selectedSubmissionId);
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(formData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
+      try {
+        console.log("Saving MDA submission:", formData, mode);
+
+        if (mode === "edit" && selectedSubmissionId) {
+          const response = await updateMda({
+            id: selectedSubmissionId,
+            data: formData,
+          }).unwrap();
+
+          enqueueSnackbar("MDA submission updated successfully", {
+            variant: "success",
+          });
+
+          await refetchDetails();
+          await refetch();
+
+          handleModalClose();
+        }
+      } catch (error) {
+        console.error("Error saving MDA submission:", error);
+        enqueueSnackbar(
+          error?.data?.message || "Failed to update MDA submission",
+          {
+            variant: "error",
+          }
+        );
       }
     },
-    [selectedSubmissionId, submissionDetails, submissionsList]
+    [
+      selectedSubmissionId,
+      updateMda,
+      enqueueSnackbar,
+      refetchDetails,
+      refetch,
+      handleModalClose,
+    ]
   );
 
-  const handleResubmit = useCallback(
-    async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      setSelectedSubmissionForAction(submission);
-      setConfirmAction("resubmit");
-      setConfirmOpen(true);
-    },
-    [submissionsList]
-  );
-
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [submissionsList, enqueueSnackbar]
-  );
-
-  const handleActionConfirm = async () => {
-    if (!confirmAction) return;
-
-    setIsLoading(true);
-
-    try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionId
-      ) {
-        await updateDaSubmission({
-          id: selectedSubmissionId,
-          data: pendingFormData,
-        }).unwrap();
-        enqueueSnackbar("DA Form submission updated successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        await refetchDetails();
-        await refetch();
-        handleModalClose();
-      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission resubmitted successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        await refetchDetails();
-        await refetch();
-      }
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedSubmissionForAction(null);
-      setConfirmAction(null);
-      setPendingFormData(null);
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmationCancel = useCallback(() => {
-    setConfirmOpen(false);
-    setSelectedSubmissionForAction(null);
-    setConfirmAction(null);
-    setPendingFormData(null);
+  const handleCancel = useCallback(async (submissionId) => {
+    return false;
   }, []);
-
-  const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "DA Form";
-    return submissionForAction;
-  }, [selectedSubmissionForAction]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -278,7 +201,7 @@ const DAFormForApproval = ({
     [setQueryParams, queryParams]
   );
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching;
 
   const totalCount = submissionsData?.result?.total || 0;
 
@@ -301,7 +224,7 @@ const DAFormForApproval = ({
             flexDirection: "column",
             backgroundColor: "white",
           }}>
-          <DAFormTable
+          <DataChangeMDATable
             submissionsList={submissionsList}
             isLoadingState={isLoadingState}
             error={error}
@@ -310,7 +233,7 @@ const DAFormForApproval = ({
             handleMenuClose={handleMenuClose}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            statusFilter="PENDING"
+            statusFilter="MDA IN PROGRESS"
             onCancel={handleCancel}
           />
 
@@ -356,28 +279,18 @@ const DAFormForApproval = ({
           </Box>
         </Box>
 
-        <DAFormModal
+        <MDAFormModal
           open={modalOpen}
           onClose={handleModalClose}
           onSave={handleSave}
-          onResubmit={handleResubmit}
           selectedEntry={selectedEntry}
           isLoading={detailsLoading}
           mode={modalMode}
           submissionId={selectedSubmissionId}
-        />
-
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isLoading}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
         />
       </Box>
     </FormProvider>
   );
 };
 
-export default DAFormForApproval;
+export default DataChangeMDAInProgress;

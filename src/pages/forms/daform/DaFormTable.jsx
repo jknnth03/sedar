@@ -118,7 +118,7 @@ const DAFormTable = ({
         bgColor: "#ffebee",
         label: "RETURNED",
       },
-      awaiting_resubmission: {
+      AWAITING_RESUBMISSION: {
         color: "#ed6c02",
         bgColor: "#fff4e5",
         label: "AWAITING RESUBMISSION",
@@ -221,9 +221,6 @@ const DAFormTable = ({
         <Table stickyHeader sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow>
-              <TableCell align="left" sx={styles.columnStyles.id}>
-                ID
-              </TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -273,9 +270,6 @@ const DAFormTable = ({
                     key={submission.id}
                     onClick={() => handleRowClick(submission)}
                     sx={styles.tableRowHover(theme)}>
-                    <TableCell align="left" sx={styles.columnStyles.id}>
-                      {submission.id}
-                    </TableCell>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,

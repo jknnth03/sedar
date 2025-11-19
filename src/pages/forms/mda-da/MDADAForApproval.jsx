@@ -279,6 +279,7 @@ const MDADAForApproval = ({
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
             onCancel={onCancel}
+            onRefetch={refetch}
           />
 
           <Box

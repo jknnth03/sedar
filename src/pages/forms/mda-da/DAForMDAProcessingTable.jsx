@@ -9,8 +9,6 @@ import {
   Typography,
   Box,
   IconButton,
-  Menu,
-  MenuItem,
   Chip,
   Tooltip,
   CircularProgress,
@@ -21,34 +19,22 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
-import CancelIcon from "@mui/icons-material/Cancel";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
 
-const MDADATable = ({
+const DAForMDAProcessingTable = ({
   submissionsList,
   isLoadingState,
   error,
   handleRowClick,
-  handleMenuOpen,
-  handleMenuClose,
-  menuAnchor,
   searchQuery,
-  onCreateMDA,
-  onCancel,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedMdaHistory, setSelectedMdaHistory] = React.useState(null);
-  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
-  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
-    React.useState(null);
-  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -131,59 +117,6 @@ const MDADATable = ({
     setSelectedMdaHistory(null);
   };
 
-  const handleCancelClick = (submission) => {
-    setSelectedSubmissionToCancel(submission);
-    setCancelDialogOpen(true);
-    handleMenuClose(submission.id);
-  };
-
-  const handleCancelDialogClose = () => {
-    setCancelDialogOpen(false);
-    setSelectedSubmissionToCancel(null);
-    setIsCancelling(false);
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!selectedSubmissionToCancel) {
-      return;
-    }
-
-    setIsCancelling(true);
-
-    try {
-      if (onCancel) {
-        const success = await onCancel(selectedSubmissionToCancel.id);
-
-        if (success) {
-          handleCancelDialogClose();
-        } else {
-          setIsCancelling(false);
-        }
-      } else {
-        setIsCancelling(false);
-        handleCancelDialogClose();
-      }
-    } catch (error) {
-      setIsCancelling(false);
-    }
-  };
-
-  const handleCreateMDAClick = (e, submission) => {
-    e.stopPropagation();
-    if (onCreateMDA) {
-      onCreateMDA(submission);
-    }
-    handleMenuClose(submission.id);
-  };
-
-  const canCancelSubmission = (submission) => {
-    return submission?.actions?.can_cancel === true;
-  };
-
-  const canCreateMDA = (submission) => {
-    return submission?.status?.toUpperCase() === "PENDING MDA CREATION";
-  };
-
   const renderActivityLog = (submission) => {
     return (
       <Tooltip title="View History" arrow>
@@ -223,21 +156,18 @@ const MDADATable = ({
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
-              <TableCell align="center" sx={styles.columnStyles.actions}>
-                ACTIONS
-              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoadingState ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={styles.loadingCell}>
+                <TableCell colSpan={6} align="center" sx={styles.loadingCell}>
                   <CircularProgress size={32} sx={styles.loadingSpinner} />
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={styles.errorCell}>
+                <TableCell colSpan={6} align="center" sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -289,82 +219,13 @@ const MDADATable = ({
                         ? dayjs(submission.created_at).format("MMM D, YYYY")
                         : "-"}
                     </TableCell>
-                    <TableCell align="center" sx={styles.columnStyles.actions}>
-                      <Tooltip title="Actions">
-                        <IconButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMenuOpen(e, submission);
-                          }}
-                          size="small"
-                          sx={styles.actionIconButton(theme)}>
-                          <MoreVertIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Menu
-                        anchorEl={menuAnchor[submission.id]}
-                        open={Boolean(menuAnchor[submission.id])}
-                        onClose={() => handleMenuClose(submission.id)}
-                        transformOrigin={{
-                          horizontal: "right",
-                          vertical: "top",
-                        }}
-                        anchorOrigin={{
-                          horizontal: "right",
-                          vertical: "bottom",
-                        }}
-                        PaperProps={{
-                          sx: styles.actionMenu(theme),
-                        }}
-                        sx={{
-                          zIndex: 10000,
-                        }}>
-                        <MenuItem
-                          onClick={(e) => handleCreateMDAClick(e, submission)}
-                          disabled={!canCreateMDA(submission)}
-                          sx={{
-                            fontSize: "14px",
-                            color: canCreateMDA(submission)
-                              ? "#2e7d32"
-                              : "#ccc",
-                            "&:hover": {
-                              backgroundColor: canCreateMDA(submission)
-                                ? "rgba(46, 125, 50, 0.08)"
-                                : "transparent",
-                            },
-                            "&.Mui-disabled": {
-                              opacity: 0.5,
-                            },
-                          }}>
-                          <AddCircleOutlineIcon
-                            fontSize="small"
-                            sx={{ mr: 1 }}
-                          />
-                          Create MDA
-                        </MenuItem>
-                        <MenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCancelClick(submission);
-                          }}
-                          disabled={!canCancelSubmission(submission)}
-                          sx={
-                            canCancelSubmission(submission)
-                              ? styles.cancelMenuItem
-                              : styles.cancelMenuItemDisabled
-                          }>
-                          <CancelIcon fontSize="small" sx={{ mr: 1 }} />
-                          Cancel Request
-                        </MenuItem>
-                      </Menu>
-                    </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   align="center"
                   sx={styles.noDataContainer}>
                   <Box sx={styles.noDataBox}>
@@ -388,133 +249,8 @@ const MDADATable = ({
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedMdaHistory={selectedMdaHistory}
       />
-
-      <Dialog
-        open={cancelDialogOpen}
-        onClose={handleCancelDialogClose}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            padding: 2,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            textAlign: "center",
-          },
-        }}>
-        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 2,
-            }}>
-            <Box
-              sx={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                backgroundColor: "#ff4400",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-              <Typography
-                sx={{
-                  color: "white",
-                  fontSize: "30px",
-                  fontWeight: "normal",
-                }}>
-                ?
-              </Typography>
-            </Box>
-          </Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 600,
-              color: "rgb(25, 45, 84)",
-              marginBottom: 0,
-            }}>
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              marginBottom: 2,
-              fontSize: "16px",
-              color: "#333",
-              fontWeight: 400,
-            }}>
-            Are you sure you want to <strong>Cancel</strong> this DA Submission?
-          </Typography>
-          {selectedSubmissionToCancel && (
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {selectedSubmissionToCancel?.reference_number}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions
-          sx={{
-            justifyContent: "center",
-            padding: 0,
-            marginTop: 3,
-            gap: 2,
-          }}>
-          <Button
-            onClick={handleCancelDialogClose}
-            variant="outlined"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              borderColor: "#f44336",
-              color: "#f44336",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                borderColor: "#d32f2f",
-                backgroundColor: "rgba(244, 67, 54, 0.04)",
-              },
-            }}
-            disabled={isCancelling}>
-            CANCEL
-          </Button>
-          <Button
-            onClick={handleConfirmCancel}
-            variant="contained"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              backgroundColor: "#4caf50",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                backgroundColor: "#388e3c",
-              },
-            }}
-            disabled={isCancelling}>
-            {isCancelling ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              "CONFIRM"
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 };
 
-export default MDADATable;
+export default DAForMDAProcessingTable;
