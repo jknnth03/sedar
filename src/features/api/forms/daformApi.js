@@ -140,7 +140,6 @@ const daformApi = sedarApi
           const {
             pagination = true,
             page = 1,
-            per_page = 10,
             status,
             approval_status,
             search,
@@ -151,7 +150,6 @@ const daformApi = sedarApi
 
           queryParams.append("pagination", pagination.toString());
           queryParams.append("page", page.toString());
-          queryParams.append("per_page", per_page.toString());
 
           if (status) {
             queryParams.append("status", status);

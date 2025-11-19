@@ -51,8 +51,6 @@ import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import MonitorIcon from "@mui/icons-material/Monitor";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
-import moduleApi from "../features/api/usermanagement/dashboardApi";
-import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import { iconStyles, imageStyles } from "./iconStyles";
@@ -66,73 +64,16 @@ import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import WeekendIcon from "@mui/icons-material/Weekend";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-
-export const updateDashboardNotifications = (dispatch) => {
-  dispatch(moduleApi.util.invalidateTags(["dashboard"]));
-  dispatch(formSubmissionApi.util.invalidateTags(["mrfSubmissions"]));
-  dispatch(formSubmissionApi.util.invalidateTags(["formSubmissions"]));
-};
-
-export const useNotificationUpdater = () => {
-  const dispatch = useDispatch();
-
-  return {
-    updateNotifications: () => updateDashboardNotifications(dispatch),
-  };
-};
+import { calculateCounts } from "./NotificationBadge";
 
 export const createEnhancedModules = (dashboardData = {}) => {
-  const apiResult = dashboardData?.result || {};
-
-  const counts = {
-    pendingRegistrations: apiResult.employees?.pending_registrations || 0,
-
-    pendingApprovals:
-      (apiResult.approval?.manpower_form || 0) +
-      (apiResult.approval?.registration_approval || 0) +
-      (apiResult.approval?.data_change_approval || 0) +
-      (apiResult.approval?.mda_approval || 0) +
-      (apiResult.approval?.da_mda_approval || 0) +
-      (apiResult.approval?.da_form_approval || 0) +
-      (apiResult.approval?.cat_one_approval || 0) +
-      (apiResult.approval?.cat_two_approval || 0) +
-      (apiResult.approval?.pdp_approval || 0),
-    manpowerFormApprovals: apiResult.approval?.manpower_form || 0,
-    registrationApprovals: apiResult.approval?.registration_approval || 0,
-    dataChangeApprovals: apiResult.approval?.data_change_approval || 0,
-    mdaApprovals: apiResult.approval?.mda_approval || 0,
-    daMdaApprovals: apiResult.approval?.da_mda_approval || 0,
-    daFormApprovals: apiResult.approval?.da_form_approval || 0,
-    catOneApprovals: apiResult.approval?.cat_one_approval || 0,
-    catTwoApprovals: apiResult.approval?.cat_two_approval || 0,
-    pdpApprovals: apiResult.approval?.pdp_approval || 0,
-
-    pendingReceiving:
-      (apiResult.receiving?.pending_mrfs || 0) +
-      (apiResult.receiving?.pending_data_changes || 0),
-    pendingMrfReceiving: apiResult.receiving?.pending_mrfs || 0,
-    pendingDataChangeReceiving: apiResult.receiving?.pending_data_changes || 0,
-
-    manpowerFormRejected: apiResult.requisition?.manpower_form_rejected || 0,
-    manpowerFormReturned: apiResult.requisition?.manpower_form_returned || 0,
-    manpowerFormAwaiting:
-      apiResult.requisition?.manpower_form_awaiting_for_resubmission || 0,
-    dataChangeRejected: apiResult.requisition?.data_change_rejected || 0,
-    dataChangeForMdaProcessing:
-      apiResult.requisition?.data_change_for_mda_processing || 0,
-
-    totalRequisitionCount:
-      (apiResult.requisition?.manpower_form_rejected || 0) +
-      (apiResult.requisition?.manpower_form_returned || 0) +
-      (apiResult.requisition?.manpower_form_awaiting_for_resubmission || 0) +
-      (apiResult.requisition?.data_change_rejected || 0) +
-      (apiResult.requisition?.data_change_for_mda_processing || 0) +
-      (apiResult.employees?.pending_registrations || 0),
-  };
+  const counts = calculateCounts(dashboardData);
 
   return {
     DASHBOARD: {
       name: "Dashboard",
+      permissionId: "DASHBOARD",
+      displayName: "Dashboard",
       path: "/",
       icon: <DashboardIcon sx={iconStyles.main} />,
       icon_on: null,
@@ -141,18 +82,24 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     USERMANAGEMENT: {
       name: "User Management",
+      permissionId: "USERMANAGEMENT",
+      displayName: "User Management",
       path: "/usermanagement",
       icon: <ManageAccountsIcon sx={iconStyles.main} />,
       icon_on: null,
       children: {
         USER: {
           name: "User",
+          permissionId: "USERMANAGEMENT.USER",
+          displayName: "User",
           path: "user",
           icon: <PersonAddIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         ROLES: {
           name: "Roles",
+          permissionId: "USERMANAGEMENT.ROLES",
+          displayName: "Roles",
           path: "roles",
           icon: <FolderSharedIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -161,6 +108,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
     EMPLOYEES: {
       name: "Employees",
+      permissionId: "EMPLOYEES",
+      displayName: "Employees",
       path: "/employees",
       icon: <FolderSharedIcon sx={iconStyles.main} />,
       icon_on: null,
@@ -168,12 +117,16 @@ export const createEnhancedModules = (dashboardData = {}) => {
       children: {
         EMPLOYEEINFORMATION: {
           name: "Employee Information",
+          permissionId: "EMPLOYEES.EMPLOYEEINFORMATION",
+          displayName: "Employee Information",
           path: "employeeinformation",
           icon: <InfoIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         ENABLEEDIT: {
           name: "Enable Edit",
+          permissionId: "EMPLOYEES.ENABLEEDIT",
+          displayName: "Enable Edit",
           path: "enableedit",
           icon: <BorderColorIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -182,6 +135,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
     RECEIVING: {
       name: "Receiving",
+      permissionId: "RECEIVING",
+      displayName: "Receiving",
       path: "/receiving",
       icon: <ArchiveIcon sx={iconStyles.mainLarge} />,
       icon_on: null,
@@ -189,6 +144,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
       children: {
         PENDINGFORMS: {
           name: "MRF Receiving",
+          permissionId: "RECEIVING.PENDINGFORMS",
+          displayName: "MRF Receiving",
           path: "pendingforms",
           icon: <MarkAsUnreadIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -199,18 +156,24 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     APPROVALSETTINGS: {
       name: "Approval Settings",
+      permissionId: "APPROVALSETTINGS",
+      displayName: "Approval Settings",
       path: "/approvalsetting",
       icon: <ApprovalIcon sx={iconStyles.mainLarge} />,
       icon_on: null,
       children: {
         APPROVALFORM: {
           name: "Approval Form",
+          permissionId: "APPROVALSETTINGS.APPROVALFORM",
+          displayName: "Approval Form",
           path: "approvalform",
           icon: <AssignmentTurnedInIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         APPROVALFLOW: {
           name: "Approval Flow",
+          permissionId: "APPROVALSETTINGS.APPROVALFLOW",
+          displayName: "Approval Flow",
           path: "approvalflow",
           icon: <DragIndicatorIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -220,6 +183,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     APPROVING: {
       name: "Approval",
+      permissionId: "APPROVING",
+      displayName: "Approval",
       path: "/approving",
       icon: <GavelIcon sx={iconStyles.mainMedium} />,
       icon_on: null,
@@ -227,6 +192,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
       children: {
         SUBMISSIONAPPROVAL: {
           name: "MRF",
+          permissionId: "APPROVING.SUBMISSIONAPPROVAL",
+          displayName: "MRF",
           path: "submissionapproval",
           icon: <TaskIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -234,6 +201,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         REGISTRATIONAPPROVAL: {
           name: "Registration",
+          permissionId: "APPROVING.REGISTRATIONAPPROVAL",
+          displayName: "Registration",
           path: "registrationapproval",
           icon: <HowToRegIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -241,6 +210,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         DATACHANGEAPPROVAL: {
           name: "Data Change",
+          permissionId: "APPROVING.DATACHANGEAPPROVAL",
+          displayName: "Data Change",
           path: "datachangeapproval",
           icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -248,6 +219,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         MDAAPPROVAL: {
           name: "MDA (For Data Change)",
+          permissionId: "APPROVING.MDAAPPROVAL",
+          displayName: "MDA (For Data Change)",
           path: "mdaapproval",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -255,6 +228,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         DAMDAAPPROVAL: {
           name: "MDA (For DA)",
+          permissionId: "APPROVING.DAMDAAPPROVAL",
+          displayName: "MDA (For DA)",
           path: "damdaapproval",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -262,6 +237,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         DAFORMAPPROVAL: {
           name: "DA Form",
+          permissionId: "APPROVING.DAFORMAPPROVAL",
+          displayName: "DA Form",
           path: "daformapproval",
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -269,6 +246,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         CATONEAPPROVAL: {
           name: "Cat One",
+          permissionId: "APPROVING.CATONEAPPROVAL",
+          displayName: "Cat One",
           path: "catoneapproval",
           icon: <LooksOneIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -276,6 +255,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         CATTWOAPPROVAL: {
           name: "Cat Two",
+          permissionId: "APPROVING.CATTWOAPPROVAL",
+          displayName: "Cat Two",
           path: "cattwoapproval",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -283,6 +264,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         PDPAPPROVAL: {
           name: "PDP",
+          permissionId: "APPROVING.PDPAPPROVAL",
+          displayName: "PDP",
           path: "pdpapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -293,6 +276,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     REQUEST: {
       name: "Requisition",
+      permissionId: "REQUEST",
+      displayName: "Requisition",
       path: "/request",
       icon: <PendingActionsIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
@@ -300,6 +285,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
       children: {
         MRFMAINCONTAINER: {
           name: "Manpower Form",
+          permissionId: "REQUEST.MRFMAINCONTAINER",
+          displayName: "Manpower Form",
           path: "mrfmaincontainer",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -310,6 +297,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         DAFORM: {
           name: "DA Form",
+          permissionId: "REQUEST.DAFORM",
+          displayName: "DA Form",
           path: "daform",
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -317,6 +306,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
+          permissionId: "REQUEST.DATACHANGEMAINCONTAINER",
+          displayName: "201 Datachange",
           path: "datachangemaincontainer",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -324,6 +315,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         MASTERDATAAUTHORITY: {
           name: "MDA (For Data Change)",
+          permissionId: "REQUEST.MASTERDATAAUTHORITY",
+          displayName: "MDA (For Data Change)",
           path: "masterdataauthority",
           icon: <CreateNewFolderIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -331,6 +324,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         MDADA: {
           name: "MDA (For DA)",
+          permissionId: "REQUEST.MDADA",
+          displayName: "MDA (For DA)",
           path: "mdada",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -338,6 +333,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         PENDINGREGISTRATION: {
           name: "Pending Registration",
+          permissionId: "REQUEST.PENDINGREGISTRATION",
+          displayName: "Pending Registration",
           path: "pendingregistration",
           icon: <PendingActionsIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -347,6 +344,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
     REQUESTMONITORING: {
       name: "Request Monitoring",
+      permissionId: "REQUESTMONITORING",
+      displayName: "Request Monitoring",
       path: "/requestmonitoring",
       icon: <MonitorIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
@@ -354,6 +353,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
       children: {
         MRFMONITORING: {
           name: "MRF (HR)",
+          permissionId: "REQUESTMONITORING.MRFMONITORING",
+          displayName: "MRF (HR)",
           path: "mrfmonitoring",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -361,6 +362,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         DATACHANGEMONITORING: {
           name: "Data Change (HR)",
+          permissionId: "REQUESTMONITORING.DATACHANGEMONITORING",
+          displayName: "Data Change (HR)",
           path: "datachangemonitoring",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -368,6 +371,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
         MDAMONITORING: {
           name: "MDA (HR)",
+          permissionId: "REQUESTMONITORING.MDAMONITORING",
+          displayName: "MDA (HR)",
           path: "mdamonitoring",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -377,6 +382,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
     EVALUATION: {
       name: "Evaluation",
+      permissionId: "EVALUATION",
+      displayName: "Evaluation",
       path: "/evaluation",
       icon: <TrendingUpIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
@@ -384,6 +391,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
       children: {
         KPI: {
           name: "KPI",
+          permissionId: "EVALUATION.KPI",
+          displayName: "KPI",
           path: "kpi",
           icon: <VpnKeyIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -393,18 +402,24 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
     MASTERLIST: {
       name: "Masterlist",
+      permissionId: "MASTERLIST",
+      displayName: "Masterlist",
       path: "/masterlist",
       icon: <SummarizeIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
       children: {
         ONERDF: {
           name: "Charging",
+          permissionId: "MASTERLIST.ONERDF",
+          displayName: "Charging",
           path: "onerdf",
           icon: <LocationOnIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         POSITIONS: {
           name: "Position",
+          permissionId: "MASTERLIST.POSITIONS",
+          displayName: "Position",
           path: "positions",
           icon: <BadgeIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -414,24 +429,32 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     DEVELOPMENTALASSIGNMENT: {
       name: "DA Tasks",
+      permissionId: "DEVELOPMENTALASSIGNMENT",
+      displayName: "DA Tasks",
       path: "/developmental-assignment",
       icon: <AssignmentIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
       children: {
         CATONE: {
           name: "Cat One",
+          permissionId: "DEVELOPMENTALASSIGNMENT.CATONE",
+          displayName: "Cat One",
           path: "catone",
           icon: <LooksOneIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         CATTWO: {
           name: "Cat Two",
+          permissionId: "DEVELOPMENTALASSIGNMENT.CATTWO",
+          displayName: "Cat Two",
           path: "cattwo",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PDP: {
           name: "PDP",
+          permissionId: "DEVELOPMENTALASSIGNMENT.PDP",
+          displayName: "PDP",
           path: "pdp",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -441,36 +464,48 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     ADMINISTRATIVEDIVISION: {
       name: "Administrative Divisions",
+      permissionId: "ADMINISTRATIVEDIVISION",
+      displayName: "Administrative Divisions",
       path: "/administrative-divisions",
       icon: <ExploreIcon sx={iconStyles.main} />,
       icon_on: null,
       children: {
         REGIONS: {
           name: "Regions",
+          permissionId: "ADMINISTRATIVEDIVISION.REGIONS",
+          displayName: "Regions",
           path: "regions",
           icon: <ExploreIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PROVINCES: {
           name: "Provinces",
+          permissionId: "ADMINISTRATIVEDIVISION.PROVINCES",
+          displayName: "Provinces",
           path: "provinces",
           icon: <LocationOnIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         MUNICIPALITIES: {
           name: "Municipalities",
+          permissionId: "ADMINISTRATIVEDIVISION.MUNICIPALITIES",
+          displayName: "Municipalities",
           path: "municipalities",
           icon: <GavelIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         SUBMUNICIPALITIES: {
           name: "Sub Municipalities",
+          permissionId: "ADMINISTRATIVEDIVISION.SUBMUNICIPALITIES",
+          displayName: "Sub Municipalities",
           path: "submunicipalities",
           icon: <CategoryIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         BARANGAYS: {
           name: "Barangays",
+          permissionId: "ADMINISTRATIVEDIVISION.BARANGAYS",
+          displayName: "Barangays",
           path: "barangays",
           icon: <AccountBalanceIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -480,150 +515,200 @@ export const createEnhancedModules = (dashboardData = {}) => {
 
     EXTRAS: {
       name: "Extras",
+      permissionId: "EXTRAS",
+      displayName: "Extras",
       path: "/extras",
       icon: <SettingsSuggestIcon sx={iconStyles.main} />,
       icon_on: null,
       children: {
         TITLES: {
           name: "Titles",
+          permissionId: "EXTRAS.TITLES",
+          displayName: "Titles",
           path: "titles",
           icon: <TitleIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         SCHEDULES: {
           name: "Schedules",
+          permissionId: "EXTRAS.SCHEDULES",
+          displayName: "Schedules",
           path: "schedules",
           icon: <CalendarMonthIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         TEAMS: {
           name: "Teams",
+          permissionId: "EXTRAS.TEAMS",
+          displayName: "Teams",
           path: "teams",
           icon: <GroupsIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         RELIGIONS: {
           name: "Religions",
+          permissionId: "EXTRAS.RELIGIONS",
+          displayName: "Religions",
           path: "religions",
           icon: <ChurchIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PREFIXES: {
           name: "Prefixes",
+          permissionId: "EXTRAS.PREFIXES",
+          displayName: "Prefixes",
           path: "prefixes",
           icon: <ExtensionIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         PROGRAMS: {
           name: "Programs",
+          permissionId: "EXTRAS.PROGRAMS",
+          displayName: "Programs",
           path: "programs",
           icon: <FeaturedPlayListIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         ATTAINMENTS: {
           name: "Attainments",
+          permissionId: "EXTRAS.ATTAINMENTS",
+          displayName: "Attainments",
           path: "attainments",
           icon: <WorkIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         DEGREES: {
           name: "Degrees",
+          permissionId: "EXTRAS.DEGREES",
+          displayName: "Degrees",
           path: "degrees",
           icon: <SchoolIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         HONORTITLES: {
           name: "Honor Titles",
+          permissionId: "EXTRAS.HONORTITLES",
+          displayName: "Honor Titles",
           path: "honortitles",
           icon: <MilitaryTechIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         BANKS: {
           name: "Banks",
+          permissionId: "EXTRAS.BANKS",
+          displayName: "Banks",
           path: "banks",
           icon: <GroupsIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         TOOLS: {
           name: "Tools",
+          permissionId: "EXTRAS.TOOLS",
+          displayName: "Tools",
           path: "tools",
           icon: <ConstructionIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         CABINETS: {
           name: "Cabinets",
+          permissionId: "EXTRAS.CABINETS",
+          displayName: "Cabinets",
           path: "cabinets",
           icon: <KitchenIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         FILETYPES: {
           name: "File Types",
+          permissionId: "EXTRAS.FILETYPES",
+          displayName: "File Types",
           path: "filetypes",
           icon: <FileOpenIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         OBJECTIVES: {
           name: "Objectives",
+          permissionId: "EXTRAS.OBJECTIVES",
+          displayName: "Objectives",
           path: "objectives",
           icon: <EmojiObjectsIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         REQUISITION: {
           name: "Requisition Types",
+          permissionId: "EXTRAS.REQUISITION",
+          displayName: "Requisition Types",
           path: "requisition",
           icon: <TextSnippetIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         MOVEMENTTYPES: {
           name: "Movement Types",
+          permissionId: "EXTRAS.MOVEMENTTYPES",
+          displayName: "Movement Types",
           path: "movementtypes",
           icon: <LowPriorityIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         WORKWEEKS: {
           name: "Work Weeks",
+          permissionId: "EXTRAS.WORKWEEKS",
+          displayName: "Work Weeks",
           path: "workweeks",
           icon: <EventAvailableIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         WORKHOURS: {
           name: "Work Hours",
+          permissionId: "EXTRAS.WORKHOURS",
+          displayName: "Work Hours",
           path: "workhours",
           icon: <AccessTimeIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         RESTDAYS: {
           name: "Rest Days",
+          permissionId: "EXTRAS.RESTDAYS",
+          displayName: "Rest Days",
           path: "restdays",
           icon: <WeekendIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         SEPARATIONTYPES: {
           name: "Separation Types",
+          permissionId: "EXTRAS.SEPARATIONTYPES",
+          displayName: "Separation Types",
           path: "separationtypes",
           icon: <ExitToAppIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         SEPARATIONREASONS: {
           name: "Separation Reasons",
+          permissionId: "EXTRAS.SEPARATIONREASONS",
+          displayName: "Separation Reasons",
           path: "separationreasons",
           icon: <HelpOutlineIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBBANDS: {
           name: "Job Bands",
+          permissionId: "EXTRAS.JOBBANDS",
+          displayName: "Job Bands",
           path: "jobbands",
           icon: <WorkHistoryIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBLEVELS: {
           name: "Job Levels",
+          permissionId: "EXTRAS.JOBLEVELS",
+          displayName: "Job Levels",
           path: "joblevels",
           icon: <MilitaryTechIcon sx={iconStyles.child} />,
           icon_on: null,
         },
         JOBRATES: {
           name: "Job Rates",
+          permissionId: "EXTRAS.JOBRATES",
+          displayName: "Job Rates",
           path: "jobrates",
           icon: <StarIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -651,6 +736,8 @@ export const CONSTANT = {
     ...MODULES,
     LOGIN: {
       name: "Login",
+      permissionId: "LOGIN",
+      displayName: "Login",
       path: "/login",
       icon: null,
       icon_on: "sampleicon",
@@ -658,6 +745,8 @@ export const CONSTANT = {
     },
     UNAUTHORIZED: {
       name: "Unauthorized",
+      permissionId: "UNAUTHORIZED",
+      displayName: "Unauthorized",
       path: "/unauthorized",
       icon: null,
       icon_on: null,
@@ -665,6 +754,8 @@ export const CONSTANT = {
     },
     CHANGEPASS: {
       name: "Changepass",
+      permissionId: "CHANGEPASS",
+      displayName: "Changepass",
       path: "/changepass",
       icon: null,
       icon_on: null,
