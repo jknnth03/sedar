@@ -44,13 +44,11 @@ const MDADAForMDAProcessing = ({
     parseInt(queryParams?.rowsPerPage) || 10
   );
 
-  // Modal for viewing/editing DA submissions
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewModalMode, setViewModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
 
-  // Modal for creating MDA from DA
   const [mdaModalOpen, setMdaModalOpen] = useState(false);
   const [mdaSubmissionId, setMdaSubmissionId] = useState(null);
   const [selectedMdaSubmission, setSelectedMdaSubmission] = useState(null);
@@ -60,7 +58,6 @@ const MDADAForMDAProcessing = ({
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form for viewing/editing DA submissions
   const viewFormMethods = useForm({
     defaultValues: {
       reason_for_change: "",
@@ -70,7 +67,6 @@ const MDADAForMDAProcessing = ({
     },
   });
 
-  // Form for creating MDA
   const mdaFormMethods = useForm({
     defaultValues: {
       form_id: 5,
@@ -167,19 +163,30 @@ const MDADAForMDAProcessing = ({
     return filteredSubmissions.slice(startIndex, endIndex);
   }, [filteredSubmissions, page, rowsPerPage]);
 
-  // Handle row click to view DA submission
   const handleRowClick = useCallback(
     async (submission) => {
-      console.log("Opening view modal for submission:", submission);
-      setSelectedSubmissionId(submission.id);
+      console.log("=== ROW CLICK ===");
+      console.log("submission object:", submission);
+      console.log("submission.id:", submission.id);
+      console.log("submission.employee_name:", submission.employee_name);
+      const submissionIdToUse = submission.id;
+      setSelectedSubmissionId(submissionIdToUse);
+      setSelectedSubmission(submission);
       setViewModalMode("view");
       setViewModalOpen(true);
       setMenuAnchor({});
       setSelectedRowForMenu(null);
 
-      // Fetch full submission details
       try {
-        await triggerGetSubmission(submission.id);
+        const response = await triggerGetSubmission(submissionIdToUse);
+        console.log("=== API RESPONSE ===");
+        console.log("Full response:", response);
+        console.log("response.data:", response.data);
+        console.log("response.data.result:", response.data?.result);
+        console.log(
+          "Employee from API:",
+          response.data?.result?.submittable?.employee?.full_name
+        );
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -189,15 +196,16 @@ const MDADAForMDAProcessing = ({
 
   const handleEditSubmission = useCallback(
     async (submission) => {
-      setSelectedSubmissionId(submission.id);
+      const submissionIdToUse = submission.id;
+      setSelectedSubmissionId(submissionIdToUse);
+      setSelectedSubmission(submission);
       setViewModalMode("edit");
       setViewModalOpen(true);
       setMenuAnchor({});
       setSelectedRowForMenu(null);
 
-      // Fetch full submission details
       try {
-        await triggerGetSubmission(submission.id);
+        await triggerGetSubmission(submissionIdToUse);
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -205,10 +213,10 @@ const MDADAForMDAProcessing = ({
     [triggerGetSubmission]
   );
 
-  // Handle closing view/edit modal
   const handleViewModalClose = useCallback(() => {
     setViewModalOpen(false);
     setSelectedSubmissionId(null);
+    setSelectedSubmission(null);
     setModalLoading(false);
     setViewModalMode("view");
     viewFormMethods.reset();
@@ -220,9 +228,8 @@ const MDADAForMDAProcessing = ({
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
-  // Handle creating MDA from DA submission
   const handleCreateMDA = useCallback((submission) => {
-    const submissionIdForPrefill = submission.submittable?.id || submission.id;
+    const submissionIdForPrefill = submission.id;
     console.log("Opening MDA modal for submission ID:", submissionIdForPrefill);
     setMdaSubmissionId(submissionIdForPrefill);
     setSelectedMdaSubmission(submission);
@@ -454,7 +461,7 @@ const MDADAForMDAProcessing = ({
           onCreateMDA={handleCreateMDA}
         />
       </FormProvider>
-      {/* MDA Modal for creating MDA from DA */}
+
       <FormProvider {...mdaFormMethods}>
         <MDADAModal
           open={mdaModalOpen}

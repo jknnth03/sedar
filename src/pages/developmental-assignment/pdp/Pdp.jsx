@@ -573,6 +573,8 @@ const Pdp = () => {
           data: data,
         };
 
+        console.log("Payload being sent:", payload);
+
         if (isDraft) {
           await savePdpAsDraft(payload).unwrap();
           enqueueSnackbar("PDP saved as draft successfully!", {
@@ -591,6 +593,7 @@ const Pdp = () => {
         setSelectedEntry(null);
         return true;
       } catch (error) {
+        console.error("Save error:", error);
         let errorMessage = isDraft
           ? "Failed to save draft. Please try again."
           : "Failed to submit PDP. Please try again.";

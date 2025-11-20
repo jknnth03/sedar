@@ -61,7 +61,6 @@ const DataChangeModalFields = ({
 
   const watchedEmployee = watch("employee_id");
 
-  // Only load dropdowns when in create or edit mode
   const shouldLoadDropdowns = mode === "create" || mode === "edit";
 
   const [dropdownsLoaded, setDropdownsLoaded] = useState({
@@ -71,8 +70,8 @@ const DataChangeModalFields = ({
     positions: false,
   });
   const [showSkeleton, setShowSkeleton] = useState(false);
+  const [editModeEmployees, setEditModeEmployees] = useState([]);
 
-  // Only fetch forms in create mode
   const { data: formsData, isLoading: formsLoading } =
     useGetAllApprovalFormsQuery(
       { page: 1, per_page: 1000, status: "active" },
@@ -84,14 +83,12 @@ const DataChangeModalFields = ({
     { data: employeesData, isLoading: employeesLoading },
   ] = useLazyGetAllDataChangeEmployeeQuery();
 
-  // Only fetch movement types when needed (create/edit mode AND dropdown opened)
   const { data: movementTypesData, isLoading: movementTypesLoading } =
     useGetAllMovementTypesQuery(
       { page: 1, per_page: 1000, status: "active" },
       { skip: !shouldLoadDropdowns || !dropdownsLoaded.movementTypes }
     );
 
-  // Only fetch positions when needed (create/edit mode AND dropdown opened)
   const { data: positionsData, isLoading: positionsLoading } =
     useGetAllPositionsQuery(
       { page: 1, per_page: 1000, status: "active" },
@@ -111,10 +108,11 @@ const DataChangeModalFields = ({
     () => normalizeApiData(formsData),
     [formsData, normalizeApiData]
   );
-  const employees = useMemo(
-    () => normalizeApiData(employeesData),
-    [employeesData, normalizeApiData]
-  );
+
+  const employees = useMemo(() => {
+    return normalizeApiData(employeesData);
+  }, [employeesData, normalizeApiData]);
+
   const movementTypes = useMemo(
     () => normalizeApiData(movementTypesData),
     [movementTypesData, normalizeApiData]
@@ -126,7 +124,6 @@ const DataChangeModalFields = ({
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
-      // Only load dropdowns in create/edit mode when they're actually opened
       if (!shouldLoadDropdowns) return;
 
       if (!dropdownsLoaded[dropdownName]) {
@@ -139,25 +136,11 @@ const DataChangeModalFields = ({
             status: "active",
           };
 
-          if (
-            mode === "edit" &&
-            selectedEntry?.result?.submittable?.employee_id
-          ) {
-            params.employee_id_to_include =
-              selectedEntry.result.submittable.employee_id;
-          }
-
           triggerGetEmployees(params);
         }
       }
     },
-    [
-      dropdownsLoaded,
-      mode,
-      selectedEntry,
-      triggerGetEmployees,
-      shouldLoadDropdowns,
-    ]
+    [dropdownsLoaded, triggerGetEmployees, shouldLoadDropdowns]
   );
 
   useEffect(() => {
@@ -166,84 +149,32 @@ const DataChangeModalFields = ({
     }
   }, [setValue, mode]);
 
-  // Only load employee dropdown data in edit mode
   useEffect(() => {
-    if (mode === "edit") {
-      const params = {
-        page: 1,
-        per_page: 1000,
-        status: "active",
-      };
+    if (mode === "edit" && selectedEntry?.result?.submittable) {
+      const submittable = selectedEntry.result.submittable;
 
-      if (selectedEntry?.result?.submittable?.employee_id) {
-        params.employee_id_to_include =
-          selectedEntry.result.submittable.employee_id;
-      }
+      if (submittable.employee_id) {
+        const singleEmployee = {
+          id: submittable.employee_id,
+          employee_name:
+            submittable.employee?.full_name ||
+            submittable.employee?.employee_name ||
+            selectedEntry.result.submitted_by?.full_name ||
+            "Unknown Employee",
+          position_id: submittable.from_position?.id,
+          position_title: submittable.from_position?.title?.name || "N/A",
+          charging: submittable.from_position?.charging?.name || "N/A",
+          department:
+            submittable.from_position?.charging?.department_name || "N/A",
+          sub_unit: submittable.from_position?.charging?.sub_unit_name || "N/A",
+          schedule: submittable.from_position?.schedule?.name || "N/A",
+          job_rate: submittable.from_position?.job_rate || 0,
+        };
 
-      setShowSkeleton(true);
-      const skeletonTimer = setTimeout(() => {
-        setShowSkeleton(false);
-      }, 1000);
-
-      triggerGetEmployees(params);
-
-      return () => clearTimeout(skeletonTimer);
-    }
-  }, [mode, selectedEntry, triggerGetEmployees]);
-
-  // Update employee display data from selectedEntry (view mode) or employees list (edit mode)
-  useEffect(() => {
-    if (
-      (mode === "view" || mode === "edit") &&
-      selectedEntry &&
-      watchedEmployee
-    ) {
-      const submittable = selectedEntry.result?.submittable;
-
-      if (
-        submittable?.employee_id &&
-        watchedEmployee.id &&
-        submittable.employee_id === watchedEmployee.id
-      ) {
-        // In view mode, use data from selectedEntry
-        // In edit mode, merge with employee list data if available
-        const currentEmployeeData =
-          mode === "edit"
-            ? employees.find((emp) => emp.id === submittable.employee_id)
-            : null;
-
-        if (mode === "edit" && currentEmployeeData) {
-          const updatedEmployeeData = {
-            ...watchedEmployee,
-            position_title:
-              submittable.from_position?.title?.name ||
-              currentEmployeeData.position_title ||
-              watchedEmployee.position_title ||
-              "N/A",
-            department:
-              submittable.from_position?.charging?.department_name ||
-              currentEmployeeData.department ||
-              watchedEmployee.department ||
-              "N/A",
-            sub_unit:
-              submittable.from_position?.charging?.sub_unit_name ||
-              currentEmployeeData.sub_unit ||
-              watchedEmployee.sub_unit ||
-              "N/A",
-            schedule:
-              submittable.from_position?.schedule?.name ||
-              currentEmployeeData.schedule ||
-              watchedEmployee.schedule ||
-              "N/A",
-          };
-
-          setValue("employee_id", updatedEmployeeData, {
-            shouldValidate: false,
-          });
-        }
+        setValue("employee_id", singleEmployee, { shouldValidate: false });
       }
     }
-  }, [mode, selectedEntry, watchedEmployee, employees, setValue]);
+  }, [mode, selectedEntry, setValue]);
 
   const createFormData = useCallback(() => {
     const formData = new FormData();
@@ -252,7 +183,7 @@ const DataChangeModalFields = ({
     formData.append("form_id", 4);
 
     if (values.employee_id?.id) {
-      formData.append("employee_id", values.employee_id.id);
+      formData.append("employee_id", values.employee_id.id); 
     }
 
     if (values.movement_type_id?.id) {
@@ -293,10 +224,8 @@ const DataChangeModalFields = ({
   }, [createFormData, onFormDataCreate]);
 
   const isReadOnly = mode === "view";
-  const isLoadingEmployeeData =
-    mode === "edit" && (employeesLoading || showSkeleton);
+  const isLoadingEmployeeData = mode === "edit" && showSkeleton;
 
-  // In view mode, get display data directly from selectedEntry
   const displayEmployee =
     mode === "view" && selectedEntry?.result?.submittable
       ? watchedEmployee

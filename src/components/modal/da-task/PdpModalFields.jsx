@@ -20,7 +20,7 @@ import {
   Groups as CoachingIcon,
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import dayjs from "dayjs";
 
 const RequiredLabel = ({ children }) => (
@@ -54,6 +54,22 @@ const PdpModalFields = ({
   setCoachingExpanded,
   errors,
 }) => {
+  const watchedGoals = useWatch({ control, name: "goals" });
+
+  const getGoalLabel = (goalId) => {
+    if (!goalId || !watchedGoals) return "";
+    const goalIndex = watchedGoals.findIndex(
+      (g) => String(g.id) === String(goalId)
+    );
+    if (goalIndex === -1) return "";
+    const goalDesc = watchedGoals[goalIndex]?.description || "";
+    return `Goal ${goalIndex + 1}${
+      goalDesc
+        ? `: ${goalDesc.substring(0, 40)}${goalDesc.length > 40 ? "..." : ""}`
+        : ""
+    }`;
+  };
+
   return (
     <>
       <Box
@@ -299,26 +315,7 @@ const PdpModalFields = ({
                             disabled={isViewMode || isProcessing}
                             slotProps={{
                               textField: {
-                                sx: { width: "calc(33.333% - 11px)" },
-                                error: !!error,
-                                helperText: error?.message,
-                              },
-                            }}
-                          />
-                        )}
-                      />
-                      <Controller
-                        name={`actions.${index}.date_accomplished`}
-                        control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <DatePicker
-                            label="Date Accomplished"
-                            value={field.value ? dayjs(field.value) : null}
-                            onChange={field.onChange}
-                            disabled={isViewMode || isProcessing}
-                            slotProps={{
-                              textField: {
-                                sx: { width: "calc(33.333% - 11px)" },
+                                sx: { width: "calc(50% - 8px)" },
                                 error: !!error,
                                 helperText: error?.message,
                               },
@@ -332,14 +329,17 @@ const PdpModalFields = ({
                         render={({ field, fieldState: { error } }) => (
                           <TextField
                             {...field}
+                            value={field.value || ""}
                             select
                             label={<RequiredLabel>Linked Goal</RequiredLabel>}
                             disabled={isViewMode || isProcessing}
-                            sx={{ width: "calc(33.333% - 11px)" }}
+                            sx={{ width: "calc(50% - 8px)" }}
                             SelectProps={{ native: true }}
                             error={!!error}
                             helperText={error?.message}>
-                            <option value="">Select Goal</option>
+                            <option
+                              value=""
+                              style={{ display: "none" }}></option>
                             {goalFields.map((goal, idx) => (
                               <option key={goal.id} value={goal.id}>
                                 Goal {idx + 1}
@@ -475,7 +475,9 @@ const PdpModalFields = ({
                             SelectProps={{ native: true }}
                             error={!!error}
                             helperText={error?.message}>
-                            <option value="">Select Goal</option>
+                            <option
+                              value=""
+                              style={{ display: "none" }}></option>
                             {goalFields.map((goal, idx) => (
                               <option key={goal.id} value={goal.id}>
                                 Goal {idx + 1}

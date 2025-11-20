@@ -35,6 +35,7 @@ const DataChangeForMDAProcessing = ({
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
+  employeeIdToInclude,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -102,7 +103,7 @@ const DataChangeForMDAProcessing = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -111,7 +112,13 @@ const DataChangeForMDAProcessing = ({
       search: searchQuery || "",
       view_mode: "hr",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (employeeIdToInclude) {
+      params.employee_id_to_include = employeeIdToInclude;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, employeeIdToInclude]);
 
   useEffect(() => {
     const newPage = 1;
@@ -621,7 +628,6 @@ const DataChangeForMDAProcessing = ({
           </Box>
         </Box>
 
-        {/* DataChange Modal */}
         <DataChangeModal
           open={modalOpen}
           onClose={handleModalClose}

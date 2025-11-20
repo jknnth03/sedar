@@ -10,7 +10,6 @@ import {
   IconButton,
   CircularProgress,
   Tooltip,
-  Skeleton,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -26,10 +25,7 @@ import EditOffIcon from "@mui/icons-material/EditOff";
 import { useFormContext } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
-import {
-  useLazyGetAllDataChangeEmployeeQuery,
-  useLazyGetDataChangeNoticeQuery,
-} from "../../../../features/api/forms/datachangeApi";
+import { useLazyGetDataChangeNoticeQuery } from "../../../../features/api/forms/datachangeApi";
 import DataChangeModalFields from "./DataChangeModalFields";
 import DataChangeNoticePrinting from "./DataChangeNoticePrinting";
 
@@ -144,16 +140,10 @@ const DataChangeModal = ({
   const [formInitialized, setFormInitialized] = useState(false);
   const [lastEntryId, setLastEntryId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [employeeData, setEmployeeData] = useState(null);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [printData, setPrintData] = useState(null);
   const [isPrintLoading, setIsPrintLoading] = useState(false);
-
-  const [
-    triggerGetEmployee,
-    { data: fetchedEmployeeData, isLoading: isLoadingEmployee },
-  ] = useLazyGetAllDataChangeEmployeeQuery();
 
   const [triggerGetNotice] = useLazyGetDataChangeNoticeQuery();
 
@@ -221,7 +211,6 @@ const DataChangeModal = ({
     setFormInitialized(false);
     setLastEntryId(null);
     setIsUpdating(false);
-    setEmployeeData(null);
     setEditingEntryId(null);
     reset();
     onClose();
@@ -315,18 +304,12 @@ const DataChangeModal = ({
   };
 
   const handleResubmit = async () => {
-    console.log("=== RESUBMIT BUTTON CLICKED ===");
     const entryId = selectedEntry?.result?.id;
-    console.log("Entry ID:", entryId);
-    console.log("onResubmit function exists?", !!onResubmit);
-    console.log("selectedEntry:", selectedEntry);
 
     if (entryId && onResubmit) {
       try {
-        console.log("Starting resubmit process...");
         setIsUpdating(true);
         const success = await onResubmit(entryId);
-        console.log("Resubmit success:", success);
         if (success) {
           setFormInitialized(false);
           if (onRefreshDetails) {
@@ -336,14 +319,9 @@ const DataChangeModal = ({
           }
         }
       } catch (error) {
-        console.error("Resubmit error:", error);
       } finally {
         setIsUpdating(false);
       }
-    } else {
-      console.log("Cannot resubmit - Missing entryId or onResubmit");
-      console.log("entryId:", entryId);
-      console.log("onResubmit:", onResubmit);
     }
   };
 
@@ -433,52 +411,11 @@ const DataChangeModal = ({
       !formInitialized
     ) {
       const submittable = selectedEntry.result?.submittable;
-      const employeeId = submittable?.employee_id;
-      if (employeeId && !employeeData) {
-        triggerGetEmployee({
-          page: 1,
-          per_page: 1000,
-          status: "active",
-          employee_id: employeeId,
-        });
-      }
-    }
-  }, [
-    open,
-    currentMode,
-    selectedEntry,
-    formInitialized,
-    employeeData,
-    triggerGetEmployee,
-  ]);
-
-  useEffect(() => {
-    if (fetchedEmployeeData && !employeeData) {
-      const employees = Array.isArray(fetchedEmployeeData)
-        ? fetchedEmployeeData
-        : fetchedEmployeeData.result?.data ||
-          fetchedEmployeeData.result ||
-          fetchedEmployeeData.data ||
-          [];
-      if (employees.length > 0) {
-        setEmployeeData(employees[0]);
-      }
-    }
-  }, [fetchedEmployeeData, employeeData]);
-
-  useEffect(() => {
-    if (
-      open &&
-      (currentMode === "view" || currentMode === "edit") &&
-      selectedEntry &&
-      !formInitialized
-    ) {
-      const submittable = selectedEntry.result?.submittable;
       const submittedBy = selectedEntry.result?.submitted_by;
-      const employee = selectedEntry.result?.employee;
+      const employee = selectedEntry.result?.employee || submittable?.employee;
 
       if (submittable) {
-        const employeeInfo = employeeData || employee || submittedBy || {};
+        const employeeInfo = employee || submittedBy || {};
         const employeeName =
           employeeInfo.full_name ||
           employeeInfo.employee_name ||
@@ -492,14 +429,10 @@ const DataChangeModal = ({
             id: submittable.employee_id || employeeInfo.id,
             employee_name: employeeName,
             full_name: employeeName,
-            position_title:
-              employeeData?.position_title ||
-              employeeInfo.position_title ||
-              "N/A",
-            department:
-              employeeData?.department || employeeInfo.department || "N/A",
-            sub_unit: employeeData?.sub_unit || employeeInfo.sub_unit || "N/A",
-            schedule: employeeData?.schedule || employeeInfo.schedule || "N/A",
+            position_title: employeeInfo.position_title || "N/A",
+            department: employeeInfo.department || "N/A",
+            sub_unit: employeeInfo.sub_unit || "N/A",
+            schedule: employeeInfo.schedule || "N/A",
             general_info: { full_name: employeeName },
           },
           movement_type_id: submittable.movement_type
@@ -560,17 +493,9 @@ const DataChangeModal = ({
         setFormInitialized(true);
       }
     }
-  }, [
-    open,
-    currentMode,
-    selectedEntry,
-    formInitialized,
-    setValue,
-    employeeData,
-  ]);
+  }, [open, currentMode, selectedEntry, formInitialized, setValue]);
 
   const isProcessing = isLoading || isUpdating || isPrintLoading;
-  const isLoadingData = isLoadingEmployee && !formInitialized;
 
   return (
     <>
@@ -712,46 +637,31 @@ const DataChangeModal = ({
             </StyledDialogContent>
 
             <StyledDialogActions>
-              {currentMode === "view" && isLoadingData && (
-                <Skeleton
-                  variant="rectangular"
-                  width={200}
-                  height={44}
-                  sx={{ borderRadius: "8px", mr: 2 }}
-                />
+              {currentMode === "view" && shouldShowCreateMDAButton() && (
+                <Button
+                  onClick={handleCreateMDAClick}
+                  variant="contained"
+                  disabled={isProcessing}
+                  startIcon={
+                    isProcessing ? <CircularProgress size={16} /> : <AddIcon />
+                  }
+                  sx={{
+                    backgroundColor: "#4CAF50",
+                    color: "white",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    "&:hover": {
+                      backgroundColor: "#45a049",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "rgba(76, 175, 80, 0.3)",
+                      color: "rgba(255, 255, 255, 0.5)",
+                    },
+                    mr: 2,
+                  }}>
+                  {isProcessing ? "Processing..." : "Create MDA Form"}
+                </Button>
               )}
-
-              {currentMode === "view" &&
-                !isLoadingData &&
-                shouldShowCreateMDAButton() && (
-                  <Button
-                    onClick={handleCreateMDAClick}
-                    variant="contained"
-                    disabled={isProcessing}
-                    startIcon={
-                      isProcessing ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <AddIcon />
-                      )
-                    }
-                    sx={{
-                      backgroundColor: "#4CAF50",
-                      color: "white",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      "&:hover": {
-                        backgroundColor: "#45a049",
-                      },
-                      "&:disabled": {
-                        backgroundColor: "rgba(76, 175, 80, 0.3)",
-                        color: "rgba(255, 255, 255, 0.5)",
-                      },
-                      mr: 2,
-                    }}>
-                    {isProcessing ? "Processing..." : "Create MDA Form"}
-                  </Button>
-                )}
 
               {currentMode === "view" && shouldShowResubmitButton() && (
                 <Button

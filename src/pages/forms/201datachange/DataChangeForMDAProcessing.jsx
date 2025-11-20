@@ -15,9 +15,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
   useGetMyDataChangeSubmissionsQuery,
-  useCreateDataChangeSubmissionMutation,
-  useUpdateDataChangeSubmissionMutation,
-  useResubmitDataChangeSubmissionMutation,
+  useLazyGetDataChangeSubmissionDetailsQuery,
 } from "../../../features/api/forms/datachangeApi";
 import {
   useCreateMdaMutation,
@@ -44,25 +42,14 @@ const DataChangeForMDAProcessing = ({
     parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
-    useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
-  const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
   const [mdaModalOpen, setMdaModalOpen] = useState(false);
   const [mdaSubmissionId, setMdaSubmissionId] = useState(null);
   const [selectedMdaSubmission, setSelectedMdaSubmission] = useState(null);
-
-  const handleModalSuccessCallback = useCallback((successHandler) => {
-    setModalSuccessHandler(() => successHandler);
-  }, []);
 
   const methods = useForm({
     defaultValues: {
@@ -99,7 +86,6 @@ const DataChangeForMDAProcessing = ({
     },
   });
 
-  // API Query Parameters - using the specified endpoint
   const apiQueryParams = useMemo(() => {
     return {
       pagination: 1,
@@ -111,12 +97,10 @@ const DataChangeForMDAProcessing = ({
     };
   }, [page, rowsPerPage, searchQuery]);
 
-  // Reset to page 1 when search or date filters change
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
 
-  // Fetch data using the specified API endpoint
   const {
     data: submissionsData,
     isLoading: queryLoading,
@@ -128,20 +112,15 @@ const DataChangeForMDAProcessing = ({
     skip: false,
   });
 
-  const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
-  const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
-  const [resubmitDataChangeSubmission] =
-    useResubmitDataChangeSubmissionMutation();
   const [createMda, { isLoading: isCreatingMda }] = useCreateMdaMutation();
   const [updateMda, { isLoading: isUpdatingMda }] = useUpdateMdaMutation();
+  const [getSubmissionDetails] = useLazyGetDataChangeSubmissionDetailsQuery();
 
-  // Filter submissions
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
     let filtered = rawData;
 
-    // Apply date filters if provided
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
         filtered,
@@ -150,7 +129,6 @@ const DataChangeForMDAProcessing = ({
       );
     }
 
-    // Apply search filters if provided
     if (searchQuery && filterDataBySearch) {
       filtered = filterDataBySearch(filtered, searchQuery);
     }
@@ -164,36 +142,89 @@ const DataChangeForMDAProcessing = ({
     filterDataBySearch,
   ]);
 
-  const handleRowClick = useCallback((submission) => {
-    setModalMode("view");
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalOpen(true);
-  }, []);
+  const handleRowClick = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setModalLoading(true);
+      setModalOpen(true);
 
-  const handleEditSubmission = useCallback((submission) => {
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalMode("edit");
-    setModalOpen(true);
-  }, []);
+      try {
+        const { data } = await getSubmissionDetails(submission.id);
+        if (data) {
+          setSelectedSubmission(data);
+        }
+      } catch (error) {
+        enqueueSnackbar("Failed to load submission details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
 
-  const handleResubmitSubmission = useCallback((submission) => {
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setSelectedSubmissionForAction(submission);
-    setModalMode("resubmit");
-    setModalOpen(true);
-  }, []);
+      setMenuAnchor({});
+      setSelectedRowForMenu(null);
+    },
+    [getSubmissionDetails, enqueueSnackbar]
+  );
+
+  const handleEditSubmission = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setModalLoading(true);
+      setModalOpen(true);
+
+      try {
+        const { data } = await getSubmissionDetails(submission.id);
+        if (data) {
+          setSelectedSubmission(data);
+        }
+      } catch (error) {
+        enqueueSnackbar("Failed to load submission details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+
+      setMenuAnchor({});
+      setSelectedRowForMenu(null);
+    },
+    [getSubmissionDetails, enqueueSnackbar]
+  );
+
+  const handleResubmitSubmission = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setModalLoading(true);
+      setModalOpen(true);
+
+      try {
+        const { data } = await getSubmissionDetails(submission.id);
+        if (data) {
+          setSelectedSubmission(data);
+        }
+      } catch (error) {
+        enqueueSnackbar("Failed to load submission details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+
+      setMenuAnchor({});
+      setSelectedRowForMenu(null);
+    },
+    [getSubmissionDetails, enqueueSnackbar]
+  );
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedSubmissionId(null);
+    setSelectedSubmission(null);
     setModalLoading(false);
-    setModalMode("view");
   }, []);
 
   const handleCreateMDA = useCallback((submission) => {
@@ -258,7 +289,6 @@ const DataChangeForMDAProcessing = ({
           refetch();
         }
       } catch (error) {
-        console.error("Error saving MDA:", error);
         const errorMessage =
           error?.data?.message || "Failed to save MDA. Please try again.";
         enqueueSnackbar(errorMessage, {
@@ -275,40 +305,6 @@ const DataChangeForMDAProcessing = ({
       enqueueSnackbar,
       mdaFormMethods,
     ]
-  );
-
-  const handleModalSave = useCallback(
-    async (submissionData, mode, submissionId) => {
-      if (mode === "create") {
-        setPendingFormData(submissionData);
-        setConfirmAction("create");
-        setConfirmOpen(true);
-        return;
-      }
-
-      if (mode === "edit") {
-        const submission = filteredSubmissions.find(
-          (sub) => sub.id === submissionId
-        );
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
-        return;
-      }
-
-      if (mode === "resubmit") {
-        const submission = filteredSubmissions.find(
-          (sub) => sub.id === submissionId
-        );
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("resubmit");
-        setConfirmOpen(true);
-        return;
-      }
-    },
-    [filteredSubmissions]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -364,130 +360,8 @@ const DataChangeForMDAProcessing = ({
     [setQueryParams, queryParams]
   );
 
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
+  const isLoadingState = queryLoading || isFetching;
 
-  const handleActionConfirm = async () => {
-    if (!confirmAction) return;
-
-    setIsLoading(true);
-
-    try {
-      if (confirmAction === "create" && pendingFormData) {
-        await createDataChangeSubmission(pendingFormData).unwrap();
-        enqueueSnackbar("Data change submission created successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      } else if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionForAction
-      ) {
-        await updateDataChangeSubmission({
-          id: selectedSubmissionForAction.id,
-          body: pendingFormData,
-        }).unwrap();
-        enqueueSnackbar("Data change submission updated successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-      } else if (confirmAction === "resubmit" && pendingFormData) {
-        await resubmitDataChangeSubmission(pendingFormData).unwrap();
-        enqueueSnackbar("Data change submission resubmitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-      }
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedSubmissionForAction(null);
-      setConfirmAction(null);
-      setPendingFormData(null);
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmationCancel = useCallback(() => {
-    setConfirmOpen(false);
-    setSelectedSubmissionForAction(null);
-    setConfirmAction(null);
-    setPendingFormData(null);
-  }, []);
-
-  const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "create") {
-      return (
-        <>
-          Are you sure you want to <strong>Create</strong> this Data Change
-          Request?
-        </>
-      );
-    } else if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this Data Change
-          Request?
-        </>
-      );
-    } else if (confirmAction === "resubmit") {
-      return (
-        <>
-          Are you sure you want to <strong>Resubmit</strong> this Data Change
-          Request?
-        </>
-      );
-    }
-    return "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    return "Confirmation";
-  }, []);
-
-  const getConfirmButtonText = useCallback(() => {
-    return "CONFIRM";
-  }, []);
-
-  const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "Data Change Request";
-    return submissionForAction;
-  }, [selectedSubmissionForAction]);
-
-  const getConfirmationIcon = useCallback(() => {
-    const iconConfig = {
-      create: { color: "#4caf50", icon: "+" },
-      update: { color: "#2196f3", icon: "✎" },
-      resubmit: { color: "#ff9800", icon: "↻" },
-    };
-
-    const config = iconConfig[confirmAction] || iconConfig.create;
-    return config;
-  }, [confirmAction]);
-
-  const isLoadingState = queryLoading || isFetching || isLoading;
-
-  // Mock positions data - replace with actual API call if needed
   const positions = [
     { id: 10, title: "JUNIOR DEVELOPER" },
     { id: 11, title: "SENIOR DEVELOPER" },
@@ -495,7 +369,6 @@ const DataChangeForMDAProcessing = ({
     { id: 13, title: "PROJECT MANAGER" },
   ];
 
-  // Calculate total count for pagination
   const totalCount = submissionsData?.result?.total || 0;
 
   return (
@@ -577,21 +450,19 @@ const DataChangeForMDAProcessing = ({
           </Box>
         </Box>
 
-        {/* DataChange Modal */}
         <DataChangeModal
           open={modalOpen}
           onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={null}
+          mode="view"
+          onModeChange={() => {}}
+          selectedEntry={selectedSubmission}
           isLoading={modalLoading}
-          onSave={handleModalSave}
+          onSave={() => {}}
           onRefreshDetails={() => refetch()}
-          onSuccessfulSave={handleModalSuccessCallback}
+          onSuccessfulSave={() => {}}
           onCreateMDA={handleCreateMDA}
         />
 
-        {/* MDA Form Modal */}
         <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
           <MDAFormModal
             open={mdaModalOpen}
@@ -606,130 +477,6 @@ const DataChangeForMDAProcessing = ({
             key={`mda-${mdaSubmissionId}-${mdaModalOpen}`}
           />
         </FormProvider>
-
-        {/* Confirmation Dialog */}
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     </FormProvider>
   );

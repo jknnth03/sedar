@@ -5,13 +5,16 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetMyDataChangeSubmissionsQuery,
-  useGetDataChangeSubmissionDetailsQuery,
+  useLazyGetDataChangeSubmissionDetailsQuery,
   useUpdateDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
 import DataChangeMDATable from "./DataChangeMDATable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
-import { useUpdateMdaMutation } from "../../../features/api/forms/mdaApi";
+import {
+  useUpdateMdaDaMutation,
+  useLazyGetSingleMdaDaSubmissionQuery,
+} from "../../../features/api/forms/mdaDaApi";
 
 const DataChangeMDAInProgress = ({
   searchQuery,
@@ -35,13 +38,16 @@ const DataChangeMDAInProgress = ({
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
+  const [modalLoading, setModalLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
   });
 
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
-  const [updateMda] = useUpdateMdaMutation();
+  const [updateMda] = useUpdateMdaDaMutation();
+  const [getSubmissionDetails] = useLazyGetDataChangeSubmissionDetailsQuery();
+  const [getMdaSubmission] = useLazyGetSingleMdaDaSubmissionQuery();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -69,46 +75,65 @@ const DataChangeMDAInProgress = ({
     skip: false,
   });
 
-  const {
-    data: submissionDetails,
-    isLoading: detailsLoading,
-    refetch: refetchDetails,
-  } = useGetDataChangeSubmissionDetailsQuery(selectedSubmissionId, {
-    skip: !selectedSubmissionId,
-    refetchOnMountOrArgChange: true,
-  });
-
   const submissionsList = useMemo(() => {
     const data = submissionsData?.result?.data || [];
     return data;
   }, [submissionsData]);
 
-  const handleRowClick = useCallback((submission) => {
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalMode("view");
-    setModalOpen(true);
-  }, []);
+  const handleRowClick = useCallback(
+    async (submission) => {
+      const mdaSubmissionId = submission.submission_id;
 
-  useEffect(() => {
-    if (submissionDetails?.result && modalOpen) {
-      setSelectedEntry(submissionDetails.result);
-    }
-  }, [submissionDetails, modalOpen]);
+      if (!mdaSubmissionId) {
+        enqueueSnackbar("MDA Submission ID not found", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return;
+      }
+
+      setModalMode("view");
+      setModalLoading(true);
+      setModalOpen(true);
+      setSelectedSubmissionId(mdaSubmissionId);
+
+      try {
+        const mdaResponse = await getMdaSubmission(mdaSubmissionId);
+
+        if (mdaResponse?.data) {
+          console.log("MDA Response Data:", mdaResponse.data);
+          setSelectedEntry(mdaResponse.data);
+        } else {
+          throw new Error("No MDA data returned");
+        }
+      } catch (error) {
+        console.error("Error loading MDA submission:", error);
+        enqueueSnackbar("Failed to load MDA submission details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        setModalOpen(false);
+      } finally {
+        setModalLoading(false);
+      }
+
+      setMenuAnchor({});
+      setSelectedRowForMenu(null);
+    },
+    [getMdaSubmission, enqueueSnackbar]
+  );
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedEntry(null);
     setSelectedSubmissionId(null);
     setModalMode("view");
+    setModalLoading(false);
   }, []);
 
   const handleSave = useCallback(
     async (formData, mode) => {
       try {
-        console.log("Saving MDA submission:", formData, mode);
-
         if (mode === "edit" && selectedSubmissionId) {
           const response = await updateMda({
             id: selectedSubmissionId,
@@ -119,13 +144,15 @@ const DataChangeMDAInProgress = ({
             variant: "success",
           });
 
-          await refetchDetails();
-          await refetch();
+          const mdaResponse = await getMdaSubmission(selectedSubmissionId);
 
-          handleModalClose();
+          if (mdaResponse?.data) {
+            setSelectedEntry(mdaResponse.data);
+          }
+
+          await refetch();
         }
       } catch (error) {
-        console.error("Error saving MDA submission:", error);
         enqueueSnackbar(
           error?.data?.message || "Failed to update MDA submission",
           {
@@ -138,9 +165,8 @@ const DataChangeMDAInProgress = ({
       selectedSubmissionId,
       updateMda,
       enqueueSnackbar,
-      refetchDetails,
+      getMdaSubmission,
       refetch,
-      handleModalClose,
     ]
   );
 
@@ -284,7 +310,7 @@ const DataChangeMDAInProgress = ({
           onClose={handleModalClose}
           onSave={handleSave}
           selectedEntry={selectedEntry}
-          isLoading={detailsLoading}
+          isLoading={modalLoading}
           mode={modalMode}
           submissionId={selectedSubmissionId}
         />

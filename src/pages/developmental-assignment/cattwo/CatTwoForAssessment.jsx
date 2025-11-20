@@ -253,6 +253,7 @@ const CatTwoForAssessment = ({
         if (modalSuccessHandler) {
           modalSuccessHandler();
         }
+        handleModalClose();
       } catch (error) {
         const errorMessage =
           error?.data?.message || "Failed to save as draft. Please try again.";
@@ -271,9 +272,9 @@ const CatTwoForAssessment = ({
       refetchDetails,
       selectedSubmissionId,
       modalSuccessHandler,
+      handleModalClose,
     ]
   );
-
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
       if (mode === "edit") {

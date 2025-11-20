@@ -183,6 +183,8 @@ const dataChangeApi = sedarApi
             status,
             approval_status,
             search,
+            employee_id,
+            employee_id_to_include,
             ...otherParams
           } = params;
 
@@ -202,6 +204,15 @@ const dataChangeApi = sedarApi
 
           if (search && search.trim() !== "") {
             queryParams.append("search", search.trim());
+          }
+
+          if (employee_id_to_include) {
+            queryParams.append(
+              "employee_id_to_include",
+              employee_id_to_include.toString()
+            );
+          } else if (employee_id) {
+            queryParams.append("employee_id", employee_id.toString());
           }
 
           Object.entries(otherParams).forEach(([key, value]) => {

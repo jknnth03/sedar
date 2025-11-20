@@ -24,18 +24,23 @@ import {
   Person as PersonIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
-import {
-  useForm,
-  useFieldArray,
-  Controller,
-  FormProvider,
-} from "react-hook-form";
+import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import { useGetPdpTaskQuery } from "../../../features/api/da-task/pdpApi";
 import PdpModalFields from "./PdpModalFields";
+import {
+  StyledDialog,
+  StyledDialogTitle,
+  StyledDialogContent,
+  StyledDialogActions,
+  SubmitButton,
+  DraftButton,
+  InfoCard,
+  getStatusColor,
+  getStatusLabel,
+} from "./PdpModalStyles";
 
 const validationSchema = yup.object().shape({
   development_plan_objective: yup
@@ -55,7 +60,6 @@ const validationSchema = yup.object().shape({
     yup.object().shape({
       activity: yup.string().required("Activity is required"),
       due_date: yup.date().nullable().required("Due date is required"),
-      date_accomplished: yup.date().nullable(),
       pdp_goal_id: yup.string().required("Linked goal is required"),
       expected_progress: yup.string().required("Expected progress is required"),
     })
@@ -78,148 +82,8 @@ const validationSchema = yup.object().shape({
   ),
 });
 
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialog-paper": {
-    maxWidth: "1200px",
-    width: "100%",
-    height: "90vh",
-    maxHeight: "90vh",
-    display: "flex",
-    flexDirection: "column",
-    position: "relative",
-  },
-}));
-
-const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  backgroundColor: "#fff",
-  flexShrink: 0,
-  padding: "16px 24px",
-  borderBottom: "1px solid #e0e0e0",
-  "& .MuiTypography-root": {
-    fontSize: "1.25rem",
-    fontWeight: 600,
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-}));
-
-const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
-  backgroundColor: "#fafafa",
-  flex: 1,
-  padding: "24px",
-  overflow: "auto",
-  "&::-webkit-scrollbar": {
-    width: "8px",
-  },
-  "&::-webkit-scrollbar-track": {
-    backgroundColor: "#f1f1f1",
-    borderRadius: "4px",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    backgroundColor: "#c1c1c1",
-    borderRadius: "4px",
-    "&:hover": {
-      backgroundColor: "#a1a1a1",
-    },
-  },
-}));
-
-const StyledDialogActions = styled(DialogActions)(({ theme }) => ({
-  backgroundColor: "#fff",
-  justifyContent: "flex-end",
-  flexShrink: 0,
-  padding: "16px 24px",
-  borderTop: "1px solid #e0e0e0",
-  position: "sticky",
-  bottom: 0,
-  zIndex: 1000,
-}));
-
-const SubmitButton = styled(Button)(({ theme }) => ({
-  backgroundColor: "#4CAF50 !important",
-  color: "white !important",
-  fontWeight: 600,
-  textTransform: "uppercase",
-  padding: "12px 20px",
-  borderRadius: "8px",
-  fontSize: "0.875rem",
-  border: "none !important",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  minWidth: "120px",
-  height: "44px",
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  "&:hover": {
-    backgroundColor: "#45a049 !important",
-  },
-  "&:disabled": {
-    backgroundColor: "#cccccc !important",
-    color: "#666666 !important",
-  },
-}));
-
-const DraftButton = styled(Button)(({ theme }) => ({
-  backgroundColor: "#2196F3 !important",
-  color: "white !important",
-  fontWeight: 600,
-  textTransform: "uppercase",
-  padding: "12px 20px",
-  borderRadius: "8px",
-  fontSize: "0.875rem",
-  border: "none !important",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  minWidth: "120px",
-  height: "44px",
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  "&:hover": {
-    backgroundColor: "#1976D2 !important",
-  },
-  "&:disabled": {
-    backgroundColor: "#cccccc !important",
-    color: "#666666 !important",
-  },
-}));
-
-const InfoCard = styled(Box)(({ theme }) => ({
-  backgroundColor: "white",
-  borderRadius: "8px",
-  padding: "20px",
-  marginBottom: "20px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-}));
-
-const getStatusColor = (status) => {
-  const statusColors = {
-    FOR_ASSESSMENT: "#FF9800",
-    FOR_SUBMISSION: "#2196F3",
-    FOR_APPROVAL: "#FFC107",
-    APPROVED: "#4CAF50",
-    RETURNED: "#f44336",
-    CANCELLED: "#9E9E9E",
-    DRAFT: "#9E9E9E",
-  };
-  return statusColors[status] || "#9E9E9E";
-};
-
-const getStatusLabel = (status) => {
-  const labels = {
-    FOR_ASSESSMENT: "For Assessment",
-    FOR_SUBMISSION: "For Submission",
-    FOR_APPROVAL: "For Approval",
-    APPROVED: "Approved",
-    RETURNED: "Returned",
-    CANCELLED: "Cancelled",
-    DRAFT: "Draft",
-  };
-  return labels[status] || status;
-};
+const generateTempId = (prefix) =>
+  `temp-${prefix}-${Date.now()}-${Math.random()}`;
 
 const PdpModal = ({
   open,
@@ -249,13 +113,13 @@ const PdpModal = ({
     watch,
     formState: { errors },
   } = methods;
+
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [isUpdating, setIsUpdating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [pendingFormData, setPendingFormData] = useState(null);
-
   const [actionsExpanded, setActionsExpanded] = useState(true);
   const [resourcesExpanded, setResourcesExpanded] = useState(true);
   const [coachingExpanded, setCoachingExpanded] = useState(true);
@@ -309,21 +173,87 @@ const PdpModal = ({
 
   const pdpData = taskData?.result || entry;
 
+  const extractActions = (data) => {
+    if (!data || !data.goals) return [];
+
+    const allActions = [];
+
+    (data.goals || []).forEach((goal) => {
+      if (goal.actions && goal.actions.length > 0) {
+        goal.actions.forEach((action) => {
+          allActions.push({
+            ...action,
+            id: String(action.id),
+            pdp_goal_id: String(action.pdp_goal_id || goal.id),
+            activity: action.activity || "",
+            due_date: action.due_date ? dayjs(action.due_date) : null,
+            expected_progress: action.expected_progress || "",
+          });
+        });
+      }
+    });
+
+    return allActions;
+  };
+
+  const extractResources = (data) => {
+    if (!data || !data.goals) return [];
+
+    const allResources = [];
+
+    (data.goals || []).forEach((goal) => {
+      if (goal.resources && goal.resources.length > 0) {
+        goal.resources.forEach((resource) => {
+          allResources.push({
+            ...resource,
+            id: String(resource.id),
+            pdp_goal_id: String(resource.pdp_goal_id || goal.id),
+            resource_item: resource.resource_item || "",
+            description: resource.description || "",
+            person_in_charge: resource.person_in_charge || "",
+            due_date: resource.due_date ? dayjs(resource.due_date) : null,
+          });
+        });
+      }
+    });
+
+    return allResources;
+  };
+
+  const loadFormData = (data) => {
+    if (!data) return;
+
+    setValue(
+      "development_plan_objective",
+      data.development_plan_objective || ""
+    );
+
+    const formattedGoals = (data.goals || []).map((goal) => ({
+      ...goal,
+      id: String(goal.id),
+      target_date: goal.target_date ? dayjs(goal.target_date) : null,
+    }));
+    setValue("goals", formattedGoals);
+    setValue("actions", extractActions(data));
+    setValue("resources", extractResources(data));
+
+    const formattedCoachingSessions = (data.coaching_sessions || []).map(
+      (session) => ({
+        ...session,
+        id: String(session.id),
+        session_date: session.session_date ? dayjs(session.session_date) : null,
+      })
+    );
+    setValue("coaching_sessions", formattedCoachingSessions);
+  };
+
   useEffect(() => {
     if (open && pdpData) {
       setCurrentMode(mode);
       setOriginalMode(mode);
-
-      setValue(
-        "development_plan_objective",
-        pdpData.development_plan_objective || ""
-      );
-      setValue("goals", pdpData.goals || []);
-      setValue("actions", pdpData.actions || []);
-      setValue("resources", pdpData.resources || []);
-      setValue("coaching_sessions", pdpData.coaching_sessions || []);
+      loadFormData(pdpData);
     }
-  }, [open, pdpData, mode, setValue]);
+  }, [open, pdpData, mode]);
 
   const shouldEnableEditButton = () => {
     if (!pdpData) return false;
@@ -346,14 +276,7 @@ const PdpModal = ({
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
     if (pdpData) {
-      setValue(
-        "development_plan_objective",
-        pdpData.development_plan_objective || ""
-      );
-      setValue("goals", pdpData.goals || []);
-      setValue("actions", pdpData.actions || []);
-      setValue("resources", pdpData.resources || []);
-      setValue("coaching_sessions", pdpData.coaching_sessions || []);
+      loadFormData(pdpData);
     }
   };
 
@@ -379,45 +302,73 @@ const PdpModal = ({
     }
   };
 
-  const generateTempId = (prefix) =>
-    `temp-${prefix}-${Date.now()}-${Math.random()}`;
-
   const prepareFormData = (data, actionType) => {
+    const goalIdMap = new Map();
+    const goalNumberToActualId = new Map();
+
+    data.goals.forEach((goal, index) => {
+      const goalNumber = index + 1;
+      goalIdMap.set(String(goal.id), goalNumber);
+
+      if (goal.id && !goal.id.startsWith("temp-")) {
+        goalNumberToActualId.set(goalNumber, String(goal.id));
+      }
+    });
+
     return {
       action: actionType,
       development_plan_objective: data.development_plan_objective,
       goals: data.goals.map((goal, index) => ({
-        id: goal.id ? String(goal.id) : generateTempId("goal"),
+        id:
+          goal.id && !goal.id.startsWith("temp-") ? String(goal.id) : undefined,
         goal_number: index + 1,
         description: goal.description,
         target_date: goal.target_date
           ? dayjs(goal.target_date).format("YYYY-MM-DD")
           : null,
       })),
-      actions: data.actions.map((action) => ({
-        id: action.id ? String(action.id) : generateTempId("action"),
-        pdp_goal_id: action.pdp_goal_id ? String(action.pdp_goal_id) : "",
-        activity: action.activity,
-        due_date: action.due_date
-          ? dayjs(action.due_date).format("YYYY-MM-DD")
-          : null,
-        date_accomplished: action.date_accomplished
-          ? dayjs(action.date_accomplished).format("YYYY-MM-DD")
-          : null,
-        expected_progress: action.expected_progress,
-      })),
-      resources: data.resources.map((resource) => ({
-        id: resource.id ? String(resource.id) : generateTempId("resource"),
-        pdp_goal_id: resource.pdp_goal_id ? String(resource.pdp_goal_id) : "",
-        resource_item: resource.resource_item,
-        description: resource.description,
-        person_in_charge: resource.person_in_charge,
-        due_date: resource.due_date
-          ? dayjs(resource.due_date).format("YYYY-MM-DD")
-          : null,
-      })),
+      actions: data.actions.map((action) => {
+        const goalNumber = goalIdMap.get(String(action.pdp_goal_id)) || 1;
+        const actualGoalId = goalNumberToActualId.get(goalNumber);
+
+        return {
+          id:
+            action.id && !action.id.startsWith("temp-")
+              ? String(action.id)
+              : undefined,
+          pdp_goal_id: actualGoalId || undefined,
+          goal_number: goalNumber,
+          activity: action.activity,
+          due_date: action.due_date
+            ? dayjs(action.due_date).format("YYYY-MM-DD")
+            : null,
+          expected_progress: action.expected_progress,
+        };
+      }),
+      resources: data.resources.map((resource) => {
+        const goalNumber = goalIdMap.get(String(resource.pdp_goal_id)) || 1;
+        const actualGoalId = goalNumberToActualId.get(goalNumber);
+
+        return {
+          id:
+            resource.id && !resource.id.startsWith("temp-")
+              ? String(resource.id)
+              : undefined,
+          pdp_goal_id: actualGoalId || undefined,
+          goal_number: goalNumber,
+          resource_item: resource.resource_item,
+          description: resource.description,
+          person_in_charge: resource.person_in_charge,
+          due_date: resource.due_date
+            ? dayjs(resource.due_date).format("YYYY-MM-DD")
+            : null,
+        };
+      }),
       coaching_sessions: data.coaching_sessions.map((session) => ({
-        id: session.id ? String(session.id) : generateTempId("session"),
+        id:
+          session.id && !session.id.startsWith("temp-")
+            ? String(session.id)
+            : undefined,
         month_label: session.month_label,
         session_date: session.session_date
           ? dayjs(session.session_date).format("YYYY-MM-DD")
@@ -444,22 +395,27 @@ const PdpModal = ({
 
   const handleConfirmAction = async () => {
     if (!pendingFormData) return;
-
     setIsUpdating(true);
 
     try {
       const success = await onSave(pendingFormData, confirmAction === "draft");
       if (success) {
-        await refetch();
-        handleClose();
+        const result = await refetch();
+
+        if (result.data?.result) {
+          loadFormData(result.data.result);
+        }
+
+        setCurrentMode("view");
+        setOriginalMode("view");
+        setConfirmOpen(false);
+        setConfirmAction(null);
+        setPendingFormData(null);
       }
     } catch (error) {
-      console.error("Action error:", error);
+      console.error("Error during save:", error);
     } finally {
       setIsUpdating(false);
-      setConfirmOpen(false);
-      setConfirmAction(null);
-      setPendingFormData(null);
     }
   };
 
@@ -510,7 +466,6 @@ const PdpModal = ({
       pdp_goal_id: goalFields[0]?.id || "",
       activity: "",
       due_date: null,
-      date_accomplished: null,
       expected_progress: "",
     });
   };

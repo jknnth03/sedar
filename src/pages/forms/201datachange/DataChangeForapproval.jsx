@@ -33,6 +33,7 @@ const DataChangeForApproval = ({
   filterDataBySearch,
   setQueryParams,
   currentParams,
+  employeeIdToInclude,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -69,14 +70,20 @@ const DataChangeForApproval = ({
   });
 
   const queryParams = useMemo(() => {
-    return {
+    const params = {
       page: 1,
       per_page: 10,
       status: "active",
       pagination: 1,
       approval_status: "pending",
     };
-  }, []);
+
+    if (employeeIdToInclude) {
+      params.employee_id_to_include = employeeIdToInclude;
+    }
+
+    return params;
+  }, [employeeIdToInclude]);
 
   useEffect(() => {
     const newPage = 1;
@@ -191,15 +198,6 @@ const DataChangeForApproval = ({
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
-      console.log("=== HANDLE MODAL SAVE DEBUG ===");
-      console.log("Mode:", mode);
-      console.log("Submission ID received:", submissionId);
-      console.log("submissionDetails:", submissionDetails);
-      console.log(
-        "submissionDetails.result.id:",
-        submissionDetails?.result?.id
-      );
-
       if (mode === "create") {
         setPendingFormData(submissionData);
         setConfirmAction("create");
@@ -211,9 +209,6 @@ const DataChangeForApproval = ({
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        console.log("Found submission for edit:", submission);
-        console.log("Submission ID:", submission?.id);
 
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
@@ -347,26 +342,11 @@ const DataChangeForApproval = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        console.log("=== UPDATE ACTION DEBUG ===");
-        console.log("Selected Submission ID:", selectedSubmissionForAction.id);
-        console.log(
-          "Pending Form Data Type:",
-          pendingFormData instanceof FormData
-            ? "FormData"
-            : typeof pendingFormData
-        );
-        console.log("Sending update with:", {
-          id: selectedSubmissionForAction.id,
-          data: pendingFormData,
-        });
-
         try {
           const result = await updateDataChangeSubmission({
             id: selectedSubmissionForAction.id,
             data: pendingFormData,
           }).unwrap();
-
-          console.log("Update successful:", result);
 
           enqueueSnackbar("Data change submission updated successfully!", {
             variant: "success",
@@ -375,11 +355,6 @@ const DataChangeForApproval = ({
           refetch();
           handleModalClose();
         } catch (updateError) {
-          console.error("=== UPDATE ERROR ===");
-          console.error("Error object:", updateError);
-          console.error("Error status:", updateError?.status);
-          console.error("Error data:", updateError?.data);
-          console.error("Error message:", updateError?.message);
           throw updateError;
         }
       } else if (confirmAction === "resubmit" && pendingFormData) {
