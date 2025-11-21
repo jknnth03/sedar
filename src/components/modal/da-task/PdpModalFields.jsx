@@ -55,15 +55,20 @@ const PdpModalFields = ({
   errors,
 }) => {
   const watchedGoals = useWatch({ control, name: "goals" });
+  const watchedActions = useWatch({ control, name: "actions" });
+  const watchedResources = useWatch({ control, name: "resources" });
 
   const getGoalLabel = (goalId) => {
-    if (!goalId || !watchedGoals) return "";
-    const goalIndex = watchedGoals.findIndex(
-      (g) => String(g.id) === String(goalId)
-    );
-    if (goalIndex === -1) return "";
-    const goalDesc = watchedGoals[goalIndex]?.description || "";
-    return `Goal ${goalIndex + 1}${
+    if (!goalId || !watchedGoals || watchedGoals.length === 0) return "";
+
+    const goal = watchedGoals.find((g) => String(g.id) === String(goalId));
+
+    if (!goal) return "";
+
+    const goalIndex = watchedGoals.indexOf(goal);
+    const goalNumber = goalIndex + 1;
+    const goalDesc = goal?.description || "";
+    return `Goal ${goalNumber}${
       goalDesc
         ? `: ${goalDesc.substring(0, 40)}${goalDesc.length > 40 ? "..." : ""}`
         : ""
@@ -326,27 +331,57 @@ const PdpModalFields = ({
                       <Controller
                         name={`actions.${index}.pdp_goal_id`}
                         control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <TextField
-                            {...field}
-                            value={field.value || ""}
-                            select
-                            label={<RequiredLabel>Linked Goal</RequiredLabel>}
-                            disabled={isViewMode || isProcessing}
-                            sx={{ width: "calc(50% - 8px)" }}
-                            SelectProps={{ native: true }}
-                            error={!!error}
-                            helperText={error?.message}>
-                            <option
-                              value=""
-                              style={{ display: "none" }}></option>
-                            {goalFields.map((goal, idx) => (
-                              <option key={goal.id} value={goal.id}>
-                                Goal {idx + 1}
-                              </option>
-                            ))}
-                          </TextField>
-                        )}
+                        render={({ field, fieldState: { error } }) => {
+                          if (isViewMode) {
+                            const goalLabel = getGoalLabel(field.value);
+                            return (
+                              <TextField
+                                value={goalLabel}
+                                label="Linked Goal"
+                                disabled
+                                sx={{ width: "calc(50% - 8px)" }}
+                              />
+                            );
+                          }
+
+                          const currentValue = String(field.value || "");
+                          const selectedGoal = goalFields.find(
+                            (g) => String(g.id) === currentValue
+                          );
+
+                          return (
+                            <TextField
+                              label={<RequiredLabel>Linked Goal</RequiredLabel>}
+                              value={String(field.value || "")}
+                              onChange={(e) => {
+                                const selectedGoalId = e.target.value;
+                                console.log(
+                                  `Action ${
+                                    index + 1
+                                  }: Selected goal option value="${selectedGoalId}"`
+                                );
+                                field.onChange(selectedGoalId);
+                              }}
+                              select
+                              disabled={isProcessing}
+                              sx={{ width: "calc(50% - 8px)" }}
+                              SelectProps={{ native: true }}
+                              error={!!error}
+                              helperText={error?.message}>
+                              <option
+                                value=""
+                                style={{ display: "none" }}></option>
+                              {goalFields.map((goal, idx) => {
+                                const goalValue = String(goal.id);
+                                return (
+                                  <option key={goalValue} value={goalValue}>
+                                    Goal {idx + 1}
+                                  </option>
+                                );
+                              })}
+                            </TextField>
+                          );
+                        }}
                       />
                     </Box>
                     <Controller
@@ -465,26 +500,52 @@ const PdpModalFields = ({
                       <Controller
                         name={`resources.${index}.pdp_goal_id`}
                         control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <TextField
-                            {...field}
-                            select
-                            label={<RequiredLabel>Linked Goal</RequiredLabel>}
-                            disabled={isViewMode || isProcessing}
-                            sx={{ width: "calc(33.333% - 11px)" }}
-                            SelectProps={{ native: true }}
-                            error={!!error}
-                            helperText={error?.message}>
-                            <option
-                              value=""
-                              style={{ display: "none" }}></option>
-                            {goalFields.map((goal, idx) => (
-                              <option key={goal.id} value={goal.id}>
-                                Goal {idx + 1}
-                              </option>
-                            ))}
-                          </TextField>
-                        )}
+                        render={({ field, fieldState: { error } }) => {
+                          if (isViewMode) {
+                            const goalLabel = getGoalLabel(field.value);
+                            return (
+                              <TextField
+                                value={goalLabel || "N/A"}
+                                label="Linked Goal"
+                                disabled
+                                sx={{ width: "calc(33.333% - 11px)" }}
+                              />
+                            );
+                          }
+
+                          return (
+                            <TextField
+                              label={<RequiredLabel>Linked Goal</RequiredLabel>}
+                              value={String(field.value || "")}
+                              onChange={(e) => {
+                                const selectedGoalId = e.target.value;
+                                console.log(
+                                  `Resource ${
+                                    index + 1
+                                  }: Selected goal option value="${selectedGoalId}"`
+                                );
+                                field.onChange(selectedGoalId);
+                              }}
+                              select
+                              disabled={isProcessing}
+                              sx={{ width: "calc(33.333% - 11px)" }}
+                              SelectProps={{ native: true }}
+                              error={!!error}
+                              helperText={error?.message}>
+                              <option
+                                value=""
+                                style={{ display: "none" }}></option>
+                              {goalFields.map((goal, idx) => {
+                                const goalValue = String(goal.id);
+                                return (
+                                  <option key={goalValue} value={goalValue}>
+                                    Goal {idx + 1}
+                                  </option>
+                                );
+                              })}
+                            </TextField>
+                          );
+                        }}
                       />
                       <Controller
                         name={`resources.${index}.person_in_charge`}

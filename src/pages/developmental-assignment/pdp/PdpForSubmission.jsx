@@ -122,19 +122,6 @@ const PdpForSubmission = ({
     return [result];
   }, [data, taskData]);
 
-  const totalRecords = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return 0;
-
-    const result = dataSource.result;
-
-    if (result.total !== undefined) {
-      return result.total;
-    }
-
-    return filteredSubmissions.length;
-  }, [data, taskData]);
-
   const filteredSubmissions = useMemo(() => {
     let filtered = submissionsData;
 
@@ -158,6 +145,19 @@ const PdpForSubmission = ({
     filterDataByDate,
     filterDataBySearch,
   ]);
+
+  const totalRecords = useMemo(() => {
+    const dataSource = data || taskData;
+    if (!dataSource?.result) return 0;
+
+    const result = dataSource.result;
+
+    if (result.total !== undefined) {
+      return result.total;
+    }
+
+    return filteredSubmissions.length;
+  }, [data, taskData, filteredSubmissions]);
 
   const handleRowClick = useCallback(
     (submission) => {

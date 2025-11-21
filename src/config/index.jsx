@@ -246,9 +246,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.daFormApprovals,
         },
         CATONEAPPROVAL: {
-          name: "Cat One",
+          name: "CAT I",
           permissionId: "APPROVING.CATONEAPPROVAL",
-          displayName: "Cat One",
+          displayName: "CAT I",
           path: "catoneapproval",
           icon: <LooksOneIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -446,9 +446,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
       icon_on: null,
       children: {
         CATONE: {
-          name: "Cat One",
+          name: "CAT I",
           permissionId: "DEVELOPMENTALASSIGNMENT.CATONE",
-          displayName: "Cat One",
+          displayName: "CAT I",
           path: "catone",
           icon: <LooksOneIcon sx={iconStyles.child} />,
           icon_on: null,
