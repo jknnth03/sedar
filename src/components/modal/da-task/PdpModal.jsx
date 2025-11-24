@@ -1,63 +1,3 @@
-const extractActions = (data) => {
-  if (!data || !data.goals) return [];
-
-  const allActions = [];
-
-  (data.goals || []).forEach((goal) => {
-    if (goal.actions && goal.actions.length > 0) {
-      goal.actions.forEach((action) => {
-        const actualGoalId = action.pdp_goal_id
-          ? String(action.pdp_goal_id)
-          : String(goal.id);
-
-        console.log(
-          `extractAction: action.id=${action.id}, action.pdp_goal_id="${action.pdp_goal_id}", parentGoal.id=${goal.id}, using="${actualGoalId}"`
-        );
-
-        allActions.push({
-          id: String(action.id),
-          pdp_goal_id: actualGoalId,
-          activity: action.activity || "",
-          due_date: action.due_date ? dayjs(action.due_date) : null,
-          expected_progress: action.expected_progress || "",
-        });
-      });
-    }
-  });
-
-  return allActions;
-};
-
-const extractResources = (data) => {
-  if (!data || !data.goals) return [];
-
-  const allResources = [];
-
-  (data.goals || []).forEach((goal) => {
-    if (goal.resources && goal.resources.length > 0) {
-      goal.resources.forEach((resource) => {
-        const actualGoalId = resource.pdp_goal_id
-          ? String(resource.pdp_goal_id)
-          : String(goal.id);
-
-        console.log(
-          `extractResource: resource.id=${resource.id}, resource.pdp_goal_id="${resource.pdp_goal_id}", parentGoal.id=${goal.id}, using="${actualGoalId}"`
-        );
-
-        allResources.push({
-          id: String(resource.id),
-          pdp_goal_id: actualGoalId,
-          resource_item: resource.resource_item || "",
-          description: resource.description || "",
-          person_in_charge: resource.person_in_charge || "",
-          due_date: resource.due_date ? dayjs(resource.due_date) : null,
-        });
-      });
-    }
-  });
-
-  return allResources;
-};
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -120,7 +60,7 @@ const validationSchema = yup.object().shape({
     yup.object().shape({
       activity: yup.string().required("Activity is required"),
       due_date: yup.date().nullable().required("Due date is required"),
-      pdp_goal_id: yup.string().required("Linked goal is required"),
+      goal_index: yup.number().required("Linked goal is required"),
       expected_progress: yup.string().required("Expected progress is required"),
     })
   ),
@@ -130,7 +70,7 @@ const validationSchema = yup.object().shape({
       description: yup.string().required("Description is required"),
       person_in_charge: yup.string().required("Person in charge is required"),
       due_date: yup.date().nullable().required("Due date is required"),
-      pdp_goal_id: yup.string().required("Linked goal is required"),
+      goal_index: yup.number().required("Linked goal is required"),
     })
   ),
   coaching_sessions: yup.array().of(
@@ -183,7 +123,7 @@ const PdpModal = ({
   const [actionsExpanded, setActionsExpanded] = useState(true);
   const [resourcesExpanded, setResourcesExpanded] = useState(true);
   const [coachingExpanded, setCoachingExpanded] = useState(true);
-  const [goalIndexMap, setGoalIndexMap] = useState({});
+  const [hasEditedForm, setHasEditedForm] = useState(false);
 
   const {
     fields: goalFields,
@@ -238,106 +178,8 @@ const PdpModal = ({
 
   const pdpData = taskData?.result || entry;
 
-  const buildUuidToGoalIdMap = (data) => {
-    const map = {};
-
-    (data.goals || []).forEach((goal) => {
-      const goalNumericId = String(goal.id);
-
-      if (goal.actions && goal.actions.length > 0) {
-        goal.actions.forEach((action) => {
-          const actionGoalUuid = String(action.pdp_goal_id);
-          if (actionGoalUuid && actionGoalUuid !== goalNumericId) {
-            map[actionGoalUuid] = goalNumericId;
-            console.log(`Map: UUID ${actionGoalUuid} -> Goal ${goalNumericId}`);
-          }
-        });
-      }
-
-      if (goal.resources && goal.resources.length > 0) {
-        goal.resources.forEach((resource) => {
-          const resourceGoalUuid = String(resource.pdp_goal_id);
-          if (resourceGoalUuid && resourceGoalUuid !== goalNumericId) {
-            map[resourceGoalUuid] = goalNumericId;
-            console.log(
-              `Map: UUID ${resourceGoalUuid} -> Goal ${goalNumericId}`
-            );
-          }
-        });
-      }
-    });
-
-    return map;
-  };
-
-  const extractActions = (data) => {
-    if (!data || !data.goals) return [];
-
-    const uuidToGoalIdMap = buildUuidToGoalIdMap(data);
-    const allActions = [];
-
-    (data.goals || []).forEach((goal) => {
-      if (goal.actions && goal.actions.length > 0) {
-        goal.actions.forEach((action) => {
-          const actionGoalUuid = String(action.pdp_goal_id);
-          const mappedGoalId =
-            uuidToGoalIdMap[actionGoalUuid] || String(goal.id);
-
-          console.log(
-            `extractAction: action.pdp_goal_id="${actionGoalUuid}" -> mappedGoalId="${mappedGoalId}"`
-          );
-
-          allActions.push({
-            id: String(action.id),
-            pdp_goal_id: mappedGoalId,
-            activity: action.activity || "",
-            due_date: action.due_date ? dayjs(action.due_date) : null,
-            expected_progress: action.expected_progress || "",
-          });
-        });
-      }
-    });
-
-    return allActions;
-  };
-
-  const extractResources = (data) => {
-    if (!data || !data.goals) return [];
-
-    const uuidToGoalIdMap = buildUuidToGoalIdMap(data);
-    const allResources = [];
-
-    (data.goals || []).forEach((goal) => {
-      if (goal.resources && goal.resources.length > 0) {
-        goal.resources.forEach((resource) => {
-          const resourceGoalUuid = String(resource.pdp_goal_id);
-          const mappedGoalId =
-            uuidToGoalIdMap[resourceGoalUuid] || String(goal.id);
-
-          console.log(
-            `extractResource: resource.pdp_goal_id="${resourceGoalUuid}" -> mappedGoalId="${mappedGoalId}"`
-          );
-
-          allResources.push({
-            id: String(resource.id),
-            pdp_goal_id: mappedGoalId,
-            resource_item: resource.resource_item || "",
-            description: resource.description || "",
-            person_in_charge: resource.person_in_charge || "",
-            due_date: resource.due_date ? dayjs(resource.due_date) : null,
-          });
-        });
-      }
-    });
-
-    return allResources;
-  };
-
   const loadFormData = (data) => {
     if (!data) return;
-
-    console.log("=== LOAD FORM DATA ===");
-    console.log("Raw data.goals:", data.goals);
 
     const formattedGoals = (data.goals || []).map((goal, idx) => ({
       id: String(goal.id),
@@ -346,19 +188,26 @@ const PdpModal = ({
       target_date: goal.target_date ? dayjs(goal.target_date) : null,
     }));
 
-    console.log("formattedGoals:", formattedGoals);
+    const formattedActions = (data.goals || []).flatMap((goal, goalIdx) =>
+      (goal.actions || []).map((action) => ({
+        id: String(action.id),
+        goal_index: goalIdx,
+        activity: action.activity || "",
+        due_date: action.due_date ? dayjs(action.due_date) : null,
+        expected_progress: action.expected_progress || "",
+      }))
+    );
 
-    const goalIdMap = {};
-    formattedGoals.forEach((goal) => {
-      goalIdMap[String(goal.id)] = String(goal.id);
-    });
-    setGoalIndexMap(goalIdMap);
-
-    const formattedActions = extractActions(data);
-    const formattedResources = extractResources(data);
-
-    console.log("formattedActions after extract:", formattedActions);
-    console.log("formattedResources after extract:", formattedResources);
+    const formattedResources = (data.goals || []).flatMap((goal, goalIdx) =>
+      (goal.resources || []).map((resource) => ({
+        id: String(resource.id),
+        goal_index: goalIdx,
+        resource_item: resource.resource_item || "",
+        description: resource.description || "",
+        person_in_charge: resource.person_in_charge || "",
+        due_date: resource.due_date ? dayjs(resource.due_date) : null,
+      }))
+    );
 
     const formattedCoachingSessions = (data.coaching_sessions || []).map(
       (session) => ({
@@ -373,14 +222,11 @@ const PdpModal = ({
       "development_plan_objective",
       data.development_plan_objective || ""
     );
-
     replaceGoals(formattedGoals);
     replaceActions(formattedActions);
     replaceResources(formattedResources);
     replaceCoaching(formattedCoachingSessions);
   };
-
-  const [hasEditedForm, setHasEditedForm] = useState(false);
 
   useEffect(() => {
     if (open && pdpData) {
@@ -429,7 +275,6 @@ const PdpModal = ({
     setConfirmOpen(false);
     setConfirmAction(null);
     setPendingFormData(null);
-    setGoalIndexMap({});
     setHasEditedForm(false);
     reset();
     onClose();
@@ -447,84 +292,10 @@ const PdpModal = ({
   };
 
   const prepareFormData = (data, actionType) => {
-    const allFormGoals = data.goals || [];
-
-    console.log("=== PREPARE FORM DATA ===");
-    console.log("Raw allFormGoals:", allFormGoals);
-    console.log("Actions raw:", data.actions);
-
-    const goalIdToTempIdMap = {};
-    const goalIdToIndexMap = {};
-
-    allFormGoals.forEach((goal, index) => {
-      const goalId = String(goal.id);
-      goalIdToTempIdMap[goalId] = `temp-goal-${index + 1}`;
-      goalIdToIndexMap[goalId] = index + 1;
-      console.log(`Goal ${index + 1}: id=${goalId}`);
-    });
-
-    console.log("goalIdToTempIdMap:", goalIdToTempIdMap);
-
-    const mappedActions = (data.actions || []).map((action, idx) => {
-      const actionGoalId = String(action.pdp_goal_id);
-      const tempGoalId = goalIdToTempIdMap[actionGoalId];
-
-      console.log(
-        `Action ${idx}: stored pdp_goal_id="${actionGoalId}" -> tempId="${tempGoalId}" (exists: ${!!tempGoalId})`
-      );
-
-      if (!tempGoalId) {
-        console.warn(
-          `WARNING: Action ${idx} goal ID not found in map. Available: ${Object.keys(
-            goalIdToTempIdMap
-          ).join(", ")}`
-        );
-      }
-
-      return {
-        id: `temp-action-${action.id}`,
-        pdp_goal_id: tempGoalId || `temp-goal-1`,
-        activity: action.activity,
-        due_date: action.due_date
-          ? dayjs(action.due_date).format("YYYY-MM-DD")
-          : null,
-        date_accomplished: null,
-        expected_progress: action.expected_progress,
-      };
-    });
-
-    const mappedResources = (data.resources || []).map((resource, idx) => {
-      const resourceGoalId = String(resource.pdp_goal_id);
-      const tempGoalId = goalIdToTempIdMap[resourceGoalId];
-
-      console.log(
-        `Resource ${idx}: stored pdp_goal_id="${resourceGoalId}" -> tempId="${tempGoalId}" (exists: ${!!tempGoalId})`
-      );
-
-      if (!tempGoalId) {
-        console.warn(
-          `WARNING: Resource ${idx} goal ID not found in map. Available: ${Object.keys(
-            goalIdToTempIdMap
-          ).join(", ")}`
-        );
-      }
-
-      return {
-        id: `temp-resource-${resource.id}`,
-        pdp_goal_id: tempGoalId || `temp-goal-1`,
-        resource_item: resource.resource_item,
-        description: resource.description,
-        person_in_charge: resource.person_in_charge,
-        due_date: resource.due_date
-          ? dayjs(resource.due_date).format("YYYY-MM-DD")
-          : null,
-      };
-    });
-
     return {
       action: actionType,
       development_plan_objective: data.development_plan_objective,
-      goals: allFormGoals.map((goal, index) => ({
+      goals: data.goals.map((goal, index) => ({
         id: `temp-goal-${index + 1}`,
         goal_number: index + 1,
         description: goal.description,
@@ -532,37 +303,38 @@ const PdpModal = ({
           ? dayjs(goal.target_date).format("YYYY-MM-DD")
           : null,
       })),
-      actions: mappedActions,
-      resources: mappedResources,
-      coaching_sessions: (data.coaching_sessions || []).map(
-        (session, index) => ({
-          id: `temp-session-${index + 1}`,
-          month_label: session.month_label,
-          session_date: session.session_date
-            ? dayjs(session.session_date).format("YYYY-MM-DD")
-            : null,
-          commitment: session.commitment,
-        })
-      ),
+      actions: data.actions.map((action) => ({
+        id: `temp-action-${action.id}`,
+        pdp_goal_id: `temp-goal-${action.goal_index + 1}`,
+        activity: action.activity,
+        due_date: action.due_date
+          ? dayjs(action.due_date).format("YYYY-MM-DD")
+          : null,
+        date_accomplished: null,
+        expected_progress: action.expected_progress,
+      })),
+      resources: data.resources.map((resource) => ({
+        id: `temp-resource-${resource.id}`,
+        pdp_goal_id: `temp-goal-${resource.goal_index + 1}`,
+        resource_item: resource.resource_item,
+        description: resource.description,
+        person_in_charge: resource.person_in_charge,
+        due_date: resource.due_date
+          ? dayjs(resource.due_date).format("YYYY-MM-DD")
+          : null,
+      })),
+      coaching_sessions: data.coaching_sessions.map((session, index) => ({
+        id: `temp-session-${index + 1}`,
+        month_label: session.month_label,
+        session_date: session.session_date
+          ? dayjs(session.session_date).format("YYYY-MM-DD")
+          : null,
+        commitment: session.commitment,
+      })),
     };
   };
 
   const onSubmit = async (data) => {
-    console.log("=== ON SUBMIT - WATCH DATA ===");
-    console.log(
-      "data.goals:",
-      data.goals.map((g) => ({ id: g.id, desc: g.description }))
-    );
-    console.log(
-      "data.actions BEFORE prepareFormData:",
-      data.actions.map((a, i) => ({
-        idx: i,
-        id: a.id,
-        pdp_goal_id: a.pdp_goal_id,
-        activity: a.activity,
-      }))
-    );
-
     const formData = prepareFormData(data, "submit_for_validation");
     setPendingFormData(formData);
     setConfirmAction(isForApprovalStatus() ? "update" : "submit");
@@ -636,9 +408,8 @@ const PdpModal = ({
   };
 
   const handleAddGoal = () => {
-    const tempId = generateTempId("goal");
     appendGoal({
-      id: tempId,
+      id: generateTempId("goal"),
       goal_number: goalFields.length + 1,
       description: "",
       target_date: null,
@@ -646,12 +417,9 @@ const PdpModal = ({
   };
 
   const handleAddAction = () => {
-    const watchedGoals = watch("goals");
-    const firstGoalId = watchedGoals?.[0]?.id || "";
-    const tempId = generateTempId("action");
     appendAction({
-      id: tempId,
-      pdp_goal_id: firstGoalId,
+      id: generateTempId("action"),
+      goal_index: 0,
       activity: "",
       due_date: null,
       expected_progress: "",
@@ -659,12 +427,9 @@ const PdpModal = ({
   };
 
   const handleAddResource = () => {
-    const watchedGoals = watch("goals");
-    const firstGoalId = watchedGoals?.[0]?.id || "";
-    const tempId = generateTempId("resource");
     appendResource({
-      id: tempId,
-      pdp_goal_id: firstGoalId,
+      id: generateTempId("resource"),
+      goal_index: 0,
       resource_item: "",
       description: "",
       person_in_charge: "",
