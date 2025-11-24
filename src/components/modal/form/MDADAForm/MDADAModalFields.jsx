@@ -11,8 +11,8 @@ import {
   infoBoxStyles,
   addressGridStyles,
 } from "../MDAForm/MDAFormModalFields.styles";
-import { FromPositionFields } from "../MDAForm/MDAFormModalFromPosition";
-import { ToPositionFields } from "../MDAForm/MDAFormModalToPosition";
+import { FromPositionFields } from "./MDADAModalFromPosition";
+import { ToPositionFields } from "./MDADAModalToPosition";
 
 const InfoSection = ({ children }) => (
   <Box sx={infoSectionContainerStyles}>{children}</Box>

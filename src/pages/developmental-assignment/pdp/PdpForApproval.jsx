@@ -1,26 +1,14 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-  TextField,
-} from "@mui/material";
+import { Typography, TablePagination, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetPdpListQuery,
   useSubmitPdpMutation,
 } from "../../../features/api/da-task/pdpApi";
 import PdpTable from "./PdpTable";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 
 const PdpForApproval = ({
   searchQuery,
@@ -55,13 +43,6 @@ const PdpForApproval = ({
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
-  const [remarks, setRemarks] = useState("");
-
-  useEffect(() => {
-    console.log("confirmOpen changed:", confirmOpen);
-    console.log("confirmAction:", confirmAction);
-    console.log("selectedSubmissionForAction:", selectedSubmissionForAction);
-  }, [confirmOpen, confirmAction, selectedSubmissionForAction]);
 
   const methods = useForm({
     defaultValues: {
@@ -205,15 +186,12 @@ const PdpForApproval = ({
 
   const handleApproveSubmission = useCallback(
     async (submissionId) => {
-      console.log("Approve clicked for ID:", submissionId);
       const submission = filteredSubmissions.find(
         (sub) => sub.id === submissionId
       );
       if (submission) {
-        console.log("Opening approve confirmation");
         setSelectedSubmissionForAction(submission);
         setConfirmAction("approve");
-        setRemarks("");
         setConfirmOpen(true);
       } else {
         enqueueSnackbar("Submission not found. Please try again.", {
@@ -227,15 +205,12 @@ const PdpForApproval = ({
 
   const handleRejectSubmission = useCallback(
     async (submissionId) => {
-      console.log("Reject clicked for ID:", submissionId);
       const submission = filteredSubmissions.find(
         (sub) => sub.id === submissionId
       );
       if (submission) {
-        console.log("Opening reject confirmation");
         setSelectedSubmissionForAction(submission);
         setConfirmAction("reject");
-        setRemarks("");
         setConfirmOpen(true);
       } else {
         enqueueSnackbar("Submission not found. Please try again.", {
@@ -312,14 +287,6 @@ const PdpForApproval = ({
   const handleActionConfirm = async () => {
     if (!confirmAction || !selectedSubmissionForAction) return;
 
-    if (confirmAction === "reject" && !remarks.trim()) {
-      enqueueSnackbar("Please provide remarks for rejection.", {
-        variant: "warning",
-        autoHideDuration: 2000,
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -327,7 +294,6 @@ const PdpForApproval = ({
         id: selectedSubmissionForAction.id,
         data: {
           status: confirmAction === "approve" ? "APPROVED" : "REJECTED",
-          remarks: remarks.trim() || undefined,
         },
       };
 
@@ -362,7 +328,6 @@ const PdpForApproval = ({
       setConfirmOpen(false);
       setSelectedSubmissionForAction(null);
       setConfirmAction(null);
-      setRemarks("");
       setIsLoading(false);
     }
   };
@@ -371,24 +336,6 @@ const PdpForApproval = ({
     setConfirmOpen(false);
     setSelectedSubmissionForAction(null);
     setConfirmAction(null);
-    setRemarks("");
-  }, []);
-
-  const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "approve") {
-      return "Are you sure you want to Approve this PDP Submission?";
-    } else if (confirmAction === "reject") {
-      return "Are you sure you want to Reject this PDP Submission?";
-    }
-    return "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    return "Confirmation";
-  }, []);
-
-  const getConfirmButtonText = useCallback(() => {
-    return "CONFIRM";
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
@@ -399,16 +346,6 @@ const PdpForApproval = ({
       "PDP Submission";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
-
-  const getConfirmationIcon = useCallback(() => {
-    const iconConfig = {
-      approve: { color: "#4caf50", icon: "✓" },
-      reject: { color: "#ff4400", icon: "✕" },
-    };
-
-    const config = iconConfig[confirmAction] || iconConfig.approve;
-    return config;
-  }, [confirmAction]);
 
   const isLoadingState =
     externalIsLoading !== undefined
@@ -494,159 +431,15 @@ const PdpForApproval = ({
           </Box>
         </Box>
 
-        <Dialog
+        <ConfirmationDialog
           open={confirmOpen}
           onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: 2,
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label={
-                confirmAction === "reject"
-                  ? "Remarks (Required)"
-                  : "Remarks (Optional)"
-              }
-              placeholder={
-                confirmAction === "reject"
-                  ? "Please provide reason for rejection..."
-                  : "Add any additional remarks..."
-              }
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              required={confirmAction === "reject"}
-              error={confirmAction === "reject" && !remarks.trim()}
-              helperText={
-                confirmAction === "reject" && !remarks.trim()
-                  ? "Remarks are required for rejection"
-                  : ""
-              }
-              sx={{
-                marginTop: 2,
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                },
-              }}
-            />
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onConfirm={handleActionConfirm}
+          isLoading={isLoading}
+          action={confirmAction}
+          itemName={getSubmissionDisplayName()}
+          module="PDP Submission"
+        />
       </Box>
     </FormProvider>
   );

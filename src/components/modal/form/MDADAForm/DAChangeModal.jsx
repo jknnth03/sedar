@@ -66,28 +66,13 @@ const DAChangeModal = ({
   useEffect(() => {
     const loadSubmissionData = async () => {
       if (open && submissionId) {
-        console.log("=== DAChangeModal useEffect ===");
-        console.log("open:", open);
-        console.log("submissionId:", submissionId);
         setIsFormReady(false);
         try {
           const response = await fetchSubmission(submissionId).unwrap();
-          console.log("=== FETCH SUBMISSION RESPONSE ===");
-          console.log("Full response:", response);
-          console.log("response.result:", response.result);
 
           if (response?.result) {
             const data = response.result;
             const submittable = data.submittable;
-
-            console.log("=== EXTRACTED DATA ===");
-            console.log("submittable:", submittable);
-            console.log("submittable.employee:", submittable?.employee);
-            console.log(
-              "employee full_name:",
-              submittable?.employee?.full_name
-            );
-            console.log("employee id:", submittable?.employee?.id);
 
             const formData = {
               employee_name: submittable?.employee?.full_name || "",
@@ -99,17 +84,14 @@ const DAChangeModal = ({
                 submittable?.from_position?.charging?.department_name || "-",
               to_department:
                 submittable?.to_position?.charging?.department_name || "-",
-              start_date: submittable?.effective_date
-                ? dayjs(submittable.effective_date)
+              start_date: submittable?.start_date
+                ? dayjs(submittable.start_date)
                 : null,
               end_date: submittable?.end_date
                 ? dayjs(submittable.end_date)
                 : null,
               kpis: submittable?.objectives || [],
             };
-
-            console.log("=== FORM DATA ===");
-            console.log("formData:", formData);
 
             reset(formData);
             setKpisList(submittable?.objectives || []);
@@ -120,7 +102,6 @@ const DAChangeModal = ({
             }, 50);
           }
         } catch (error) {
-          console.error("Error fetching DA submission:", error);
           alert("Failed to load DA submission data. Please try again.");
         }
       }
@@ -135,6 +116,7 @@ const DAChangeModal = ({
 
   const handleMDAModalClose = () => {
     setIsMDAModalOpen(false);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -454,11 +436,8 @@ const DAChangeModal = ({
         daSubmissionId={daSubmittableId}
         onSave={async (formData) => {
           try {
-            console.log("Creating MDA with data:", formData);
             handleMDAModalClose();
-          } catch (error) {
-            console.error("Error creating MDA:", error);
-          }
+          } catch (error) {}
         }}
       />
     </>

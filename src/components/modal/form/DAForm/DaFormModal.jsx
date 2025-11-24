@@ -48,7 +48,6 @@ const DAFormModal = ({
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [isFormReady, setIsFormReady] = useState(false);
 
-  // Use refs to track previous values
   const prevOpenRef = useRef(open);
   const prevModeRef = useRef(mode);
 
@@ -80,9 +79,7 @@ const DAFormModal = ({
     return actions?.can_resubmit === true;
   };
 
-  // Main initialization effect
   useEffect(() => {
-    // Reset form ready state when modal closes
     if (!open) {
       setHasInitialized(false);
       setIsFormReady(false);
@@ -90,7 +87,6 @@ const DAFormModal = ({
       return;
     }
 
-    // Skip if already initialized and modal was already open
     if (hasInitialized && prevOpenRef.current === open) return;
 
     const initializeForm = async () => {
@@ -110,9 +106,7 @@ const DAFormModal = ({
         setCurrentMode(mode);
         setOriginalMode(mode);
         const formData = getViewEditModeFormData(selectedEntry);
-        console.log("Resetting form with data:", formData);
 
-        // Use setTimeout to ensure reset completes before marking as ready
         reset(formData);
         setTimeout(() => {
           setHasInitialized(true);
@@ -126,7 +120,6 @@ const DAFormModal = ({
     initializeForm();
   }, [open, mode, hasInitialized, selectedEntry, reset]);
 
-  // Handle edit mode switching
   useEffect(() => {
     if (
       open &&
@@ -136,7 +129,6 @@ const DAFormModal = ({
       prevModeRef.current !== currentMode
     ) {
       const formData = getViewEditModeFormData(selectedEntry);
-      console.log("Switching to edit mode with data:", formData);
       reset(formData);
       prevModeRef.current = currentMode;
     }
@@ -276,7 +268,6 @@ const DAFormModal = ({
   const isEditMode = currentMode === "edit";
   const isProcessing = isLoading || isUpdating;
 
-  // Use a stable key that only changes when we want to completely remount
   const formKey = `da-form-${
     open ? "open" : "closed"
   }-${mode}-${hasInitialized}`;

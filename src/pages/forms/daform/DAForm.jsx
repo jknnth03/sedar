@@ -41,7 +41,6 @@ import DAFormForApproval from "./DAFormForApproval";
 import DAFormAwaitingResubmission from "./DAFormAwaitingResubmission";
 import DAFormRejected from "./DAFormRejected";
 import DAFormMDAForApproval from "./DAFormMDAForApproval";
-import DAFormCompleted from "./DAFormCompleted";
 import DAFormCancelled from "./DAFormCancelled";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
 import {
@@ -264,7 +263,6 @@ const DAForm = () => {
     3: "Cancelled",
     4: "ForMDAProcessing",
     5: "MDAInProgress",
-    6: "Completed",
   };
 
   const reverseTabMap = {
@@ -274,7 +272,6 @@ const DAForm = () => {
     Cancelled: 3,
     ForMDAProcessing: 4,
     MDAInProgress: 5,
-    Completed: 6,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -305,7 +302,6 @@ const DAForm = () => {
     cancelled: 0,
     forMDAProcessing: 0,
     mdaInProgress: 0,
-    completed: 0,
   };
 
   const handleTabChange = useCallback(
@@ -378,8 +374,6 @@ const DAForm = () => {
 
         return true;
       } catch (error) {
-        console.error("Error in handleCancel:", error);
-
         let errorMessage = "Failed to cancel DA Form. Please try again.";
 
         if (error?.data?.message) {
@@ -431,8 +425,6 @@ const DAForm = () => {
 
         handleCloseModal();
       } catch (error) {
-        console.error("Error in handleSave:", error);
-
         let errorMessage =
           mode === "edit"
             ? "Failed to update DA Form. Please try again."
@@ -544,21 +536,6 @@ const DAForm = () => {
         />
       ),
       badgeCount: daCounts.mdaInProgress,
-    },
-    {
-      label: "Completed",
-      component: (
-        <DAFormCompleted
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: daCounts.completed,
     },
   ];
 

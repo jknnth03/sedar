@@ -165,10 +165,6 @@ const MDADAForMDAProcessing = ({
 
   const handleRowClick = useCallback(
     async (submission) => {
-      console.log("=== ROW CLICK ===");
-      console.log("submission object:", submission);
-      console.log("submission.id:", submission.id);
-      console.log("submission.employee_name:", submission.employee_name);
       const submissionIdToUse = submission.id;
       setSelectedSubmissionId(submissionIdToUse);
       setSelectedSubmission(submission);
@@ -178,15 +174,7 @@ const MDADAForMDAProcessing = ({
       setSelectedRowForMenu(null);
 
       try {
-        const response = await triggerGetSubmission(submissionIdToUse);
-        console.log("=== API RESPONSE ===");
-        console.log("Full response:", response);
-        console.log("response.data:", response.data);
-        console.log("response.data.result:", response.data?.result);
-        console.log(
-          "Employee from API:",
-          response.data?.result?.submittable?.employee?.full_name
-        );
+        await triggerGetSubmission(submissionIdToUse);
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -230,7 +218,6 @@ const MDADAForMDAProcessing = ({
 
   const handleCreateMDA = useCallback((submission) => {
     const submissionIdForPrefill = submission.id;
-    console.log("Opening MDA modal for submission ID:", submissionIdForPrefill);
     setMdaSubmissionId(submissionIdForPrefill);
     setSelectedMdaSubmission(submission);
     setMdaModalOpen(true);
@@ -455,7 +442,7 @@ const MDADAForMDAProcessing = ({
           submissionId={selectedSubmissionId}
           mode={viewModalMode}
           onModeChange={handleModeChange}
-          selectedEntry={submissionDetails}
+          selectedEntry={submissionDetails?.data}
           isLoading={modalLoading || detailsLoading}
           onRefreshDetails={handleRefreshDetails}
           onCreateMDA={handleCreateMDA}

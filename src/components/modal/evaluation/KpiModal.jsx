@@ -65,6 +65,7 @@ const KpiModal = ({
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [shouldFetchObjectives, setShouldFetchObjectives] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const {
     data: objectivesData,
@@ -110,6 +111,7 @@ const KpiModal = ({
     if (open) {
       setCurrentMode(mode);
       setOriginalMode(mode);
+      setShowValidation(false);
 
       if (mode === "create") {
         reset({
@@ -122,6 +124,7 @@ const KpiModal = ({
             },
           ],
         });
+        setTimeout(() => setShowValidation(true), 100);
       } else if (selectedEntry && (mode === "view" || mode === "edit")) {
         let existingKpis = [];
         let kpiData = null;
@@ -171,9 +174,11 @@ const KpiModal = ({
         reset({
           kpis: existingKpis,
         });
+        setTimeout(() => setShowValidation(true), 100);
       }
     } else {
       setShouldFetchObjectives(false);
+      setShowValidation(false);
     }
   }, [open, mode, selectedEntry, positionKpisData, reset]);
 
@@ -316,6 +321,7 @@ const KpiModal = ({
     setCurrentMode(mode);
     setOriginalMode(mode);
     setShouldFetchObjectives(false);
+    setShowValidation(false);
     onClose();
   };
 
@@ -346,14 +352,7 @@ const KpiModal = ({
     totalDistribution <= 100.01 && totalDistribution >= 99.99;
   const shouldDisableAddButton = totalDistribution >= 99.9;
 
-  const hasValidTargets = watchedKpis.every((kpi, index) => {
-    const distribution = parseFloat(kpi?.distribution) || 0;
-    const target = parseFloat(kpi?.target) || 0;
-    if (distribution === 0) return true;
-    return target <= distribution;
-  });
-
-  const canSubmit = isDistributionValid && hasValidTargets;
+  const canSubmit = isDistributionValid;
 
   const safeGetValue = (obj, key, fallback = "N/A") => {
     if (!obj || typeof obj !== "object") return fallback;
@@ -511,16 +510,13 @@ const KpiModal = ({
             <Typography {...kpiModalStyles.distributionText}>
               Total Distribution: {totalDistribution.toFixed(2)}%
             </Typography>
-            <Box sx={kpiModalStyles.distributionStatus(isDistributionValid)}>
-              {isDistributionValid
-                ? "✓ Valid"
-                : totalDistribution > 100.01
-                ? "⚠ Must not be lower than 99.99% or higher than 100.01%"
-                : "⚠ Must not be lower than 99.99% or higher than 100.01%"}
-            </Box>
-            {!hasValidTargets && (
-              <Box sx={kpiModalStyles.distributionStatus(false)}>
-                ⚠ Target cannot exceed distribution percentage
+            {showValidation && (
+              <Box sx={kpiModalStyles.distributionStatus(isDistributionValid)}>
+                {isDistributionValid
+                  ? "✓ Valid"
+                  : totalDistribution > 100.01
+                  ? "⚠ Must not be lower than 99.99% or higher than 100.01%"
+                  : "⚠ Must not be lower than 99.99% or higher than 100.01%"}
               </Box>
             )}
           </Box>
@@ -724,11 +720,8 @@ const KpiModal = ({
                               },
                               validate: (value) => {
                                 const targetValue = parseFloat(value);
-                                if (
-                                  targetValue > currentDistribution &&
-                                  currentDistribution > 0
-                                ) {
-                                  return `Target cannot exceed distribution (${currentDistribution}%)`;
+                                if (targetValue > 100) {
+                                  return "Target cannot exceed 100%";
                                 }
                                 return true;
                               },

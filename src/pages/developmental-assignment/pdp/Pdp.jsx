@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Box,
   Tabs,
@@ -46,6 +46,7 @@ import PdpApproved from "./PdpApproved";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import PdpModal from "../../../components/modal/da-task/PdpModal";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
@@ -161,7 +162,7 @@ const DateFilterDialog = ({
   const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
   const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setTempStartDate(dateFilters.startDate);
     setTempEndDate(dateFilters.endDate);
   }, [dateFilters, open]);
@@ -505,6 +506,9 @@ const Pdp = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalMode, setModalMode] = useState("view");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   const [savePdpAsDraft] = useSavePdpAsDraftMutation();
   const [submitPdp] = useSubmitPdpMutation();
@@ -563,62 +567,75 @@ const Pdp = () => {
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedEntry(null);
+    setPendingFormData(null);
+    setConfirmAction(null);
   }, []);
 
-  const handleModalSave = useCallback(
-    async (data, isDraft = false) => {
-      try {
-        const payload = {
-          id: selectedEntry?.id,
-          data: data,
-        };
+  const handleModalSave = useCallback(async (data, isDraft = false) => {
+    setPendingFormData(data);
+    setConfirmAction(isDraft ? "draft" : "update");
+    setConfirmOpen(true);
+    return true;
+  }, []);
 
-        console.log("Payload being sent:", payload);
+  const handleActionConfirm = async () => {
+    if (!confirmAction || !pendingFormData) return;
 
-        if (isDraft) {
-          await savePdpAsDraft(payload).unwrap();
-          enqueueSnackbar("PDP saved as draft successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        } else {
-          await submitPdp(payload).unwrap();
-          enqueueSnackbar("PDP submitted successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        }
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        console.error("Save error:", error);
-        let errorMessage = isDraft
-          ? "Failed to save draft. Please try again."
-          : "Failed to submit PDP. Please try again.";
+    setIsLoading(true);
 
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
+    try {
+      const payload = {
+        id: selectedEntry?.id,
+        data: pendingFormData,
+      };
 
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
+      if (confirmAction === "draft") {
+        await savePdpAsDraft(payload).unwrap();
+        enqueueSnackbar("PDP saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
         });
-        return false;
+      } else if (confirmAction === "update") {
+        await submitPdp(payload).unwrap();
+        enqueueSnackbar("PDP updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
       }
-    },
-    [
-      savePdpAsDraft,
-      submitPdp,
-      enqueueSnackbar,
-      handleRefreshDetails,
-      selectedEntry,
-    ]
-  );
+
+      handleRefreshDetails();
+      setModalOpen(false);
+      setSelectedEntry(null);
+    } catch (error) {
+      console.error("Save error:", error);
+      let errorMessage =
+        confirmAction === "draft"
+          ? "Failed to save draft. Please try again."
+          : "Failed to update PDP. Please try again.";
+
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+    } finally {
+      setConfirmOpen(false);
+      setPendingFormData(null);
+      setConfirmAction(null);
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setPendingFormData(null);
+    setConfirmAction(null);
+  }, []);
 
   const handleApprove = useCallback(
     async (entryId) => {
@@ -673,6 +690,10 @@ const Pdp = () => {
     },
     [enqueueSnackbar, handleRefreshDetails]
   );
+
+  const getSubmissionDisplayName = useCallback(() => {
+    return selectedEntry?.reference_number || "PDP Submission";
+  }, [selectedEntry]);
 
   const tabsData = [
     {
@@ -898,6 +919,16 @@ const Pdp = () => {
             mode={modalMode}
             entry={selectedEntry}
             onSave={handleModalSave}
+          />
+
+          <ConfirmationDialog
+            open={confirmOpen}
+            onClose={handleConfirmationCancel}
+            onConfirm={handleActionConfirm}
+            isLoading={isLoading}
+            action={confirmAction}
+            itemName={getSubmissionDisplayName()}
+            module="PDP Submission"
           />
         </Box>
       </FormProvider>

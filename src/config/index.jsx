@@ -255,9 +255,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.catOneApprovals,
         },
         CATTWOAPPROVAL: {
-          name: "Cat Two",
+          name: "CAT II",
           permissionId: "APPROVING.CATTWOAPPROVAL",
-          displayName: "Cat Two",
+          displayName: "CAT II",
           path: "cattwoapproval",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
           icon_on: null,
@@ -454,9 +454,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon_on: null,
         },
         CATTWO: {
-          name: "Cat Two",
+          name: "CAT II",
           permissionId: "DEVELOPMENTALASSIGNMENT.CATTWO",
-          displayName: "Cat Two",
+          displayName: "CAT II",
           path: "cattwo",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
           icon_on: null,

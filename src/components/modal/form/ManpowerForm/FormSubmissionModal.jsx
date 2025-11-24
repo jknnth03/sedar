@@ -42,6 +42,7 @@ import {
   buildResubmitPayload,
   safeRenderText,
 } from "./formSubmissionUtils";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 
 const ErrorDialog = ({ open, message, onClose }) => {
   if (!open) return null;
@@ -93,6 +94,9 @@ const FormContent = ({
   const [apiError, setApiError] = useState(null);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   const watchedRequisitionType = watch("requisition_type_id");
   const watchedPositionId = watch("position_id");
@@ -171,6 +175,9 @@ const FormContent = ({
     setCurrentMode("create");
     setOriginalMode("create");
     setSelectedFile(null);
+    setConfirmOpen(false);
+    setConfirmAction(null);
+    setPendingFormData(null);
     if (reset) {
       reset();
     }
@@ -211,27 +218,34 @@ const FormContent = ({
     setValue("manpower_form_attachment", file);
   };
 
-  const onSubmit = (data) => {
-    if (currentMode === "create") {
-      const payload = buildCreatePayload(
-        data,
-        currentMode,
-        selectedFile,
-        watchedRequisitionType
-      );
-      if (onSave) {
-        onSave(payload, currentMode);
+  const onSubmit = async (data) => {
+    try {
+      const isValid = await trigger();
+      if (!isValid) return;
+
+      if (currentMode === "create") {
+        const payload = buildCreatePayload(
+          data,
+          currentMode,
+          selectedFile,
+          watchedRequisitionType
+        );
+        setPendingFormData(payload);
+        setConfirmAction("create");
+        setConfirmOpen(true);
+      } else if (currentMode === "edit" && selectedEntry?.id) {
+        const payload = buildEditPayload(
+          data,
+          selectedEntry,
+          selectedFile,
+          watchedRequisitionType
+        );
+        setPendingFormData(payload);
+        setConfirmAction("update");
+        setConfirmOpen(true);
       }
-    } else if (currentMode === "edit" && selectedEntry?.id) {
-      const payload = buildEditPayload(
-        data,
-        selectedEntry,
-        selectedFile,
-        watchedRequisitionType
-      );
-      if (onSave) {
-        onSave(payload, currentMode);
-      }
+    } catch (error) {
+      console.error("Form submission error:", error);
     }
   };
 
@@ -243,10 +257,47 @@ const FormContent = ({
       const submissionId = selectedEntry?.id || selectedEntry?.submittable?.id;
       const resubmitData = buildResubmitPayload(data, watchedRequisitionType);
 
-      if (onResubmit && submissionId) {
-        onResubmit(resubmitData, "resubmit", submissionId);
-      }
+      setPendingFormData(resubmitData);
+      setConfirmAction("resubmit");
+      setConfirmOpen(true);
     }
+  };
+
+  const handleActionConfirm = async () => {
+    if (!confirmAction || !pendingFormData) return;
+
+    setIsUpdating(true);
+
+    try {
+      if (confirmAction === "create") {
+        if (onSave) {
+          await onSave(pendingFormData, currentMode);
+        }
+      } else if (confirmAction === "update") {
+        if (onSave) {
+          await onSave(pendingFormData, currentMode);
+        }
+      } else if (confirmAction === "resubmit") {
+        const submissionId =
+          selectedEntry?.id || selectedEntry?.submittable?.id;
+        if (onResubmit && submissionId) {
+          await onResubmit(pendingFormData, "resubmit", submissionId);
+        }
+      }
+    } catch (error) {
+      console.error("Action confirmation error:", error);
+    } finally {
+      setConfirmOpen(false);
+      setPendingFormData(null);
+      setConfirmAction(null);
+      setIsUpdating(false);
+    }
+  };
+
+  const handleConfirmationCancel = () => {
+    setConfirmOpen(false);
+    setPendingFormData(null);
+    setConfirmAction(null);
   };
 
   const handleSaveClick = async () => {
@@ -255,6 +306,10 @@ const FormContent = ({
     if (isValid) {
       handleSubmit(onSubmit)();
     }
+  };
+
+  const getSubmissionDisplayName = () => {
+    return selectedEntry?.reference_number || "New Manpower Form";
   };
 
   const isProcessing = isLoading || isUpdating;
@@ -392,6 +447,16 @@ const FormContent = ({
           </Box>
         )}
       </DialogActions>
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isUpdating}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+        module="Manpower Form"
+      />
     </>
   );
 };

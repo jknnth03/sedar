@@ -27,14 +27,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const toPosition = submittable.to_position || {};
   const objectives = submittable.objectives || [];
 
-  console.log("Loading form data:", {
-    employee,
-    fromPosition,
-    toPosition,
-    objectives,
-    submittable,
-  });
-
   return {
     form_id: selectedEntry?.form?.id || selectedEntry?.result?.form?.id || 7,
     employee_id: employee.id || null,
@@ -46,8 +38,8 @@ export const getViewEditModeFormData = (selectedEntry) => {
     to_position_code: toPosition.code || "",
     to_position_title: toPosition.title?.name || "",
     to_department: toPosition.charging?.department_name || "",
-    start_date: submittable.start_date || null,
-    end_date: submittable.end_date || null,
+    start_date: submittable.start_date ? dayjs(submittable.start_date) : null,
+    end_date: submittable.end_date ? dayjs(submittable.end_date) : null,
     kpis: objectives.map((obj) => ({
       id: obj.id || null,
       source_kpi_id: obj.source_kpi_id || null,

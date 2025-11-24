@@ -25,6 +25,7 @@ import { useFormContext } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import CatOneModalFields from "./CarOneModalFields";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -160,6 +161,9 @@ const CatOneModal = ({
   const [lastEntryId, setLastEntryId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentEntryId, setCurrentEntryId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
@@ -214,6 +218,9 @@ const CatOneModal = ({
     setIsUpdating(false);
     setCurrentEntryId(null);
     setGetFormDataForSubmission(null);
+    setPendingFormData(null);
+    setConfirmAction(null);
+    setConfirmOpen(false);
     reset();
     onClose();
   };
@@ -257,25 +264,24 @@ const CatOneModal = ({
   }, [selectedEntry?.id]);
 
   const onSubmit = async (data) => {
-    try {
-      setIsUpdating(true);
+    if (isUpdating || confirmOpen) {
+      return;
+    }
 
+    try {
       const isFormValid = await trigger();
       if (!isFormValid) {
-        setIsUpdating(false);
         return;
       }
 
       if (!getFormDataForSubmission) {
         alert("Form data function not available. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const formData = getFormDataForSubmission();
       if (!formData) {
         alert("Failed to create form data. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
@@ -283,46 +289,44 @@ const CatOneModal = ({
 
       if (!entryIdToUse) {
         alert("Entry ID is missing. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
-      if (onSave) {
-        await onSave(formData, currentMode, entryIdToUse);
-      }
+      setPendingFormData({
+        formData,
+        mode: currentMode,
+        entryId: entryIdToUse,
+      });
+
+      const action = isForApprovalStatus() ? "update" : "submit";
+      setConfirmAction(action);
+      setConfirmOpen(true);
     } catch (error) {
-      console.error("onSubmit error:", error);
       alert("An error occurred while submitting the form. Please try again.");
-    } finally {
-      setIsUpdating(false);
     }
   };
 
   const handleSaveAsDraft = async () => {
-    try {
-      setIsUpdating(true);
+    if (isUpdating || confirmOpen) {
+      return;
+    }
 
+    try {
       if (!getFormDataForSubmission) {
-        console.error("Form data function not available");
         alert("Form data function not available. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const formData = getFormDataForSubmission();
       if (!formData) {
-        console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const entryIdToUse = selectedEntry?.id;
 
       if (!entryIdToUse) {
-        console.error("Entry ID is missing");
         alert("Entry ID is missing. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
@@ -331,24 +335,36 @@ const CatOneModal = ({
         action: "save_draft",
       };
 
-      if (onSaveAsDraft) {
-        await onSaveAsDraft(draftData, entryIdToUse);
-      }
+      setPendingFormData({ formData: draftData, entryId: entryIdToUse });
+      setConfirmAction("draft");
+      setConfirmOpen(true);
     } catch (error) {
-      console.error("handleSaveAsDraft error:", error);
       alert("An error occurred while saving as draft. Please try again.");
-    } finally {
-      setIsUpdating(false);
     }
   };
 
   const handleResubmit = async () => {
+    if (isUpdating || confirmOpen) {
+      return;
+    }
+
     const entryIdToUse = selectedEntry?.id;
-    if (entryIdToUse && onResubmit) {
-      try {
-        setIsUpdating(true);
-        const success = await onResubmit(entryIdToUse);
-        if (success) {
+    if (entryIdToUse) {
+      setConfirmAction("resubmit");
+      setConfirmOpen(true);
+    }
+  };
+
+  const handleActionConfirm = async () => {
+    if (!confirmAction) return;
+
+    setIsUpdating(true);
+
+    try {
+      if (confirmAction === "resubmit") {
+        const entryIdToUse = selectedEntry?.id;
+        if (entryIdToUse && onResubmit) {
+          await onResubmit(entryIdToUse);
           setFormInitialized(false);
           if (onRefreshDetails) {
             setTimeout(() => {
@@ -356,13 +372,40 @@ const CatOneModal = ({
             }, 200);
           }
         }
-      } catch (error) {
-        console.error("Resubmit error:", error);
-      } finally {
-        setIsUpdating(false);
+      } else if (confirmAction === "draft" && pendingFormData) {
+        const { formData, entryId } = pendingFormData;
+        if (onSaveAsDraft) {
+          await onSaveAsDraft(formData, entryId);
+        }
+      } else if (
+        (confirmAction === "submit" || confirmAction === "update") &&
+        pendingFormData
+      ) {
+        const { formData, mode, entryId } = pendingFormData;
+        if (onSave) {
+          await onSave(formData, mode, entryId);
+        }
       }
+
+      setConfirmOpen(false);
+      setPendingFormData(null);
+      setConfirmAction(null);
+    } catch (error) {
+      alert("An error occurred. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
+
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setPendingFormData(null);
+    setConfirmAction(null);
+  }, []);
+
+  const getSubmissionDisplayName = useCallback(() => {
+    return selectedEntry?.reference_number || "CAT 1 Submission";
+  }, [selectedEntry]);
 
   useEffect(() => {
     if (open) {
@@ -570,6 +613,16 @@ const CatOneModal = ({
             )}
           </StyledDialogActions>
         </form>
+
+        <ConfirmationDialog
+          open={confirmOpen}
+          onClose={handleConfirmationCancel}
+          onConfirm={handleActionConfirm}
+          isLoading={isUpdating}
+          action={confirmAction}
+          itemName={getSubmissionDisplayName()}
+          module="CAT 1"
+        />
       </StyledDialog>
     </LocalizationProvider>
   );

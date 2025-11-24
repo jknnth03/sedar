@@ -117,9 +117,6 @@ const PdpModal = ({
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
   const [actionsExpanded, setActionsExpanded] = useState(true);
   const [resourcesExpanded, setResourcesExpanded] = useState(true);
   const [coachingExpanded, setCoachingExpanded] = useState(true);
@@ -272,9 +269,12 @@ const PdpModal = ({
     setCurrentMode("view");
     setOriginalMode("view");
     setIsUpdating(false);
+<<<<<<< HEAD
+=======
     setConfirmOpen(false);
     setConfirmAction(null);
     setPendingFormData(null);
+>>>>>>> 838a6aa27851e6e414f91146af58a93bf3c6a56d
     setHasEditedForm(false);
     reset();
     onClose();
@@ -336,25 +336,10 @@ const PdpModal = ({
 
   const onSubmit = async (data) => {
     const formData = prepareFormData(data, "submit_for_validation");
-    setPendingFormData(formData);
-    setConfirmAction(isForApprovalStatus() ? "update" : "submit");
-    setConfirmOpen(true);
-  };
-
-  const handleSaveAsDraft = async () => {
-    const data = watch();
-    const formData = prepareFormData(data, "save_draft");
-    setPendingFormData(formData);
-    setConfirmAction("draft");
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmAction = async () => {
-    if (!pendingFormData) return;
     setIsUpdating(true);
 
     try {
-      const success = await onSave(pendingFormData, confirmAction === "draft");
+      const success = await onSave(formData, false);
       if (success) {
         const result = await refetch();
 
@@ -364,9 +349,6 @@ const PdpModal = ({
 
         setCurrentMode("view");
         setOriginalMode("view");
-        setConfirmOpen(false);
-        setConfirmAction(null);
-        setPendingFormData(null);
       }
     } catch (error) {
       console.error("Error during save:", error);
@@ -375,36 +357,28 @@ const PdpModal = ({
     }
   };
 
-  const handleConfirmationCancel = () => {
-    setConfirmOpen(false);
-    setConfirmAction(null);
-    setPendingFormData(null);
-  };
+  const handleSaveAsDraft = async () => {
+    const data = watch();
+    const formData = prepareFormData(data, "save_draft");
+    setIsUpdating(true);
 
-  const getConfirmationMessage = () => {
-    if (confirmAction === "update") {
-      return "Are you sure you want to Update this PDP Request?";
-    } else if (confirmAction === "submit") {
-      return "Are you sure you want to Submit this PDP Request?";
-    } else if (confirmAction === "draft") {
-      return "Are you sure you want to Save this PDP as Draft?";
+    try {
+      const success = await onSave(formData, true);
+      if (success) {
+        const result = await refetch();
+
+        if (result.data?.result) {
+          loadFormData(result.data.result);
+        }
+
+        setCurrentMode("view");
+        setOriginalMode("view");
+      }
+    } catch (error) {
+      console.error("Error during save:", error);
+    } finally {
+      setIsUpdating(false);
     }
-    return "";
-  };
-
-  const getConfirmationIcon = () => {
-    const iconConfig = {
-      update: { color: "#2196F3", icon: "✎" },
-      submit: { color: "#4CAF50", icon: "✓" },
-      draft: { color: "#2196F3", icon: "💾" },
-    };
-    return iconConfig[confirmAction] || iconConfig.submit;
-  };
-
-  const getSubmissionDisplayName = () => {
-    if (confirmAction === "update") return "PDP REQUEST";
-    if (confirmAction === "draft") return "PDP DRAFT";
-    return pdpData?.reference_number || "PDP SUBMISSION";
   };
 
   const handleAddGoal = () => {
@@ -669,129 +643,6 @@ const PdpModal = ({
             </StyledDialogActions>
           </form>
         </StyledDialog>
-
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              Confirmation
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isUpdating}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleConfirmAction}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isUpdating}>
-              {isUpdating ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                "CONFIRM"
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </LocalizationProvider>
     </FormProvider>
   );

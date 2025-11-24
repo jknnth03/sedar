@@ -16,10 +16,12 @@ import {
   CircularProgress,
   useMediaQuery,
   useTheme,
+  Button,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CancelIcon from "@mui/icons-material/Cancel";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { format, parseISO } from "date-fns";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 
@@ -39,6 +41,8 @@ const PdpTable = ({
   forApproval = false,
   forAssessment = false,
   useRootStatus = false,
+  onApprove,
+  onReject,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -134,10 +138,28 @@ const PdpTable = ({
       columns.push({ id: "status", label: "Status", minWidth: 180 });
     }
 
+    if (forApproval) {
+      columns.push({ id: "actions", label: "Actions", minWidth: 200 });
+    }
+
     return columns;
-  }, [hideStatusColumn, forAssessment]);
+  }, [hideStatusColumn, forAssessment, forApproval]);
 
   const totalColumns = tableColumns.length;
+
+  const handleApproveClick = (e, submissionId) => {
+    e.stopPropagation();
+    if (onApprove) {
+      onApprove(submissionId);
+    }
+  };
+
+  const handleRejectClick = (e, submissionId) => {
+    e.stopPropagation();
+    if (onReject) {
+      onReject(submissionId);
+    }
+  };
 
   return (
     <TableContainer
@@ -152,7 +174,7 @@ const PdpTable = ({
       <Table
         stickyHeader
         sx={{
-          minWidth: 1200,
+          minWidth: forApproval ? 1400 : 1200,
           height: submissionsList.length === 0 ? "100%" : "auto",
         }}>
         <TableHead>
@@ -287,6 +309,53 @@ const PdpTable = ({
                           },
                         }}
                       />
+                    </TableCell>
+                  )}
+                  {forApproval && (
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.actions,
+                        ...styles.cellContentStyles,
+                      }}>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<CheckCircleIcon />}
+                          onClick={(e) => handleApproveClick(e, submission.id)}
+                          sx={{
+                            backgroundColor: "#4caf50",
+                            color: "white",
+                            textTransform: "uppercase",
+                            fontWeight: 600,
+                            fontSize: "11px",
+                            padding: "4px 12px",
+                            "&:hover": {
+                              backgroundColor: "#388e3c",
+                            },
+                          }}>
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<CancelIcon />}
+                          onClick={(e) => handleRejectClick(e, submission.id)}
+                          sx={{
+                            borderColor: "#f44336",
+                            color: "#f44336",
+                            textTransform: "uppercase",
+                            fontWeight: 600,
+                            fontSize: "11px",
+                            padding: "4px 12px",
+                            "&:hover": {
+                              borderColor: "#d32f2f",
+                              backgroundColor: "rgba(244, 67, 54, 0.04)",
+                            },
+                          }}>
+                          Reject
+                        </Button>
+                      </Box>
                     </TableCell>
                   )}
                 </TableRow>

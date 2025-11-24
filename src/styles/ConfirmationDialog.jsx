@@ -8,6 +8,7 @@ import {
   Typography,
   Box,
   CircularProgress,
+  TextField,
 } from "@mui/material";
 
 const ConfirmationDialog = ({
@@ -17,19 +18,41 @@ const ConfirmationDialog = ({
   isLoading = false,
   action = "",
   itemName = "",
+  module = "Manpower Requisition Form",
+  showRemarks = false,
+  remarks = "",
+  onRemarksChange = () => {},
+  remarksRequired = false,
+  remarksLabel = "Remarks (Optional)",
+  remarksPlaceholder = "Add any additional remarks...",
 }) => {
-  const getActionText = () => {
+  const getActionConfig = () => {
     switch (action) {
+      case "approve":
+        return { text: "Approve", icon: "?", iconColor: "#ff6b35" };
+      case "reject":
+        return { text: "Reject", icon: "?", iconColor: "#ff6b35" };
       case "update":
-        return "Update";
+        return { text: "Update", icon: "?", iconColor: "#ff6b35" };
       case "resubmit":
-        return "Resubmit";
+        return { text: "Resubmit", icon: "?", iconColor: "#ff6b35" };
       case "cancel":
-        return "Cancel";
+        return { text: "Cancel", icon: "?", iconColor: "#ff6b35" };
+      case "delete":
+        return { text: "Delete", icon: "?", iconColor: "#ff6b35" };
+      case "submit":
+        return { text: "Submit", icon: "?", iconColor: "#ff6b35" };
+      case "draft":
+        return { text: "Save as Draft", icon: "?", iconColor: "#ff6b35" };
+      case "create":
+        return { text: "Create", icon: "?", iconColor: "#ff6b35" };
       default:
-        return "";
+        return { text: "proceed with", icon: "?", iconColor: "#ff6b35" };
     }
   };
+
+  const actionConfig = getActionConfig();
+  const hasRemarksError = remarksRequired && !remarks.trim();
 
   return (
     <Dialog
@@ -57,7 +80,7 @@ const ConfirmationDialog = ({
               width: 60,
               height: 60,
               borderRadius: "50%",
-              backgroundColor: "#ff6b35",
+              backgroundColor: actionConfig.iconColor,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -68,7 +91,7 @@ const ConfirmationDialog = ({
                 fontSize: "30px",
                 fontWeight: "normal",
               }}>
-              ?
+              {actionConfig.icon}
             </Typography>
           </Box>
         </Box>
@@ -91,8 +114,8 @@ const ConfirmationDialog = ({
             color: "#333",
             fontWeight: 400,
           }}>
-          Are you sure you want to <strong>{getActionText()}</strong> this
-          Manpower Requisition Form?
+          Are you sure you want to <b>{actionConfig.text.toLowerCase()}</b> this{" "}
+          {module}?
         </Typography>
         {itemName && (
           <Typography
@@ -103,9 +126,32 @@ const ConfirmationDialog = ({
               fontWeight: 500,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
+              marginBottom: showRemarks ? 2 : 0,
             }}>
             {itemName}
           </Typography>
+        )}
+        {showRemarks && (
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label={remarksLabel}
+            placeholder={remarksPlaceholder}
+            value={remarks}
+            onChange={(e) => onRemarksChange(e.target.value)}
+            required={remarksRequired}
+            error={hasRemarksError}
+            helperText={
+              hasRemarksError ? "Remarks are required for rejection" : ""
+            }
+            sx={{
+              marginTop: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+              },
+            }}
+          />
         )}
       </DialogContent>
       <DialogActions
@@ -148,7 +194,7 @@ const ConfirmationDialog = ({
               backgroundColor: "#388e3c",
             },
           }}
-          disabled={isLoading}>
+          disabled={isLoading || hasRemarksError}>
           {isLoading ? (
             <CircularProgress size={20} color="inherit" />
           ) : (

@@ -1,24 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import SendIcon from "@mui/icons-material/Send";
-import CloseIcon from "@mui/icons-material/Close";
-import SaveAsIcon from "@mui/icons-material/SaveAs";
+import { Typography, TablePagination, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatOneTaskQuery,
   useGetCatOneByIdQuery,
@@ -51,16 +35,6 @@ const CatOneForSubmission = ({
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
-    useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
-  const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
-
-  const handleModalSuccessCallback = useCallback((successHandler) => {
-    setModalSuccessHandler(() => successHandler);
-  }, []);
 
   const methods = useForm({
     defaultValues: {
@@ -199,9 +173,22 @@ const CatOneForSubmission = ({
         (sub) => sub.id === submissionId
       );
       if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
+        try {
+          await cancelCatOneSubmission(submissionId).unwrap();
+          enqueueSnackbar("CAT 1 submission cancelled successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+          refetch();
+        } catch (error) {
+          const errorMessage =
+            error?.data?.message ||
+            "Failed to cancel submission. Please try again.";
+          enqueueSnackbar(errorMessage, {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+        }
       } else {
         enqueueSnackbar("Submission not found. Please try again.", {
           variant: "error",
@@ -209,7 +196,7 @@ const CatOneForSubmission = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [filteredSubmissions, enqueueSnackbar, cancelCatOneSubmission, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -226,65 +213,27 @@ const CatOneForSubmission = ({
     }
   }, [refetch, refetchDetails, selectedSubmissionId]);
 
-  const handleModalSaveAsDraft = useCallback(
-    async (submissionData, submissionId) => {
-      const submission =
-        submissionDetails?.result ||
-        filteredSubmissions.find((sub) => sub.id === submissionId);
-
-      setSelectedSubmissionForAction(submission);
-      setPendingFormData({ id: submissionId, ...submissionData });
-      setConfirmAction("draft");
-      setConfirmOpen(true);
-    },
-    [submissionDetails, filteredSubmissions]
-  );
-
   const handleModalSave = useCallback(
-    async (submissionData, mode, submissionId) => {
-      if (mode === "edit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData({ ...submissionData, id: submissionId });
-        setConfirmAction("update");
-        setConfirmOpen(true);
-        return;
-      }
-
-      if (mode === "resubmit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData({ ...submissionData, id: submissionId });
-        setConfirmAction("resubmit");
-        setConfirmOpen(true);
-        return;
-      }
-
+    async (formData, mode, entryId) => {
       try {
-        if (!submissionId) {
-          throw new Error("Submission ID is missing");
-        }
+        if (!entryId) throw new Error("Entry ID is missing");
 
-        const payload = { id: submissionId, ...submissionData };
-
+        const payload = { id: entryId, ...formData };
         await submitCatOne(payload).unwrap();
-        enqueueSnackbar("Submission processed successfully!", {
+
+        enqueueSnackbar("CAT 1 submitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
+
+        setModalOpen(false);
+        setSelectedSubmissionId(null);
+        setSelectedSubmission(null);
         refetch();
-        handleModalClose();
         return true;
       } catch (error) {
         const errorMessage =
-          error?.data?.message ||
-          "Failed to save submission. Please try again.";
+          error?.data?.message || "Failed to submit CAT 1. Please try again.";
         enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
@@ -292,14 +241,38 @@ const CatOneForSubmission = ({
         return false;
       }
     },
-    [
-      refetch,
-      enqueueSnackbar,
-      handleModalClose,
-      submissionDetails,
-      filteredSubmissions,
-      submitCatOne,
-    ]
+    [submitCatOne, enqueueSnackbar, refetch]
+  );
+
+  const handleModalSaveAsDraft = useCallback(
+    async (formData, entryId) => {
+      try {
+        if (!entryId) throw new Error("Entry ID is missing");
+
+        const payload = { id: entryId, ...formData };
+        await saveCatOneAsDraft(payload).unwrap();
+
+        enqueueSnackbar("CAT 1 saved as draft successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        setModalOpen(false);
+        setSelectedSubmissionId(null);
+        setSelectedSubmission(null);
+        refetch();
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to save draft. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return false;
+      }
+    },
+    [saveCatOneAsDraft, enqueueSnackbar, refetch]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -358,156 +331,6 @@ const CatOneForSubmission = ({
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
-
-  const handleActionConfirm = async () => {
-    if (!confirmAction) return;
-
-    setIsLoading(true);
-
-    try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelCatOneSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("CAT 1 submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (
-        confirmAction === "draft" &&
-        pendingFormData &&
-        selectedSubmissionForAction
-      ) {
-        await saveCatOneAsDraft(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 submission saved as draft successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (selectedSubmissionId) {
-          refetchDetails();
-        }
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-        handleModalClose();
-      } else if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionForAction
-      ) {
-        await saveCatOneAsDraft(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 submission updated successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (selectedSubmissionId) {
-          refetchDetails();
-        }
-        handleModalClose();
-      } else if (confirmAction === "resubmit" && pendingFormData) {
-        await submitCatOne(pendingFormData).unwrap();
-        enqueueSnackbar("CAT 1 submission resubmitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-        handleModalClose();
-      }
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedSubmissionForAction(null);
-      setConfirmAction(null);
-      setPendingFormData(null);
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmationCancel = useCallback(() => {
-    setConfirmOpen(false);
-    setSelectedSubmissionForAction(null);
-    setConfirmAction(null);
-    setPendingFormData(null);
-  }, []);
-
-  const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "cancel") {
-      return (
-        <>
-          Are you sure you want to <strong>Cancel</strong> this CAT 1 Request?
-        </>
-      );
-    } else if (confirmAction === "draft") {
-      return (
-        <>
-          Are you sure you want to <strong>Save as Draft</strong> this CAT 1
-          Request?
-        </>
-      );
-    } else if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this CAT 1 Request?
-        </>
-      );
-    } else if (confirmAction === "resubmit") {
-      return (
-        <>
-          Are you sure you want to <strong>Resubmit</strong> this CAT 1 Request?
-        </>
-      );
-    }
-    return "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    return "Confirmation";
-  }, []);
-
-  const getConfirmButtonText = useCallback(() => {
-    return "CONFIRM";
-  }, []);
-
-  const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "CAT 1 Request";
-    return submissionForAction;
-  }, [selectedSubmissionForAction]);
-
-  const getConfirmationIcon = useCallback(() => {
-    const iconConfig = {
-      cancel: {
-        color: "#ff4400",
-        IconComponent: CloseIcon,
-      },
-      draft: {
-        color: "#2196F3",
-        IconComponent: SaveAsIcon,
-      },
-      update: {
-        color: "#2196F3",
-        IconComponent: EditIcon,
-      },
-      resubmit: {
-        color: "#2196F3",
-        IconComponent: SendIcon,
-      },
-    };
-
-    const config = iconConfig[confirmAction] || iconConfig.cancel;
-    return config;
-  }, [confirmAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
@@ -600,129 +423,7 @@ const CatOneForSubmission = ({
           onSave={handleModalSave}
           onSaveAsDraft={handleModalSaveAsDraft}
           onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
         />
-
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                {React.createElement(getConfirmationIcon().IconComponent, {
-                  sx: {
-                    color: "white",
-                    fontSize: "32px",
-                  },
-                })}
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     </FormProvider>
   );

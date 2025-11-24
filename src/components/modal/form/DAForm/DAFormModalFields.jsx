@@ -5,10 +5,7 @@ import {
   TextField,
   Typography,
   Box,
-  Divider,
   Autocomplete,
-  Button,
-  IconButton,
   CircularProgress,
   Table,
   TableBody,
@@ -19,44 +16,13 @@ import {
   Paper,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import dayjs from "dayjs";
-import {
-  sectionTitleStyles,
-  infoSectionContainerStyles,
-  infoSectionTitleStyles,
-  infoFieldContainerStyles,
-  infoFieldLabelStyles,
-  infoFieldValueStyles,
-  infoBoxStyles,
-} from "./DAFormModal.styles";
+import { sectionTitleStyles } from "./DAFormModal.styles";
 import { useGetAllPositionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import {
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,
 } from "../../../../features/api/forms/daformApi";
-
-const InfoSection = ({ title, children }) => (
-  <Box sx={infoSectionContainerStyles}>
-    {title && (
-      <Typography variant="subtitle2" sx={infoSectionTitleStyles}>
-        {title}
-      </Typography>
-    )}
-    {children}
-  </Box>
-);
-
-const InfoField = ({ label, value }) => (
-  <Box sx={infoFieldContainerStyles}>
-    <Typography variant="subtitle2" sx={infoFieldLabelStyles}>
-      {label}
-    </Typography>
-    <Typography variant="body2" sx={infoFieldValueStyles}>
-      {value || "-"}
-    </Typography>
-  </Box>
-);
 
 const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const {
@@ -105,7 +71,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   useEffect(() => {
     if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
       if (isInitialMount.current && formValues.kpis.length > 0) {
-        console.log("Initializing KPIs from form values:", formValues.kpis);
         setKpisList(formValues.kpis);
         isInitialMount.current = false;
       }
@@ -160,7 +125,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             setValue("kpis", []);
           }
         } catch (error) {
-          console.error("Error fetching KPIs:", error);
           setKpisList([]);
           setValue("kpis", []);
         } finally {
@@ -182,11 +146,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
     setKpisList(updatedKpis);
     setValue("kpis", updatedKpis);
-  };
-
-  const formatDate = (date) => {
-    if (!date) return "-";
-    return dayjs(date).format("MMMM DD, YYYY");
   };
 
   return (
@@ -330,11 +289,21 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                 render={({ field }) => (
                   <DatePicker
                     {...field}
-                    value={field.value ? dayjs(field.value) : null}
+                    value={
+                      field.value && dayjs.isDayjs(field.value)
+                        ? field.value
+                        : field.value
+                        ? dayjs(field.value)
+                        : null
+                    }
                     onChange={(date) => {
                       field.onChange(date);
                       const endDate = watch("end_date");
-                      if (endDate && dayjs(date).isAfter(dayjs(endDate))) {
+                      if (
+                        endDate &&
+                        date &&
+                        dayjs(date).isAfter(dayjs(endDate))
+                      ) {
                         setValue("end_date", null);
                       }
                     }}
@@ -372,7 +341,13 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                 render={({ field }) => (
                   <DatePicker
                     {...field}
-                    value={field.value ? dayjs(field.value) : null}
+                    value={
+                      field.value && dayjs.isDayjs(field.value)
+                        ? field.value
+                        : field.value
+                        ? dayjs(field.value)
+                        : null
+                    }
                     onChange={(date) => field.onChange(date)}
                     minDate={
                       watch("start_date")
@@ -494,36 +469,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                             sx={{ color: "text.secondary", display: "block" }}>
                             {kpi.deliverable}
                           </Typography>
-                          {!isReadOnly && (
-                            <TextField
-                              fullWidth
-                              size="small"
-                              type="number"
-                              label="Distribution %"
-                              value={kpi.distribution_percentage}
-                              onChange={(e) =>
-                                handleKpiChange(
-                                  index,
-                                  "distribution_percentage",
-                                  Number(e.target.value)
-                                )
-                              }
-                              inputProps={{ min: 0, max: 100 }}
-                              sx={{ mt: 1 }}
-                              disabled={isReadOnly}
-                            />
-                          )}
-                          {isReadOnly && (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: "text.secondary",
-                                display: "block",
-                                mt: 1,
-                              }}>
-                              Distribution: {kpi.distribution_percentage}%
-                            </Typography>
-                          )}
                         </Box>
                         <Box sx={{ flex: 1, textAlign: "center" }}>
                           {!isReadOnly ? (
@@ -538,7 +483,11 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                                   Number(e.target.value)
                                 )
                               }
-                              inputProps={{ min: 0, max: 100 }}
+                              inputProps={{
+                                min: 0,
+                                max: 100,
+                                step: "any",
+                              }}
                               sx={{ width: "80px" }}
                               disabled={isReadOnly}
                             />
