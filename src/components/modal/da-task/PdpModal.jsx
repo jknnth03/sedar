@@ -269,12 +269,6 @@ const PdpModal = ({
     setCurrentMode("view");
     setOriginalMode("view");
     setIsUpdating(false);
-<<<<<<< HEAD
-=======
-    setConfirmOpen(false);
-    setConfirmAction(null);
-    setPendingFormData(null);
->>>>>>> 838a6aa27851e6e414f91146af58a93bf3c6a56d
     setHasEditedForm(false);
     reset();
     onClose();
