@@ -109,12 +109,12 @@ const CatTwoApproved = ({
 
     const result = dataSource.result;
 
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "APPROVED");
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (result.status === "APPROVED") {
-      return [result];
+    if (Array.isArray(result)) {
+      return result;
     }
 
     return [];
@@ -268,7 +268,7 @@ const CatTwoApproved = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
+            hideStatusColumn={false}
             forApproved={true}
           />
 

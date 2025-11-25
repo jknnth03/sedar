@@ -575,7 +575,7 @@ const Pdp = () => {
     setPendingFormData(data);
     setConfirmAction(isDraft ? "draft" : "update");
     setConfirmOpen(true);
-    return true;
+    return false;
   }, []);
 
   const handleActionConfirm = async () => {

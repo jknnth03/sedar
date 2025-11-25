@@ -1,20 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import SendIcon from "@mui/icons-material/Send";
-import CloseIcon from "@mui/icons-material/Close";
-import SaveAsIcon from "@mui/icons-material/SaveAs";
+import { Typography, TablePagination, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -42,6 +27,7 @@ const CatTwoReturned = ({
   rowsPerPage: externalRowsPerPage,
   onPageChange,
   onRowsPerPageChange,
+  onConfirmationRequest,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -58,12 +44,6 @@ const CatTwoReturned = ({
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
-    useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
   const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
 
   const handleModalSuccessCallback = useCallback((successHandler) => {
@@ -213,9 +193,17 @@ const CatTwoReturned = ({
         (sub) => sub.id === submissionId
       );
       if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
+        const itemName =
+          submission?.developmental_assignment?.reference_number ||
+          submission?.reference_number ||
+          "CAT 2 Assessment";
+
+        onConfirmationRequest("cancel", itemName, {
+          taskId: submissionId,
+          onSuccess: () => {
+            refetch();
+          },
+        });
       } else {
         enqueueSnackbar("Submission not found. Please try again.", {
           variant: "error",
@@ -223,7 +211,7 @@ const CatTwoReturned = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [filteredSubmissions, enqueueSnackbar, onConfirmationRequest, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -246,37 +234,76 @@ const CatTwoReturned = ({
         submissionDetails?.result ||
         filteredSubmissions.find((sub) => sub.id === submissionId);
 
-      setSelectedSubmissionForAction(submission);
-      setPendingFormData(submissionData);
-      setConfirmAction("draft");
-      setConfirmOpen(true);
+      const itemName =
+        submission?.developmental_assignment?.reference_number ||
+        submission?.reference_number ||
+        "CAT 2 Assessment";
+
+      onConfirmationRequest("draft", itemName, {
+        taskId: submissionId,
+        data: submissionData,
+        onSuccess: () => {
+          refetch();
+          if (selectedSubmissionId) {
+            refetchDetails();
+          }
+          if (modalSuccessHandler) {
+            modalSuccessHandler();
+          }
+          handleModalClose();
+        },
+      });
     },
-    [submissionDetails, filteredSubmissions]
+    [
+      submissionDetails,
+      filteredSubmissions,
+      onConfirmationRequest,
+      refetch,
+      selectedSubmissionId,
+      refetchDetails,
+      modalSuccessHandler,
+      handleModalClose,
+    ]
   );
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
-      if (mode === "edit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
+      const submission =
+        submissionDetails?.result ||
+        filteredSubmissions.find((sub) => sub.id === submissionId);
 
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
+      const itemName =
+        submission?.developmental_assignment?.reference_number ||
+        submission?.reference_number ||
+        "CAT 2 Assessment";
+
+      if (mode === "edit") {
+        onConfirmationRequest("update", itemName, {
+          taskId: submissionId,
+          data: submissionData,
+          onSuccess: () => {
+            refetch();
+            if (selectedSubmissionId) {
+              refetchDetails();
+            }
+            handleModalClose();
+          },
+        });
         return;
       }
 
       if (mode === "resubmit") {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
-
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(submissionData);
-        setConfirmAction("resubmit");
-        setConfirmOpen(true);
+        onConfirmationRequest("resubmit", itemName, {
+          taskId: submissionId,
+          data: submissionData,
+          onSuccess: () => {
+            refetch();
+            if (modalSuccessHandler) {
+              modalSuccessHandler();
+            }
+            handleModalClose();
+          },
+        });
         return;
       }
 
@@ -308,6 +335,10 @@ const CatTwoReturned = ({
       submissionDetails,
       filteredSubmissions,
       submitCatTwo,
+      onConfirmationRequest,
+      selectedSubmissionId,
+      refetchDetails,
+      modalSuccessHandler,
     ]
   );
 
@@ -377,179 +408,10 @@ const CatTwoReturned = ({
     setModalMode(newMode);
   }, []);
 
-  const handleActionConfirm = async () => {
-    if (!confirmAction) return;
-
-    setIsLoading(true);
-
-    try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelCatTwoSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("CAT 2 assessment cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (
-        confirmAction === "draft" &&
-        pendingFormData &&
-        selectedSubmissionForAction
-      ) {
-        await saveCatTwoAsDraft({
-          taskId: selectedSubmissionForAction.id,
-          ...pendingFormData,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 assessment saved as draft successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (selectedSubmissionId) {
-          refetchDetails();
-        }
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-        handleModalClose();
-      } else if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionForAction
-      ) {
-        try {
-          const result = await saveCatTwoAsDraft({
-            taskId: selectedSubmissionForAction.id,
-            ...pendingFormData,
-          }).unwrap();
-
-          enqueueSnackbar("CAT 2 assessment updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          if (selectedSubmissionId) {
-            refetchDetails();
-          }
-          handleModalClose();
-        } catch (updateError) {
-          throw updateError;
-        }
-      } else if (confirmAction === "resubmit" && pendingFormData) {
-        await submitCatTwo({
-          taskId: selectedSubmissionForAction.id,
-          ...pendingFormData,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 assessment resubmitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        if (modalSuccessHandler) {
-          modalSuccessHandler();
-        }
-        handleModalClose();
-      }
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        `Failed to ${confirmAction} assessment. Please try again.`;
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedSubmissionForAction(null);
-      setConfirmAction(null);
-      setPendingFormData(null);
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmationCancel = useCallback(() => {
-    setConfirmOpen(false);
-    setSelectedSubmissionForAction(null);
-    setConfirmAction(null);
-    setPendingFormData(null);
-  }, []);
-
-  const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "cancel") {
-      return (
-        <>
-          Are you sure you want to <strong>Cancel</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "draft") {
-      return (
-        <>
-          Are you sure you want to <strong>Save as Draft</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "resubmit") {
-      return (
-        <>
-          Are you sure you want to <strong>Resubmit</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    }
-    return "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    return "Confirmation";
-  }, []);
-
-  const getConfirmButtonText = useCallback(() => {
-    return "CONFIRM";
-  }, []);
-
-  const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
-      selectedSubmissionForAction?.data_change?.reference_number ||
-      selectedSubmissionForAction?.reference_number ||
-      "CAT 2 Assessment";
-    return submissionForAction;
-  }, [selectedSubmissionForAction]);
-
-  const getConfirmationIcon = useCallback(() => {
-    const iconConfig = {
-      cancel: {
-        color: "#ff4400",
-        IconComponent: CloseIcon,
-      },
-      draft: {
-        color: "#2196F3",
-        IconComponent: SaveAsIcon,
-      },
-      update: {
-        color: "#2196F3",
-        IconComponent: EditIcon,
-      },
-      resubmit: {
-        color: "#2196F3",
-        IconComponent: SendIcon,
-      },
-    };
-
-    const config = iconConfig[confirmAction] || iconConfig.cancel;
-    return config;
-  }, [confirmAction]);
-
   const isLoadingState =
     externalIsLoading !== undefined
       ? externalIsLoading
-      : queryLoading || isFetching || isLoading;
+      : queryLoading || isFetching;
 
   return (
     <FormProvider {...methods}>
@@ -582,7 +444,7 @@ const CatTwoReturned = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
+            hideStatusColumn={false}
             forReturned={true}
             onCancel={handleCancelSubmission}
           />
@@ -642,127 +504,6 @@ const CatTwoReturned = ({
           onSuccessfulSave={handleModalSuccessCallback}
           forReturned={true}
         />
-
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                {React.createElement(getConfirmationIcon().IconComponent, {
-                  sx: {
-                    color: "white",
-                    fontSize: "32px",
-                  },
-                })}
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     </FormProvider>
   );

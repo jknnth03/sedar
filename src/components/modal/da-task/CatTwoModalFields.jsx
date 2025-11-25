@@ -45,7 +45,6 @@ const CatTwoModalFields = ({
     }
   }, [isViewMode, selectedEntry?.scores]);
 
-  // Initialize answers from template items' rating_id
   useEffect(() => {
     if (formInitialized && templateData && answers.length === 0) {
       const initialAnswers = [];
@@ -76,7 +75,6 @@ const CatTwoModalFields = ({
     if (onFormDataCreate) {
       const getFormData = () => {
         const formData = {
-          action: "submit_for_validation",
           date_assessed: dateAssessed
             ? dayjs(dateAssessed).format("YYYY-MM-DD")
             : null,

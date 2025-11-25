@@ -3,7 +3,6 @@ import {
   Box,
   Tabs,
   Tab,
-  Paper,
   useTheme,
   Badge,
   Typography,
@@ -15,7 +14,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
@@ -39,46 +37,19 @@ import CatTwoForSubmission from "./CatTwoForSubmission";
 import CatTwoForApproval from "./CatTwoForApproval";
 import CatTwoReturned from "./CatTwoReturned";
 import CatTwoApproved from "./CatTwoApproved";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import {
+  catTwoStyles,
+  styledTabsConfig,
+  styledTabConfig,
+} from "./CatTwoStyles";
 
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
+const StyledTabs = styled(Tabs)(({ theme }) => styledTabsConfig(theme));
 
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+const StyledTab = styled(Tab)(({ theme }) => styledTabConfig(theme));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -94,18 +65,7 @@ const TabPanel = ({ children, value, index, ...other }) => {
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={catTwoStyles.tabPanelInner}>{children}</Box>}
     </div>
   );
 };
@@ -184,13 +144,13 @@ const DateFilterDialog = ({
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: styles.filterDialog,
+        sx: catTwoStyles.filterDialog,
       }}>
       <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
+        <Box sx={catTwoStyles.filterDialogTitle}>
+          <Box sx={catTwoStyles.filterDialogTitleLeft}>
+            <CalendarTodayIcon sx={catTwoStyles.filterIcon} />
+            <Typography variant="h6" sx={catTwoStyles.filterDialogTitleText}>
               FILTER BY DATE
             </Typography>
           </Box>
@@ -199,7 +159,7 @@ const DateFilterDialog = ({
             variant="outlined"
             onClick={handleClear}
             disabled={!hasFilters}
-            sx={styles.selectAllButton}>
+            sx={catTwoStyles.selectAllButton}>
             Clear All
           </Button>
         </Box>
@@ -207,7 +167,7 @@ const DateFilterDialog = ({
 
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <Box sx={catTwoStyles.datePickerContainer}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -231,19 +191,19 @@ const DateFilterDialog = ({
         </LocalizationProvider>
       </DialogContent>
 
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
+      <DialogActions sx={catTwoStyles.filterDialogActions}>
+        <Box sx={catTwoStyles.dialogActionsContainer}>
+          <Box sx={catTwoStyles.dialogButtonsContainer}>
             <Button
               onClick={onClose}
               variant="outlined"
-              sx={styles.cancelButton}>
+              sx={catTwoStyles.cancelButton}>
               CANCEL
             </Button>
             <Button
               onClick={handleApply}
               variant="contained"
-              sx={styles.applyFiltersButton}>
+              sx={catTwoStyles.applyFiltersButton}>
               APPLY FILTERS
             </Button>
           </Box>
@@ -289,60 +249,15 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: isVerySmall ? 1 : 1.5,
-      }}>
+    <Box sx={catTwoStyles.searchBarContainer(isVerySmall)}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
           disabled={isLoading}
           size="small"
-          sx={{
-            width: "36px",
-            height: "36px",
-            border: `1px solid ${
-              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-            }`,
-            borderRadius: "8px",
-            backgroundColor: hasActiveFilters
-              ? "rgba(0, 133, 49, 0.04)"
-              : "white",
-            color: iconColor,
-            position: "relative",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.08)"
-                : "#f5f5f5",
-              borderColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 1)"
-                : "rgb(33, 61, 112)",
-            },
-          }}>
-          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
-          {hasActiveFilters && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "-6px",
-                right: "-6px",
-                backgroundColor: "rgba(0, 133, 49, 1)",
-                color: "white",
-                borderRadius: "50%",
-                width: "16px",
-                height: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "10px",
-                fontWeight: 600,
-              }}>
-              1
-            </Box>
-          )}
+          sx={catTwoStyles.filterIconButton(hasActiveFilters, iconColor)}>
+          <CalendarTodayIcon sx={catTwoStyles.filterCalendarIcon} />
+          {hasActiveFilters && <Box sx={catTwoStyles.filterBadge}>1</Box>}
         </IconButton>
       ) : (
         <Tooltip title="Click here to filter by date range" arrow>
@@ -358,45 +273,11 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}>
+              <Box sx={catTwoStyles.filterLabelBox}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
-            sx={{
-              margin: 0,
-              border: `1px solid ${
-                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-              }`,
-              borderRadius: "8px",
-              paddingLeft: "8px",
-              paddingRight: "12px",
-              height: "36px",
-              backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.04)"
-                : "white",
-              transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 0.08)"
-                  : "#f5f5f5",
-                borderColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
-              },
-              "& .MuiFormControlLabel-label": {
-                fontSize: "12px",
-                fontWeight: 600,
-                color: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
-                letterSpacing: "0.5px",
-              },
-            }}
+            sx={catTwoStyles.filterCheckboxLabel(hasActiveFilters)}
           />
         </Tooltip>
       )}
@@ -409,54 +290,14 @@ const CustomSearchBar = ({
         size="small"
         InputProps={{
           startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
-              }}
-            />
+            <SearchIcon sx={catTwoStyles.searchIcon(isLoading, isVerySmall)} />
           ),
           endAdornment: isLoading && (
-            <CircularProgress
-              size={16}
-              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
-            />
+            <CircularProgress size={16} sx={catTwoStyles.searchProgress} />
           ),
-          sx: {
-            height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
+          sx: catTwoStyles.searchInputProps(isVerySmall),
         }}
-        sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
-          "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
-        }}
+        sx={catTwoStyles.searchTextField(isVerySmall)}
       />
     </Box>
   );
@@ -500,6 +341,10 @@ const CatTwo = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalMode, setModalMode] = useState("create");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [confirmItemName, setConfirmItemName] = useState("");
 
   const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
   const [submitCatTwo] = useSubmitCatTwoMutation();
@@ -558,75 +403,144 @@ const CatTwo = () => {
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedEntry(null);
+    setPendingFormData(null);
+    setConfirmAction(null);
   }, []);
 
-  const handleModalSave = useCallback(
-    async (formData, mode, entryId) => {
-      try {
-        await submitCatTwo({
-          taskId: entryId,
-          ...formData,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to submit CAT 2. Please try again.";
+  const handleModalSave = useCallback(async (formData, mode, entryId) => {
+    setPendingFormData({ formData, mode, entryId });
+    setConfirmAction("submit");
+    setConfirmOpen(true);
+    return false;
+  }, []);
 
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
+  const handleSaveAsDraft = useCallback(async (data, entryId) => {
+    setPendingFormData({ data, entryId });
+    setConfirmAction("draft");
+    setConfirmOpen(true);
+    return false;
+  }, []);
 
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        return false;
-      }
+  const handleConfirmationRequest = useCallback(
+    (action, itemName, formData) => {
+      console.log("Confirmation Request:", { action, itemName, formData });
+      setConfirmAction(action);
+      setConfirmItemName(itemName);
+      setPendingFormData(formData);
+      setConfirmOpen(true);
     },
-    [submitCatTwo, enqueueSnackbar, handleRefreshDetails]
+    []
   );
 
-  const handleSaveAsDraft = useCallback(
-    async (data, entryId) => {
-      try {
+  const handleActionConfirm = async () => {
+    if (!confirmAction || !pendingFormData) return;
+
+    setIsLoading(true);
+
+    try {
+      console.log("Confirming action:", confirmAction);
+      console.log("Pending form data:", pendingFormData);
+
+      if (confirmAction === "draft") {
         await saveCatTwoAsDraft({
-          taskId: entryId,
-          ...data,
+          taskId: pendingFormData.entryId || pendingFormData.taskId,
+          ...(pendingFormData.data || pendingFormData.formData),
         }).unwrap();
         enqueueSnackbar("CAT 2 saved as draft successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to save draft. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
+      } else if (confirmAction === "submit") {
+        await submitCatTwo({
+          taskId: pendingFormData.entryId || pendingFormData.taskId,
+          ...(pendingFormData.data || pendingFormData.formData),
+        }).unwrap();
+        enqueueSnackbar("CAT 2 submitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
         });
-        return false;
+      } else if (confirmAction === "update") {
+        console.log("Update data being sent:", {
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        });
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "approve") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 approved successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "reject") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 rejected successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "resubmit") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...(pendingFormData.data || pendingFormData.formData),
+        }).unwrap();
+        enqueueSnackbar("CAT 2 resubmitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "cancel") {
+        enqueueSnackbar("CAT 2 cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
       }
-    },
-    [saveCatTwoAsDraft, enqueueSnackbar, handleRefreshDetails]
-  );
+
+      handleRefreshDetails();
+      setModalOpen(false);
+      setSelectedEntry(null);
+
+      if (pendingFormData.onSuccess) {
+        pendingFormData.onSuccess();
+      }
+    } catch (error) {
+      let errorMessage = `Failed to ${confirmAction}. Please try again.`;
+
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+    } finally {
+      setConfirmOpen(false);
+      setPendingFormData(null);
+      setConfirmAction(null);
+      setConfirmItemName("");
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setPendingFormData(null);
+    setConfirmAction(null);
+    setConfirmItemName("");
+  }, []);
 
   const handleResubmit = useCallback(
     async (entryId) => {
@@ -682,6 +596,11 @@ const CatTwo = () => {
     [enqueueSnackbar, handleRefreshDetails]
   );
 
+  const getSubmissionDisplayName = useCallback(() => {
+    if (confirmItemName) return confirmItemName;
+    return selectedEntry?.reference_number || "CAT 2 Submission";
+  }, [selectedEntry, confirmItemName]);
+
   const tabsData = [
     {
       label: "For Assessment",
@@ -695,6 +614,7 @@ const CatTwo = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onConfirmationRequest={handleConfirmationRequest}
         />
       ),
       badgeCount: null,
@@ -711,6 +631,7 @@ const CatTwo = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onConfirmationRequest={handleConfirmationRequest}
         />
       ),
       badgeCount: null,
@@ -727,6 +648,7 @@ const CatTwo = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onConfirmationRequest={handleConfirmationRequest}
         />
       ),
       badgeCount: null,
@@ -743,6 +665,7 @@ const CatTwo = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onConfirmationRequest={handleConfirmationRequest}
         />
       ),
       badgeCount: null,
@@ -759,6 +682,7 @@ const CatTwo = () => {
           currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
+          onConfirmationRequest={handleConfirmationRequest}
         />
       ),
       badgeCount: null,
@@ -777,50 +701,12 @@ const CatTwo = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
-            }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
-              }}>
+        <Box sx={catTwoStyles.mainContainer}>
+          <Box sx={catTwoStyles.innerContainer}>
+            <Box sx={catTwoStyles.headerContainer(isMobile, isTablet)}>
               <Typography
                 className="header"
-                sx={{
-                  fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                  fontWeight: 500,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
+                sx={catTwoStyles.headerTitle(isVerySmall, isMobile)}>
                 CAT 2
               </Typography>
 
@@ -848,13 +734,7 @@ const CatTwo = () => {
                       <Badge
                         badgeContent={tab.badgeCount}
                         color="error"
-                        sx={{
-                          "& .MuiBadge-badge": {
-                            fontSize: "0.75rem",
-                            minWidth: 18,
-                            height: 18,
-                          },
-                        }}>
+                        sx={catTwoStyles.badgeStyle}>
                         {tab.label}
                       </Badge>
                     ) : (
@@ -866,14 +746,7 @@ const CatTwo = () => {
               ))}
             </StyledTabs>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
+            <Box sx={catTwoStyles.tabPanelContainer}>
               {tabsData.map((tab, index) => (
                 <TabPanel key={index} value={activeTab} index={index}>
                   {tab.component}
@@ -900,6 +773,16 @@ const CatTwo = () => {
             mode={modalMode}
             onModeChange={setModalMode}
             onRefreshDetails={handleRefreshDetails}
+          />
+
+          <ConfirmationDialog
+            open={confirmOpen}
+            onClose={handleConfirmationCancel}
+            onConfirm={handleActionConfirm}
+            isLoading={isLoading}
+            action={confirmAction}
+            itemName={getSubmissionDisplayName()}
+            module="CAT 2 Assessment"
           />
         </Box>
       </FormProvider>

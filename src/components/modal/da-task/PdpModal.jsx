@@ -85,6 +85,45 @@ const validationSchema = yup.object().shape({
 const generateTempId = (prefix) =>
   `temp-${prefix}-${Date.now()}-${Math.random()}`;
 
+const getInitialFormData = () => ({
+  development_plan_objective: "",
+  goals: [
+    {
+      id: generateTempId("goal"),
+      goal_number: 1,
+      description: "",
+      target_date: null,
+    },
+  ],
+  actions: [
+    {
+      id: generateTempId("action"),
+      goal_index: 0,
+      activity: "",
+      due_date: null,
+      expected_progress: "",
+    },
+  ],
+  resources: [
+    {
+      id: generateTempId("resource"),
+      goal_index: 0,
+      resource_item: "",
+      description: "",
+      person_in_charge: "",
+      due_date: null,
+    },
+  ],
+  coaching_sessions: [
+    {
+      id: generateTempId("session"),
+      month_label: "1st Month",
+      session_date: null,
+      commitment: "",
+    },
+  ],
+});
+
 const PdpModal = ({
   open,
   onClose,
@@ -96,13 +135,7 @@ const PdpModal = ({
   const methods = useForm({
     resolver: yupResolver(validationSchema),
     mode: "onBlur",
-    defaultValues: {
-      development_plan_objective: "",
-      goals: [],
-      actions: [],
-      resources: [],
-      coaching_sessions: [],
-    },
+    defaultValues: getInitialFormData(),
   });
 
   const {
@@ -219,10 +252,24 @@ const PdpModal = ({
       "development_plan_objective",
       data.development_plan_objective || ""
     );
-    replaceGoals(formattedGoals);
-    replaceActions(formattedActions);
-    replaceResources(formattedResources);
-    replaceCoaching(formattedCoachingSessions);
+    replaceGoals(
+      formattedGoals.length > 0 ? formattedGoals : getInitialFormData().goals
+    );
+    replaceActions(
+      formattedActions.length > 0
+        ? formattedActions
+        : getInitialFormData().actions
+    );
+    replaceResources(
+      formattedResources.length > 0
+        ? formattedResources
+        : getInitialFormData().resources
+    );
+    replaceCoaching(
+      formattedCoachingSessions.length > 0
+        ? formattedCoachingSessions
+        : getInitialFormData().coaching_sessions
+    );
   };
 
   useEffect(() => {
@@ -232,6 +279,8 @@ const PdpModal = ({
         setOriginalMode(mode);
         loadFormData(pdpData);
       }
+    } else if (open && !pdpData) {
+      reset(getInitialFormData());
     }
   }, [open, pdpData]);
 
@@ -270,7 +319,7 @@ const PdpModal = ({
     setOriginalMode("view");
     setIsUpdating(false);
     setHasEditedForm(false);
-    reset();
+    reset(getInitialFormData());
     onClose();
   };
 

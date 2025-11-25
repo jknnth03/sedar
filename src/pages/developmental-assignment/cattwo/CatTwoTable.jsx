@@ -50,6 +50,11 @@ const CatTwoTable = ({
         color: "#f57c00",
         label: "FOR APPROVAL",
       },
+      FOR_APPROVAL: {
+        bg: "#fff4e6",
+        color: "#f57c00",
+        label: "FOR APPROVAL",
+      },
       FOR_ASSESSMENT: {
         bg: "#e3f2fd",
         color: "#1976d2",
@@ -65,10 +70,32 @@ const CatTwoTable = ({
         color: "#f57c00",
         label: "PENDING APPROVAL",
       },
-      APPROVED: { bg: "#e8f5e9", color: "#2e7d32", label: "APPROVED" },
-      REJECTED: { bg: "#ffebee", color: "#d32f2f", label: "RETURNED" },
-      CANCELLED: { bg: "#f5f5f5", color: "#757575", label: "CANCELLED" },
+      APPROVED: {
+        bg: "#e8f5e9",
+        color: "#2e7d32",
+        label: "APPROVED",
+      },
+      REJECTED: {
+        bg: "#ffebee",
+        color: "#d32f2f",
+        label: "RETURNED",
+      },
+      RETURNED: {
+        bg: "#ffebee",
+        color: "#d32f2f",
+        label: "RETURNED",
+      },
+      CANCELLED: {
+        bg: "#f5f5f5",
+        color: "#757575",
+        label: "CANCELLED",
+      },
       AWAITING_RESUBMISSION: {
+        bg: "#f3e5f5",
+        color: "#9c27b0",
+        label: "FOR SUBMISSION",
+      },
+      FOR_SUBMISSION: {
         bg: "#f3e5f5",
         color: "#9c27b0",
         label: "FOR SUBMISSION",
@@ -77,6 +104,11 @@ const CatTwoTable = ({
         bg: "#e3f2fd",
         color: "#1976d2",
         label: "IN PROGRESS",
+      },
+      FINAL_COMPLETE: {
+        bg: "#e8f5e9",
+        color: "#2e7d32",
+        label: "APPROVED",
       },
       DRAFT: {
         bg: "#f5f5f5",

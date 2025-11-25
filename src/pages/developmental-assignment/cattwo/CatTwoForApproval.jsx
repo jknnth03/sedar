@@ -1,16 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from "@mui/material";
+import { Typography, TablePagination, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -36,6 +25,7 @@ const CatTwoForApproval = ({
   rowsPerPage: externalRowsPerPage,
   onPageChange,
   onRowsPerPageChange,
+  onConfirmationRequest,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -52,12 +42,11 @@ const CatTwoForApproval = ({
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
-    useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
+  const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
+
+  const handleModalSuccessCallback = useCallback((successHandler) => {
+    setModalSuccessHandler(() => successHandler);
+  }, []);
 
   const methods = useForm({
     defaultValues: {
@@ -185,26 +174,72 @@ const CatTwoForApproval = ({
     setModalOpen(true);
   }, []);
 
-  const handleModalSave = useCallback(async (formData, mode, entryId) => {
-    setSelectedSubmissionForAction({ id: entryId });
-    setPendingFormData(formData);
-    setConfirmAction("update");
-    setConfirmOpen(true);
-  }, []);
+  const handleModalSave = useCallback(
+    async (submissionData, mode, submissionId) => {
+      const submission =
+        submissionDetails?.result ||
+        filteredSubmissions.find((sub) => sub.id === submissionId);
 
-  const handleApproveSubmission = useCallback((submission) => {
-    setSelectedSubmissionForAction(submission);
-    setPendingFormData({ action: "approve" });
-    setConfirmAction("approve");
-    setConfirmOpen(true);
-  }, []);
+      const itemName = "CAT 2 REQUEST";
 
-  const handleRejectSubmission = useCallback((submission) => {
-    setSelectedSubmissionForAction(submission);
-    setPendingFormData({ action: "reject" });
-    setConfirmAction("reject");
-    setConfirmOpen(true);
-  }, []);
+      onConfirmationRequest("update", itemName, {
+        taskId: submissionId,
+        data: submissionData,
+        onSuccess: () => {
+          refetch();
+          if (modalSuccessHandler) {
+            modalSuccessHandler();
+          }
+          handleModalClose();
+        },
+      });
+    },
+    [
+      submissionDetails,
+      filteredSubmissions,
+      onConfirmationRequest,
+      refetch,
+      modalSuccessHandler,
+    ]
+  );
+
+  const handleApproveSubmission = useCallback(
+    (submission) => {
+      const displayName =
+        submission?.data_change?.reference_number ||
+        submission?.reference_number ||
+        "CAT 2 Assessment";
+
+      onConfirmationRequest("approve", displayName, {
+        taskId: submission.id,
+        data: { action: "approve" },
+        onSuccess: () => {
+          refetch();
+          handleModalClose();
+        },
+      });
+    },
+    [onConfirmationRequest, refetch]
+  );
+
+  const handleRejectSubmission = useCallback(
+    (submission) => {
+      const displayName =
+        submission?.data_change?.reference_number ||
+        submission?.reference_number ||
+        "CAT 2 Assessment";
+
+      onConfirmationRequest("reject", displayName, {
+        taskId: submission.id,
+        data: { action: "reject" },
+        onSuccess: () => {
+          refetch();
+          handleModalClose();
+        },
+      });
+    },
+    [onConfirmationRequest, refetch]
+  );
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -286,125 +321,10 @@ const CatTwoForApproval = ({
     setModalMode(newMode);
   }, []);
 
-  const handleActionConfirm = async () => {
-    if (!confirmAction || !selectedSubmissionForAction) return;
-
-    setIsLoading(true);
-
-    try {
-      if (confirmAction === "update") {
-        await submitCatTwo({
-          taskId: selectedSubmissionForAction.id,
-          ...pendingFormData,
-        }).unwrap();
-
-        enqueueSnackbar("CAT 2 updated successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      } else {
-        await submitCatTwo({
-          taskId: selectedSubmissionForAction.id,
-          ...pendingFormData,
-        }).unwrap();
-
-        const successMessage =
-          confirmAction === "approve"
-            ? "CAT 2 assessment approved successfully!"
-            : "CAT 2 assessment rejected successfully!";
-
-        enqueueSnackbar(successMessage, {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      }
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        `Failed to ${confirmAction} assessment. Please try again.`;
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedSubmissionForAction(null);
-      setConfirmAction(null);
-      setPendingFormData(null);
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmationCancel = useCallback(() => {
-    setConfirmOpen(false);
-    setSelectedSubmissionForAction(null);
-    setConfirmAction(null);
-    setPendingFormData(null);
-  }, []);
-
-  const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this CAT 2 Request?
-        </>
-      );
-    } else if (confirmAction === "approve") {
-      return (
-        <>
-          Are you sure you want to <strong>Approve</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    } else if (confirmAction === "reject") {
-      return (
-        <>
-          Are you sure you want to <strong>Reject</strong> this CAT 2
-          Assessment?
-        </>
-      );
-    }
-    return "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    return "Confirmation";
-  }, []);
-
-  const getConfirmButtonText = useCallback(() => {
-    return "CONFIRM";
-  }, []);
-
-  const getSubmissionDisplayName = useCallback(() => {
-    if (confirmAction === "update") {
-      return "CAT 2 REQUEST";
-    }
-    const submissionForAction =
-      selectedSubmissionForAction?.data_change?.reference_number ||
-      selectedSubmissionForAction?.reference_number ||
-      "CAT 2 Assessment";
-    return submissionForAction;
-  }, [selectedSubmissionForAction, confirmAction]);
-
-  const getConfirmationIcon = useCallback(() => {
-    const iconConfig = {
-      update: { color: "#2196F3", icon: "✎" },
-      approve: { color: "#4caf50", icon: "✓" },
-      reject: { color: "#ff4400", icon: "✕" },
-    };
-
-    const config = iconConfig[confirmAction] || iconConfig.approve;
-    return config;
-  }, [confirmAction]);
-
   const isLoadingState =
     externalIsLoading !== undefined
       ? externalIsLoading
-      : queryLoading || isFetching || isLoading;
+      : queryLoading || isFetching;
 
   return (
     <FormProvider {...methods}>
@@ -436,7 +356,7 @@ const CatTwoForApproval = ({
             searchQuery={searchQuery}
             selectedFilters={[]}
             showArchived={false}
-            hideStatusColumn={true}
+            hideStatusColumn={false}
             forApproval={true}
             onApprove={handleApproveSubmission}
             onReject={handleRejectSubmission}
@@ -496,130 +416,8 @@ const CatTwoForApproval = ({
           forApproval={true}
           onApprove={handleApproveSubmission}
           onReject={handleRejectSubmission}
+          onSuccessfulSave={handleModalSuccessCallback}
         />
-
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     </FormProvider>
   );

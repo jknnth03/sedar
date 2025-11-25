@@ -278,10 +278,18 @@ const CatTwoModal = ({
       }
 
       const formData = getFormDataForSubmission();
+      console.log("Form Data from getFormDataForSubmission:", formData);
 
       if (!formData) {
         console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
+
+      if (!formData.answers || formData.answers.length === 0) {
+        console.error("No answers provided");
+        alert("Please answer all assessment items before submitting.");
         setIsUpdating(false);
         return;
       }
@@ -295,8 +303,31 @@ const CatTwoModal = ({
         return;
       }
 
+      const status = selectedEntry?.status;
+      const isForApproval = status === "FOR_APPROVAL";
+
+      console.log("Current status:", status);
+      console.log("Is for approval:", isForApproval);
+
+      let submissionData;
+      if (isForApproval) {
+        submissionData = {
+          date_assessed: formData.date_assessed,
+          answers: formData.answers,
+          action: "submit_for_validation",
+        };
+      } else {
+        submissionData = {
+          date_assessed: formData.date_assessed,
+          answers: formData.answers,
+          action: "submit_for_validation",
+        };
+      }
+
+      console.log("Final Submission Data:", submissionData);
+
       if (onSave) {
-        await onSave(formData, currentMode, entryIdToUse);
+        await onSave(submissionData, currentMode, entryIdToUse);
       } else {
         console.error("onSave function not provided");
       }
@@ -321,6 +352,7 @@ const CatTwoModal = ({
       }
 
       const formData = getFormDataForSubmission();
+      console.log("Draft Form Data:", formData);
 
       if (!formData) {
         console.error("Failed to create form data");
@@ -330,9 +362,12 @@ const CatTwoModal = ({
       }
 
       const draftData = {
-        ...formData,
+        date_assessed: formData.date_assessed,
+        answers: formData.answers,
         action: "save_draft",
       };
+
+      console.log("Final Draft Data:", draftData);
 
       const entryIdToUse = editingEntryId || selectedEntry?.id;
 
@@ -401,6 +436,8 @@ const CatTwoModal = ({
           : null,
         answers: selectedEntry.answers || [],
       };
+
+      console.log("Initializing form with data:", formData);
 
       Object.keys(formData).forEach((key) => {
         setValue(key, formData[key], { shouldValidate: false });
