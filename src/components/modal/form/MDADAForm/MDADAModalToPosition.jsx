@@ -349,18 +349,29 @@ export const ToPositionFields = ({
                   )}
                 />
                 <Controller
-                  name="to_department"
+                  name="to_additional_rate"
                   control={control}
-                  render={({ field }) => (
+                  rules={{
+                    pattern: {
+                      value: /^\d+(\.\d{1,2})?$/,
+                      message: "Please enter a valid amount",
+                    },
+                  }}
+                  render={({ field: { value, ...field } }) => (
                     <TextField
                       {...field}
-                      key={`summary_to_department_${field.value}`}
-                      value={field.value || ""}
-                      label="Department"
+                      value={value || ""}
+                      label="Additional Rate To"
+                      type="number"
                       fullWidth
-                      disabled={true}
+                      error={!!errors.to_additional_rate}
+                      helperText={errors.to_additional_rate?.message}
+                      disabled={isReadOnly}
+                      inputProps={{
+                        step: "0.01",
+                        min: "0",
+                      }}
                       sx={{ mt: 1.5 }}
-                      InputLabelProps={{ shrink: true }}
                     />
                   )}
                 />
@@ -478,6 +489,28 @@ export const ToPositionFields = ({
                   {...field}
                   value={field.value || ""}
                   label="Allowance To"
+                  fullWidth
+                  type="number"
+                  disabled={true}
+                  inputProps={{
+                    step: "0.01",
+                    min: "0",
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+            <Controller
+              name="to_additional_rate"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  value={field.value || ""}
+                  label="Additional Rate To"
                   fullWidth
                   type="number"
                   disabled={true}
@@ -688,6 +721,35 @@ export const ToPositionFields = ({
                 type="number"
                 error={!!errors.to_allowance}
                 helperText={errors.to_allowance?.message}
+                disabled={false}
+                inputProps={{
+                  step: "0.01",
+                  min: "0",
+                }}
+              />
+            )}
+          />
+        </Grid>
+
+        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+          <Controller
+            name="to_additional_rate"
+            control={control}
+            rules={{
+              pattern: {
+                value: /^\d+(\.\d{1,2})?$/,
+                message: "Please enter a valid amount",
+              },
+            }}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                value={field.value || ""}
+                label="Additional Rate To"
+                fullWidth
+                type="number"
+                error={!!errors.to_additional_rate}
+                helperText={errors.to_additional_rate?.message}
                 disabled={false}
                 inputProps={{
                   step: "0.01",

@@ -92,7 +92,7 @@ const CustomSearchBar = ({
               size="small"
             />
           }
-          label="RECEIVED FORMS"
+          label="RECEIVED MRF"
           sx={{
             margin: 0,
             border: `1px solid ${showReceived ? "#007c00ff" : "#ccc"}`,
@@ -358,8 +358,8 @@ const PendingForms = () => {
                   ? "RECEIVED"
                   : "PENDING"
                 : showReceived
-                ? "RECEIVED RECEIVING"
-                : "PENDING RECEIVING"}
+                ? "RECEIVED MRF"
+                : "MRF RECEIVING"}
             </Typography>
           </Box>
 

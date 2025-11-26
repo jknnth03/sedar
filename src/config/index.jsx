@@ -152,6 +152,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon_on: null,
           notificationCount: counts.pendingMrfReceiving,
         },
+        DAFORMRECEIVING: {
+          name: "DA Form Receiving",
+          permissionId: "RECEIVING.DAFORMRECEIVING",
+          displayName: "DA Form Receiving",
+          path: "daformreceiving",
+          icon: <DescriptionIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
+        },
       },
     },
 
@@ -471,7 +480,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
-
     ADMINISTRATIVEDIVISION: {
       name: "Administrative Divisions",
       permissionId: "ADMINISTRATIVEDIVISION",

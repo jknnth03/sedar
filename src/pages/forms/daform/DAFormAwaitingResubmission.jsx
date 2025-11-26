@@ -170,6 +170,7 @@ const DAFormAwaitingResubmission = ({
           autoHideDuration: 2000,
         });
         refetch();
+        handleModalClose();
       } else if (
         confirmAction === "update" &&
         pendingFormData &&
@@ -192,8 +193,8 @@ const DAFormAwaitingResubmission = ({
           variant: "success",
           autoHideDuration: 2000,
         });
-        await refetchDetails();
         await refetch();
+        handleModalClose();
       }
     } catch (error) {
       const errorMessage =

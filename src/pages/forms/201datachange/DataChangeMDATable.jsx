@@ -47,7 +47,6 @@ const DataChangeMDATable = ({
   };
 
   const getMdaReferenceNumber = (submission) => {
-    // Try to get MDA reference from different possible locations
     return (
       submission.mda_reference_number ||
       submission.mda_reference ||
@@ -106,8 +105,8 @@ const DataChangeMDATable = ({
         label: "APPROVED",
       },
       completed: {
-        color: "#1976d2",
-        bgColor: "#e3f2fd",
+        color: "#2e7d32",
+        bgColor: "#e8f5e8",
         label: "COMPLETED",
       },
       rejected: {

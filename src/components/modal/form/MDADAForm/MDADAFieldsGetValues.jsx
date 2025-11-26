@@ -27,6 +27,7 @@ export const getCreateModeInitialValues = () => {
     from_sub_unit: "",
     from_job_rate: "",
     from_allowance: "",
+    from_additional_rate: "",
     to_position_id: null,
     to_position_title: "",
     to_job_level_id: null,
@@ -35,6 +36,7 @@ export const getCreateModeInitialValues = () => {
     to_sub_unit: "",
     to_job_rate: "",
     to_allowance: "",
+    to_additional_rate: "",
   };
 };
 
@@ -69,6 +71,7 @@ export const setPrefillFormValues = (setValue, prefillData) => {
     from_sub_unit: result.from?.sub_unit || "",
     from_job_rate: result.from?.job_rate || "",
     from_allowance: result.from?.allowance || "",
+    from_additional_rate: result.from?.additional_rate || "",
     to_position_id: result.to?.position_id || null,
     to_position_title: result.to?.position_title || "",
     to_job_level_id: result.to?.job_level_id || null,
@@ -77,6 +80,7 @@ export const setPrefillFormValues = (setValue, prefillData) => {
     to_sub_unit: result.to?.sub_unit || "",
     to_job_rate: result.to?.job_rate || "",
     to_allowance: result.to?.allowance || "",
+    to_additional_rate: result.to?.additional_rate || "",
   };
 
   Object.keys(formData).forEach((key) => {
@@ -118,6 +122,7 @@ export const setSubmissionFormValues = (setValue, submissionData) => {
     from_sub_unit: submittable?.from_details?.sub_unit || "",
     from_job_rate: submittable?.from_details?.job_rate || "",
     from_allowance: submittable?.from_details?.allowance || "",
+    from_additional_rate: submittable?.from_details?.additional_rate || "",
     to_position_id: submittable?.to_details?.position_id || null,
     to_position_title: submittable?.to_details?.position_title || "",
     to_job_level_id: submittable?.to_details?.job_level_id || null,
@@ -126,6 +131,7 @@ export const setSubmissionFormValues = (setValue, submissionData) => {
     to_sub_unit: submittable?.to_details?.sub_unit || "",
     to_job_rate: submittable?.to_details?.job_rate || "",
     to_allowance: submittable?.to_details?.allowance || "",
+    to_additional_rate: submittable?.to_details?.additional_rate || "",
   };
 
   Object.keys(formData).forEach((key) => {
@@ -187,6 +193,7 @@ export const getViewEditModeFormData = (selectedEntry, jobLevels = []) => {
     from_schedule: fromDetails.schedule || "",
     from_job_rate: fromDetails.job_rate || "",
     from_allowance: fromDetails.allowance || "",
+    from_additional_rate: fromDetails.additional_rate || "",
     to_position_id: toDetails.position_id || null,
     to_position_title: toDetails.position_title || "",
     to_department:
@@ -202,5 +209,6 @@ export const getViewEditModeFormData = (selectedEntry, jobLevels = []) => {
     to_schedule: toDetails.schedule || "",
     to_job_rate: toDetails.job_rate || "",
     to_allowance: toDetails.allowance || "",
+    to_additional_rate: toDetails.additional_rate || "",
   };
 };

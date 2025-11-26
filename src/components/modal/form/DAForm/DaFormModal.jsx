@@ -219,19 +219,7 @@ const DAFormModal = ({
 
     const idToUse =
       editingEntryId || selectedEntry?.id || selectedEntry?.result?.id;
-    setIsUpdating(true);
-    try {
-      await onResubmit(idToUse);
-      handleClose();
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        error?.message ||
-        "An error occurred while resubmitting.";
-      alert(`${errorMessage} Please try again.`);
-    } finally {
-      setIsUpdating(false);
-    }
+    await onResubmit(idToUse);
   };
 
   const handleClose = () => {

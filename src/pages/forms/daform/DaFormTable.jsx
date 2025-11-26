@@ -68,15 +68,15 @@ const DAFormTable = ({
 
   const renderStatusChip = (submission) => {
     const statusConfig = {
-      pending: {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
-      },
       "pending mda creation": {
         color: "#f57c00",
-        bgColor: "#fff8e1",
+        bgColor: "#fff4e6",
         label: "PENDING MDA CREATION",
+      },
+      pending: {
+        color: "#f57c00",
+        bgColor: "#fff4e6",
+        label: "FOR APPROVAL",
       },
       "for mda processing": {
         color: "#1976d2",
@@ -90,17 +90,17 @@ const DAFormTable = ({
       },
       completed: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "COMPLETED",
       },
       approved: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "APPROVED",
       },
       received: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "RECEIVED",
       },
       rejected: {
@@ -118,10 +118,15 @@ const DAFormTable = ({
         bgColor: "#ffebee",
         label: "RETURNED",
       },
-      AWAITING_RESUBMISSION: {
-        color: "#ed6c02",
-        bgColor: "#fff4e5",
-        label: "AWAITING RESUBMISSION",
+      "awaiting approval": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "AWAITING APPROVAL",
+      },
+      "awaiting resubmission": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "FOR SUBMISSION",
       },
     };
 

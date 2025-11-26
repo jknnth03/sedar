@@ -66,6 +66,7 @@ import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
 import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
 import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
+import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
 
 export const ROUTES = [
   {
@@ -280,14 +281,6 @@ export const ROUTES = [
           permission: MODULES.APPROVING.children.DAFORMAPPROVAL.permissionId,
         },
       },
-      // {
-      //   id: "APPROVING.DARECOMMENDATION",
-      //   path: `${MODULES.APPROVING.path}/darecommendation`,
-      //   element: <DARecommendation />,
-      //   handle: {
-      //     permission: "APPROVING.DARECOMMENDATION",
-      //   },
-      // },
       {
         id: "APPROVING.CATONEAPPROVAL",
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.CATONEAPPROVAL.path}`,
@@ -318,6 +311,14 @@ export const ROUTES = [
         element: <PendingForms />,
         handle: {
           permission: MODULES.RECEIVING.children.PENDINGFORMS.permissionId,
+        },
+      },
+      {
+        id: "RECEIVING.DAFORMRECEIVING",
+        path: `${MODULES.RECEIVING.path}/${MODULES.RECEIVING.children.DAFORMRECEIVING.path}`,
+        element: <DaFormReceiving />,
+        handle: {
+          permission: MODULES.RECEIVING.children.DAFORMRECEIVING.permissionId,
         },
       },
       {
