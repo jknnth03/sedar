@@ -551,7 +551,11 @@ const DaFormReceiving = () => {
   const handleStartSubmission = useCallback(
     async (submissionId, onSuccess) => {
       try {
-        const result = await startDaSubmission(submissionId).unwrap();
+        if (!submissionId) {
+          throw new Error("Invalid submission ID");
+        }
+
+        await startDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission started successfully!", {
           variant: "success",

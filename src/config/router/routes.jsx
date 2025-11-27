@@ -67,6 +67,7 @@ import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
 import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
 import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
 import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
+import Redirect from "../../pages/login/Redirect.jsx";
 
 export const ROUTES = [
   {
@@ -78,6 +79,11 @@ export const ROUTES = [
     path: CONSTANT.PAGES.LOGIN.path,
     element: <Login />,
     id: "LOGIN",
+  },
+  {
+    path: "/redirect",
+    element: <Redirect />,
+    id: "REDIRECT",
   },
   {
     path: CONSTANT.PAGES.CHANGEPASS.path,

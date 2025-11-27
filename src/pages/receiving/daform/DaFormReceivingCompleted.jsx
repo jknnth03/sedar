@@ -85,6 +85,7 @@ const DaFormReceivingCompleted = ({
       status: "active",
       search: searchQuery || "",
       assessment_progress_status: "COMPLETED",
+      tab: "completed",
     };
   }, [page, rowsPerPage, searchQuery]);
 
@@ -112,7 +113,19 @@ const DaFormReceivingCompleted = ({
   const totalCount = submissionsData?.result?.total || 0;
 
   const submissionsList = useMemo(() => {
-    return submissionsData?.result?.data || [];
+    const data = submissionsData?.result?.data;
+
+    if (!data) return [];
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (typeof data === "object") {
+      return Object.values(data);
+    }
+
+    return [];
   }, [submissionsData]);
 
   const handleRowClick = useCallback(

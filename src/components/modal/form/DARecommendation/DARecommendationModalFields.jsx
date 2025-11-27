@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   Grid,
@@ -17,14 +17,14 @@ import {
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
-import { sectionTitleStyles } from "./DAFormModal.styles";
+import { sectionTitleStyles } from "../DAForm/DAFormModal.styles";
 import { useGetAllPositionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import {
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,
 } from "../../../../features/api/forms/daformApi";
 
-const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
+const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const {
     control,
     watch,
@@ -42,6 +42,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
   const isInitialMount = useRef(true);
   const prevModeRef = useRef(currentMode);
+  const updateTimeoutRef = useRef(null);
 
   const { data: employeesData, isLoading: isEmployeesLoading } =
     useGetAllEmployeesDaQuery(undefined, {
@@ -117,6 +118,8 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               distribution_percentage: kpi.distribution_percentage,
               deliverable: kpi.deliverable,
               target_percentage: kpi.target_percentage,
+              actual_performance: kpi.actual_performance || null,
+              remarks: kpi.remarks || "",
             }));
             setKpisList(autoFilledKpis);
             setValue("kpis", autoFilledKpis);
@@ -135,6 +138,37 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
     loadPositionKpis();
   }, [selectedToPosition, setValue, fetchPositionKpis]);
+
+  const handleKpiFieldChange = useCallback(
+    (index, field, value) => {
+      setKpisList((prevKpisList) => {
+        const updatedKpis = [...prevKpisList];
+        updatedKpis[index] = {
+          ...updatedKpis[index],
+          [field]: value,
+        };
+
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+
+        updateTimeoutRef.current = setTimeout(() => {
+          setValue("kpis", updatedKpis, { shouldValidate: false });
+        }, 300);
+
+        return updatedKpis;
+      });
+    },
+    [setValue]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Grid container spacing={3} sx={{ height: "100%" }}>
@@ -190,6 +224,24 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                   sx={{ bgcolor: "white", width: "348px" }}
                 />
               )}
+            </Grid>
+
+            <Grid item xs={12}>
+              <Controller
+                name="action_type"
+                control={control}
+                rules={{ required: "Action Type is required" }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="ACTION TYPE"
+                    error={!!errors.action_type}
+                    helperText={errors.action_type?.message}
+                    disabled={isReadOnly}
+                    sx={{ bgcolor: "white", width: "348px" }}
+                  />
+                )}
+              />
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -477,13 +529,44 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Box sx={{ flex: 1, textAlign: "center" }}>
-                          {kpi.actual_performance !== null &&
-                          kpi.actual_performance !== undefined
-                            ? `${kpi.actual_performance}%`
-                            : "-"}
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={kpi.actual_performance || ""}
+                            onChange={(e) =>
+                              handleKpiFieldChange(
+                                index,
+                                "actual_performance",
+                                e.target.value ? Number(e.target.value) : null
+                              )
+                            }
+                            inputProps={{
+                              min: 0,
+                              max: 100,
+                              step: "any",
+                            }}
+                            placeholder="-"
+                            sx={{ width: "80px" }}
+                            disabled={isReadOnly}
+                          />
                         </Box>
                         <Box sx={{ flex: 1, textAlign: "center" }}>
-                          {kpi.remarks || "-"}
+                          <TextField
+                            size="small"
+                            value={kpi.remarks || ""}
+                            onChange={(e) =>
+                              handleKpiFieldChange(
+                                index,
+                                "remarks",
+                                e.target.value
+                              )
+                            }
+                            placeholder="-"
+                            multiline
+                            maxRows={2}
+                            sx={{ width: "200px" }}
+                            disabled={isReadOnly}
+                          />
                         </Box>
                       </Box>
                     </TableCell>
@@ -521,4 +604,4 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   );
 };
 
-export default DAFormModalFields;
+export default DARecommendationModalFields;

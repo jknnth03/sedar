@@ -42,6 +42,7 @@ import DARecommendationRejected from "./DARecommendationRejected";
 import DARecommendationForMDAProcessing from "./DARecommendationForMDAProcessing";
 import DARecommendationMDAInProgress from "./DARecommendationMDAInProgress";
 import DARecommendationCompleted from "./DARecommendationCompleted";
+import DARecommendationCancelled from "./DARecommendationCancelled";
 import { useUpdateDaMutation } from "../../../features/api/forms/daformApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
@@ -261,6 +262,7 @@ const DARecommendation = () => {
     4: "ForMDAProcessing",
     5: "MDAInProgress",
     6: "Completed",
+    7: "Cancelled",
   };
 
   const reverseTabMap = {
@@ -271,6 +273,7 @@ const DARecommendation = () => {
     ForMDAProcessing: 4,
     MDAInProgress: 5,
     Completed: 6,
+    Cancelled: 7,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -301,6 +304,7 @@ const DARecommendation = () => {
     forMDAProcessing: 0,
     mdaInProgress: 0,
     completed: 0,
+    cancelled: 0,
   };
 
   const handleTabChange = useCallback(
@@ -534,6 +538,21 @@ const DARecommendation = () => {
         />
       ),
       badgeCount: daCounts.completed,
+    },
+    {
+      label: "Cancelled",
+      component: (
+        <DARecommendationCancelled
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: daCounts.cancelled,
     },
   ];
 

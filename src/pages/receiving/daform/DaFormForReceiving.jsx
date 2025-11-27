@@ -86,6 +86,7 @@ const DaFormForReceiving = ({
       status: "active",
       search: searchQuery || "",
       assessment_progress_status: "PENDING",
+      tab: "pending",
     };
   }, [page, rowsPerPage, searchQuery]);
 

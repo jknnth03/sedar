@@ -26,6 +26,7 @@ import { useStartDaSubmissionMutation } from "../../../features/api/receiving/da
 import DaFormReceivingModalFields from "./DaFormReceivingModalFields";
 import { getViewEditModeFormData } from "./DaFormGetValues";
 import * as styles from "../form/DAForm/DAFormModal.styles";
+import { useSnackbar } from "notistack";
 
 const DaFormReceivingModal = ({
   open = false,
@@ -40,6 +41,7 @@ const DaFormReceivingModal = ({
   isCompletedMode = false,
 }) => {
   const { reset, handleSubmit, watch } = useFormContext();
+  const { enqueueSnackbar } = useSnackbar();
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -57,7 +59,9 @@ const DaFormReceivingModal = ({
 
   useEffect(() => {
     if (open && selectedEntry) {
-      setEditingEntryId(selectedEntry.id || selectedEntry.result?.id);
+      const submissionIdValue =
+        selectedEntry.submission_id || selectedEntry.result?.submission_id;
+      setEditingEntryId(submissionIdValue);
     }
   }, [open, selectedEntry]);
 
@@ -154,10 +158,18 @@ const DaFormReceivingModal = ({
 
   const handleReceiveClick = async () => {
     const idToUse =
-      editingEntryId || selectedEntry?.id || selectedEntry?.result?.id;
+      editingEntryId ||
+      selectedEntry?.submission_id ||
+      selectedEntry?.result?.submission_id;
 
     if (!idToUse) {
-      alert("No submission ID found. Please close and reopen the modal.");
+      enqueueSnackbar(
+        "No submission ID found. Please close and reopen the modal.",
+        {
+          variant: "error",
+          autoHideDuration: 3000,
+        }
+      );
       return;
     }
 
@@ -165,14 +177,30 @@ const DaFormReceivingModal = ({
       setIsUpdating(true);
       await startDaSubmission(idToUse).unwrap();
 
+      enqueueSnackbar("DA Form submission started successfully!", {
+        variant: "success",
+        autoHideDuration: 2000,
+      });
+
       if (onRefreshDetails) {
-        onRefreshDetails();
+        await onRefreshDetails();
       }
 
       handleClose();
     } catch (error) {
       console.error("Error starting DA submission:", error);
-      alert("Failed to start submission. Please try again.");
+
+      let errorMessage = "Failed to start submission. Please try again.";
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
     } finally {
       setIsUpdating(false);
     }
