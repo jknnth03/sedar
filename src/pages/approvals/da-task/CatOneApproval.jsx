@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-
 import {
   Paper,
   Typography,
@@ -14,9 +13,15 @@ import {
   Box,
   TextField,
   Chip,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -50,14 +55,81 @@ const useDebounce = (value, delay) => {
 const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
+  showApproved,
+  setShowApproved,
   isLoading = false,
   styles,
 }) => {
-  const isVerySmall = window.innerWidth <= 369;
-  const isMobile = window.innerWidth <= 600;
+  const theme = useTheme();
+  const isVerySmall = useMediaQuery("(max-width:430px)");
+
+  const iconColor = showApproved ? "#007c00ff" : "rgb(33, 61, 112)";
+  const labelColor = showApproved ? "#007c00ff" : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+    <Box
+      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
+      className="search-bar-container">
+      {isVerySmall ? (
+        <IconButton
+          onClick={() => setShowApproved(!showApproved)}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${showApproved ? "#007c00ff" : "#ccc"}`,
+            borderRadius: "8px",
+            backgroundColor: showApproved ? "rgba(0, 124, 0, 0.04)" : "white",
+            color: iconColor,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showApproved
+                ? "rgba(0, 124, 0, 0.08)"
+                : "#f5f5f5",
+              borderColor: showApproved ? "#007c00ff" : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CheckCircleIcon sx={{ fontSize: "18px" }} />
+        </IconButton>
+      ) : (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showApproved}
+              onChange={(e) => setShowApproved(e.target.checked)}
+              disabled={isLoading}
+              icon={<CheckCircleIcon sx={{ color: iconColor }} />}
+              checkedIcon={<CheckCircleIcon sx={{ color: iconColor }} />}
+              size="small"
+            />
+          }
+          label="APPROVED CAT I"
+          sx={{
+            margin: 0,
+            border: `1px solid ${showApproved ? "#007c00ff" : "#ccc"}`,
+            borderRadius: "8px",
+            paddingLeft: "8px",
+            paddingRight: "12px",
+            height: "36px",
+            backgroundColor: showApproved ? "rgba(0, 124, 0, 0.04)" : "white",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showApproved
+                ? "rgba(0, 124, 0, 0.08)"
+                : "#f5f5f5",
+              borderColor: showApproved ? "#007c00ff" : "rgb(33, 61, 112)",
+            },
+            "& .MuiFormControlLabel-label": {
+              fontSize: "12px",
+              fontWeight: 600,
+              color: labelColor,
+              letterSpacing: "0.5px",
+            },
+          }}
+        />
+      )}
+
       <TextField
         placeholder={
           isVerySmall ? "Search..." : "Search Category 1 Approvals..."
@@ -81,8 +153,8 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "380px",
-            minWidth: isVerySmall ? "180px" : "280px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -121,13 +193,15 @@ const CustomSearchBar = ({
 const CatOneApproval = () => {
   const styles = createSubmissionApprovalStyles();
   const { enqueueSnackbar } = useSnackbar();
-  const isMobile = window.innerWidth <= 600;
-  const isTablet = window.innerWidth > 600 && window.innerWidth <= 1038;
-  const isVerySmall = window.innerWidth <= 369;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
+  const isVerySmall = useMediaQuery("(max-width:430px)");
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showApproved, setShowApproved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedApprovalId, setSelectedApprovalId] = useState(null);
   const [detailsDialog, setDetailsDialog] = useState({
@@ -152,7 +226,7 @@ const CatOneApproval = () => {
     const params = {
       page,
       per_page: rowsPerPage,
-      status: "active",
+      status: showApproved ? "KICKOFF_COMPLETE" : "FOR_APPROVAL",
       pagination: 1,
     };
 
@@ -161,7 +235,7 @@ const CatOneApproval = () => {
     }
 
     return params;
-  }, [debounceValue, page, rowsPerPage]);
+  }, [debounceValue, page, rowsPerPage, showApproved]);
 
   const {
     data: catOneApprovalsData,
@@ -186,6 +260,11 @@ const CatOneApproval = () => {
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
+    setPage(1);
+  }, []);
+
+  const handleShowApprovedChange = useCallback((newShowApproved) => {
+    setShowApproved(newShowApproved);
     setPage(1);
   }, []);
 
@@ -300,11 +379,11 @@ const CatOneApproval = () => {
       <Box
         sx={{
           width: "100%",
-          height: "100%",
+          height: "100vh",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          backgroundColor: "white",
+          backgroundColor: "#fafafa",
         }}>
         <Box
           sx={{
@@ -314,8 +393,8 @@ const CatOneApproval = () => {
               isMobile || isTablet ? "flex-start" : "space-between",
             flexDirection: isMobile || isTablet ? "column" : "row",
             flexShrink: 0,
-            minHeight: isMobile || isTablet ? "auto" : "60px",
-            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
+            minHeight: isMobile || isTablet ? "auto" : "72px",
+            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
             backgroundColor: "white",
             borderBottom: "1px solid #e0e0e0",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
@@ -329,12 +408,30 @@ const CatOneApproval = () => {
               width: isMobile || isTablet ? "100%" : "auto",
               justifyContent: "flex-start",
             }}>
-            <Typography className="header">CAT 1 APPROVAL</Typography>
+            <Typography
+              className="header"
+              sx={{
+                fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
+                fontWeight: 500,
+                color: "rgb(33, 61, 112)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {isVerySmall
+                ? showApproved
+                  ? "APPROVED"
+                  : "CAT I"
+                : showApproved
+                ? "APPROVED CAT I"
+                : "CAT I APPROVAL"}
+            </Typography>
           </Box>
 
           <CustomSearchBar
             searchQuery={searchQuery}
             setSearchQuery={handleSearchChange}
+            showApproved={showApproved}
+            setShowApproved={handleShowApprovedChange}
             isLoading={isLoadingState}
             styles={styles}
           />
@@ -575,7 +672,9 @@ const CatOneApproval = () => {
                           }}
                         />
                         <Typography variant="h6" color="text.secondary">
-                          No CAT 1 for approval found
+                          {showApproved
+                            ? "No approved CAT 1 found"
+                            : "No CAT 1 for approval found"}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {searchQuery
@@ -592,6 +691,7 @@ const CatOneApproval = () => {
 
           <Box
             sx={{
+              borderTop: "1px solid #e0e0e0",
               backgroundColor: "#f8f9fa",
               flexShrink: 0,
               "& .MuiTablePagination-root": {
@@ -625,8 +725,9 @@ const CatOneApproval = () => {
               onRowsPerPageChange={handleRowsPerPageChange}
               sx={{
                 "& .MuiTablePagination-toolbar": {
-                  paddingLeft: isMobile ? "12px" : "24px",
-                  paddingRight: isMobile ? "12px" : "24px",
+                  paddingLeft: isMobile ? "16px" : "24px",
+                  paddingRight: isMobile ? "16px" : "24px",
+                  minHeight: isMobile ? "48px" : "52px",
                 },
               }}
             />

@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import MarkAsUnreadIcon from "@mui/icons-material/MarkAsUnread";
 import SearchIcon from "@mui/icons-material/Search";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useFo rm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import {
@@ -29,7 +29,7 @@ const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
+    const handleras = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
 
