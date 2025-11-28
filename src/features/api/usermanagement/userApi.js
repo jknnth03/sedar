@@ -94,6 +94,38 @@ const userApi = sedarApi
         },
         providesTags: ["users"],
       }),
+      getPendingRequests: build.query({
+        query: (params = {}) => ({
+          url: `pending-requests?pagination=${params.pagination || 1}&page=${
+            params.page || 1
+          }&per_page=${params.per_page || 10}&status=${
+            params.status || "active"
+          }&search=${params.searchQuery || ""}`,
+          method: "GET",
+        }),
+        transformResponse: (response) => {
+          console.log("Raw API Response (getPendingRequests):", response);
+          if (response.result) {
+            return {
+              data: response.result.data || [],
+              totalCount:
+                response.result.total_count || response.result.total || 0,
+              currentPage: response.result.current_page,
+              lastPage: response.result.last_page,
+            };
+          }
+          return { data: [], totalCount: 0 };
+        },
+        providesTags: ["users"],
+      }),
+      updatePendingRequest: build.mutation({
+        query: ({ id, ...body }) => ({
+          url: `pending-requests/${id}`,
+          method: "PATCH",
+          body,
+        }),
+        invalidatesTags: ["users"],
+      }),
       getAllApprovers: build.query({
         query: () => ({
           url: "users",
@@ -177,6 +209,8 @@ export const {
   useUpdateUserMutation,
   useDeleteUserMutation,
   useGetShowUserQuery,
+  useGetPendingRequestsQuery,
+  useUpdatePendingRequestMutation,
   useGetAllApproversQuery,
   useGetAllReceiversQuery,
 } = userApi;

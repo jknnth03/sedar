@@ -286,12 +286,10 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     }
                     onChange={(date) => {
                       field.onChange(date);
-                      const endDate = watch("end_date");
-                      if (
-                        endDate &&
-                        date &&
-                        dayjs(date).isAfter(dayjs(endDate))
-                      ) {
+                      if (date) {
+                        const endDate = dayjs(date).add(6, "month");
+                        setValue("end_date", endDate);
+                      } else {
                         setValue("end_date", null);
                       }
                     }}
@@ -337,13 +335,8 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                         : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    minDate={
-                      watch("start_date")
-                        ? dayjs(watch("start_date")).add(1, "day")
-                        : undefined
-                    }
                     label="INCLUSIVE DATES - TO"
-                    disabled={isReadOnly || !watch("start_date")}
+                    disabled={isReadOnly}
                     slotProps={{
                       textField: {
                         error: !!errors.end_date,

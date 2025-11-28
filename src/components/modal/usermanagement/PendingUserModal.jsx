@@ -11,14 +11,11 @@ import {
 import Autocomplete from "@mui/material/Autocomplete";
 import { useSnackbar } from "notistack";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  useCreateUserMutation,
-  useUpdateUserMutation,
-} from "../../../features/api/usermanagement/userApi";
+import { useUpdatePendingRequestMutation } from "../../../features/api/usermanagement/userApi";
 import { resetModal } from "../../../features/slice/modalSlice";
 import { useGetAllShowRolesQuery } from "../../../features/api/usermanagement/rolesApi";
 
-const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
+const PendingUserModal = ({ open, handleClose, refetch, selectedUser }) => {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const userModal = useSelector((state) => state.modal.userModal);
@@ -28,9 +25,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
   });
 
   const { data: rolesData } = useGetAllShowRolesQuery();
-
-  const [createUser] = useCreateUserMutation();
-  const [updateUser] = useUpdateUserMutation();
+  const [updatePendingRequest] = useUpdatePendingRequestMutation();
 
   const handleCloseModal = () => {
     dispatch(resetModal());
@@ -47,7 +42,9 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
     }));
   };
 
+  // Update formData when selectedUser changes
   useEffect(() => {
+    console.log("PendingUserModal - selectedUser changed:", selectedUser);
     if (selectedUser) {
       setFormData({
         role: selectedUser.role || null,
@@ -60,26 +57,44 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
   }, [selectedUser]);
 
   const handleSubmit = async () => {
+    // Add detailed logging
+    console.log("Submit clicked!");
+    console.log("selectedUser:", selectedUser);
+    console.log("selectedUser?.id:", selectedUser?.id);
+    console.log("formData:", formData);
+
+    if (!selectedUser) {
+      console.error("selectedUser is null or undefined");
+      enqueueSnackbar("Missing user data", {
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!selectedUser.id) {
+      console.error("selectedUser.id is missing:", selectedUser);
+      enqueueSnackbar("Missing user ID", {
+        variant: "error",
+      });
+      return;
+    }
+
     const requestData = {
+      id: selectedUser.id,
       role_id: formData.role?.id || null,
     };
 
-    try {
-      let response;
-      if (selectedUser) {
-        response = await updateUser({
-          id: selectedUser.id,
-          ...requestData,
-        }).unwrap();
-        enqueueSnackbar("User updated successfully!", { variant: "success" });
-      } else {
-        response = await createUser(requestData).unwrap();
-        enqueueSnackbar("User created successfully!", { variant: "success" });
-      }
+    console.log("Request data to send:", requestData);
 
+    try {
+      await updatePendingRequest(requestData).unwrap();
+      enqueueSnackbar("Pending request updated successfully!", {
+        variant: "success",
+      });
       await refetch();
       handleCloseModal();
     } catch (error) {
+      console.error("Update error:", error);
       enqueueSnackbar("An error occurred. Please try again.", {
         variant: "error",
       });
@@ -90,17 +105,33 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
 
   const SingleRow = ({ children }) => <Box mb={2}>{children}</Box>;
 
+  // Debug: Log when modal opens/closes
+  useEffect(() => {
+    console.log("Modal open state:", open || userModal);
+    console.log("Current selectedUser:", selectedUser);
+  }, [open, userModal, selectedUser]);
+
   return (
     <Dialog
       open={open || userModal}
       onClose={handleCloseModal}
       fullWidth
       maxWidth="sm">
-      <DialogTitle className="dialog_title">
-        {selectedUser ? "EDIT USER" : "ADD NEW USER"}
-      </DialogTitle>
+      <DialogTitle className="dialog_title">EDIT PENDING USER</DialogTitle>
 
       <DialogContent dividers sx={{ padding: 3 }}>
+        {selectedUser && (
+          <Box mb={2}>
+            <TextField
+              fullWidth
+              label="Username"
+              value={selectedUser.username || "N/A"}
+              disabled
+              variant="outlined"
+            />
+          </Box>
+        )}
+
         <SingleRow>
           <Autocomplete
             fullWidth
@@ -108,6 +139,7 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
             value={formData.role || null}
             onChange={handleRoleChange}
             getOptionLabel={(option) => `${option.id} - ${option.role_name}`}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
             renderInput={(params) => (
               <TextField {...params} label="Role" fullWidth />
             )}
@@ -121,11 +153,11 @@ const UserModal = ({ open, handleClose, refetch, selectedUser }) => {
           variant="contained"
           onClick={handleSubmit}
           disabled={isSubmitDisabled}>
-          {selectedUser ? "Update" : "Submit"}
+          Update
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default UserModal;
+export default PendingUserModal;

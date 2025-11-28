@@ -104,7 +104,7 @@ const CustomSearchBar = ({
               size="small"
             />
           }
-          label="APPROVED CAT 2"
+          label="APPROVED CAT II"
           sx={{
             margin: 0,
             border: `1px solid ${showApproved ? "#007c00ff" : "#ccc"}`,
@@ -420,10 +420,10 @@ const CatTwoApproval = () => {
               {isVerySmall
                 ? showApproved
                   ? "APPROVED"
-                  : "CAT 2"
+                  : "CAT II"
                 : showApproved
-                ? "APPROVED CAT 2"
-                : "CAT 2 APPROVAL"}
+                ? "APPROVED CAT II"
+                : "CAT II APPROVAL"}
             </Typography>
           </Box>
 
@@ -673,8 +673,8 @@ const CatTwoApproval = () => {
                         />
                         <Typography variant="h6" color="text.secondary">
                           {showApproved
-                            ? "No approved CAT 2 found"
-                            : "No CAT 2 for approval found"}
+                            ? "No approved CAT II found"
+                            : "No CAT II for approval found"}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {searchQuery
