@@ -6,6 +6,7 @@ import "../../../pages/GeneralStyle.scss";
 import {
   useGetMdaDaSubmissionsQuery,
   useLazyGetSingleMdaDaSubmissionQuery,
+  useResubmitFormSubmissionMutation,
 } from "../../../features/api/forms/mdaDaApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDADATable from "./MDADATable";
@@ -109,6 +110,9 @@ const MDADAAwaitingResubmission = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleMdaDaSubmissionQuery();
 
+  const [resubmitFormSubmission, { isLoading: isResubmitting }] =
+    useResubmitFormSubmissionMutation();
+
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
@@ -140,6 +144,31 @@ const MDADAAwaitingResubmission = ({
     const endIndex = startIndex + rowsPerPage;
     return filteredSubmissions.slice(startIndex, endIndex);
   }, [filteredSubmissions, page, rowsPerPage]);
+
+  const handleResubmit = useCallback(
+    async (submissionId) => {
+      try {
+        await resubmitFormSubmission(submissionId).unwrap();
+        enqueueSnackbar("MDA (DA) resubmitted successfully!", {
+          variant: "success",
+          autoHideDuration: 3000,
+        });
+        refetch();
+        return Promise.resolve();
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to resubmit MDA (DA). Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return Promise.reject(error);
+      }
+    },
+    [resubmitFormSubmission, refetch, enqueueSnackbar]
+  );
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -335,6 +364,7 @@ const MDADAAwaitingResubmission = ({
           selectedEntry={submissionDetails}
           isLoading={modalLoading || detailsLoading}
           onRefreshDetails={handleRefreshDetails}
+          onResubmit={handleResubmit}
         />
       </FormProvider>
     </>

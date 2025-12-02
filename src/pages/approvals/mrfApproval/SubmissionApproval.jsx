@@ -26,20 +26,18 @@ import {
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetMyMdaApprovalsQuery,
-  useGetMdaApprovalByIdQuery,
-  useApproveMdaSubmissionMutation,
-  useRejectMdaSubmissionMutation,
-} from "../../../features/api/approving/mdaApprovalApi.js";
-import { CONSTANT } from "../../../config";
+  useGetMySubmissionApprovalsQuery,
+  useApproveSubmissionMutation,
+  useRejectSubmissionMutation,
+} from "../../../features/api/approvalsetting/submissionApprovalApi.js";
+import { CONSTANT } from "../../../config/index.jsx";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
-import MdaApprovalDialog from "./MdaApprovalDialog.jsx";
+import { createSubmissionApprovalStyles } from "./SubmissionApprovalStyles.jsx";
+import SubmissionDetailsDialog from "./SubmissionDetailsDialog.jsx";
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
@@ -82,8 +80,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`mda-approval-tabpanel-${index}`}
-      aria-labelledby={`mda-approval-tab-${index}`}
+      id={`submission-approval-tabpanel-${index}`}
+      aria-labelledby={`submission-approval-tab-${index}`}
       style={{
         height: "100%",
         minWidth: 0,
@@ -139,71 +137,33 @@ const CustomSearchBar = ({
         gap: isVerySmall ? 1 : 1.5,
       }}>
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search MDA Approvals..."}
+        placeholder={
+          isVerySmall ? "Search..." : "Search Submission Approvals..."
+        }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
         InputProps={{
-          startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
-              }}
-            />
-          ),
+          startAdornment: <SearchIcon sx={styles.searchIcon(isLoading)} />,
           endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+            <CircularProgress size={16} sx={styles.searchProgress} />
           ),
-          sx: {
-            height: "36px",
-            width: isVerySmall ? "100%" : "380px",
-            minWidth: isVerySmall ? "180px" : "280px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
+          sx: styles.searchInputProps(isLoading).sx,
         }}
-        sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
-          "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
-        }}
+        sx={styles.searchTextField(isLoading)}
       />
     </Box>
   );
 };
 
-const MdaApprovalTable = ({
-  approvalStatus,
+const SubmissionApprovalTable = ({
+  status,
   searchQuery,
   styles,
   isMobile,
   isVerySmall,
   onRowClick,
-  renderStatusChip,
 }) => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -214,8 +174,7 @@ const MdaApprovalTable = ({
     const params = {
       page,
       per_page: rowsPerPage,
-      status: "active",
-      approval_status: approvalStatus,
+      status: status,
       pagination: true,
     };
 
@@ -224,21 +183,21 @@ const MdaApprovalTable = ({
     }
 
     return params;
-  }, [debounceValue, page, rowsPerPage, approvalStatus]);
+  }, [debounceValue, page, rowsPerPage, status]);
 
   const {
-    data: mdaApprovalsData,
+    data: submissionApprovalsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetMyMdaApprovalsQuery(queryParams, {
+  } = useGetMySubmissionApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const mdaApprovalsList = useMemo(
-    () => mdaApprovalsData?.result?.data || [],
-    [mdaApprovalsData]
+  const submissionApprovalsList = useMemo(
+    () => submissionApprovalsData?.result?.data || [],
+    [submissionApprovalsData]
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -258,29 +217,20 @@ const MdaApprovalTable = ({
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell
-                align="center"
-                sx={{ ...styles.headerCellStatus, whiteSpace: "nowrap" }}>
-                STATUS
-              </TableCell>
-              <TableCell
-                sx={{ ...styles.headerCellReference, whiteSpace: "nowrap" }}>
+              <TableCell sx={styles.headerCellReference}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
-              <TableCell
-                sx={{ ...styles.headerCellPosition, whiteSpace: "nowrap" }}>
-                EMPLOYEE NAME
+              <TableCell sx={styles.headerCellPosition}>POSITION</TableCell>
+              <TableCell sx={styles.headerCellRequisition}>
+                {isVerySmall ? "REQ TYPE" : "REQUISITION TYPE"}
               </TableCell>
-              <TableCell
-                sx={{ ...styles.headerCellRequisition, whiteSpace: "nowrap" }}>
-                {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
-              </TableCell>
-              <TableCell
-                sx={{ ...styles.headerCellRequested, whiteSpace: "nowrap" }}>
+              <TableCell sx={styles.headerCellRequested}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
-              <TableCell
-                sx={{ ...styles.headerCellDate, whiteSpace: "nowrap" }}>
+              <TableCell sx={styles.headerCellDepartment}>
+                {isVerySmall ? "DEPT" : "DEPARTMENT"}
+              </TableCell>
+              <TableCell sx={styles.headerCellDate}>
                 {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
             </TableRow>
@@ -300,35 +250,36 @@ const MdaApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : mdaApprovalsList.length > 0 ? (
-              mdaApprovalsList.map((approval) => {
+            ) : submissionApprovalsList.length > 0 ? (
+              submissionApprovalsList.map((submission) => {
+                const submissionData = submission.submission || submission;
                 return (
                   <TableRow
-                    key={approval.id}
-                    onClick={() => onRowClick(approval)}
+                    key={submission.id}
+                    onClick={() => onRowClick(submission)}
                     sx={styles.tableRow}>
-                    <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
-                      {renderStatusChip(approval)}
+                    <TableCell sx={styles.cellEllipsis}>
+                      {submissionData.form_details?.reference_number || "-"}
                     </TableCell>
-                    <TableCell
-                      sx={{ ...styles.cellEllipsis, whiteSpace: "nowrap" }}>
-                      {approval.reference_number || "-"}
+                    <TableCell sx={styles.cellPosition}>
+                      {submissionData.form_details?.position?.title?.name ||
+                        "Unknown Position"}
                     </TableCell>
-                    <TableCell
-                      sx={{ ...styles.cellPosition, whiteSpace: "nowrap" }}>
-                      {approval.employee_name || "-"}
+                    <TableCell sx={styles.cellEllipsis}>
+                      {submissionData.form_details?.requisition_type?.name ||
+                        "-"}
                     </TableCell>
-                    <TableCell
-                      sx={{ ...styles.cellEllipsis, whiteSpace: "nowrap" }}>
-                      {approval.movement_type || "-"}
+                    <TableCell sx={styles.cellEllipsis}>
+                      {submissionData.requested_by?.full_name ||
+                        submissionData.requested_by?.first_name ||
+                        "Unknown"}
                     </TableCell>
-                    <TableCell
-                      sx={{ ...styles.cellEllipsis, whiteSpace: "nowrap" }}>
-                      {approval.requested_by || "-"}
+                    <TableCell sx={styles.cellEllipsis}>
+                      {submissionData.charging?.department_name || "-"}
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {approval.created_at
-                        ? dayjs(approval.created_at).format(
+                    <TableCell>
+                      {submissionData.created_at
+                        ? dayjs(submissionData.created_at).format(
                             isVerySmall ? "M/D/YY" : "MMM D, YYYY"
                           )
                         : "-"}
@@ -348,9 +299,9 @@ const MdaApprovalTable = ({
                       variant="h6"
                       color="text.secondary"
                       sx={styles.emptyStateTitle}>
-                      {approvalStatus === "approved"
-                        ? "No approved MDA submissions found"
-                        : "No MDA submissions found"}
+                      {status === "approved"
+                        ? "No approved submissions found"
+                        : "No submission approvals found"}
                     </Typography>
                     <Typography
                       variant="body2"
@@ -358,9 +309,9 @@ const MdaApprovalTable = ({
                       sx={styles.emptyStateSubtitle}>
                       {searchQuery
                         ? `No results for "${searchQuery}"`
-                        : approvalStatus === "approved"
+                        : status === "approved"
                         ? "No approved submissions"
-                        : "No pending submissions found"}
+                        : "No active submissions"}
                     </Typography>
                   </Box>
                 </TableCell>
@@ -374,7 +325,7 @@ const MdaApprovalTable = ({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={mdaApprovalsData?.result?.total || 0}
+          count={submissionApprovalsData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={Math.max(0, page - 1)}
           onPageChange={handlePageChange}
@@ -388,7 +339,7 @@ const MdaApprovalTable = ({
   );
 };
 
-const MdaApproval = () => {
+const SubmissionApproval = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -403,7 +354,6 @@ const MdaApproval = () => {
 
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedApprovalId, setSelectedApprovalId] = useState(null);
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
     submission: null,
@@ -415,15 +365,10 @@ const MdaApproval = () => {
     },
   });
 
-  const [approveMdaSubmission, { isLoading: approveLoading }] =
-    useApproveMdaSubmissionMutation();
-  const [rejectMdaSubmission, { isLoading: rejectLoading }] =
-    useRejectMdaSubmissionMutation();
-
-  const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
-    useGetMdaApprovalByIdQuery(selectedApprovalId, {
-      skip: !selectedApprovalId,
-    });
+  const [approveSubmission, { isLoading: approveLoading }] =
+    useApproveSubmissionMutation();
+  const [rejectSubmission, { isLoading: rejectLoading }] =
+    useRejectSubmissionMutation();
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -434,11 +379,10 @@ const MdaApproval = () => {
     setSearchQuery(newSearchQuery);
   }, []);
 
-  const handleRowClick = useCallback((approval) => {
-    setSelectedApprovalId(approval.id);
+  const handleRowClick = useCallback((submission) => {
     setDetailsDialog({
       open: true,
-      submission: approval,
+      submission,
     });
   }, []);
 
@@ -452,19 +396,21 @@ const MdaApproval = () => {
           reason,
         };
 
-        await approveMdaSubmission(payload).unwrap();
-        enqueueSnackbar("MDA approved successfully!", {
+        await approveSubmission(payload).unwrap();
+        enqueueSnackbar("Submission approved successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
-        setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to approve MDA", {
-          variant: "error",
-        });
+        enqueueSnackbar(
+          error?.data?.message || "Failed to approve submission",
+          {
+            variant: "error",
+          }
+        );
       }
     },
-    [detailsDialog, approveMdaSubmission, enqueueSnackbar]
+    [detailsDialog, approveSubmission, enqueueSnackbar]
   );
 
   const handleReject = useCallback(
@@ -477,57 +423,41 @@ const MdaApproval = () => {
           reason,
         };
 
-        await rejectMdaSubmission(payload).unwrap();
-        enqueueSnackbar("MDA returned successfully!", {
+        await rejectSubmission(payload).unwrap();
+        enqueueSnackbar("Submission returned successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
-        setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to return MDA", {
+        enqueueSnackbar(error?.data?.message || "Failed to return submission", {
           variant: "error",
         });
       }
     },
-    [detailsDialog, rejectMdaSubmission, enqueueSnackbar]
+    [detailsDialog, rejectSubmission, enqueueSnackbar]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
     setDetailsDialog({ open: false, submission: null });
-    setSelectedApprovalId(null);
   }, []);
-
-  const renderStatusChip = useCallback(
-    (approval) => {
-      const status = approval?.status?.toLowerCase() || "pending";
-      return (
-        <Chip
-          label={status.toUpperCase()}
-          size="small"
-          sx={styles.statusChip(status)}
-        />
-      );
-    },
-    [styles]
-  );
 
   const tabsData = [
     {
-      label: "For Approval",
-      approvalStatus: "pending",
+      label: "MRF For Approval",
+      status: "pending",
       badgeCount: 0,
     },
     {
-      label: "Approved",
-      approvalStatus: "approved",
+      label: "Approved MRF",
+      status: "approved",
       badgeCount: 0,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `mda-approval-tab-${index}`,
-      "aria-controls": `mda-approval-tabpanel-${index}`,
+      id: `submission-approval-tab-${index}`,
+      "aria-controls": `submission-approval-tabpanel-${index}`,
     };
   };
 
@@ -581,7 +511,7 @@ const MdaApproval = () => {
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
                 }}>
-                {isVerySmall ? "MDA" : "MDA Approval"}
+                {isVerySmall ? "MRF APPROVAL" : "MRF Submission Approval"}
               </Typography>
             </Box>
 
@@ -596,15 +526,10 @@ const MdaApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="MDA Approval tabs"
+            aria-label="MRF Submission Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
-            allowScrollButtonsMobile
-            sx={{
-              "& .MuiTab-root": {
-                whiteSpace: "nowrap",
-              },
-            }}>
+            allowScrollButtonsMobile>
             {tabsData.map((tab, index) => (
               <StyledTab
                 key={index}
@@ -634,7 +559,6 @@ const MdaApproval = () => {
                   )
                 }
                 {...a11yProps(index)}
-                sx={{ whiteSpace: "nowrap" }}
               />
             ))}
           </StyledTabs>
@@ -649,28 +573,26 @@ const MdaApproval = () => {
             }}>
             {tabsData.map((tab, index) => (
               <TabPanel key={index} value={activeTab} index={index}>
-                <MdaApprovalTable
-                  approvalStatus={tab.approvalStatus}
+                <SubmissionApprovalTable
+                  status={tab.status}
                   searchQuery={searchQuery}
                   styles={styles}
                   isMobile={isMobile}
                   isVerySmall={isVerySmall}
                   onRowClick={handleRowClick}
-                  renderStatusChip={renderStatusChip}
                 />
               </TabPanel>
             ))}
           </Box>
         </Box>
 
-        <MdaApprovalDialog
+        <SubmissionDetailsDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
-          approval={selectedApprovalData?.result || detailsDialog.submission}
+          submission={detailsDialog.submission}
           onApprove={handleApprove}
           onReject={handleReject}
           isLoading={approveLoading || rejectLoading}
-          isLoadingData={selectedApprovalLoading}
           styles={styles}
         />
       </Box>
@@ -678,4 +600,4 @@ const MdaApproval = () => {
   );
 };
 
-export default MdaApproval;
+export default SubmissionApproval;

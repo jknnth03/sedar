@@ -22,6 +22,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CancelIcon from "@mui/icons-material/Cancel";
 import { format, parseISO } from "date-fns";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import NoDataFound from "../../NoDataFound";
 
 const CatOneTable = ({
   submissionsList = [],
@@ -292,32 +293,40 @@ const CatOneTable = ({
               );
             })
           ) : (
-            <TableRow sx={{ height: "100%" }}>
+            <TableRow
+              sx={{
+                height: "100%",
+                pointerEvents: "none",
+                "&:hover": {
+                  backgroundColor: "transparent !important",
+                  cursor: "default !important",
+                },
+              }}>
               <TableCell
-                colSpan={totalColumns}
+                colSpan={999}
+                rowSpan={999}
                 align="center"
                 sx={{
-                  ...styles.noDataContainer,
                   height: "100%",
                   verticalAlign: "middle",
                   border: "none",
+                  borderBottom: "none",
+                  padding: 0,
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
                 }}>
-                <Box sx={styles.noDataBox}>
-                  <ErrorOutlineIcon
-                    sx={{
-                      fontSize: 80,
-                      color: "#ccc",
-                      marginBottom: 2,
-                    }}
-                  />
-                  <Typography variant="h6" color="text.secondary">
-                    No CAT 1 submissions found
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {searchQuery
-                      ? `No results for "${searchQuery}"`
-                      : "No submissions found"}
-                  </Typography>
+                <Box
+                  sx={{
+                    position: "fixed",
+                    left: "56%",
+                    top: "60%",
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 1,
+                  }}>
+                  <NoDataFound message="" subMessage="" />
                 </Box>
               </TableCell>
             </TableRow>

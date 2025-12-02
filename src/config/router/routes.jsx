@@ -34,7 +34,7 @@ import EMPLOYEEINFORMATION from "../../pages/employees/EmployeeInformation.jsx";
 import ONERDF from "../../pages/masterlist/one-rdf/oneRdf.jsx";
 import ApprovalFlow from "../../pages/approver/ApprovalFlow.jsx";
 import ApprovalForm from "../../pages/approver/ApprovalForm.jsx";
-import SubmissionApproval from "../../pages/approvals/submissionApproval/SubmissionApproval.jsx";
+import SubmissionApproval from "../../pages/approvals/mrfApproval/SubmissionApproval.jsx";
 import PendingForms from "../../pages/receiving/PendingForms.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";

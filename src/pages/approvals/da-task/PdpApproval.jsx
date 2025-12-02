@@ -33,7 +33,7 @@ import {
 } from "../../../features/api/approving/pdpApproval.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../submissionApproval/SubmissionApprovalStyles.jsx";
+import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import PdpApprovalDialog from "./PdpApprovalDialog.jsx";
 
 const useDebounce = (value, delay) => {

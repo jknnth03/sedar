@@ -33,7 +33,7 @@ import {
 } from "../../../features/api/approving/catTwoApproval.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../submissionApproval/SubmissionApprovalStyles.jsx";
+import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import CatTwoApprovalDialog from "./CatTwoApprovalDialog.jsx";
 
 const useDebounce = (value, delay) => {

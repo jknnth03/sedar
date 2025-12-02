@@ -358,7 +358,7 @@ export const styles = {
   tableContainerStyles: {
     flex: 1,
     overflow: "auto",
-    backgroundColor: "#fafafa",
+    backgroundColor: "#white",
     "& .MuiTableCell-head": {
       backgroundColor: "#f8f9fa",
       fontWeight: 700,

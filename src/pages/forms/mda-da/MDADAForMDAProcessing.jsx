@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import {
   Typography,
   TablePagination,
@@ -58,6 +64,9 @@ const MDADAForMDAProcessing = ({
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const prevSearchQuery = useRef(searchQuery);
+  const prevDateFilters = useRef(dateFilters);
+
   const viewFormMethods = useForm({
     defaultValues: {
       reason_for_change: "",
@@ -106,8 +115,14 @@ const MDADAForMDAProcessing = ({
   }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    if (
+      prevSearchQuery.current !== searchQuery ||
+      JSON.stringify(prevDateFilters.current) !== JSON.stringify(dateFilters)
+    ) {
+      setPage(1);
+      prevSearchQuery.current = searchQuery;
+      prevDateFilters.current = dateFilters;
+    }
   }, [searchQuery, dateFilters]);
 
   const {
@@ -131,37 +146,13 @@ const MDADAForMDAProcessing = ({
   const [updateMdaDa, { isLoading: isUpdatingMdaDa }] =
     useUpdateMdaDaMutation();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissionsList = useMemo(() => {
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = useMemo(() => {
+    return submissionsData?.result?.total || 0;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -375,7 +366,7 @@ const MDADAForMDAProcessing = ({
             backgroundColor: "white",
           }}>
           <DAForMDAProcessingTable
-            submissionsList={paginatedSubmissions}
+            submissionsList={submissionsList}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -392,46 +383,48 @@ const MDADAForMDAProcessing = ({
             onCancel={onCancel}
           />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
+          {!error && (
+            <Box
+              sx={{
+                borderTop: "1px solid #e0e0e0",
+                backgroundColor: "#f8f9fa",
+                flexShrink: 0,
+                "& .MuiTablePagination-root": {
+                  color: "#666",
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                    {
+                      fontSize: "14px",
+                      fontWeight: 500,
+                    },
+                  "& .MuiTablePagination-select": {
                     fontSize: "14px",
-                    fontWeight: 500,
                   },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
+                  "& .MuiIconButton-root": {
+                    color: "rgb(33, 61, 112)",
+                    "&:hover": {
+                      backgroundColor: "rgba(33, 61, 112, 0.04)",
+                    },
+                    "&.Mui-disabled": {
+                      color: "#ccc",
+                    },
                   },
                 },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
+                "& .MuiTablePagination-toolbar": {
+                  paddingLeft: "24px",
+                  paddingRight: "24px",
+                },
+              }}>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50, 100]}
+                component="div"
+                count={totalCount}
+                rowsPerPage={rowsPerPage}
+                page={Math.max(0, page - 1)}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+              />
+            </Box>
+          )}
         </Box>
       </Box>
 

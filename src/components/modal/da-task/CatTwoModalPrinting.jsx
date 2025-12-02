@@ -84,7 +84,7 @@ const Checkbox = styled(Box)(({ checked }) => ({
     : {},
 }));
 
-const CatOneModalPrinting = ({ data }) => {
+const CatTwoModalPrinting = ({ data }) => {
   const printRef = useRef();
 
   const handlePrint = () => {
@@ -225,7 +225,7 @@ const CatOneModalPrinting = ({ data }) => {
                       printColorAdjust: "exact",
                     },
                   }}>
-                  COMPETENCY ASSESSMENT TOOL - 1
+                  COMPETENCY ASSESSMENT TOOL - 2
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -244,7 +244,7 @@ const CatOneModalPrinting = ({ data }) => {
                       printColorAdjust: "exact",
                     },
                   }}>
-                  BAND A
+                  BAND B
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -278,7 +278,7 @@ const CatOneModalPrinting = ({ data }) => {
                     fontSize: "11px",
                     border: "1px solid #000",
                   }}>
-                  {template.name?.replace("CAT 1 - ", "") || ""}
+                  {template.name?.replace("CAT 2 - ", "") || ""}
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -412,4 +412,4 @@ const CatOneModalPrinting = ({ data }) => {
   );
 };
 
-export default CatOneModalPrinting;
+export default CatTwoModalPrinting;

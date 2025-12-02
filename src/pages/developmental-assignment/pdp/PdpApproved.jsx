@@ -109,14 +109,20 @@ const PdpApproved = ({
     const dataSource = data || taskData;
     if (!dataSource?.result) return [];
 
-    const result = dataSource.result;
+    const resultData = dataSource.result.data || dataSource.result;
 
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "APPROVED");
+    if (Array.isArray(resultData)) {
+      return resultData.filter(
+        (item) =>
+          item.status === "APPROVED" || item.status === "KICKOFF_COMPLETE"
+      );
     }
 
-    if (result.status === "APPROVED") {
-      return [result];
+    if (
+      resultData.status === "APPROVED" ||
+      resultData.status === "KICKOFF_COMPLETE"
+    ) {
+      return [resultData];
     }
 
     return [];
