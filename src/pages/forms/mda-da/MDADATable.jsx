@@ -15,7 +15,6 @@ import {
   Tooltip,
   CircularProgress,
   Skeleton,
-  useTheme,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -42,7 +41,6 @@ const MDADATable = ({
   onCancel,
   onRefetch,
 }) => {
-  const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedMdaHistory, setSelectedMdaHistory] = React.useState(null);
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
@@ -198,7 +196,7 @@ const MDADATable = ({
         <IconButton
           onClick={(e) => handleViewActivityClick(e, submission)}
           size="small"
-          sx={styles.historyIconButton(theme)}>
+          sx={styles.historyIconButton()}>
           <RestoreIcon sx={{ fontSize: "20px" }} />
         </IconButton>
       </Tooltip>
@@ -305,7 +303,7 @@ const MDADATable = ({
                     onClick={() => {
                       handleRowClick(submission);
                     }}
-                    sx={styles.tableRowHover(theme)}>
+                    sx={styles.tableRowHover()}>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,
@@ -360,7 +358,7 @@ const MDADATable = ({
                             handleMenuOpen(e, submission);
                           }}
                           size="small"
-                          sx={styles.actionIconButton(theme)}>
+                          sx={styles.actionIconButton()}>
                           <MoreVertIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -377,7 +375,7 @@ const MDADATable = ({
                           vertical: "bottom",
                         }}
                         PaperProps={{
-                          sx: styles.actionMenu(theme),
+                          sx: styles.actionMenu(),
                         }}
                         sx={{
                           zIndex: 10000,
@@ -404,8 +402,6 @@ const MDADATable = ({
             ) : (
               <TableRow
                 sx={{
-                  height: 0,
-                  pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
                     cursor: "default !important",
@@ -416,27 +412,15 @@ const MDADATable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
-                    height: 0,
-                    padding: 0,
-                    border: "none",
                     borderBottom: "none",
-                    pointerEvents: "none",
-                    position: "relative",
+                    height: "400px",
+                    verticalAlign: "middle",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
                     },
                   }}>
-                  <Box
-                    sx={{
-                      position: "fixed",
-                      left: "62%",
-                      top: "64%",
-                      transform: "translate(-50%, -50%)",
-                      zIndex: 1,
-                    }}>
-                    <NoDataFound message="" subMessage="" />
-                  </Box>
+                  <NoDataFound message="" subMessage="" />
                 </TableCell>
               </TableRow>
             )}

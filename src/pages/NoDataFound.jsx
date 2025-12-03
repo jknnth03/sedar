@@ -19,21 +19,21 @@ const NoDataFound = ({
   };
 
   const getResponsiveImageSize = () => {
-    if (isMobile) return { width: "180px", height: "180px" };
-    if (isTablet) return { width: "220px", height: "220px" };
-    return { width: "280px", height: "280px" };
+    if (isMobile) return { width: "220px", height: "220px" };
+    if (isTablet) return { width: "280px", height: "280px" };
+    return { width: "350px", height: "350px" };
   };
+
+  const imageSize = getResponsiveImageSize();
 
   return (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: { xs: 2, sm: 3, md: 4 },
-        minHeight: { xs: "200px", sm: "250px", md: "300px" },
-        width: "100%",
+        position: "sticky",
+        left: `calc(50% - (${imageSize.width} / 2))`,
+        minHeight: imageSize.height,
+        height: imageSize.height,
+        width: imageSize.width,
       }}>
       {!useIcon ? (
         <Box
@@ -41,13 +41,10 @@ const NoDataFound = ({
           src={NoDataFoundImage}
           alt="No data found"
           sx={{
-            width: getResponsiveImageSize().width,
-            height: getResponsiveImageSize().height,
+            width: "100%",
+            height: "100%",
             objectFit: "contain",
-            marginBottom: { xs: 1, sm: 1.5, md: 2.5 },
             opacity: 0.85,
-            maxWidth: "100%",
-            maxHeight: "100%",
             filter: "brightness(1.05) contrast(1.1)",
             mixBlendMode: "multiply",
           }}

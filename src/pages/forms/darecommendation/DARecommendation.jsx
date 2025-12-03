@@ -1,10 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
@@ -21,7 +17,7 @@ import {
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -29,7 +25,11 @@ import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "../manpowerform/FormSubmissionStyles";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
 
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -47,43 +47,6 @@ import { useUpdateDaMutation } from "../../../features/api/forms/daformApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormModal from "../../../components/modal/form/DAForm/DaFormModal";
-import { daFormStyles } from "../daform/DAFormStyles";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -92,9 +55,15 @@ const TabPanel = ({ children, value, index, ...other }) => {
       hidden={value !== index}
       id={`da-recommendation-tabpanel-${index}`}
       aria-labelledby={`da-recommendation-tab-${index}`}
-      style={daFormStyles.tabPanelContainer(value, index)}
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        minWidth: 0,
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
       {...other}>
-      {value === index && <Box sx={daFormStyles.tabPanelInner}>{children}</Box>}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -196,7 +165,7 @@ const DateFilterDialog = ({
 
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={daFormStyles.datePickerContainer}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -239,6 +208,194 @@ const DateFilterDialog = ({
         </Box>
       </DialogActions>
     </Dialog>
+  );
+};
+
+const CustomSearchBar = ({
+  searchQuery,
+  setSearchQuery,
+  dateFilters,
+  onFilterClick,
+  isLoading = false,
+}) => {
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
+
+  const getFilterLabel = () => {
+    if (dateFilters.startDate && dateFilters.endDate) {
+      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
+        dateFilters.endDate,
+        "MMM dd"
+      )}`;
+    }
+    if (dateFilters.startDate) {
+      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+    }
+    if (dateFilters.endDate) {
+      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+    }
+    return "FILTER";
+  };
+
+  const iconColor = hasActiveFilters
+    ? "rgba(0, 133, 49, 1)"
+    : "rgb(33, 61, 112)";
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+  };
+
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      {isVerySmall ? (
+        <IconButton
+          onClick={onFilterClick}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
+            </Box>
+          )}
+        </IconButton>
+      ) : (
+        <Tooltip title="Click here to filter by date range" arrow>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasActiveFilters}
+                onChange={onFilterClick}
+                disabled={isLoading}
+                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                size="small"
+              />
+            }
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <span>{getFilterLabel()}</span>
+              </Box>
+            }
+            sx={{
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
+          />
+        </Tooltip>
+      )}
+
+      <TextField
+        placeholder={isVerySmall ? "Search..." : "Search DA Recommendation..."}
+        value={searchQuery}
+        onChange={handleSearchChange}
+        disabled={isLoading}
+        size="small"
+        InputProps={{
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: "20px",
+              }}
+            />
+          ),
+          endAdornment: isLoading && (
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+          ),
+          sx: {
+            height: "36px",
+            width: "320px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
+        }}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
+      />
+    </Box>
   );
 };
 
@@ -370,8 +527,6 @@ const DARecommendation = () => {
 
         return true;
       } catch (error) {
-        console.error("Error in handleCancel:", error);
-
         let errorMessage = "Failed to cancel DA Form. Please try again.";
 
         if (error?.data?.message) {
@@ -412,8 +567,6 @@ const DARecommendation = () => {
 
         handleCloseModal();
       } catch (error) {
-        console.error("Error in handleSave:", error);
-
         let errorMessage = "Failed to update DA Form. Please try again.";
 
         if (error?.data?.message) {
@@ -435,7 +588,7 @@ const DARecommendation = () => {
 
   const tabsData = [
     {
-      label: "For Recommendation",
+      label: "FOR RECOMMENDATION",
       component: (
         <DAForRecommendation
           searchQuery={debouncedSearchQuery}
@@ -450,7 +603,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.forRecommendation,
     },
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       component: (
         <DARecommendationForApproval
           searchQuery={debouncedSearchQuery}
@@ -465,7 +618,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.forApproval,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "AWAITING RESUBMISSION",
       component: (
         <DARecommendationAwaitingResubmission
           searchQuery={debouncedSearchQuery}
@@ -480,7 +633,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.awaitingResubmission,
     },
     {
-      label: "Rejected",
+      label: "REJECTED",
       component: (
         <DARecommendationRejected
           searchQuery={debouncedSearchQuery}
@@ -495,7 +648,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.rejected,
     },
     {
-      label: "For MDA Processing",
+      label: "FOR MDA PROCESSING",
       component: (
         <DARecommendationForMDAProcessing
           searchQuery={debouncedSearchQuery}
@@ -510,7 +663,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.forMDAProcessing,
     },
     {
-      label: "MDA In Progress",
+      label: "MDA IN PROGRESS",
       component: (
         <DARecommendationMDAInProgress
           searchQuery={debouncedSearchQuery}
@@ -525,7 +678,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.mdaInProgress,
     },
     {
-      label: "Completed",
+      label: "COMPLETED",
       component: (
         <DARecommendationCompleted
           searchQuery={debouncedSearchQuery}
@@ -540,7 +693,7 @@ const DARecommendation = () => {
       badgeCount: daCounts.completed,
     },
     {
-      label: "Cancelled",
+      label: "CANCELLED",
       component: (
         <DARecommendationCancelled
           searchQuery={debouncedSearchQuery}
@@ -564,142 +717,83 @@ const DARecommendation = () => {
   };
 
   const isLoadingState = isLoading;
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
-
-  const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
-    }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
-    }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
-    }
-    return "FILTER";
-  };
-
-  const iconColor = hasActiveFilters
-    ? "rgba(0, 133, 49, 1)"
-    : "rgb(33, 61, 112)";
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={daFormStyles.mainContainer}>
-          <Box sx={daFormStyles.innerContainer}>
-            <Box sx={daFormStyles.headerContainer(isMobile, isTablet)}>
-              <Box
-                sx={daFormStyles.headerLeftSection(
-                  isMobile,
-                  isTablet,
-                  isVerySmall
-                )}>
-                <Typography
-                  className="header"
-                  sx={daFormStyles.headerTitle(isVerySmall, isMobile)}>
-                  {isVerySmall ? "DA Rec" : "DA Recommendation"}
-                </Typography>
-              </Box>
-
-              <Box sx={daFormStyles.headerRightSection(isVerySmall)}>
-                {isVerySmall ? (
-                  <IconButton
-                    onClick={handleFilterClick}
-                    disabled={isLoadingState}
-                    size="small"
-                    sx={daFormStyles.filterIconButton(
-                      hasActiveFilters,
-                      iconColor
-                    )}>
-                    <CalendarTodayIcon sx={daFormStyles.filterIcon} />
-                    {hasActiveFilters && (
-                      <Box sx={daFormStyles.filterBadge}>1</Box>
-                    )}
-                  </IconButton>
-                ) : (
-                  <Tooltip title="Click here to filter by date range" arrow>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={hasActiveFilters}
-                          onChange={handleFilterClick}
-                          disabled={isLoadingState}
-                          icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
-                          checkedIcon={
-                            <CalendarTodayIcon sx={{ color: iconColor }} />
-                          }
-                          size="small"
-                        />
-                      }
-                      label={
-                        <Box sx={daFormStyles.filterLabelBox}>
-                          <span>{getFilterLabel()}</span>
-                        </Box>
-                      }
-                      sx={daFormStyles.filterCheckboxLabel(hasActiveFilters)}
-                    />
-                  </Tooltip>
-                )}
-
-                <TextField
-                  placeholder={
-                    isVerySmall ? "Search..." : "Search DA Recommendation..."
-                  }
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  disabled={isLoadingState}
-                  size="small"
-                  InputProps={{
-                    startAdornment: (
-                      <SearchIcon
-                        sx={daFormStyles.searchIcon(
-                          isLoadingState,
-                          isVerySmall
-                        )}
-                      />
-                    ),
-                    endAdornment: isLoadingState && (
-                      <CircularProgress
-                        size={16}
-                        sx={daFormStyles.searchLoader}
-                      />
-                    ),
-                    sx: daFormStyles.searchInputProps(
-                      isLoadingState,
-                      isVerySmall
-                    ),
-                  }}
-                  sx={daFormStyles.searchField(isVerySmall)}
-                />
-              </Box>
+        <Box sx={styles.mainContainer}>
+          <Box
+            sx={{
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
+            }}>
+            <Box
+              sx={{
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
+              }}>
+              <Typography
+                className="header"
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
+                }}>
+                {isVerySmall ? "DA REC" : "DA RECOMMENDATION"}
+              </Typography>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="DA Recommendation submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
                     tab.badgeCount > 0 ? (
                       <Badge
-                        variant="dot"
+                        badgeContent={tab.badgeCount}
                         color="error"
-                        anchorOrigin={{
-                          vertical: "top",
-                          horizontal: "right",
-                        }}
-                        sx={daFormStyles.tabBadge}>
-                        {tab.label}
+                        sx={{
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
+                        }}>
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("FOR RECOMMENDATION", "FOR REC")
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
+                              .replace("FOR MDA PROCESSING", "MDA PROC")
+                              .replace("MDA IN PROGRESS", "MDA PROG")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("FOR RECOMMENDATION", "FOR REC")
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
+                        .replace("FOR MDA PROCESSING", "MDA PROC")
+                        .replace("MDA IN PROGRESS", "MDA PROG")
                     ) : (
                       tab.label
                     )
@@ -708,14 +802,14 @@ const DARecommendation = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box sx={daFormStyles.contentContainer}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog

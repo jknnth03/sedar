@@ -15,6 +15,12 @@ import {
   Tooltip,
   Skeleton,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CircularProgress,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -33,6 +39,7 @@ const DataChangeForApprovalTable = ({
   handleMenuClose,
   menuAnchor = {},
   searchQuery,
+  statusFilter,
   forApproval = false,
   forCancelled = false,
   forReceived = false,
@@ -45,6 +52,10 @@ const DataChangeForApprovalTable = ({
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedDataChangeHistory, setSelectedDataChangeHistory] =
     React.useState(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
+  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+    React.useState(null);
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const getMovementTypeLabel = (movementType) => {
     return movementType || "-";
@@ -155,10 +166,40 @@ const DataChangeForApprovalTable = ({
   };
 
   const handleCancelClick = (submission) => {
-    if (onCancel) {
-      onCancel(submission.id);
-    }
+    setSelectedSubmissionToCancel(submission);
+    setCancelDialogOpen(true);
     handleMenuClose(submission.id);
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelDialogOpen(false);
+    setSelectedSubmissionToCancel(null);
+    setIsCancelling(false);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedSubmissionToCancel) {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      if (onCancel) {
+        const success = await onCancel(selectedSubmissionToCancel.id);
+
+        if (success) {
+          handleCancelDialogClose();
+        } else {
+          setIsCancelling(false);
+        }
+      } else {
+        setIsCancelling(false);
+        handleCancelDialogClose();
+      }
+    } catch (error) {
+      setIsCancelling(false);
+    }
   };
 
   const canCancelSubmission = (submission) => {
@@ -178,10 +219,42 @@ const DataChangeForApprovalTable = ({
     );
   };
 
+  const filteredSubmissions = React.useMemo(() => {
+    if (!statusFilter) return submissionsList;
+    return submissionsList.filter(
+      (submission) =>
+        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+    );
+  }, [submissionsList, statusFilter]);
+
+  const getNoDataMessage = () => {
+    if (statusFilter) {
+      const statusLabels = {
+        PENDING: "pending",
+        APPROVED: "approved",
+        COMPLETED: "completed",
+        RECEIVED: "received",
+        REJECTED: "rejected",
+        CANCELLED: "cancelled",
+        "FOR APPROVAL": "for approval",
+        SUBMITTED: "submitted",
+        RESUBMITTED: "resubmitted",
+        RETURNED: "returned",
+        "AWAITING APPROVAL": "awaiting approval",
+        "PENDING MDA CREATION": "pending MDA creation",
+      };
+      const statusLabel =
+        statusLabels[statusFilter] || statusFilter.toLowerCase();
+      return searchQuery
+        ? `No ${statusLabel} data change requests found for "${searchQuery}"`
+        : `No ${statusLabel} data change requests found`;
+    }
+  };
+
   const shouldHideActionsHeader = hideActions || forCancelled || forReceived;
   const shouldShowActionsColumn =
     !shouldHideActionsHeader &&
-    submissionsList.some(
+    filteredSubmissions.some(
       (submission) => submission.status !== "PENDING MDA CREATION"
     );
   const totalColumns = shouldShowActionsColumn ? 7 : 6;
@@ -193,7 +266,7 @@ const DataChangeForApprovalTable = ({
           stickyHeader
           sx={{
             minWidth: 1200,
-            height: submissionsList.length === 0 ? "100%" : "auto",
+            height: filteredSubmissions.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -219,7 +292,9 @@ const DataChangeForApprovalTable = ({
             </TableRow>
           </TableHead>
           <TableBody
-            sx={{ height: submissionsList.length === 0 ? "100%" : "auto" }}>
+            sx={{
+              height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
               <>
                 {[...Array(5)].map((_, index) => (
@@ -279,8 +354,8 @@ const DataChangeForApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : submissionsList.length > 0 ? (
-              submissionsList.map((submission) => (
+            ) : filteredSubmissions.length > 0 ? (
+              filteredSubmissions.map((submission) => (
                 <TableRow
                   key={submission.id}
                   onClick={() => handleRowClick(submission)}
@@ -378,8 +453,6 @@ const DataChangeForApprovalTable = ({
             ) : (
               <TableRow
                 sx={{
-                  height: 0,
-                  pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
                     cursor: "default !important",
@@ -390,27 +463,15 @@ const DataChangeForApprovalTable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
-                    height: 0,
-                    padding: 0,
-                    border: "none",
                     borderBottom: "none",
-                    pointerEvents: "none",
-                    position: "relative",
+                    height: "400px",
+                    verticalAlign: "middle",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
                     },
                   }}>
-                  <Box
-                    sx={{
-                      position: "fixed",
-                      left: "62%",
-                      top: "64%",
-                      transform: "translate(-50%, -50%)",
-                      zIndex: 1,
-                    }}>
-                    <NoDataFound message="" subMessage="" />
-                  </Box>
+                  <NoDataFound message="" subMessage={getNoDataMessage()} />
                 </TableCell>
               </TableRow>
             )}
@@ -423,6 +484,132 @@ const DataChangeForApprovalTable = ({
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDataChangeHistory={selectedDataChangeHistory}
       />
+
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: "#ff4400",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
+                }}>
+                ?
+              </Typography>
+            </Box>
+          </Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
+            }}>
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            Are you sure you want to <strong>Cancel</strong> this Data Change
+            Request?
+          </Typography>
+          {selectedSubmissionToCancel && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {selectedSubmissionToCancel?.reference_number}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleCancelDialogClose}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isCancelling}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleConfirmCancel}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isCancelling}>
+            {isCancelling ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "CONFIRM"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

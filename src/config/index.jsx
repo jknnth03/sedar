@@ -351,9 +351,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: 0,
         },
         PENDINGREGISTRATION: {
-          name: "Pending Registration",
+          name: "Registration",
           permissionId: "REQUEST.PENDINGREGISTRATION",
-          displayName: "Pending Registration",
+          displayName: "Registration",
           path: "pendingregistration",
           icon: <PendingActionsIcon sx={iconStyles.child} />,
           icon_on: null,

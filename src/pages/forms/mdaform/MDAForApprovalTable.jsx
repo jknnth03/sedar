@@ -420,8 +420,6 @@ const MDAForApprovalTable = ({
             ) : (
               <TableRow
                 sx={{
-                  height: 0,
-                  pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
                     cursor: "default !important",
@@ -432,27 +430,15 @@ const MDAForApprovalTable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
-                    height: 0,
-                    padding: 0,
-                    border: "none",
                     borderBottom: "none",
-                    pointerEvents: "none",
-                    position: "relative",
+                    height: "400px",
+                    verticalAlign: "middle",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
                     },
                   }}>
-                  <Box
-                    sx={{
-                      position: "fixed",
-                      left: "62%",
-                      top: "64%",
-                      transform: "translate(-50%, -50%)",
-                      zIndex: 1,
-                    }}>
-                    <NoDataFound message="" subMessage={getNoDataMessage()} />
-                  </Box>
+                  <NoDataFound message="" subMessage={getNoDataMessage()} />
                 </TableCell>
               </TableRow>
             )}

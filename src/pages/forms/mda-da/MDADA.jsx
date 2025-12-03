@@ -23,7 +23,6 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
@@ -42,11 +41,6 @@ import MDARejected from "./MDADARejected";
 import MDADAAwaitingResubmission from "./MDADAAwaitingResubmission";
 import MDADAApproved from "./MDADAApproved";
 import MDADACancelled from "./MDADACancelled";
-import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
-import {
-  useCreateMdaDaMutation,
-  useUpdateMdaDaMutation,
-} from "../../../features/api/forms/mdaDaApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
@@ -441,13 +435,7 @@ const MDADA = () => {
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create");
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
 
-  const [createMDADASubmission] = useCreateMdaDaMutation();
-  const [updateMDADASubmission] = useUpdateMdaDaMutation();
   const [cancelMDADASubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -497,25 +485,6 @@ const MDADA = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const handleAddNew = useCallback(() => {
-    setSelectedEntry(null);
-    setModalMode("create");
-    methods.reset();
-    setModalOpen(true);
-  }, [methods]);
-
-  const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalLoading(false);
-    methods.reset();
-  }, [methods]);
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
-
   const handleCancel = useCallback(
     async (entryId, onSuccess) => {
       try {
@@ -549,65 +518,6 @@ const MDADA = () => {
       }
     },
     [cancelMDADASubmission, enqueueSnackbar]
-  );
-
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      setModalLoading(true);
-
-      try {
-        let result;
-
-        if (mode === "edit") {
-          if (!entryId) {
-            throw new Error("Entry ID is required for updating");
-          }
-
-          result = await updateMDADASubmission({
-            id: entryId,
-            data: formData,
-          }).unwrap();
-
-          enqueueSnackbar("MDADA updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        } else {
-          result = await createMDADASubmission(formData).unwrap();
-
-          enqueueSnackbar("MDADA created successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        }
-
-        handleCloseModal();
-      } catch (error) {
-        let errorMessage =
-          mode === "edit"
-            ? "Failed to update MDADA. Please try again."
-            : "Failed to create MDADA. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      createMDADASubmission,
-      updateMDADASubmission,
-      enqueueSnackbar,
-      handleCloseModal,
-    ]
   );
 
   const tabsData = [
@@ -734,71 +644,8 @@ const MDADA = () => {
                   ...(isVerySmall && styles.headerTitleTextVerySmall),
                   paddingRight: "14px",
                 }}>
-                {isVerySmall ? "MDADA" : "MDA (FOR DA)"}
+                {isVerySmall ? "MDA (DA)" : "MASTER DATA AUTHORITY (DA)"}
               </Typography>
-
-              <Fade in={!isLoading}>
-                <Box>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "140px",
-                        minWidth: isMobile ? "100px" : "140px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      CREATE
-                    </Button>
-                  )}
-                </Box>
-              </Fade>
             </Box>
 
             <CustomSearchBar
@@ -869,17 +716,6 @@ const MDADA = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
-          />
-
-          <MDADAModal
-            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
-            open={modalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEntry={selectedEntry}
-            isLoading={modalLoading}
-            mode={modalMode}
-            onModeChange={handleModeChange}
           />
         </Box>
       </FormProvider>

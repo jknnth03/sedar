@@ -217,15 +217,22 @@ export const styles = {
     borderTop: "1px solid #e0e0e0",
     backgroundColor: "#f8f9fa",
     flexShrink: 0,
+    display: "flex",
+    justifyContent: "center",
     "& .MuiTablePagination-root": {
-      color: "#666",
+      color: "rgb(33, 61, 112)",
       "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
         {
           fontSize: "14px",
           fontWeight: 500,
+          color: "rgb(33, 61, 112)",
         },
       "& .MuiTablePagination-select": {
         fontSize: "14px",
+        color: "rgb(33, 61, 112)",
+      },
+      "& .MuiSelect-icon": {
+        color: "rgb(33, 61, 112)",
       },
       "& .MuiIconButton-root": {
         color: "rgb(33, 61, 112)",
@@ -238,8 +245,12 @@ export const styles = {
       },
     },
     "& .MuiTablePagination-toolbar": {
+      justifyContent: "center",
       paddingLeft: "24px",
       paddingRight: "24px",
+    },
+    "& .MuiTablePagination-spacer": {
+      display: "none",
     },
   },
 

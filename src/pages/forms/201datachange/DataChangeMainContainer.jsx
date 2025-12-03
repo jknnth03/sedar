@@ -1,10 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
@@ -21,7 +17,7 @@ import {
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -30,7 +26,11 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "../manpowerform/FormSubmissionStyles";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
 import {
   useCreateDataChangeSubmissionMutation,
   useUpdateDataChangeSubmissionMutation,
@@ -51,43 +51,6 @@ import DataChangeModal from "../../../components/modal/form/DataChange/DataChang
 import DataChangeForMDAProcessing from "./DataChangeForMDAProcessing";
 import DataChangeMDAInProgress from "./DataChangeMDAInProgress";
 
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
-  ({ theme }) => ({
-    textTransform: "uppercase",
-    minWidth: 0,
-    fontWeight: 600,
-    fontSize: "0.875rem",
-    marginRight: theme.spacing(1),
-    color: "#666",
-    padding: "12px 16px",
-    "&:hover": {
-      color: theme.palette.primary.main,
-      opacity: 1,
-    },
-    "&.Mui-selected": {
-      color: theme.palette.primary.main,
-      fontWeight: 700,
-    },
-    "&.Mui-focusVisible": {
-      backgroundColor: "rgba(100, 95, 228, 0.32)",
-    },
-  })
-);
-
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
     <div
@@ -97,23 +60,13 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`datachange-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -297,12 +250,7 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: isVerySmall ? 1 : 1.5,
-      }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
@@ -366,42 +314,31 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
             sx={{
               margin: 0,
-              border: `1px solid ${
-                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-              }`,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
               borderRadius: "8px",
               paddingLeft: "8px",
               paddingRight: "12px",
               height: "36px",
               backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.04)"
+                ? "rgba(76, 175, 80, 0.04)"
                 : "white",
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 backgroundColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 0.08)"
+                  ? "rgba(76, 175, 80, 0.08)"
                   : "#f5f5f5",
-                borderColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
               },
               "& .MuiFormControlLabel-label": {
                 fontSize: "12px",
                 fontWeight: 600,
-                color: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
                 letterSpacing: "0.5px",
               },
             }}
@@ -421,20 +358,16 @@ const CustomSearchBar = ({
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
+                fontSize: "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
-            <CircularProgress
-              size={16}
-              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
-            />
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
+            width: "320px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -457,9 +390,8 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
+            fontSize: "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -478,21 +410,9 @@ const DataChangeMainContainer = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
-  const [currentParams, setQueryParams] = useRememberQueryParams();
-
   const { data: dashboardData } = useShowDashboardQuery();
-  const dataChangeCounts = {
-    forApproval: dashboardData?.result?.requisition?.data_change_approval || 0,
-    awaitingResubmission:
-      dashboardData?.result?.requisition?.data_change_awaiting_resubmission ||
-      0,
-    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0,
-    cancelled: 0,
-    forMDAProcessing:
-      dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
-    mdaForApproval: dashboardData?.result?.approval?.mda_approval || 0,
-    completed: 0,
-  };
+
+  const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
     0: "ForApproval",
@@ -500,7 +420,7 @@ const DataChangeMainContainer = () => {
     2: "Rejected",
     3: "Cancelled",
     4: "ForMDAProcessing",
-    5: "MDAForApproval",
+    5: "MDAInProgress",
     6: "Completed",
   };
 
@@ -510,7 +430,7 @@ const DataChangeMainContainer = () => {
     Rejected: 2,
     Cancelled: 3,
     ForMDAProcessing: 4,
-    MDAForApproval: 5,
+    MDAInProgress: 5,
     Completed: 6,
   };
 
@@ -537,6 +457,19 @@ const DataChangeMainContainer = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const dataChangeCounts = {
+    forApproval: dashboardData?.result?.requisition?.data_change_approval || 0,
+    awaitingResubmission:
+      dashboardData?.result?.requisition?.data_change_awaiting_resubmission ||
+      0,
+    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0,
+    cancelled: 0,
+    forMDAProcessing:
+      dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
+    mdaInProgress: dashboardData?.result?.approval?.mda_approval || 0,
+    completed: 0,
+  };
+
   const handleTabChange = useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
@@ -548,7 +481,7 @@ const DataChangeMainContainer = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -562,7 +495,7 @@ const DataChangeMainContainer = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -592,13 +525,6 @@ const DataChangeMainContainer = () => {
     setModalMode(newMode);
   }, []);
 
-  const handleRefreshDetails = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-  }, []);
-
   const handleRowClick = useCallback((entry) => {
     setSelectedEntry({ result: entry });
     setModalMode("view");
@@ -606,18 +532,22 @@ const DataChangeMainContainer = () => {
   }, []);
 
   const handleCancel = useCallback(
-    async (entryId, cancellationReason = "") => {
+    async (entryId, cancellationReason) => {
       try {
-        await cancelDataChangeSubmission(entryId).unwrap();
+        await cancelDataChangeSubmission({
+          id: entryId,
+          cancellation_reason: cancellationReason,
+        }).unwrap();
 
         enqueueSnackbar("201 data change cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
-        handleRefreshDetails();
         return true;
       } catch (error) {
+        console.error("Error in handleCancel:", error);
+
         let errorMessage =
           "Failed to cancel 201 data change. Please try again.";
 
@@ -635,7 +565,7 @@ const DataChangeMainContainer = () => {
         return false;
       }
     },
-    [cancelDataChangeSubmission, enqueueSnackbar, handleRefreshDetails]
+    [cancelDataChangeSubmission, enqueueSnackbar]
   );
 
   const handleResubmit = useCallback(
@@ -648,7 +578,6 @@ const DataChangeMainContainer = () => {
           autoHideDuration: 2000,
         });
 
-        handleRefreshDetails();
         handleCloseModal();
         return true;
       } catch (error) {
@@ -669,12 +598,7 @@ const DataChangeMainContainer = () => {
         return false;
       }
     },
-    [
-      resubmitDataChangeSubmission,
-      enqueueSnackbar,
-      handleRefreshDetails,
-      handleCloseModal,
-    ]
+    [resubmitDataChangeSubmission, enqueueSnackbar, handleCloseModal]
   );
 
   const handleSave = useCallback(
@@ -708,8 +632,9 @@ const DataChangeMainContainer = () => {
         }
 
         handleCloseModal();
-        handleRefreshDetails();
       } catch (error) {
+        console.error("Error in handleSave:", error);
+
         let errorMessage =
           mode === "edit"
             ? "Failed to update 201 data change. Please try again."
@@ -734,13 +659,12 @@ const DataChangeMainContainer = () => {
       updateDataChangeSubmission,
       enqueueSnackbar,
       handleCloseModal,
-      handleRefreshDetails,
     ]
   );
 
   const tabsData = [
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       component: (
         <DataChangeForapproval
           searchQuery={debouncedSearchQuery}
@@ -756,7 +680,7 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.forApproval,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "AWAITING RESUBMISSION",
       component: (
         <DataChangeAwaitingResubmission
           searchQuery={debouncedSearchQuery}
@@ -772,7 +696,7 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.awaitingResubmission,
     },
     {
-      label: "Rejected",
+      label: "REJECTED",
       component: (
         <DataChangeRejected
           searchQuery={debouncedSearchQuery}
@@ -788,7 +712,7 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.rejected,
     },
     {
-      label: "Cancelled",
+      label: "CANCELLED",
       component: (
         <DataChangeCancelled
           searchQuery={debouncedSearchQuery}
@@ -803,7 +727,7 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.cancelled,
     },
     {
-      label: "For MDA Processing",
+      label: "FOR MDA PROCESSING",
       component: (
         <DataChangeForMDAProcessing
           searchQuery={debouncedSearchQuery}
@@ -819,7 +743,7 @@ const DataChangeMainContainer = () => {
       badgeCount: dataChangeCounts.forMDAProcessing,
     },
     {
-      label: "MDA In Progress",
+      label: "MDA IN PROGRESS",
       component: (
         <DataChangeMDAInProgress
           searchQuery={debouncedSearchQuery}
@@ -832,10 +756,10 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: dataChangeCounts.mdaForApproval,
+      badgeCount: dataChangeCounts.mdaInProgress,
     },
     {
-      label: "Completed",
+      label: "COMPLETED",
       component: (
         <DataChangeCompleted
           searchQuery={debouncedSearchQuery}
@@ -864,65 +788,35 @@ const DataChangeMainContainer = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
             <Box
               sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
-              <Box
+              <Typography
+                className="header"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                  width: isMobile || isTablet ? "100%" : "auto",
-                  justifyContent: "flex-start",
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
                 }}>
-                <Typography
-                  className="header"
-                  sx={{
-                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                    fontWeight: 500,
-                    color: "rgb(33, 61, 112)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  {isVerySmall ? "DATA CHANGE" : "201 DATA CHANGE"}
-                </Typography>
-                <Fade in={!isLoadingState}>
+                {isVerySmall ? "DATA CHANGE" : "201 DATA CHANGE"}
+              </Typography>
+
+              <Fade in={!isLoading}>
+                <Box>
                   {isVerySmall ? (
                     <IconButton
                       onClick={handleAddNew}
-                      disabled={isLoadingState}
+                      disabled={isLoading}
                       sx={{
                         backgroundColor: "rgb(33, 61, 112)",
                         color: "white",
@@ -948,19 +842,22 @@ const DataChangeMainContainer = () => {
                       variant="contained"
                       onClick={handleAddNew}
                       startIcon={<AddIcon />}
-                      disabled={isLoadingState}
+                      disabled={isLoading}
                       sx={{
                         backgroundColor: "rgb(33, 61, 112)",
                         height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "160px",
-                        minWidth: isMobile ? "120px" : "160px",
+                        width: isMobile ? "auto" : "140px",
+                        minWidth: isMobile ? "100px" : "140px",
                         padding: isMobile ? "0 16px" : "0 20px",
-                        fontSize: "12px",
+                        textTransform: "none",
                         fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
+                        fontSize: isMobile ? "12px" : "14px",
+                        borderRadius: "8px",
                         boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
                         transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          marginRight: isMobile ? "4px" : "8px",
+                        },
                         "&:hover": {
                           backgroundColor: "rgb(25, 45, 84)",
                           boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
@@ -971,48 +868,60 @@ const DataChangeMainContainer = () => {
                           boxShadow: "none",
                         },
                       }}>
-                      {isMobile ? "NEW" : "NEW ENTRY"}
+                      {isMobile ? "CREATE" : "CREATE"}
                     </Button>
                   )}
-                </Fade>
-              </Box>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
+                </Box>
+              </Fade>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="MDA submissions tabs"
+              aria-label="201 data change tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
                     tab.badgeCount > 0 ? (
                       <Badge
-                        variant="dot"
+                        badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          "& .MuiBadge-dot": {
-                            minWidth: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            padding: 0,
-                            top: "8px",
-                            right: "-10px",
-                          },
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
-                        {tab.label}
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
+                              .replace("FOR MDA PROCESSING", "MDA PROC")
+                              .replace("MDA IN PROGRESS", "MDA PROG")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
+                        .replace("FOR MDA PROCESSING", "MDA PROC")
+                        .replace("MDA IN PROGRESS", "MDA PROG")
                     ) : (
                       tab.label
                     )
@@ -1021,21 +930,14 @@ const DataChangeMainContainer = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -1046,16 +948,16 @@ const DataChangeMainContainer = () => {
           />
 
           <DataChangeModal
+            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
             open={modalOpen}
             onClose={handleCloseModal}
+            onSave={handleSave}
+            selectedEntry={selectedEntry}
+            isLoading={modalLoading}
             mode={modalMode}
             onModeChange={handleModeChange}
-            selectedEntry={selectedEntry}
-            onSave={handleSave}
             onCancel={handleCancel}
             onResubmit={handleResubmit}
-            isLoading={modalLoading}
-            methods={methods}
           />
         </Box>
       </FormProvider>
