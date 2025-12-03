@@ -25,13 +25,13 @@ import DataChangeDialog from "./DataChangeDialog";
 import NoDataFound from "../../NoDataFound";
 
 const DataChangeForApprovalTable = ({
-  submissionsList,
+  submissionsList = [],
   isLoadingState,
   error,
   handleRowClick,
   handleMenuOpen,
   handleMenuClose,
-  menuAnchor,
+  menuAnchor = {},
   searchQuery,
   forApproval = false,
   forCancelled = false,
@@ -185,10 +185,6 @@ const DataChangeForApprovalTable = ({
       (submission) => submission.status !== "PENDING MDA CREATION"
     );
   const totalColumns = shouldShowActionsColumn ? 7 : 6;
-
-  const getNoDataMessage = () => {
-    return searchQuery ? `No results for "${searchQuery}"` : "";
-  };
 
   return (
     <>
@@ -413,7 +409,7 @@ const DataChangeForApprovalTable = ({
                       transform: "translate(-50%, -50%)",
                       zIndex: 1,
                     }}>
-                    <NoDataFound message="" subMessage={getNoDataMessage()} />
+                    <NoDataFound message="" subMessage="" />
                   </Box>
                 </TableCell>
               </TableRow>

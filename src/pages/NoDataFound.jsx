@@ -82,29 +82,6 @@ const NoDataFound = ({
           }}
         />
       )}
-      <Typography
-        variant={isMobile ? "body1" : "h6"}
-        color="text.secondary"
-        sx={{
-          fontWeight: 500,
-          textAlign: "center",
-          marginBottom: subMessage ? { xs: 0.5, sm: 1 } : 0,
-          fontSize: { xs: "0.95rem", sm: "1.1rem", md: "1.25rem" },
-        }}>
-        {message}
-      </Typography>
-      {subMessage && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            textAlign: "center",
-            fontSize: { xs: "0.8rem", sm: "0.85rem", md: "0.875rem" },
-            maxWidth: { xs: "90%", sm: "80%", md: "70%" },
-          }}>
-          {subMessage}
-        </Typography>
-      )}
     </Box>
   );
 };

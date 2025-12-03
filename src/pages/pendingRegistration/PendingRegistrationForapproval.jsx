@@ -1,20 +1,17 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import {
-  Paper,
-  Typography,
-  TablePagination,
-  CircularProgress,
   Box,
-  TextField,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Button,
+  Typography,
+  CircularProgress,
+  TablePagination,
   useTheme,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
@@ -24,9 +21,8 @@ import pendingApi from "../../features/api/employee/pendingApi";
 import mainApi from "../../features/api/employee/mainApi";
 import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
-import PendingRegistrationForappovalTable from "./PendingRegistrationForapprovalTable";
+import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
-import { format } from "date-fns";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -520,7 +516,7 @@ const PendingRegistrationForapproval = ({
     <FormProvider {...methods}>
       <Box sx={styles.mainContainer}>
         <Box sx={styles.contentContainer}>
-          <PendingRegistrationForappovalTable
+          <PendingRegistrationTable
             pendingList={employeesList}
             isLoadingState={isLoadingState}
             error={error}

@@ -26,7 +26,7 @@ import mainApi, {
   useLazyGetSingleEmployeeQuery,
 } from "../../features/api/employee/mainApi";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
-import PendingRegistrationForappovalTable from "./PendingRegistrationForapprovalTable";
+import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
 import { format } from "date-fns";
 import moduleApi from "../../features/api/usermanagement/dashboardApi";
@@ -583,7 +583,7 @@ const PendingRegistrationRejected = ({ searchQuery, startDate, endDate }) => {
     <FormProvider {...methods}>
       <Box sx={styles.mainContainer}>
         <Box sx={styles.contentContainer}>
-          <PendingRegistrationForappovalTable
+          <PendingRegistrationTable
             pendingList={employeesList}
             isLoadingState={isLoadingState}
             error={error}

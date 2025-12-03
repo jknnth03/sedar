@@ -13,16 +13,14 @@ import {
   DialogActions,
   useTheme,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import { useGetPendingEmployeesQuery } from "../../features/api/employee/pendingApi";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
-import PendingRegistrationForappovalTable from "./PendingRegistrationForapprovalTable";
+import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
-import { format } from "date-fns";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -78,7 +76,7 @@ const PendingRegistrationAwaitingresubmission = ({
       page,
       per_page: rowsPerPage,
       pagination: true,
-      approval_status: "awaiting resubmission", // Changed to awaiting_resubmission status
+      approval_status: "awaiting resubmission",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -601,7 +599,7 @@ const PendingRegistrationAwaitingresubmission = ({
     <FormProvider {...methods}>
       <Box sx={styles.mainContainer}>
         <Box sx={styles.contentContainer}>
-          <PendingRegistrationForappovalTable
+          <PendingRegistrationTable
             pendingList={employeesList}
             isLoadingState={isLoadingState}
             error={error}

@@ -7,6 +7,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   CircularProgress,
   Typography,
   Box,
@@ -14,7 +15,6 @@ import {
   Chip,
   Tooltip,
   useTheme,
-  alpha,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -24,22 +24,23 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Skeleton,
 } from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
   Cancel as CancelIcon,
-  Help as HelpIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
-import NoDataGIF from "../../assets/no-data.gif";
 import PendingRegistrationDialog from "./PendingRegistrationDialog";
 import { useCancelFormSubmissionMutation } from "../../features/api/approvalsetting/formSubmissionApi";
 import pendingApi from "../../features/api/employee/pendingApi";
 import mainApi from "../../features/api/employee/mainApi";
 import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import dayjs from "dayjs";
-import HistoryIcon from "@mui/icons-material/History";
+import { styles } from "../forms/manpowerform/FormSubmissionStyles";
+import NoDataFound from "../NoDataFound";
 
-const PendingRegistrationForapprovalTable = ({
+const PendingRegistrationTable = ({
   pendingList = [],
   isLoadingState,
   error,
@@ -202,20 +203,7 @@ const PendingRegistrationForapprovalTable = ({
       };
 
     return (
-      <Chip
-        label={config.label}
-        size="small"
-        sx={{
-          backgroundColor: config.bgColor,
-          color: config.color,
-          border: `1px solid ${config.color}`,
-          fontWeight: 600,
-          fontSize: "11px",
-          height: "24px",
-          borderRadius: "12px",
-          "& .MuiChip-label": { padding: "0 8px" },
-        }}
-      />
+      <Chip label={config.label} size="small" sx={styles.statusChip(config)} />
     );
   }, []);
 
@@ -263,61 +251,6 @@ const PendingRegistrationForapprovalTable = ({
     );
   };
 
-  const tableContainerStyles = {
-    overflow: "auto",
-    backgroundColor: "white",
-    height: "auto",
-    minHeight: "200px",
-    maxHeight: "calc(100vh - 200px)",
-    "& .MuiTable-root": { minWidth: 1030 },
-    "& .MuiTableHead-root": { position: "sticky", top: 0, zIndex: 10 },
-    "& .MuiTableCell-head": {
-      backgroundColor: "white !important",
-      fontWeight: 700,
-      fontSize: "18px",
-      color: "rgb(33, 61, 112)",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-      borderBottom: "none",
-      height: "48px",
-      padding: "8px 16px",
-      position: "sticky",
-      top: 0,
-      zIndex: 11,
-    },
-    "& .MuiTableCell-body": {
-      fontSize: "16px",
-      color: "#333",
-      borderBottom: "1px solid #f0f0f0",
-      padding: "8px 16px",
-      height: "52px",
-      backgroundColor: "white",
-    },
-    "& .MuiTableRow-root": {
-      transition: "background-color 0.2s ease-in-out",
-      "&:hover": {
-        backgroundColor: "#f8f9fa",
-        cursor: "pointer",
-        "& .MuiTableCell-root": { backgroundColor: "transparent" },
-      },
-    },
-  };
-
-  const columnStyles = {
-    employeeName: { width: "160px", minWidth: "160px" },
-    position: { width: "110px", minWidth: "110px" },
-    status: { width: "85px", minWidth: "85px" },
-    dateCreated: { width: "75px", minWidth: "75px" },
-    history: { width: "60px", minWidth: "60px" },
-    actions: { width: "60px", minWidth: "60px" },
-  };
-
-  const cellContentStyles = {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  };
-
   return (
     <Box
       sx={{
@@ -328,41 +261,80 @@ const PendingRegistrationForapprovalTable = ({
         backgroundColor: "white",
         minHeight: 0,
       }}>
-      <TableContainer sx={tableContainerStyles}>
-        <Table stickyHeader>
+      <TableContainer sx={styles.tableContainerStyles}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1030,
+            height: filteredPendingList.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={columnStyles.employeeName}>FULL NAME</TableCell>
-              <TableCell sx={columnStyles.position}>ID NUMBER</TableCell>
-              <TableCell sx={columnStyles.status}>STATUS</TableCell>
-              <TableCell sx={columnStyles.dateCreated}>DATE CREATED</TableCell>
-              <TableCell sx={columnStyles.history} align="center">
+              <TableCell sx={styles.columnStyles.employeeName}>
+                FULL NAME
+              </TableCell>
+              <TableCell sx={styles.columnStyles.position}>ID NUMBER</TableCell>
+              <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
+              <TableCell sx={styles.columnStyles.dateCreated}>
+                DATE CREATED
+              </TableCell>
+              <TableCell sx={styles.columnStyles.history} align="center">
                 HISTORY
               </TableCell>
-              <TableCell sx={columnStyles.actions} align="center">
+              <TableCell sx={styles.columnStyles.actions} align="center">
                 ACTIONS
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: filteredPendingList.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  align="center"
-                  sx={{ py: 4, backgroundColor: "white" }}>
-                  <CircularProgress
-                    size={32}
-                    sx={{ color: "rgb(33, 61, 112)" }}
-                  />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  align="center"
-                  sx={{ py: 4, backgroundColor: "white" }}>
+                <TableCell colSpan={6} align="center" sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error?.message || "Unknown error"}
                   </Typography>
@@ -374,94 +346,97 @@ const PendingRegistrationForapprovalTable = ({
                 <TableRow
                   key={registration?.id}
                   onClick={() => handleRowClick?.(registration)}
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                      "& .MuiTableCell-root": {
-                        backgroundColor: "transparent",
-                      },
-                    },
-                    transition: "background-color 0.2s ease",
-                  }}>
+                  sx={styles.tableRowHover(theme)}>
                   <TableCell
                     sx={{
-                      ...columnStyles.employeeName,
-                      ...cellContentStyles,
+                      ...styles.columnStyles.employeeName,
+                      ...styles.cellContentStyles,
                       fontWeight: 600,
                     }}>
                     {getFullName(registration)}
                   </TableCell>
                   <TableCell
-                    sx={{ ...columnStyles.position, ...cellContentStyles }}>
+                    sx={{
+                      ...styles.columnStyles.position,
+                      ...styles.cellContentStyles,
+                    }}>
                     {getEmployeeCode(registration)}
                   </TableCell>
-                  <TableCell sx={columnStyles.status}>
+                  <TableCell sx={styles.columnStyles.status}>
                     {renderStatusChip(registration)}
                   </TableCell>
                   <TableCell
-                    sx={{ ...columnStyles.dateCreated, ...cellContentStyles }}>
+                    sx={{
+                      ...styles.columnStyles.dateCreated,
+                      ...styles.cellContentStyles,
+                    }}>
                     {registration?.created_at
                       ? dayjs(registration.created_at).format("MMM D, YYYY")
                       : "-"}
                   </TableCell>
-                  <TableCell sx={columnStyles.history} align="center">
-                    <Tooltip title="Click here to view history">
+                  <TableCell sx={styles.columnStyles.history} align="center">
+                    <Tooltip title="View History">
                       <IconButton
                         size="small"
                         onClick={(e) => handleHistoryClick(registration, e)}
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          "&:hover": {
-                            backgroundColor: alpha(
-                              theme.palette.primary.main,
-                              0.1
-                            ),
-                          },
-                        }}>
+                        sx={styles.historyIconButton(theme)}>
                         <HistoryIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
-                  <TableCell sx={columnStyles.actions} align="center">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleActionsClick(e, registration)}
-                      disabled={isProcessing || isCancelling}
-                      sx={{
-                        color: "rgb(33, 61, 112)",
-                        "&:hover": {
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.1
-                          ),
-                        },
-                        "&.Mui-disabled": {
-                          opacity: 0.5,
-                        },
-                      }}>
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
+                  <TableCell sx={styles.columnStyles.actions} align="center">
+                    <Tooltip title="Actions">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleActionsClick(e, registration)}
+                        disabled={isProcessing || isCancelling}
+                        sx={{
+                          ...styles.actionIconButton(theme),
+                          "&.Mui-disabled": {
+                            opacity: 0.5,
+                          },
+                        }}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+              <TableRow
+                sx={{
+                  height: 0,
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
+                <TableCell
+                  colSpan={999}
+                  rowSpan={999}
+                  align="center"
+                  sx={{
+                    height: 0,
+                    padding: 0,
+                    border: "none",
+                    borderBottom: "none",
+                    pointerEvents: "none",
+                    position: "relative",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
                   <Box
                     sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
+                      position: "fixed",
+                      left: "62%",
+                      top: "64%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
                     }}>
-                    <img
-                      src={NoDataGIF}
-                      alt="No Data"
-                      style={{
-                        width: "365px",
-                        marginBottom: "16px",
-                      }}
-                    />
+                    <NoDataFound message="" subMessage="" />
                   </Box>
                 </TableCell>
               </TableRow>
@@ -469,6 +444,27 @@ const PendingRegistrationForapprovalTable = ({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {!isLoadingState &&
+        !error &&
+        filteredPendingList.length > 0 &&
+        paginationData && (
+          <Box sx={styles.paginationContainer}>
+            <TablePagination
+              component="div"
+              count={paginationData?.total || 0}
+              page={(paginationData?.current_page || 1) - 1}
+              onPageChange={onPageChange}
+              rowsPerPage={paginationData?.per_page || 10}
+              onRowsPerPageChange={onRowsPerPageChange}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              labelRowsPerPage="Rows per page:"
+              labelDisplayedRows={({ from, to, count }) =>
+                `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
+              }
+            />
+          </Box>
+        )}
 
       <Menu
         anchorEl={anchorEl}
@@ -482,30 +478,17 @@ const PendingRegistrationForapprovalTable = ({
           vertical: "top",
           horizontal: "right",
         }}
-        sx={{
-          "& .MuiMenu-paper": {
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-            border: "1px solid #e0e0e0",
-            borderRadius: "8px",
-            minWidth: "160px",
-          },
+        PaperProps={{
+          sx: styles.actionMenu(theme),
         }}>
         <MenuItem
           onClick={() => handleCancelRequest(selectedRegistration)}
           disabled={!shouldEnableCancelButton(selectedRegistration)}
-          sx={{
-            color: shouldEnableCancelButton(selectedRegistration)
-              ? "#d32f2f"
-              : "rgba(0, 0, 0, 0.26)",
-            "&:hover": {
-              backgroundColor: shouldEnableCancelButton(selectedRegistration)
-                ? "#ffebee"
-                : "transparent",
-            },
-            "&.Mui-disabled": {
-              opacity: 0.5,
-            },
-          }}>
+          sx={
+            shouldEnableCancelButton(selectedRegistration)
+              ? styles.cancelMenuItem
+              : styles.cancelMenuItemDisabled
+          }>
           <ListItemIcon>
             <CancelIcon
               fontSize="small"
@@ -526,63 +509,123 @@ const PendingRegistrationForapprovalTable = ({
         maxWidth="xs"
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3 },
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
         }}>
-        <DialogTitle>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
           <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: "#ff4400",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
+                }}>
+                ?
+              </Typography>
+            </Box>
           </Box>
           <Typography
-            variant="h6"
-            fontWeight="bold"
-            textAlign="center"
-            color="rgb(33, 61, 112)">
-            Confirm Cancellation
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
+            }}>
+            Confirmation
           </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom textAlign="center">
-            Are you sure you want to cancel this registration?
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            Are you sure you want to <strong>Cancel</strong> this registration?
           </Typography>
           {pendingCancelRegistration && (
             <Typography
               variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mt: 1 }}>
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
               {getFullName(pendingCancelRegistration)} - ID:{" "}
               {pendingCancelRegistration?.id}
             </Typography>
           )}
         </DialogContent>
-        <DialogActions>
-          <Box
-            display="flex"
-            justifyContent="center"
-            width="100%"
-            gap={2}
-            mb={2}>
-            <Button
-              onClick={handleCancelDialogClose}
-              variant="outlined"
-              color="primary"
-              disabled={isProcessing}
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              No, Keep It
-            </Button>
-            <Button
-              onClick={handleConfirmCancel}
-              variant="contained"
-              color="error"
-              disabled={isProcessing}
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              {isProcessing ? "Cancelling..." : "Yes, Cancel"}
-            </Button>
-          </Box>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleCancelDialogClose}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isProcessing}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleConfirmCancel}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isProcessing}>
+            {isProcessing ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "CONFIRM"
+            )}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -595,4 +638,4 @@ const PendingRegistrationForapprovalTable = ({
   );
 };
 
-export default PendingRegistrationForapprovalTable;
+export default PendingRegistrationTable;

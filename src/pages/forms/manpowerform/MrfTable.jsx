@@ -13,17 +13,23 @@ import {
   MenuItem,
   Chip,
   Tooltip,
-  CircularProgress,
+  Skeleton,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CircularProgress,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import MrfHistoryDialog from "./MrfHistoryDialog";
+import NoDataFound from "../../NoDataFound";
 
 const MrfTable = ({
   submissionsList,
@@ -34,6 +40,7 @@ const MrfTable = ({
   handleMenuClose,
   menuAnchor,
   searchQuery,
+  statusFilter,
   hideActions = false,
   onCancel,
   onUpdate,
@@ -42,6 +49,10 @@ const MrfTable = ({
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedMrfHistory, setSelectedMrfHistory] = React.useState(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
+  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+    React.useState(null);
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const renderPosition = (positionTitle, jobLevel) => {
     if (!positionTitle) return "-";
@@ -125,10 +136,40 @@ const MrfTable = ({
   };
 
   const handleCancelClick = (submission) => {
-    if (onCancel) {
-      onCancel(submission.id);
-    }
+    setSelectedSubmissionToCancel(submission);
+    setCancelDialogOpen(true);
     handleMenuClose(submission.id);
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelDialogOpen(false);
+    setSelectedSubmissionToCancel(null);
+    setIsCancelling(false);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedSubmissionToCancel) {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      if (onCancel) {
+        const success = await onCancel(selectedSubmissionToCancel.id);
+
+        if (success) {
+          handleCancelDialogClose();
+        } else {
+          setIsCancelling(false);
+        }
+      } else {
+        setIsCancelling(false);
+        handleCancelDialogClose();
+      }
+    } catch (error) {
+      setIsCancelling(false);
+    }
   };
 
   const handleUpdateClick = (submission) => {
@@ -192,9 +233,38 @@ const MrfTable = ({
     );
   };
 
+  const filteredSubmissions = React.useMemo(() => {
+    if (!statusFilter) return submissionsList;
+    return submissionsList.filter(
+      (submission) =>
+        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+    );
+  }, [submissionsList, statusFilter]);
+
+  const getNoDataMessage = () => {
+    if (statusFilter) {
+      const statusLabels = {
+        PENDING: "pending",
+        APPROVED: "approved",
+        REJECTED: "rejected",
+        RECEIVED: "received",
+        CANCELLED: "cancelled",
+        RETURNED: "returned",
+      };
+      const statusLabel =
+        statusLabels[statusFilter] || statusFilter.toLowerCase();
+      return searchQuery
+        ? `No ${statusLabel} submissions found for "${searchQuery}"`
+        : `No ${statusLabel} submissions found`;
+    }
+    return searchQuery
+      ? `No submissions found for "${searchQuery}"`
+      : "No submissions found";
+  };
+
   const shouldShowActionsColumn =
     !hideActions &&
-    submissionsList.some(
+    filteredSubmissions.some(
       (submission) =>
         canCancelSubmission(submission) ||
         canUpdateSubmission(submission) ||
@@ -205,7 +275,12 @@ const MrfTable = ({
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+            height: filteredSubmissions.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
@@ -226,16 +301,55 @@ const MrfTable = ({
               )}
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell
-                  colSpan={totalColumns}
-                  align="center"
-                  sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell align="center">
+                        <Skeleton
+                          animation="wave"
+                          variant="circular"
+                          width={32}
+                          height={32}
+                          sx={{ margin: "0 auto" }}
+                        />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
               <TableRow>
                 <TableCell
@@ -247,8 +361,8 @@ const MrfTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : submissionsList.length > 0 ? (
-              submissionsList.map((submission) => (
+            ) : filteredSubmissions.length > 0 ? (
+              filteredSubmissions.map((submission) => (
                 <TableRow
                   key={submission.id}
                   onClick={() => handleRowClick(submission)}
@@ -346,21 +460,40 @@ const MrfTable = ({
                 </TableRow>
               ))
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  height: 0,
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={totalColumns}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No MRF submissions found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {searchQuery
-                        ? `No results for "${searchQuery}"`
-                        : "No submissions found"}
-                    </Typography>
+                  sx={{
+                    height: 0,
+                    padding: 0,
+                    border: "none",
+                    borderBottom: "none",
+                    pointerEvents: "none",
+                    position: "relative",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "62%",
+                      top: "64%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage={getNoDataMessage()} />
                   </Box>
                 </TableCell>
               </TableRow>
@@ -374,6 +507,131 @@ const MrfTable = ({
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedMrfHistory={selectedMrfHistory}
       />
+
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: "#ff4400",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
+                }}>
+                ?
+              </Typography>
+            </Box>
+          </Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
+            }}>
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            Are you sure you want to <strong>Cancel</strong> this MRF Request?
+          </Typography>
+          {selectedSubmissionToCancel && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {selectedSubmissionToCancel?.reference_number}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleCancelDialogClose}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isCancelling}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleConfirmCancel}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isCancelling}>
+            {isCancelling ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "CONFIRM"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
