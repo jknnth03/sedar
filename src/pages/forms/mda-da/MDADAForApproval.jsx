@@ -32,12 +32,8 @@ const MDADAForApproval = ({
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewModalMode, setViewModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const viewFormMethods = useForm({
     defaultValues: {
@@ -90,8 +86,7 @@ const MDADAForApproval = ({
   }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -145,11 +140,9 @@ const MDADAForApproval = ({
   const handleRowClick = useCallback(
     async (submission) => {
       setSelectedSubmissionId(submission.id);
-      setSelectedSubmission(submission);
       setViewModalMode("view");
       setViewModalOpen(true);
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
 
       try {
         await triggerGetSubmission(submission.id);
@@ -166,7 +159,6 @@ const MDADAForApproval = ({
       setViewModalMode("edit");
       setViewModalOpen(true);
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
 
       try {
         await triggerGetSubmission(submission.id);
@@ -198,12 +190,10 @@ const MDADAForApproval = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -248,64 +238,52 @@ const MDADAForApproval = ({
     setViewModalMode(newMode);
   }, []);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching;
 
   return (
-    <>
+    <FormProvider {...viewFormMethods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <MDADATable
-            submissionsList={paginatedSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            onCancel={onCancel}
-            onRefetch={refetch}
-          />
+        <MDADATable
+          submissionsList={paginatedSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          onCancel={onCancel}
+          onRefetch={refetch}
+        />
 
-          <CustomTablePagination
-            count={filteredSubmissions.length}
-            page={Math.max(0, page - 1)}
-            rowsPerPage={rowsPerPage}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-          />
-        </Box>
+        <CustomTablePagination
+          count={filteredSubmissions.length}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Box>
 
-      <FormProvider {...viewFormMethods}>
-        <MDADAModal
-          open={viewModalOpen}
-          onClose={handleViewModalClose}
-          submissionId={selectedSubmissionId}
-          mode={viewModalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onRefreshDetails={handleRefreshDetails}
-        />
-      </FormProvider>
-    </>
+      <MDADAModal
+        open={viewModalOpen}
+        onClose={handleViewModalClose}
+        submissionId={selectedSubmissionId}
+        mode={viewModalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onRefreshDetails={handleRefreshDetails}
+      />
+    </FormProvider>
   );
 };
 

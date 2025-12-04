@@ -1,16 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from "@mui/material";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -29,6 +18,15 @@ import DataChangeModal from "../../../components/modal/form/DataChange/DataChang
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
 import DataChangeForApprovalTable from "../201datachange/DataChangeForapprovalTable";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 
 const DataChangeForMDAProcessing = ({
   searchQuery,
@@ -553,232 +551,189 @@ const DataChangeForMDAProcessing = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DataChangeForApprovalTable
-            submissionsList={paginatedSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            handleResubmitSubmission={handleResubmitSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={false}
-            forMDAProcessing={true}
-            onCreateMDA={handleCreateMDA}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <DataChangeModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onSave={handleModalSave}
-          onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
+        <DataChangeForApprovalTable
+          submissionsList={paginatedSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          handleResubmitSubmission={handleResubmitSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
+          forMDAProcessing={true}
           onCreateMDA={handleCreateMDA}
         />
 
-        <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
-          <MDAFormModal
-            open={mdaModalOpen}
-            onClose={handleMdaModalClose}
-            onSave={handleSaveMDA}
-            selectedEntry={null}
-            isLoading={isCreatingMda || isUpdatingMda}
-            mode="create"
-            employeeMovements={[]}
-            positions={positions}
-            submissionId={mdaSubmissionId}
-            key={`mda-${mdaSubmissionId}-${mdaModalOpen}`}
-          />
-        </FormProvider>
+        <CustomTablePagination
+          count={filteredSubmissions.length}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
+      </Box>
 
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+      <DataChangeModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onSave={handleModalSave}
+        onRefreshDetails={handleRefreshDetails}
+        onSuccessfulSave={handleModalSuccessCallback}
+        onCreateMDA={handleCreateMDA}
+      />
+
+      <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
+        <MDAFormModal
+          open={mdaModalOpen}
+          onClose={handleMdaModalClose}
+          onSave={handleSaveMDA}
+          selectedEntry={null}
+          isLoading={isCreatingMda || isUpdatingMda}
+          mode="create"
+          employeeMovements={[]}
+          positions={positions}
+          submissionId={mdaSubmissionId}
+          key={`mda-${mdaSubmissionId}-${mdaModalOpen}`}
+        />
+      </FormProvider>
+
+      <Dialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
             <Box
               sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: getConfirmationIcon().color,
                 display: "flex",
+                alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
               }}>
-              <Box
+              <Typography
                 sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
                 }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
+                {getConfirmationIcon().icon}
+              </Typography>
             </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
+          </Box>
+          <Typography
+            variant="h5"
             sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
             }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
+            {getConfirmationTitle()}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            {getConfirmationMessage()}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: "14px",
+              color: "#666",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}>
+            {getSubmissionDisplayName()}
+          </Typography>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleConfirmationCancel}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isLoading}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleActionConfirm}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isLoading}>
+            {isLoading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              getConfirmButtonText()
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </FormProvider>
   );
 };

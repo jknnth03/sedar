@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -15,6 +15,7 @@ import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
 } from "../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const MDAForApproval = ({
   searchQuery,
@@ -53,7 +54,7 @@ const MDAForApproval = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: "PENDING",
-      pagination: true,
+      pagination: 1,
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);
@@ -82,10 +83,37 @@ const MDAForApproval = ({
     refetchOnMountOrArgChange: true,
   });
 
-  const submissionsList = useMemo(() => {
-    const data = submissionsData?.result?.data || [];
-    return data;
-  }, [submissionsData]);
+  const filteredSubmissions = useMemo(() => {
+    const rawData = submissionsData?.result?.data || [];
+
+    let filtered = rawData;
+
+    if (dateFilters && filterDataByDate) {
+      filtered = filterDataByDate(
+        filtered,
+        dateFilters.startDate,
+        dateFilters.endDate
+      );
+    }
+
+    if (searchQuery && filterDataBySearch) {
+      filtered = filterDataBySearch(filtered, searchQuery);
+    }
+
+    return filtered;
+  }, [
+    submissionsData,
+    dateFilters,
+    searchQuery,
+    filterDataByDate,
+    filterDataBySearch,
+  ]);
+
+  const paginatedSubmissions = useMemo(() => {
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return filteredSubmissions.slice(startIndex, endIndex);
+  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
@@ -267,8 +295,6 @@ const MDAForApproval = ({
 
   const isLoadingState = queryLoading || isFetching;
 
-  const totalCount = submissionsData?.result?.total || 0;
-
   return (
     <FormProvider {...methods}>
       <Box
@@ -289,7 +315,7 @@ const MDAForApproval = ({
             backgroundColor: "white",
           }}>
           <MDAForApprovalTable
-            submissionsList={submissionsList}
+            submissionsList={paginatedSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -301,46 +327,13 @@ const MDAForApproval = ({
             onCancel={handleCancel}
           />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
+          <CustomTablePagination
+            count={filteredSubmissions.length}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
 
         <MDAFormModal

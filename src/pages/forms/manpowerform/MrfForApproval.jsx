@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -15,6 +15,7 @@ import {
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const MrfForApproval = ({
   searchQuery,
@@ -36,7 +37,6 @@ const MrfForApproval = ({
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -64,17 +64,16 @@ const MrfForApproval = ({
 
   const queryParams = useMemo(() => {
     return {
-      page: 1,
-      per_page: 10,
+      page: page,
+      per_page: rowsPerPage,
       status: "active",
-      pagination: true,
+      pagination: 1,
       approval_status: "pending",
     };
-  }, []);
+  }, [page, rowsPerPage]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -138,14 +137,12 @@ const MrfForApproval = ({
     setModalMode("view");
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalOpen(true);
   }, []);
 
   const handleUpdateSubmission = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalMode("edit");
     setModalOpen(true);
   }, []);
@@ -153,7 +150,6 @@ const MrfForApproval = ({
   const handleResubmitSubmission = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalMode("resubmit");
     setModalOpen(true);
   }, []);
@@ -258,12 +254,10 @@ const MrfForApproval = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -401,100 +395,57 @@ const MrfForApproval = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <MrfTable
-            submissionsList={paginatedSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            hideActions={false}
-            onCancel={handleCancelSubmission}
-            onUpdate={handleUpdateSubmission}
-            onResubmit={handleResubmitSubmission}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <FormSubmissionModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails?.result || submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onSave={handleModalSave}
-          onResubmit={handleModalSave}
-          onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
+        <MrfTable
+          submissionsList={paginatedSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          hideActions={false}
+          onCancel={handleCancelSubmission}
+          onUpdate={handleUpdateSubmission}
+          onResubmit={handleResubmitSubmission}
         />
 
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isLoading}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
+        <CustomTablePagination
+          count={filteredSubmissions.length}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <FormSubmissionModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails?.result || submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onSave={handleModalSave}
+        onResubmit={handleModalSave}
+        onRefreshDetails={handleRefreshDetails}
+        onSuccessfulSave={handleModalSuccessCallback}
+      />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+      />
     </FormProvider>
   );
 };

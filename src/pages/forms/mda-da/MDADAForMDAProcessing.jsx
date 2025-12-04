@@ -5,18 +5,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from "@mui/material";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -32,6 +21,7 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAForMDAProcessingTable from "./DAForMDAProcessingTable";
 import DADataChangeModal from "../../../components/modal/form/MDADAForm/DAChangeModal";
 import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const MDADAForMDAProcessing = ({
   searchQuery,
@@ -61,11 +51,7 @@ const MDADAForMDAProcessing = ({
 
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const prevSearchQuery = useRef(searchQuery);
-  const prevDateFilters = useRef(dateFilters);
 
   const viewFormMethods = useForm({
     defaultValues: {
@@ -115,14 +101,7 @@ const MDADAForMDAProcessing = ({
   }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
-    if (
-      prevSearchQuery.current !== searchQuery ||
-      JSON.stringify(prevDateFilters.current) !== JSON.stringify(dateFilters)
-    ) {
-      setPage(1);
-      prevSearchQuery.current = searchQuery;
-      prevDateFilters.current = dateFilters;
-    }
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -146,26 +125,48 @@ const MDADAForMDAProcessing = ({
   const [updateMdaDa, { isLoading: isUpdatingMdaDa }] =
     useUpdateMdaDaMutation();
 
-  const submissionsList = useMemo(() => {
-    return submissionsData?.result?.data || [];
-  }, [submissionsData]);
+  const filteredSubmissions = useMemo(() => {
+    const rawData = submissionsData?.result?.data || [];
 
-  const totalCount = useMemo(() => {
-    return submissionsData?.result?.total || 0;
-  }, [submissionsData]);
+    let filtered = rawData;
+
+    if (dateFilters && filterDataByDate) {
+      filtered = filterDataByDate(
+        filtered,
+        dateFilters.startDate,
+        dateFilters.endDate
+      );
+    }
+
+    if (searchQuery && filterDataBySearch) {
+      filtered = filterDataBySearch(filtered, searchQuery);
+    }
+
+    return filtered;
+  }, [
+    submissionsData,
+    dateFilters,
+    searchQuery,
+    filterDataByDate,
+    filterDataBySearch,
+  ]);
+
+  const paginatedSubmissions = useMemo(() => {
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return filteredSubmissions.slice(startIndex, endIndex);
+  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback(
     async (submission) => {
-      const submissionIdToUse = submission.id;
-      setSelectedSubmissionId(submissionIdToUse);
+      setSelectedSubmissionId(submission.id);
       setSelectedSubmission(submission);
       setViewModalMode("view");
       setViewModalOpen(true);
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
 
       try {
-        await triggerGetSubmission(submissionIdToUse);
+        await triggerGetSubmission(submission.id);
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -175,16 +176,14 @@ const MDADAForMDAProcessing = ({
 
   const handleEditSubmission = useCallback(
     async (submission) => {
-      const submissionIdToUse = submission.id;
-      setSelectedSubmissionId(submissionIdToUse);
+      setSelectedSubmissionId(submission.id);
       setSelectedSubmission(submission);
       setViewModalMode("edit");
       setViewModalOpen(true);
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
 
       try {
-        await triggerGetSubmission(submissionIdToUse);
+        await triggerGetSubmission(submission.id);
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -208,8 +207,7 @@ const MDADAForMDAProcessing = ({
   }, [selectedSubmissionId, triggerGetSubmission]);
 
   const handleCreateMDA = useCallback((submission) => {
-    const submissionIdForPrefill = submission.id;
-    setMdaSubmissionId(submissionIdForPrefill);
+    setMdaSubmissionId(submission.id);
     setSelectedMdaSubmission(submission);
     setMdaModalOpen(true);
   }, []);
@@ -247,7 +245,7 @@ const MDADAForMDAProcessing = ({
     async (data, mode) => {
       try {
         if (mode === "create") {
-          const result = await createMdaDa(data).unwrap();
+          await createMdaDa(data).unwrap();
           enqueueSnackbar("MDA (DA) created successfully!", {
             variant: "success",
             autoHideDuration: 3000,
@@ -256,7 +254,7 @@ const MDADAForMDAProcessing = ({
           mdaFormMethods.reset();
           refetch();
         } else if (mode === "edit") {
-          const result = await updateMdaDa({
+          await updateMdaDa({
             id: selectedMdaSubmission.id,
             data: data,
           }).unwrap();
@@ -294,12 +292,10 @@ const MDADAForMDAProcessing = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -350,82 +346,37 @@ const MDADAForMDAProcessing = ({
     <>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DAForMDAProcessingTable
-            submissionsList={submissionsList}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={false}
-            forMDAProcessing={true}
-            onCreateMDA={handleCreateMDA}
-            onCancel={onCancel}
-          />
+        <DAForMDAProcessingTable
+          submissionsList={paginatedSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
+          forMDAProcessing={true}
+          onCreateMDA={handleCreateMDA}
+          onCancel={onCancel}
+        />
 
-          {!error && (
-            <Box
-              sx={{
-                borderTop: "1px solid #e0e0e0",
-                backgroundColor: "#f8f9fa",
-                flexShrink: 0,
-                "& .MuiTablePagination-root": {
-                  color: "#666",
-                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                    {
-                      fontSize: "14px",
-                      fontWeight: 500,
-                    },
-                  "& .MuiTablePagination-select": {
-                    fontSize: "14px",
-                  },
-                  "& .MuiIconButton-root": {
-                    color: "rgb(33, 61, 112)",
-                    "&:hover": {
-                      backgroundColor: "rgba(33, 61, 112, 0.04)",
-                    },
-                    "&.Mui-disabled": {
-                      color: "#ccc",
-                    },
-                  },
-                },
-                "& .MuiTablePagination-toolbar": {
-                  paddingLeft: "24px",
-                  paddingRight: "24px",
-                },
-              }}>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25, 50, 100]}
-                component="div"
-                count={totalCount}
-                rowsPerPage={rowsPerPage}
-                page={Math.max(0, page - 1)}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
-              />
-            </Box>
-          )}
-        </Box>
+        <CustomTablePagination
+          count={filteredSubmissions.length}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Box>
 
       <FormProvider {...viewFormMethods}>
