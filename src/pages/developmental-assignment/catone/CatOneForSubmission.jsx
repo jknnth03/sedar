@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -11,6 +11,7 @@ import {
 } from "../../../features/api/da-task/catOneApi";
 import CatOneTable from "./CatOneTable";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const CatOneForSubmission = ({
@@ -33,7 +34,6 @@ const CatOneForSubmission = ({
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
@@ -46,8 +46,7 @@ const CatOneForSubmission = ({
   });
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -154,7 +153,6 @@ const CatOneForSubmission = ({
     setSelectedSubmissionId(submission.id);
     setSelectedSubmission(submission);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalOpen(true);
   }, []);
 
@@ -162,7 +160,6 @@ const CatOneForSubmission = ({
     setSelectedSubmissionId(submission.id);
     setSelectedSubmission(submission);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalMode("edit");
     setModalOpen(true);
   }, []);
@@ -282,12 +279,10 @@ const CatOneForSubmission = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -338,93 +333,50 @@ const CatOneForSubmission = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <CatOneTable
-            submissionsList={filteredSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={false}
-            forApproval={false}
-            forAssessment={false}
-            onCancel={handleCancelSubmission}
-          />
+        <CatOneTable
+          submissionsList={filteredSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
+          forApproval={false}
+          forAssessment={false}
+          onCancel={handleCancelSubmission}
+        />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <CatOneModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails?.result || selectedSubmission}
-          isLoading={detailsLoading}
-          onSave={handleModalSave}
-          onSaveAsDraft={handleModalSaveAsDraft}
-          onRefreshDetails={handleRefreshDetails}
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <CatOneModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails?.result || selectedSubmission}
+        isLoading={detailsLoading}
+        onSave={handleModalSave}
+        onSaveAsDraft={handleModalSaveAsDraft}
+        onRefreshDetails={handleRefreshDetails}
+      />
     </FormProvider>
   );
 };

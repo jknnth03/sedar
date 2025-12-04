@@ -1,17 +1,11 @@
 import React, { useState, useMemo, useCallback } from "react";
-import {
-  Paper,
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  alpha,
-} from "@mui/material";
+import { Paper, Box, useTheme } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useGetFilteredStatusesQuery } from "../../features/api/employee/statusApi";
 import StatusModal from "../../components/modal/employee/multiFormModal/status/StatusModal";
 import FilterStatusDialog from "./FilterStatusDialog";
 import StatusesTable from "./StatusesTable";
+import CustomTablePagination from "../zzzreusable/CustomTablePagination";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 
@@ -202,7 +196,7 @@ const Status = ({
 
     return {
       employeeStatusList: transformedData,
-      totalCount: result?.total || data.length,
+      totalCount: result?.total || 0,
     };
   }, [apiResponse, validateDate, getBaseUrl, formatFullName]);
 
@@ -466,6 +460,18 @@ const Status = ({
     return selectedStatuses.length > 0 || selectedStatusTypes.length > 0;
   }, [selectedStatuses, selectedStatusTypes]);
 
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(1);
+  }, []);
+
+  const isLoadingState = isLoading || isFetching;
+
   return (
     <Box
       sx={{
@@ -486,7 +492,7 @@ const Status = ({
         }}>
         <StatusesTable
           employeeStatusList={employeeStatusList}
-          isFetching={isFetching}
+          isFetching={isLoadingState}
           error={error}
           onRowClick={handleRowClick}
           onFilterIconClick={handleFilterIconClick}
@@ -494,34 +500,13 @@ const Status = ({
           getNoDataMessage={getNoDataMessage}
         />
 
-        <Box sx={{ flexShrink: 0 }}>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={totalCount}
-            rowsPerPage={rowsPerPage}
-            page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-              backgroundColor: alpha(theme.palette.background.paper, 0.6),
-              minHeight: "52px",
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: theme.spacing(2),
-                paddingRight: theme.spacing(1),
-              },
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  margin: 0,
-                  fontSize: "0.875rem",
-                },
-            }}
-          />
-        </Box>
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
 
       <StatusModal

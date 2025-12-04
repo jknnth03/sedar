@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Paper,
   Typography,
@@ -7,7 +7,6 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   CircularProgress,
   TableRow,
   Dialog,
@@ -20,13 +19,7 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
-import {
-  Archive as ArchiveIcon,
-  Restore as RestoreIcon,
-  Help as HelpIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-} from "@mui/icons-material";
+import { Help as HelpIcon } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import {
   useGetAccountsQuery,
@@ -38,6 +31,7 @@ import { CONSTANT } from "../../config/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
+import CustomTablePagination from "../zzzreusable/CustomTablePagination";
 
 const Accounts = ({
   searchQuery: parentSearchQuery,
@@ -51,15 +45,15 @@ const Accounts = ({
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [currentParams, setQueryParams, removeQueryParams] =
-    useRememberQueryParams();
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [rowsPerPage, setRowsPerPage] = useState(
+    parseInt(queryParams?.rowsPerPage) || 10
+  );
 
   const searchQuery =
-    parentSearchQuery !== undefined
-      ? parentSearchQuery
-      : currentParams?.q ?? "";
+    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
   const showArchived =
     parentShowArchived !== undefined ? parentShowArchived : false;
   const debounceValue =
@@ -73,7 +67,7 @@ const Accounts = ({
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(() => {
+  const apiQueryParams = useMemo(() => {
     const params = {
       pagination: page,
       page: page,
@@ -127,18 +121,24 @@ const Accounts = ({
     return params;
   }, [debounceValue, page, rowsPerPage, filters]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filters]);
+
   const {
     data: accounts,
     isLoading,
     isFetching,
     refetch,
-  } = useGetAccountsQuery(queryParams, {
+  } = useGetAccountsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
   });
 
   const [deleteAccount] = useDeleteAccountMutation();
 
   const accountList = useMemo(() => accounts?.result?.data || [], [accounts]);
+
+  const totalCount = useMemo(() => accounts?.result?.total || 0, [accounts]);
 
   const handleArchiveRestoreClick = useCallback((account, event) => {
     if (event) {
@@ -246,6 +246,44 @@ const Accounts = ({
     [refetch, enqueueSnackbar]
   );
 
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      const targetPage = newPage + 1;
+      setPage(targetPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: targetPage,
+            rowsPerPage: rowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, rowsPerPage, queryParams]
+  );
+
+  const handleRowsPerPageChange = useCallback(
+    (event) => {
+      const newRowsPerPage = parseInt(event.target.value, 10);
+      const newPage = 1;
+      setRowsPerPage(newRowsPerPage);
+      setPage(newPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: newPage,
+            rowsPerPage: newRowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, queryParams]
+  );
+
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
     []
@@ -283,6 +321,8 @@ const Accounts = ({
 
     return chargingData.filter((item) => item.code && item.name);
   }, []);
+
+  const isLoadingState = isLoading || isFetching;
 
   return (
     <Box
@@ -341,7 +381,7 @@ const Accounts = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {isFetching ? (
+              {isLoadingState ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     <Box sx={{ py: 4 }}>
@@ -499,34 +539,13 @@ const Accounts = ({
           </Table>
         </TableContainer>
 
-        <Box sx={{ flexShrink: 0 }}>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={accounts?.result?.total || 0}
-            rowsPerPage={rowsPerPage}
-            page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-              backgroundColor: alpha(theme.palette.background.paper, 0.6),
-              minHeight: "52px",
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: theme.spacing(2),
-                paddingRight: theme.spacing(1),
-              },
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  margin: 0,
-                  fontSize: "0.875rem",
-                },
-            }}
-          />
-        </Box>
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
 
       <Dialog

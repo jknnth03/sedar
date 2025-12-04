@@ -1012,11 +1012,9 @@ const ConfirmationDialog = ({
   );
 };
 
-// Create the object to export
 const ReceivingDialog = {
   SubmissionDialog,
   ConfirmationDialog,
 };
 
-// Export as default
 export default ReceivingDialog;

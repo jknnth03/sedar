@@ -7,7 +7,6 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   CircularProgress,
   TableRow,
   Box,
@@ -40,6 +39,7 @@ import {
   useGetPositionKpisQuery,
 } from "../../features/api/evaluation/kpiApi";
 import KpiModal from "../../components/modal/evaluation/KpiModal";
+import CustomTablePagination from "../zzzreusable/CustomTablePagination";
 import { kpiStyles } from "./KpiStyles";
 import NoDataFound from "../NoDataFound";
 
@@ -529,18 +529,13 @@ const Kpi = () => {
             </Table>
           </TableContainer>
 
-          <Box sx={kpiStyles.paginationContainer(isMobile)}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={positionsData?.result?.total || 0}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              sx={kpiStyles.paginationToolbar(isMobile)}
-            />
-          </Box>
+          <CustomTablePagination
+            count={positionsData?.result?.total || 0}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
 
         <KpiModal

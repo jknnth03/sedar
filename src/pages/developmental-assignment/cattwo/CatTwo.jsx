@@ -1,9 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  useTheme,
   Badge,
   Typography,
   Button,
@@ -19,7 +16,7 @@ import {
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -27,6 +24,11 @@ import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useSaveCatTwoAsDraftMutation,
   useSubmitCatTwoMutation,
@@ -41,15 +43,6 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import {
-  catTwoStyles,
-  styledTabsConfig,
-  styledTabConfig,
-} from "./CatTwoStyles";
-
-const StyledTabs = styled(Tabs)(({ theme }) => styledTabsConfig(theme));
-
-const StyledTab = styled(Tab)(({ theme }) => styledTabConfig(theme));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -60,12 +53,13 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`cattwo-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && <Box sx={catTwoStyles.tabPanelInner}>{children}</Box>}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -144,13 +138,13 @@ const DateFilterDialog = ({
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: catTwoStyles.filterDialog,
+        sx: styles.filterDialog,
       }}>
       <DialogTitle>
-        <Box sx={catTwoStyles.filterDialogTitle}>
-          <Box sx={catTwoStyles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={catTwoStyles.filterIcon} />
-            <Typography variant="h6" sx={catTwoStyles.filterDialogTitleText}>
+        <Box sx={styles.filterDialogTitle}>
+          <Box sx={styles.filterDialogTitleLeft}>
+            <CalendarTodayIcon sx={styles.filterIcon} />
+            <Typography variant="h6" sx={styles.filterDialogTitleText}>
               FILTER BY DATE
             </Typography>
           </Box>
@@ -159,7 +153,7 @@ const DateFilterDialog = ({
             variant="outlined"
             onClick={handleClear}
             disabled={!hasFilters}
-            sx={catTwoStyles.selectAllButton}>
+            sx={styles.selectAllButton}>
             Clear All
           </Button>
         </Box>
@@ -167,7 +161,7 @@ const DateFilterDialog = ({
 
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={catTwoStyles.datePickerContainer}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -191,19 +185,19 @@ const DateFilterDialog = ({
         </LocalizationProvider>
       </DialogContent>
 
-      <DialogActions sx={catTwoStyles.filterDialogActions}>
-        <Box sx={catTwoStyles.dialogActionsContainer}>
-          <Box sx={catTwoStyles.dialogButtonsContainer}>
+      <DialogActions sx={styles.filterDialogActions}>
+        <Box sx={styles.dialogActionsContainer}>
+          <Box sx={styles.dialogButtonsContainer}>
             <Button
               onClick={onClose}
               variant="outlined"
-              sx={catTwoStyles.cancelButton}>
+              sx={styles.cancelButton}>
               CANCEL
             </Button>
             <Button
               onClick={handleApply}
               variant="contained"
-              sx={catTwoStyles.applyFiltersButton}>
+              sx={styles.applyFiltersButton}>
               APPLY FILTERS
             </Button>
           </Box>
@@ -249,15 +243,55 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box sx={catTwoStyles.searchBarContainer(isVerySmall)}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
           disabled={isLoading}
           size="small"
-          sx={catTwoStyles.filterIconButton(hasActiveFilters, iconColor)}>
-          <CalendarTodayIcon sx={catTwoStyles.filterCalendarIcon} />
-          {hasActiveFilters && <Box sx={catTwoStyles.filterBadge}>1</Box>}
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
+            </Box>
+          )}
         </IconButton>
       ) : (
         <Tooltip title="Click here to filter by date range" arrow>
@@ -273,11 +307,34 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box sx={catTwoStyles.filterLabelBox}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
-            sx={catTwoStyles.filterCheckboxLabel(hasActiveFilters)}
+            sx={{
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
           />
         </Tooltip>
       )}
@@ -290,14 +347,49 @@ const CustomSearchBar = ({
         size="small"
         InputProps={{
           startAdornment: (
-            <SearchIcon sx={catTwoStyles.searchIcon(isLoading, isVerySmall)} />
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: "20px",
+              }}
+            />
           ),
           endAdornment: isLoading && (
-            <CircularProgress size={16} sx={catTwoStyles.searchProgress} />
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
-          sx: catTwoStyles.searchInputProps(isVerySmall),
+          sx: {
+            height: "36px",
+            width: "320px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={catTwoStyles.searchTextField(isVerySmall)}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -362,7 +454,7 @@ const CatTwo = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -376,7 +468,7 @@ const CatTwo = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -423,7 +515,6 @@ const CatTwo = () => {
 
   const handleConfirmationRequest = useCallback(
     (action, itemName, formData) => {
-      console.log("Confirmation Request:", { action, itemName, formData });
       setConfirmAction(action);
       setConfirmItemName(itemName);
       setPendingFormData(formData);
@@ -438,9 +529,6 @@ const CatTwo = () => {
     setIsLoading(true);
 
     try {
-      console.log("Confirming action:", confirmAction);
-      console.log("Pending form data:", pendingFormData);
-
       if (confirmAction === "draft") {
         await saveCatTwoAsDraft({
           taskId: pendingFormData.entryId || pendingFormData.taskId,
@@ -460,10 +548,6 @@ const CatTwo = () => {
           autoHideDuration: 2000,
         });
       } else if (confirmAction === "update") {
-        console.log("Update data being sent:", {
-          taskId: pendingFormData.taskId,
-          ...pendingFormData.data,
-        });
         await submitCatTwo({
           taskId: pendingFormData.taskId,
           ...pendingFormData.data,
@@ -603,89 +687,79 @@ const CatTwo = () => {
 
   const tabsData = [
     {
-      label: "For Assessment",
+      label: "FOR ASSESSMENT",
       component: (
         <CatTwoForAssessment
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
           onConfirmationRequest={handleConfirmationRequest}
         />
       ),
-      badgeCount: null,
+      badgeCount: 0,
     },
     {
-      label: "For Submission",
+      label: "FOR SUBMISSION",
       component: (
         <CatTwoForSubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
           onConfirmationRequest={handleConfirmationRequest}
         />
       ),
-      badgeCount: null,
+      badgeCount: 0,
     },
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       component: (
         <CatTwoForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
           onConfirmationRequest={handleConfirmationRequest}
         />
       ),
-      badgeCount: null,
+      badgeCount: 0,
     },
     {
-      label: "Returned",
+      label: "RETURNED",
       component: (
         <CatTwoReturned
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
           onConfirmationRequest={handleConfirmationRequest}
         />
       ),
-      badgeCount: null,
+      badgeCount: 0,
     },
     {
-      label: "Approved",
+      label: "APPROVED",
       component: (
         <CatTwoApproved
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
           onCancel={handleCancel}
           onRowClick={handleRowClick}
           onConfirmationRequest={handleConfirmationRequest}
         />
       ),
-      badgeCount: null,
+      badgeCount: 0,
     },
   ];
 
@@ -701,40 +775,63 @@ const CatTwo = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={catTwoStyles.mainContainer}>
-          <Box sx={catTwoStyles.innerContainer}>
-            <Box sx={catTwoStyles.headerContainer(isMobile, isTablet)}>
+        <Box sx={styles.mainContainer}>
+          <Box
+            sx={{
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
+            }}>
+            <Box
+              sx={{
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
+              }}>
               <Typography
                 className="header"
-                sx={catTwoStyles.headerTitle(isVerySmall, isMobile)}>
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
+                }}>
                 CAT 2
               </Typography>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="CAT 2 tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
                         badgeContent={tab.badgeCount}
                         color="error"
-                        sx={catTwoStyles.badgeStyle}>
+                        sx={{
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
+                        }}>
                         {tab.label}
                       </Badge>
                     ) : (
@@ -745,14 +842,14 @@ const CatTwo = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box sx={catTwoStyles.tabPanelContainer}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog

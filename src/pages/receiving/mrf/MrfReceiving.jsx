@@ -16,7 +16,7 @@ import {
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, styled } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -24,42 +24,94 @@ import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import {
-  styles,
-  StyledTabs,
-  StyledTab,
-} from "../../forms/manpowerform/FormSubmissionStyles";
-import {
-  useSaveCatOneAsDraftMutation,
-  useSubmitCatOneMutation,
-} from "../../../features/api/da-task/catOneApi";
 import { format, parseISO, isWithinInterval } from "date-fns";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import useDebounce from "../../hooks/useDebounce";
+import MrfForReceiving from "./MrfForReceiving";
+import MrfReceived from "./MrfReceived";
+import {
+  useReceiveSubmissionMutation,
+  useReturnSubmissionMutation,
+} from "../../features/api/receiving/receivingApi";
+import { styles } from "../forms/manpowerform/FormSubmissionStyles";
 
-import CatOneForAssessment from "./CatOneForAssessment";
-import CatOneForApproval from "./CatOneForApproval";
-import CatOneForSubmission from "./CatOneForSubmission";
-import CatOneApproved from "./CatOneApproved";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../hooks/useDebounce";
-import CatOneModal from "../../../components/modal/da-task/CatOneModal";
-import CatOneReturned from "./CatOneReturned";
+const StyledTabs = styled((props) => (
+  <Box
+    sx={{
+      backgroundColor: "#ffffff",
+      borderRadius: "0",
+      minHeight: 48,
+      position: "relative",
+      display: "flex",
+      borderBottom: "1px solid #e0e0e0",
+    }}
+    {...props}
+  />
+))(({ theme }) => ({}));
+
+const StyledTab = styled(({ active, ...props }) => (
+  <Box
+    sx={{
+      textTransform: "uppercase",
+      fontWeight: 600,
+      fontSize: "0.875rem",
+      minHeight: 48,
+      paddingTop: "12px",
+      paddingBottom: "12px",
+      paddingLeft: "20px",
+      paddingRight: "20px",
+      color: active ? theme.palette.primary.main : theme.palette.text.secondary,
+      cursor: "pointer",
+      position: "relative",
+      transition: theme.transitions.create(["color", "background-color"], {
+        duration: theme.transitions.duration.standard,
+      }),
+      "&:hover": {
+        color: theme.palette.primary.main,
+        backgroundColor: "rgba(33, 61, 112, 0.04)",
+      },
+      "&::after": active
+        ? {
+            content: '""',
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "3px",
+            backgroundColor: theme.palette.primary.main,
+          }
+        : {},
+    }}
+    {...props}
+  />
+))(({ theme }) => ({}));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`catone-tabpanel-${index}`}
-      aria-labelledby={`catone-tab-${index}`}
+      id={`mrf-receiving-tabpanel-${index}`}
+      aria-labelledby={`mrf-receiving-tab-${index}`}
       style={{
         height: "100%",
-        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
+      {value === index && (
+        <Box
+          sx={{
+            height: "100%",
+            minWidth: 0,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+          }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 };
@@ -98,7 +150,7 @@ const filterDataBySearch = (data, searchQuery) => {
       item.reference_number?.toLowerCase().includes(query) ||
       item.employee_name?.toLowerCase().includes(query) ||
       item.employee_code?.toLowerCase().includes(query) ||
-      item.status?.toLowerCase().includes(query)
+      item.action_type?.toLowerCase().includes(query)
   );
 };
 
@@ -243,7 +295,12 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
@@ -307,31 +364,42 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
             sx={{
               margin: 0,
-              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              border: `1px solid ${
+                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+              }`,
               borderRadius: "8px",
               paddingLeft: "8px",
               paddingRight: "12px",
               height: "36px",
               backgroundColor: hasActiveFilters
-                ? "rgba(76, 175, 80, 0.04)"
+                ? "rgba(0, 133, 49, 0.04)"
                 : "white",
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 backgroundColor: hasActiveFilters
-                  ? "rgba(76, 175, 80, 0.08)"
+                  ? "rgba(0, 133, 49, 0.08)"
                   : "#f5f5f5",
-                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                borderColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
               },
               "& .MuiFormControlLabel-label": {
                 fontSize: "12px",
                 fontWeight: 600,
-                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                color: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
                 letterSpacing: "0.5px",
               },
             }}
@@ -340,7 +408,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search CAT 1..."}
+        placeholder={isVerySmall ? "Search..." : "Search MRF..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -351,16 +419,20 @@ const CustomSearchBar = ({
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: "20px",
+                fontSize: isVerySmall ? "18px" : "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+            <CircularProgress
+              size={16}
+              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
+            />
           ),
           sx: {
             height: "36px",
-            width: "320px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -383,8 +455,9 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: "14px",
+            fontSize: isVerySmall ? "13px" : "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -395,7 +468,7 @@ const CustomSearchBar = ({
   );
 };
 
-const CatOne = () => {
+const MrfReceiving = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -406,19 +479,13 @@ const CatOne = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForAssessment",
-    1: "ForSubmission",
-    2: "ForApproval",
-    3: "Returned",
-    4: "Approved",
+    0: "ForReceiving",
+    1: "Received",
   };
 
   const reverseTabMap = {
-    ForAssessment: 0,
-    ForSubmission: 1,
-    ForApproval: 2,
-    Returned: 3,
-    Approved: 4,
+    ForReceiving: 0,
+    Received: 1,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -431,21 +498,20 @@ const CatOne = () => {
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalMode, setModalMode] = useState("view");
-  const [selectedPage, setSelectedPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const [saveCatOneAsDraft] = useSaveCatOneAsDraftMutation();
-  const [submitCatOne] = useSubmitCatOneMutation();
+  const [receiveSubmission] = useReceiveSubmissionMutation();
+  const [returnSubmission] = useReturnSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const mrfCounts = {
+    forReceiving: 0,
+    received: 0,
+  };
+
   const handleTabChange = useCallback(
-    (event, newValue) => {
+    (newValue) => {
       setActiveTab(newValue);
-      setSelectedPage(1);
       setQueryParams(
         {
           tab: tabMap[newValue],
@@ -479,43 +545,27 @@ const CatOne = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const handleRefreshDetails = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-  }, []);
-
-  const handleRowClick = useCallback((entry) => {
-    setSelectedEntry(entry);
-    setModalMode("view");
-    setModalOpen(true);
-  }, []);
-
-  const handleModalClose = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEntry(null);
-  }, []);
-
-  const handleModalSave = useCallback(
-    async (formData, mode, entryId) => {
+  const handleReceiveSubmission = useCallback(
+    async (submissionId, comments, onSuccess) => {
       try {
-        if (!entryId) throw new Error("Entry ID is missing");
+        await receiveSubmission({
+          id: submissionId,
+          comments: comments || "",
+          reason: "",
+        }).unwrap();
 
-        const payload = { id: entryId, ...formData };
-        await submitCatOne(payload).unwrap();
-
-        enqueueSnackbar("CAT 1 submitted successfully!", {
+        enqueueSnackbar("Submission received successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
-        setModalOpen(false);
-        setSelectedEntry(null);
-        handleRefreshDetails();
+        if (onSuccess && typeof onSuccess === "function") {
+          onSuccess();
+        }
+
         return true;
       } catch (error) {
-        let errorMessage = "Failed to submit CAT 1. Please try again.";
+        let errorMessage = "Failed to receive submission. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -527,60 +577,34 @@ const CatOne = () => {
           variant: "error",
           autoHideDuration: 3000,
         });
+
         return false;
       }
     },
-    [submitCatOne, enqueueSnackbar, handleRefreshDetails]
+    [receiveSubmission, enqueueSnackbar]
   );
 
-  const handleModalSaveAsDraft = useCallback(
-    async (formData, entryId) => {
+  const handleReturnSubmission = useCallback(
+    async (submissionId, comments, onSuccess) => {
       try {
-        if (!entryId) throw new Error("Entry ID is missing");
+        await returnSubmission({
+          id: submissionId,
+          comments: comments || "",
+          reason: "",
+        }).unwrap();
 
-        const payload = { id: entryId, ...formData };
-        await saveCatOneAsDraft(payload).unwrap();
-
-        enqueueSnackbar("CAT 1 saved as draft successfully!", {
+        enqueueSnackbar("Submission returned successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
-        setModalOpen(false);
-        setSelectedEntry(null);
-        handleRefreshDetails();
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to save draft. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
+        if (onSuccess && typeof onSuccess === "function") {
+          onSuccess();
         }
 
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        return false;
-      }
-    },
-    [saveCatOneAsDraft, enqueueSnackbar, handleRefreshDetails]
-  );
-
-  const handleCancel = useCallback(
-    async (entryId, cancellationReason = "") => {
-      try {
-        enqueueSnackbar("CAT 1 cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage = "Failed to cancel CAT 1. Please try again.";
+        let errorMessage = "Failed to return submission. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -596,88 +620,46 @@ const CatOne = () => {
         return false;
       }
     },
-    [enqueueSnackbar, handleRefreshDetails]
+    [returnSubmission, enqueueSnackbar]
   );
 
   const tabsData = [
     {
-      label: "FOR ASSESSMENT",
+      label: "FOR RECEIVING",
       component: (
-        <CatOneForAssessment
+        <MrfForReceiving
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onReceiveSubmission={handleReceiveSubmission}
+          onReturnSubmission={handleReturnSubmission}
         />
       ),
-      badgeCount: 0,
+      badgeCount: mrfCounts.forReceiving,
     },
     {
-      label: "FOR SUBMISSION",
+      label: "RECEIVED",
       component: (
-        <CatOneForSubmission
+        <MrfReceived
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
         />
       ),
-      badgeCount: 0,
-    },
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <CatOneForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: 0,
-    },
-    {
-      label: "RETURNED",
-      component: (
-        <CatOneReturned
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          onSave={handleModalSave}
-          onSaveAsDraft={handleModalSaveAsDraft}
-        />
-      ),
-      badgeCount: 0,
-    },
-    {
-      label: "APPROVED",
-      component: (
-        <CatOneApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: 0,
+      badgeCount: mrfCounts.received,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `catone-tab-${index}`,
-      "aria-controls": `catone-tabpanel-${index}`,
+      id: `mrf-receiving-tab-${index}`,
+      "aria-controls": `mrf-receiving-tabpanel-${index}`,
     };
   };
 
@@ -686,81 +668,119 @@ const CatOne = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={styles.mainContainer}>
+        <Box
+          sx={{
+            width: "100%",
+            height: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "#fafafa",
+            minWidth: 0,
+          }}>
           <Box
             sx={{
-              ...styles.headerContainer,
-              ...(isMobile && styles.headerContainerMobile),
-              ...(isTablet && styles.headerContainerTablet),
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
             }}>
             <Box
               sx={{
-                ...styles.headerTitle,
-                ...(isMobile && styles.headerTitleMobile),
+                display: "flex",
+                alignItems: isMobile || isTablet ? "flex-start" : "center",
+                justifyContent:
+                  isMobile || isTablet ? "flex-start" : "space-between",
+                flexDirection: isMobile || isTablet ? "column" : "row",
+                flexShrink: 0,
+                minHeight: isMobile || isTablet ? "auto" : "72px",
+                padding: isMobile
+                  ? "12px 14px"
+                  : isTablet
+                  ? "16px"
+                  : "16px 14px",
+                backgroundColor: "white",
+                borderBottom: "1px solid #e0e0e0",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                gap: isMobile || isTablet ? "16px" : "0",
               }}>
-              <Typography
-                className="header"
+              <Box
                 sx={{
-                  ...styles.headerTitleText,
-                  ...(isMobile && styles.headerTitleTextMobile),
-                  ...(isVerySmall && styles.headerTitleTextVerySmall),
-                  paddingRight: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
+                  width: isMobile || isTablet ? "100%" : "auto",
+                  justifyContent: "flex-start",
                 }}>
-                CAT 1
-              </Typography>
+                <Typography
+                  className="header"
+                  sx={{
+                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
+                    fontWeight: 500,
+                    color: "rgb(33, 61, 112)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}>
+                  {isVerySmall ? "MRF REC" : "MRF RECEIVING"}
+                </Typography>
+              </Box>
+
+              <CustomSearchBar
+                searchQuery={searchQuery}
+                setSearchQuery={handleSearchChange}
+                dateFilters={dateFilters}
+                onFilterClick={handleFilterClick}
+                isLoading={isLoadingState}
+              />
             </Box>
 
-            <CustomSearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={handleSearchChange}
-              dateFilters={dateFilters}
-              onFilterClick={handleFilterClick}
-              isLoading={isLoadingState}
-            />
-          </Box>
-
-          <Box sx={styles.tabsSection}>
-            <StyledTabs
-              value={activeTab}
-              onChange={handleTabChange}
-              aria-label="CAT 1 tabs"
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-              sx={{
-                ...styles.tabsStyled,
-                ...(isVerySmall && styles.tabsStyledVerySmall),
-              }}>
+            <StyledTabs>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
-                  label={
-                    tab.badgeCount > 0 ? (
-                      <Badge
-                        badgeContent={tab.badgeCount}
-                        color="error"
-                        sx={{
-                          ...styles.tabBadge,
-                          ...(isVerySmall && styles.tabBadgeVerySmall),
-                        }}>
-                        {tab.label}
-                      </Badge>
-                    ) : (
-                      tab.label
-                    )
-                  }
-                  {...a11yProps(index)}
-                />
+                  active={activeTab === index}
+                  onClick={() => handleTabChange(index)}
+                  {...a11yProps(index)}>
+                  {tab.badgeCount > 0 ? (
+                    <Badge
+                      variant="dot"
+                      color="error"
+                      anchorOrigin={{
+                        vertical: "top",
+                        horizontal: "right",
+                      }}
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          minWidth: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          padding: 0,
+                          top: "8px",
+                          right: "-10px",
+                        },
+                      }}>
+                      {tab.label}
+                    </Badge>
+                  ) : (
+                    tab.label
+                  )}
+                </StyledTab>
               ))}
             </StyledTabs>
-          </Box>
 
-          <Box sx={styles.tabsContainer}>
-            {tabsData.map((tab, index) => (
-              <TabPanel key={index} value={activeTab} index={index}>
-                {tab.component}
-              </TabPanel>
-            ))}
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}>
+              {tabsData.map((tab, index) => (
+                <TabPanel key={index} value={activeTab} index={index}>
+                  {tab.component}
+                </TabPanel>
+              ))}
+            </Box>
           </Box>
 
           <DateFilterDialog
@@ -769,21 +789,10 @@ const CatOne = () => {
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
           />
-
-          <CatOneModal
-            open={modalOpen}
-            onClose={handleModalClose}
-            mode={modalMode}
-            selectedEntry={selectedEntry}
-            onSave={handleModalSave}
-            onSaveAsDraft={handleModalSaveAsDraft}
-            onRefreshDetails={handleRefreshDetails}
-            isLoading={isLoading}
-          />
         </Box>
       </FormProvider>
     </LocalizationProvider>
   );
 };
 
-export default CatOne;
+export default MrfReceiving;

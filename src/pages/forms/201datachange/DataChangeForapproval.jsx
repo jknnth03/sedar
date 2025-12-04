@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
-  Typography,
-  TablePagination,
   Box,
   useTheme,
   Dialog,
@@ -10,14 +8,14 @@ import {
   DialogActions,
   Button,
   CircularProgress,
+  Typography,
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../manpowerform/FormSubmissionStyles";
 import {
   useGetDataChangeSubmissionsQuery,
-  useGetDataChangeSubmissionDetailsQuery,
+  useLazyGetDataChangeSubmissionDetailsQuery,
   useCreateDataChangeSubmissionMutation,
   useUpdateDataChangeSubmissionMutation,
   useResubmitDataChangeSubmissionMutation,
@@ -25,29 +23,30 @@ import {
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 
 const DataChangeForApproval = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
-  setQueryParams,
-  currentParams,
   employeeIdToInclude,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -69,13 +68,14 @@ const DataChangeForApproval = ({
     },
   });
 
-  const queryParams = useMemo(() => {
+  const apiQueryParams = useMemo(() => {
     const params = {
       page: 1,
       per_page: 10,
       status: "active",
       pagination: 1,
       approval_status: "pending",
+      search: searchQuery || "",
     };
 
     if (employeeIdToInclude) {
@@ -83,11 +83,10 @@ const DataChangeForApproval = ({
     }
 
     return params;
-  }, [employeeIdToInclude]);
+  }, [employeeIdToInclude, searchQuery]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -96,19 +95,15 @@ const DataChangeForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetDataChangeSubmissionsQuery(queryParams, {
+  } = useGetDataChangeSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const {
-    data: submissionDetails,
-    isLoading: detailsLoading,
-    refetch: refetchDetails,
-  } = useGetDataChangeSubmissionDetailsQuery(selectedSubmissionId, {
-    skip: !selectedSubmissionId,
-    refetchOnMountOrArgChange: true,
-  });
+  const [
+    triggerGetSubmission,
+    { data: submissionDetails, isLoading: detailsLoading },
+  ] = useLazyGetDataChangeSubmissionDetailsQuery();
 
   const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
@@ -148,21 +143,37 @@ const DataChangeForApproval = ({
     return filteredSubmissions.slice(startIndex, endIndex);
   }, [filteredSubmissions, page, rowsPerPage]);
 
-  const handleRowClick = useCallback((submission) => {
-    setModalMode("view");
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalOpen(true);
-  }, []);
+  const handleRowClick = useCallback(
+    async (submission) => {
+      setModalMode("view");
+      setSelectedSubmissionId(submission.id);
+      setMenuAnchor({});
+      setModalOpen(true);
 
-  const handleEditSubmission = useCallback((submission) => {
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalMode("edit");
-    setModalOpen(true);
-  }, []);
+      try {
+        await triggerGetSubmission(submission.id);
+      } catch (error) {
+        console.error("Error fetching submission details:", error);
+      }
+    },
+    [triggerGetSubmission]
+  );
+
+  const handleEditSubmission = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setMenuAnchor({});
+      setModalMode("edit");
+      setModalOpen(true);
+
+      try {
+        await triggerGetSubmission(submission.id);
+      } catch (error) {
+        console.error("Error fetching submission details:", error);
+      }
+    },
+    [triggerGetSubmission]
+  );
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
@@ -191,10 +202,10 @@ const DataChangeForApproval = ({
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId && refetchDetails) {
-      refetchDetails();
+    if (selectedSubmissionId) {
+      triggerGetSubmission(selectedSubmissionId);
     }
-  }, [selectedSubmissionId, refetchDetails]);
+  }, [selectedSubmissionId, triggerGetSubmission]);
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
@@ -264,12 +275,10 @@ const DataChangeForApproval = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -279,7 +288,7 @@ const DataChangeForApproval = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -287,7 +296,7 @@ const DataChangeForApproval = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, queryParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -299,7 +308,7 @@ const DataChangeForApproval = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -307,7 +316,7 @@ const DataChangeForApproval = ({
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, queryParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -342,21 +351,17 @@ const DataChangeForApproval = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        try {
-          const result = await updateDataChangeSubmission({
-            id: selectedSubmissionForAction.id,
-            data: pendingFormData,
-          }).unwrap();
+        await updateDataChangeSubmission({
+          id: selectedSubmissionForAction.id,
+          data: pendingFormData,
+        }).unwrap();
 
-          enqueueSnackbar("Data change submission updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-          refetch();
-          handleModalClose();
-        } catch (updateError) {
-          throw updateError;
-        }
+        enqueueSnackbar("Data change submission updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        handleModalClose();
       } else if (confirmAction === "resubmit" && pendingFormData) {
         await resubmitDataChangeSubmission(pendingFormData).unwrap();
         enqueueSnackbar("Data change submission resubmitted successfully!", {
@@ -457,215 +462,172 @@ const DataChangeForApproval = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DataChangeForapprovalTable
-            submissionsList={paginatedSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={true}
-            forApproval={true}
-            onCancel={handleCancelSubmission}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <DataChangeModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onSave={handleModalSave}
-          onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
+        <DataChangeForapprovalTable
+          submissionsList={paginatedSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={true}
+          forApproval={true}
+          onCancel={handleCancelSubmission}
         />
 
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+        <CustomTablePagination
+          count={filteredSubmissions.length}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
+      </Box>
+
+      <DataChangeModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onSave={handleModalSave}
+        onRefreshDetails={handleRefreshDetails}
+        onSuccessfulSave={handleModalSuccessCallback}
+      />
+
+      <Dialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
             <Box
               sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: getConfirmationIcon().color,
                 display: "flex",
+                alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
               }}>
-              <Box
+              <Typography
                 sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
                 }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
+                {getConfirmationIcon().icon}
+              </Typography>
             </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
+          </Box>
+          <Typography
+            variant="h5"
             sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
             }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
+            {getConfirmationTitle()}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            {getConfirmationMessage()}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: "14px",
+              color: "#666",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}>
+            {getSubmissionDisplayName()}
+          </Typography>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleConfirmationCancel}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isLoading}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleActionConfirm}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isLoading}>
+            {isLoading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              getConfirmButtonText()
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </FormProvider>
   );
 };

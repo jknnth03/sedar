@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Paper,
   Typography,
@@ -7,7 +7,6 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   CircularProgress,
   TableRow,
   Chip,
@@ -36,6 +35,8 @@ import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/E
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
 import { CONSTANT } from "../../config/index";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import CustomTablePagination from "../zzzreusable/CustomTablePagination";
 
 const Files = ({
   searchQuery,
@@ -45,8 +46,12 @@ const Files = ({
   isLoading: parentIsLoading = false,
 }) => {
   const theme = useTheme();
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [rowsPerPage, setRowsPerPage] = useState(
+    parseInt(queryParams?.rowsPerPage) || 10
+  );
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [employeeDetails, setEmployeeDetails] = useState(null);
 
@@ -64,11 +69,7 @@ const Files = ({
 
   const [getSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [debounceValue, showArchived]);
-
-  const queryParams = useMemo(() => {
+  const apiQueryParams = useMemo(() => {
     const params = {
       pagination: page,
       page: page,
@@ -119,11 +120,12 @@ const Files = ({
       params.position_title = filters.position;
     }
 
-    console.log("Files Query Params:", params);
-    console.log("Filters object:", filters);
-
     return params;
   }, [debounceValue, page, rowsPerPage, filters]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debounceValue, showArchived, filters]);
 
   const {
     data: apiResponse,
@@ -131,7 +133,7 @@ const Files = ({
     isFetching,
     error,
     refetch,
-  } = useGetShowFileTypesEmpQuery(queryParams, {
+  } = useGetShowFileTypesEmpQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -221,7 +223,7 @@ const Files = ({
     [getSingleEmployee, enqueueSnackbar]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedEmployeeId && employeeList.length > 0) {
       const selectedEmployee = employeeList.find(
         (emp) => emp.employee?.id === selectedEmployeeId
@@ -319,6 +321,44 @@ const Files = ({
     }
   };
 
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      const targetPage = newPage + 1;
+      setPage(targetPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: targetPage,
+            rowsPerPage: rowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, rowsPerPage, queryParams]
+  );
+
+  const handleRowsPerPageChange = useCallback(
+    (event) => {
+      const newRowsPerPage = parseInt(event.target.value, 10);
+      const newPage = 1;
+      setRowsPerPage(newRowsPerPage);
+      setPage(newPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: newPage,
+            rowsPerPage: newRowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, queryParams]
+  );
+
   const safelyDisplayValue = (value) =>
     value === null || value === undefined ? "N/A" : String(value);
 
@@ -383,6 +423,8 @@ const Files = ({
   const displayList = employeeList;
   const displayCount = totalCount;
 
+  const isLoadingState = isLoading || isFetching;
+
   return (
     <Box
       sx={{
@@ -422,13 +464,15 @@ const Files = ({
                 <TableCell className="table-header" sx={{ width: "55%" }}>
                   CHARGING
                 </TableCell>
-                <TableCell className="table-header" sx={{ width: "15%" }}>
+                <TableCell
+                  className="table-header"
+                  sx={{ width: "15%", textAlign: "center" }}>
                   FILE COUNT
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {isFetching ? (
+              {isLoadingState ? (
                 <TableRow>
                   <TableCell colSpan={3} align="center">
                     <Box sx={{ py: 4 }}>
@@ -548,7 +592,9 @@ const Files = ({
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell className="table-cell" sx={{ width: "15%" }}>
+                      <TableCell
+                        className="table-cell"
+                        sx={{ width: "15%", textAlign: "center" }}>
                         {employeeRecord.file_count}
                       </TableCell>
                     </TableRow>
@@ -596,34 +642,13 @@ const Files = ({
           </Table>
         </TableContainer>
 
-        <Box sx={{ flexShrink: 0 }}>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={displayCount}
-            rowsPerPage={rowsPerPage}
-            page={page - 1}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-              backgroundColor: alpha(theme.palette.background.paper, 0.6),
-              minHeight: "52px",
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: theme.spacing(2),
-                paddingRight: theme.spacing(1),
-              },
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  margin: 0,
-                  fontSize: "0.875rem",
-                },
-            }}
-          />
-        </Box>
+        <CustomTablePagination
+          count={displayCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
 
       <EmployeeWizardForm

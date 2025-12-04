@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
-  Typography,
-  TablePagination,
   Box,
   useTheme,
   Dialog,
@@ -10,16 +8,15 @@ import {
   DialogActions,
   Button,
   CircularProgress,
+  Typography,
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import {
-  useGetPdpListQuery,
-  useGetPdpTaskQuery,
-} from "../../../features/api/da-task/pdpApi";
+import { useGetPdpListQuery } from "../../../features/api/da-task/pdpApi";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import PdpTable from "./PdpTable";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
 const PdpForAssessment = ({
@@ -27,28 +24,20 @@ const PdpForAssessment = ({
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
-  setQueryParams,
-  currentParams,
-  data,
-  isLoading: externalIsLoading,
-  page: externalPage,
-  rowsPerPage: externalRowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
   onRowClick,
   onCancel,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(
-    externalPage || parseInt(currentParams?.page) || 1
-  );
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10
   );
+
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -64,24 +53,17 @@ const PdpForAssessment = ({
     },
   });
 
-  useEffect(() => {
-    if (externalPage !== undefined) {
-      setPage(externalPage);
-    }
-  }, [externalPage]);
+  const apiQueryParams = useMemo(() => {
+    return {
+      page: page,
+      per_page: rowsPerPage,
+      pagination: 1,
+      status: "FOR_ASSESSMENT",
+    };
+  }, [page, rowsPerPage]);
 
   useEffect(() => {
-    if (externalRowsPerPage !== undefined) {
-      setRowsPerPage(externalRowsPerPage);
-    }
-  }, [externalRowsPerPage]);
-
-  useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
-    if (onPageChange) {
-      onPageChange(newPage);
-    }
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -90,50 +72,17 @@ const PdpForAssessment = ({
     isFetching,
     refetch,
     error,
-  } = useGetPdpListQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FOR_ASSESSMENT",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetPdpListQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const [cancelPdpSubmission] = useCancelFormSubmissionMutation();
 
-  const submissionsData = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return [];
-
-    const result = dataSource.result;
-
-    if (result.data && Array.isArray(result.data)) {
-      return result.data.filter((item) => item.status === "FOR_ASSESSMENT");
-    }
-
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "FOR_ASSESSMENT");
-    }
-
-    if (result.status === "FOR_ASSESSMENT") {
-      return [result];
-    }
-
-    return [];
-  }, [data, taskData]);
-
-  const totalCount = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return 0;
-    return dataSource.result.total || submissionsData.length;
-  }, [data, taskData, submissionsData.length]);
-
   const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
+    const rawData = taskData?.result?.data || [];
+
+    let filtered = rawData;
 
     if (dateFilters && filterDataByDate) {
       filtered = filterDataByDate(
@@ -149,12 +98,18 @@ const PdpForAssessment = ({
 
     return filtered;
   }, [
-    submissionsData,
+    taskData,
     dateFilters,
     searchQuery,
     filterDataByDate,
     filterDataBySearch,
   ]);
+
+  const paginatedSubmissions = useMemo(() => {
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return filteredSubmissions.slice(startIndex, endIndex);
+  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback(
     (submission) => {
@@ -168,7 +123,6 @@ const PdpForAssessment = ({
   const handleEditSubmission = useCallback(
     (submission) => {
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
       if (onRowClick) {
         onRowClick(submission);
       }
@@ -202,25 +156,20 @@ const PdpForAssessment = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
-      if (onPageChange) {
-        onPageChange(targetPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -228,7 +177,7 @@ const PdpForAssessment = ({
         );
       }
     },
-    [onPageChange, setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, queryParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -237,16 +186,10 @@ const PdpForAssessment = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
-      if (onRowsPerPageChange) {
-        onRowsPerPageChange(newRowsPerPage);
-      }
-      if (onPageChange) {
-        onPageChange(newPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -254,7 +197,7 @@ const PdpForAssessment = ({
         );
       }
     },
-    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
+    [setQueryParams, queryParams]
   );
 
   const handleActionConfirm = async () => {
@@ -332,212 +275,166 @@ const PdpForAssessment = ({
     return config;
   }, [confirmAction]);
 
-  const isLoadingState =
-    externalIsLoading !== undefined
-      ? externalIsLoading
-      : queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <PdpTable
-            submissionsList={filteredSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={true}
-            forAssessment={true}
-            onCancel={handleCancelSubmission}
-          />
+        <PdpTable
+          submissionsList={paginatedSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={true}
+          forAssessment={true}
+          onCancel={handleCancelSubmission}
+        />
 
+        <CustomTablePagination
+          count={filteredSubmissions.length}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
+      </Box>
+
+      <Dialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
           <Box
             sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
             }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <Dialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
             <Box
               sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: getConfirmationIcon().color,
                 display: "flex",
+                alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
               }}>
-              <Box
+              <Typography
                 sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: getConfirmationIcon().color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
                 }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  {getConfirmationIcon().icon}
-                </Typography>
-              </Box>
+                {getConfirmationIcon().icon}
+              </Typography>
             </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getSubmissionDisplayName()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
+          </Box>
+          <Typography
+            variant="h5"
             sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
             }}>
-            <Button
-              onClick={handleConfirmationCancel}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
+            {getConfirmationTitle()}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            {getConfirmationMessage()}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: "14px",
+              color: "#666",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}>
+            {getSubmissionDisplayName()}
+          </Typography>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleConfirmationCancel}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isLoading}>
+            CANCEL
+          </Button>
+          <Button
+            onClick={handleActionConfirm}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isLoading}>
+            {isLoading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              getConfirmButtonText()
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </FormProvider>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Typography,
-  TablePagination,
   Box,
   useTheme,
   Dialog,
@@ -22,6 +21,7 @@ import {
   useUpdateMdaMutation,
 } from "../../../features/api/forms/mdaApi";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
 import DataChangeForApprovalTable from "../201datachange/DataChangeForapprovalTable";
@@ -46,7 +46,6 @@ const DataChangeForMDAProcessing = ({
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [mdaModalOpen, setMdaModalOpen] = useState(false);
   const [mdaSubmissionId, setMdaSubmissionId] = useState(null);
   const [selectedMdaSubmission, setSelectedMdaSubmission] = useState(null);
@@ -163,7 +162,6 @@ const DataChangeForMDAProcessing = ({
       }
 
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
     },
     [getSubmissionDetails, enqueueSnackbar]
   );
@@ -189,7 +187,6 @@ const DataChangeForMDAProcessing = ({
       }
 
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
     },
     [getSubmissionDetails, enqueueSnackbar]
   );
@@ -215,7 +212,6 @@ const DataChangeForMDAProcessing = ({
       }
 
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
     },
     [getSubmissionDetails, enqueueSnackbar]
   );
@@ -314,12 +310,10 @@ const DataChangeForMDAProcessing = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -375,109 +369,66 @@ const DataChangeForMDAProcessing = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DataChangeForApprovalTable
-            submissionsList={filteredSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleEditSubmission={handleEditSubmission}
-            handleResubmitSubmission={handleResubmitSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={false}
-            forMDAProcessing={true}
-            onCreateMDA={handleCreateMDA}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <DataChangeModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode="view"
-          onModeChange={() => {}}
-          selectedEntry={selectedSubmission}
-          isLoading={modalLoading}
-          onSave={() => {}}
-          onRefreshDetails={() => refetch()}
-          onSuccessfulSave={() => {}}
+        <DataChangeForApprovalTable
+          submissionsList={filteredSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleEditSubmission={handleEditSubmission}
+          handleResubmitSubmission={handleResubmitSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
+          forMDAProcessing={true}
           onCreateMDA={handleCreateMDA}
         />
 
-        <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
-          <MDAFormModal
-            open={mdaModalOpen}
-            onClose={handleMdaModalClose}
-            onSave={handleSaveMDA}
-            selectedEntry={null}
-            isLoading={isCreatingMda || isUpdatingMda}
-            mode="create"
-            employeeMovements={[]}
-            positions={positions}
-            submissionId={mdaSubmissionId}
-            key={`mda-${mdaSubmissionId}-${mdaModalOpen}`}
-          />
-        </FormProvider>
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Box>
+
+      <DataChangeModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode="view"
+        onModeChange={() => {}}
+        selectedEntry={selectedSubmission}
+        isLoading={modalLoading}
+        onSave={() => {}}
+        onRefreshDetails={() => refetch()}
+        onSuccessfulSave={() => {}}
+        onCreateMDA={handleCreateMDA}
+      />
+
+      <FormProvider {...mdaFormMethods} key={mdaSubmissionId}>
+        <MDAFormModal
+          open={mdaModalOpen}
+          onClose={handleMdaModalClose}
+          onSave={handleSaveMDA}
+          selectedEntry={null}
+          isLoading={isCreatingMda || isUpdatingMda}
+          mode="create"
+          employeeMovements={[]}
+          positions={positions}
+          submissionId={mdaSubmissionId}
+          key={`mda-${mdaSubmissionId}-${mdaModalOpen}`}
+        />
+      </FormProvider>
     </FormProvider>
   );
 };
