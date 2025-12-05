@@ -5,8 +5,9 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import { useGetReceiverTasksQuery } from "../../../features/api/receiving/receivingApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ReceivingTable from "../ReceivingTable";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import MrfReceivingTable from "./MrfReceivingTable";
+import ReceivingDialog from "./ReceivingDialog";
 
 const MrfForReceiving = ({
   searchQuery,
@@ -24,6 +25,9 @@ const MrfForReceiving = ({
   const [rowsPerPage, setRowsPerPage] = useState(
     parseInt(queryParams?.rowsPerPage) || 10
   );
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const methods = useForm();
 
@@ -78,23 +82,73 @@ const MrfForReceiving = ({
     filterDataBySearch,
   ]);
 
+  const handleRowClick = useCallback((submission) => {
+    setSelectedSubmission(submission);
+    setDialogOpen(true);
+  }, []);
+
+  const handleDialogClose = useCallback(() => {
+    setDialogOpen(false);
+    setSelectedSubmission(null);
+  }, []);
+
   const handleReceiveSubmission = useCallback(
-    async (submissionId, comments) => {
+    async (submission) => {
+      setIsProcessing(true);
       try {
-        await onReceiveSubmission(submissionId, comments, refetch);
+        await onReceiveSubmission(submission.id, "", refetch);
+        setDialogOpen(false);
+        setSelectedSubmission(null);
       } catch (error) {
         console.error("Error receiving submission:", error);
+      } finally {
+        setIsProcessing(false);
       }
     },
     [onReceiveSubmission, refetch]
   );
 
   const handleReturnSubmission = useCallback(
-    async (submissionId, comments) => {
+    async (submission, reason) => {
+      setIsProcessing(true);
       try {
-        await onReturnSubmission(submissionId, comments, refetch);
+        await onReturnSubmission(submission.id, reason, refetch);
+        setDialogOpen(false);
+        setSelectedSubmission(null);
       } catch (error) {
         console.error("Error returning submission:", error);
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [onReturnSubmission, refetch]
+  );
+
+  const handleReceiveClick = useCallback(
+    async (e, submission) => {
+      e.stopPropagation();
+      setIsProcessing(true);
+      try {
+        await onReceiveSubmission(submission.id, "", refetch);
+      } catch (error) {
+        console.error("Error receiving submission:", error);
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [onReceiveSubmission, refetch]
+  );
+
+  const handleReturnClick = useCallback(
+    async (e, submission) => {
+      e.stopPropagation();
+      setIsProcessing(true);
+      try {
+        await onReturnSubmission(submission.id, "", refetch);
+      } catch (error) {
+        console.error("Error returning submission:", error);
+      } finally {
+        setIsProcessing(false);
       }
     },
     [onReturnSubmission, refetch]
@@ -150,14 +204,15 @@ const MrfForReceiving = ({
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <ReceivingTable
+        <MrfReceivingTable
           submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           searchQuery={searchQuery}
           showArchived={false}
-          onReceiveSubmission={handleReceiveSubmission}
-          onReturnSubmission={handleReturnSubmission}
+          onReceiveSubmission={handleReceiveClick}
+          onReturnSubmission={handleReturnClick}
+          onRowClick={handleRowClick}
         />
 
         <CustomTablePagination
@@ -166,6 +221,15 @@ const MrfForReceiving = ({
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
+        />
+
+        <ReceivingDialog.SubmissionDialog
+          open={dialogOpen}
+          onClose={handleDialogClose}
+          submission={selectedSubmission}
+          onReceive={handleReceiveSubmission}
+          onReturn={handleReturnSubmission}
+          isLoading={isProcessing}
         />
       </Box>
     </FormProvider>

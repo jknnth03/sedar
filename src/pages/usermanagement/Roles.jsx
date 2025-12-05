@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Paper,
   Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   CircularProgress,
   TableRow,
   IconButton,
@@ -25,9 +23,9 @@ import {
   Checkbox,
   FormControlLabel,
   useTheme,
-  alpha,
   Fade,
   useMediaQuery,
+  Skeleton,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
@@ -43,9 +41,11 @@ import {
   useDeleteRoleMutation,
   useGetShowRolesQuery,
 } from "../../features/api/usermanagement/rolesApi";
+import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
+import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
+import NoDataFound from "../../pages/NoDataFound";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config";
 import {
   chipStyles,
   buttonStyles,
@@ -131,9 +131,11 @@ const Roles = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
+  const [currentParams, setQueryParams] = useRememberQueryParams();
+
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [showArchived, setShowArchived] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
@@ -152,27 +154,41 @@ const Roles = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const queryParams = useMemo(
+    () => ({
+      page: page,
+      rowsPerPage,
+      searchQuery: debouncedSearchQuery,
+      status: showArchived === false ? "active" : "inactive",
+    }),
+    [page, rowsPerPage, debouncedSearchQuery, showArchived]
+  );
+
   const {
     data: rolesResponse = {},
     isLoading: queryLoading,
     isFetching,
     refetch,
-  } = useGetShowRolesQuery({
-    page: page,
-    rowsPerPage,
-    searchQuery: debouncedSearchQuery,
-    status: showArchived === false ? "active" : "inactive",
-  });
+  } = useGetShowRolesQuery(queryParams);
 
   const roles = rolesResponse?.data || [];
   const totalCount = rolesResponse?.total || 0;
 
   const [deleteRole] = useDeleteRoleMutation();
 
-  const handleSearchChange = useCallback((newSearchQuery) => {
-    setSearchQuery(newSearchQuery);
-    setPage(1);
-  }, []);
+  const handleSearchChange = useCallback(
+    (newSearchQuery) => {
+      setSearchQuery(newSearchQuery);
+      setPage(1);
+      setQueryParams(
+        {
+          q: newSearchQuery,
+        },
+        { retain: true }
+      );
+    },
+    [setQueryParams]
+  );
 
   const handleChangeArchived = useCallback((newShowArchived) => {
     setShowArchived(newShowArchived);
@@ -300,9 +316,21 @@ const Roles = () => {
           />
         </Box>
 
-        <Box sx={layoutStyles.contentContainer}>
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "white",
+          }}>
           <TableContainer sx={rolesStyles.tableContainer(isMobile)}>
-            <Table stickyHeader sx={rolesStyles.table(isMobile)}>
+            <Table
+              stickyHeader
+              sx={{
+                minWidth: 1200,
+                height: roles.length === 0 ? "100%" : "auto",
+              }}>
               <TableHead>
                 <TableRow>
                   <TableCell align="left" sx={rolesStyles.cellIdRole(isMobile)}>
@@ -328,19 +356,47 @@ const Roles = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <TableBody
+                sx={{
+                  height: roles.length === 0 ? "100%" : "auto",
+                }}>
                 {isLoadingState ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isVerySmall ? 4 : 5}
-                      align="center"
-                      sx={{ py: 4 }}>
-                      <CircularProgress
-                        size={32}
-                        sx={buttonStyles.circularProgress}
-                      />
-                    </TableCell>
-                  </TableRow>
+                  <>
+                    {[...Array(5)].map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton
+                            animation="wave"
+                            height={30}
+                            width={30}
+                            variant="circular"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton
+                            animation="wave"
+                            height={24}
+                            width={120}
+                            sx={{ borderRadius: "12px" }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton
+                            animation="wave"
+                            height={30}
+                            width={30}
+                            variant="circular"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
                 ) : roles.length > 0 ? (
                   roles.map((role) => (
                     <TableRow key={role.id}>
@@ -385,29 +441,27 @@ const Roles = () => {
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow>
+                  <TableRow
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: "transparent !important",
+                        cursor: "default !important",
+                      },
+                    }}>
                     <TableCell
-                      colSpan={isVerySmall ? 4 : 5}
+                      colSpan={999}
+                      rowSpan={999}
                       align="center"
-                      sx={tableStyles.emptyCell}>
-                      <Box sx={tableStyles.emptyContainer}>
-                        {CONSTANT.BUTTONS.NODATA.icon}
-                        <Typography
-                          {...rolesStyles.emptyTypography(isMobile)}
-                          color="text.secondary">
-                          No roles found
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={rolesStyles.emptySecondaryText(isMobile)}>
-                          {searchQuery
-                            ? `No results for "${searchQuery}"`
-                            : showArchived
-                            ? "No archived roles"
-                            : "No active roles"}
-                        </Typography>
-                      </Box>
+                      sx={{
+                        borderBottom: "none",
+                        height: "400px",
+                        verticalAlign: "middle",
+                        "&:hover": {
+                          backgroundColor: "transparent !important",
+                          cursor: "default !important",
+                        },
+                      }}>
+                      <NoDataFound message="" subMessage="" />
                     </TableCell>
                   </TableRow>
                 )}
@@ -415,18 +469,13 @@ const Roles = () => {
             </Table>
           </TableContainer>
 
-          <Box sx={rolesStyles.paginationContainer(isMobile)}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              sx={rolesStyles.paginationToolbar(isMobile)}
-            />
-          </Box>
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
       </Box>
 

@@ -35,7 +35,7 @@ import ONERDF from "../../pages/masterlist/one-rdf/oneRdf.jsx";
 import ApprovalFlow from "../../pages/approver/ApprovalFlow.jsx";
 import ApprovalForm from "../../pages/approver/ApprovalForm.jsx";
 import SubmissionApproval from "../../pages/approvals/mrfApproval/SubmissionApproval.jsx";
-import PendingForms from "../../pages/receiving/PendingForms.jsx";
+import MrfReceiving from "../../pages/receiving/mrf/MrfReceiving.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
@@ -314,7 +314,7 @@ export const ROUTES = [
       {
         id: "RECEIVING.PENDINGFORMS",
         path: `${MODULES.RECEIVING.path}/${MODULES.RECEIVING.children.PENDINGFORMS.path}`,
-        element: <PendingForms />,
+        element: <MrfReceiving />,
         handle: {
           permission: MODULES.RECEIVING.children.PENDINGFORMS.permissionId,
         },

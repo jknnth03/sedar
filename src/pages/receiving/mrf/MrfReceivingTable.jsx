@@ -8,19 +8,13 @@ import {
   TableRow,
   Typography,
   Box,
-  IconButton,
   Chip,
-  Tooltip,
-  CircularProgress,
+  Skeleton,
   useTheme,
 } from "@mui/material";
-import RestoreIcon from "@mui/icons-material/Restore";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MRFHistoryDialog from "../../forms/manpowerform/MRFHistoryDialog";
+import NoDataFound from "../../NoDataFound";
 
 const MrfReceivingTable = ({
   submissionsList,
@@ -28,26 +22,27 @@ const MrfReceivingTable = ({
   error,
   searchQuery,
   showArchived = false,
-  onReceiveSubmission,
-  onReturnSubmission,
+  onRowClick,
 }) => {
   const theme = useTheme();
-  const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
-  const [selectedMrfHistory, setSelectedMrfHistory] = React.useState(null);
 
   const renderEmployee = (submission) => {
-    if (!submission?.employee_name) return "-";
+    const employeeName = submission?.submitted_by?.full_name;
+    const employeeCode = submission?.submitted_by?.username;
+
+    if (!employeeName) return "-";
+
     return (
       <Box>
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
-          {submission.employee_name}
+          {employeeName}
         </Typography>
-        {submission.employee_code && (
+        {employeeCode && (
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ fontSize: "14px" }}>
-            {submission.employee_code}
+            {employeeCode}
           </Typography>
         )}
       </Box>
@@ -58,7 +53,7 @@ const MrfReceivingTable = ({
     const status = submission.status?.toUpperCase();
 
     const statusConfig = {
-      RECEIVING: {
+      "FOR RECEIVING": {
         color: "#f57c00",
         bgColor: "#fff4e6",
         label: "FOR RECEIVING",
@@ -86,133 +81,63 @@ const MrfReceivingTable = ({
     );
   };
 
-  const handleViewHistoryClick = (e, submission) => {
-    e.stopPropagation();
-    setSelectedMrfHistory(submission);
-    setHistoryDialogOpen(true);
-  };
-
-  const handleHistoryDialogClose = () => {
-    setHistoryDialogOpen(false);
-    setSelectedMrfHistory(null);
-  };
-
-  const handleReceiveClick = (e, submission) => {
-    e.stopPropagation();
-    if (onReceiveSubmission) {
-      onReceiveSubmission(submission.id, "");
+  const handleRowClick = (submission) => {
+    if (onRowClick) {
+      onRowClick(submission);
     }
-  };
-
-  const handleReturnClick = (e, submission) => {
-    e.stopPropagation();
-    if (onReturnSubmission) {
-      onReturnSubmission(submission.id, "");
-    }
-  };
-
-  const renderActions = (submission) => {
-    if (showArchived) {
-      return null;
-    }
-
-    return (
-      <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
-        <Tooltip title="Receive Submission" arrow>
-          <IconButton
-            onClick={(e) => handleReceiveClick(e, submission)}
-            size="small"
-            sx={{
-              color: "#2e7d32",
-              "&:hover": {
-                backgroundColor: "rgba(46, 125, 50, 0.08)",
-              },
-            }}>
-            <CheckCircleIcon sx={{ fontSize: "20px" }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Return Submission" arrow>
-          <IconButton
-            onClick={(e) => handleReturnClick(e, submission)}
-            size="small"
-            sx={{
-              color: "#d32f2f",
-              "&:hover": {
-                backgroundColor: "rgba(211, 47, 47, 0.08)",
-              },
-            }}>
-            <CancelIcon sx={{ fontSize: "20px" }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    );
-  };
-
-  const renderHistory = (submission) => {
-    return (
-      <Tooltip title="View History" arrow>
-        <IconButton
-          onClick={(e) => handleViewHistoryClick(e, submission)}
-          size="small"
-          sx={styles.historyIconButton(theme)}>
-          <RestoreIcon sx={{ fontSize: "20px" }} />
-        </IconButton>
-      </Tooltip>
-    );
-  };
-
-  const getNoDataMessage = () => {
-    if (searchQuery) {
-      return `No results for "${searchQuery}"`;
-    }
-    return showArchived
-      ? "No received MRF submissions found"
-      : "No MRF submissions ready for receiving";
   };
 
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+            height: submissionsList.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
-              <TableCell sx={styles.columnStyles.actionType}>
-                ACTION TYPE
-              </TableCell>
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
-              {!showArchived && (
-                <TableCell align="center" sx={styles.columnStyles.actions}>
-                  ACTIONS
-                </TableCell>
-              )}
-              <TableCell align="center" sx={styles.columnStyles.history}>
-                HISTORY
-              </TableCell>
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{ height: submissionsList.length === 0 ? "100%" : "auto" }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell
-                  colSpan={showArchived ? 6 : 7}
-                  align="center"
-                  sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
               <TableRow>
-                <TableCell
-                  colSpan={showArchived ? 6 : 7}
-                  align="center"
-                  sx={styles.errorCell}>
+                <TableCell colSpan={4} align="center" sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -223,14 +148,21 @@ const MrfReceivingTable = ({
                 return (
                   <TableRow
                     key={submission.id}
-                    sx={styles.tableRowHover(theme)}>
+                    onClick={() => handleRowClick(submission)}
+                    sx={{
+                      ...styles.tableRowHover(theme),
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    }}>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,
                         ...styles.cellContentStyles,
                         ...styles.referenceNumberCell,
                       }}>
-                      {submission.reference_number || "-"}
+                      {submission.submittable?.reference_number || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -239,25 +171,8 @@ const MrfReceivingTable = ({
                       }}>
                       {renderEmployee(submission)}
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.actionType,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {submission.action_type || "-"}
-                    </TableCell>
                     <TableCell sx={styles.columnStyles.status}>
                       {renderStatusChip(submission)}
-                    </TableCell>
-                    {!showArchived && (
-                      <TableCell
-                        align="center"
-                        sx={styles.columnStyles.actions}>
-                        {renderActions(submission)}
-                      </TableCell>
-                    )}
-                    <TableCell align="center" sx={styles.columnStyles.history}>
-                      {renderHistory(submission)}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -272,32 +187,33 @@ const MrfReceivingTable = ({
                 );
               })
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={showArchived ? 6 : 7}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No MRF Submissions Found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {getNoDataMessage()}
-                    </Typography>
-                  </Box>
+                  sx={{
+                    borderBottom: "none",
+                    height: "400px",
+                    verticalAlign: "middle",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <NoDataFound message="" subMessage="" />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </TableContainer>
-
-      <MRFHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMrfHistory={selectedMrfHistory}
-      />
     </>
   );
 };

@@ -5,8 +5,9 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import { useGetReceiverHistoryQuery } from "../../../features/api/receiving/receivingApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ReceivingTable from "../ReceivingTable";
+import MrfReceivingTable from "./MrfReceivingTable";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import ReceivingDialog from "./ReceivingDialog";
 
 const MrfReceived = ({
   searchQuery,
@@ -22,6 +23,8 @@ const MrfReceived = ({
   const [rowsPerPage, setRowsPerPage] = useState(
     parseInt(queryParams?.rowsPerPage) || 10
   );
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const methods = useForm();
 
@@ -76,6 +79,16 @@ const MrfReceived = ({
     filterDataBySearch,
   ]);
 
+  const handleRowClick = useCallback((submission) => {
+    setSelectedSubmission(submission);
+    setDialogOpen(true);
+  }, []);
+
+  const handleDialogClose = useCallback(() => {
+    setDialogOpen(false);
+    setSelectedSubmission(null);
+  }, []);
+
   const handlePageChange = useCallback(
     (event, newPage) => {
       const targetPage = newPage + 1;
@@ -126,12 +139,13 @@ const MrfReceived = ({
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <ReceivingTable
+        <MrfReceivingTable
           submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           searchQuery={searchQuery}
           showArchived={true}
+          onRowClick={handleRowClick}
         />
 
         <CustomTablePagination
@@ -140,6 +154,14 @@ const MrfReceived = ({
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
+        />
+
+        <ReceivingDialog.SubmissionDialog
+          open={dialogOpen}
+          onClose={handleDialogClose}
+          submission={selectedSubmission}
+          onReceive={() => {}}
+          onReturn={() => {}}
         />
       </Box>
     </FormProvider>

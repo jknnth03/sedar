@@ -19,7 +19,7 @@ import {
   Undo as ReturnIcon,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
-import { useGetMrfSubmissionAttachmentQuery } from "../../features/api/forms/mrfApi";
+import { useGetMrfSubmissionAttachmentQuery } from "../../../features/api/forms/mrfApi";
 
 const SubmissionDialog = ({
   open,
