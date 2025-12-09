@@ -23,24 +23,21 @@ import {
   Checkbox,
   FormControlLabel,
   useTheme,
-  Fade,
   useMediaQuery,
   Skeleton,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import RestoreIcon from "@mui/icons-material/Restore";
 import HelpIcon from "@mui/icons-material/Help";
 import AddIcon from "@mui/icons-material/Add";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
 import { useSnackbar } from "notistack";
-import RolesModal from "../../components/modal/usermanagement/RolesModal";
+import CatOneTemplateModal from "../../components/modal/assessment-templates/CatOneTemplateModal";
 import {
-  useDeleteRoleMutation,
-  useGetShowRolesQuery,
-} from "../../features/api/usermanagement/rolesApi";
+  useGetCatOneTemplatesQuery,
+  useUpdateCatOneTemplateMutation,
+} from "../../features/api/assessment-template/catoneTemplateApi";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
 import NoDataFound from "../../pages/NoDataFound";
@@ -133,7 +130,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search Roles..."}
+        placeholder={isVerySmall ? "Search..." : "Search Templates..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
@@ -157,7 +154,7 @@ const CustomSearchBar = ({
   );
 };
 
-const Roles = () => {
+const CatOneTemplate = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -170,10 +167,9 @@ const Roles = () => {
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [showArchived, setShowArchived] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [isViewMode, setIsViewMode] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   const [isLoading, setIsLoading] = useState(false);
@@ -189,24 +185,24 @@ const Roles = () => {
   const queryParams = useMemo(
     () => ({
       page: page,
-      rowsPerPage,
-      searchQuery: debouncedSearchQuery,
+      per_page: rowsPerPage,
+      search: debouncedSearchQuery,
       status: showArchived === false ? "active" : "inactive",
     }),
     [page, rowsPerPage, debouncedSearchQuery, showArchived]
   );
 
   const {
-    data: rolesResponse = {},
+    data: templatesResponse = {},
     isLoading: queryLoading,
     isFetching,
     refetch,
-  } = useGetShowRolesQuery(queryParams);
+  } = useGetCatOneTemplatesQuery(queryParams);
 
-  const roles = rolesResponse?.data || [];
-  const totalCount = rolesResponse?.total || 0;
+  const templates = templatesResponse?.result?.data || [];
+  const totalCount = templatesResponse?.result?.total || 0;
 
-  const [deleteRole] = useDeleteRoleMutation();
+  const [updateTemplate] = useUpdateCatOneTemplateMutation();
 
   const handleSearchChange = useCallback(
     (newSearchQuery) => {
@@ -231,9 +227,10 @@ const Roles = () => {
     setPage(1);
   }, []);
 
-  const handleMenuOpen = (event, role) => {
+  const handleMenuOpen = (event, template) => {
+    event.stopPropagation();
     setMenuAnchor(event.currentTarget);
-    setSelectedRole(role);
+    setSelectedTemplate(template);
   };
 
   const handleMenuClose = () => {
@@ -248,11 +245,14 @@ const Roles = () => {
   const handleArchiveRestoreConfirm = async () => {
     setIsLoading(true);
     try {
-      await deleteRole(selectedRole.id).unwrap();
+      await updateTemplate({
+        id: selectedTemplate.id,
+        _method: "DELETE",
+      }).unwrap();
       enqueueSnackbar(
-        selectedRole.deleted_at
-          ? "Role restored successfully!"
-          : "Role archived successfully!",
+        selectedTemplate.deleted_at
+          ? "Template restored successfully!"
+          : "Template archived successfully!",
         { variant: "success" }
       );
       refetch();
@@ -262,33 +262,24 @@ const Roles = () => {
       });
     } finally {
       setConfirmOpen(false);
-      setSelectedRole(null);
+      setSelectedTemplate(null);
       setIsLoading(false);
     }
   };
 
-  const handleEditClick = () => {
-    setIsViewMode(false);
-    setModalOpen(true);
-    handleMenuClose();
-  };
-
-  const handleViewPermissionsClick = (role) => {
-    setSelectedRole(role);
-    setIsViewMode(true);
+  const handleRowClick = (template) => {
+    setSelectedTemplate(template);
     setModalOpen(true);
   };
 
   const handleAddClick = () => {
-    setSelectedRole(null);
-    setIsViewMode(false);
+    setSelectedTemplate(null);
     setModalOpen(true);
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
-    setSelectedRole(null);
-    setIsViewMode(false);
+    setSelectedTemplate(null);
   };
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -300,8 +291,8 @@ const Roles = () => {
     setPage(1);
   }, []);
 
-  const renderStatusChip = useCallback((role) => {
-    const isActive = !role.deleted_at;
+  const renderStatusChip = useCallback((template) => {
+    const isActive = !template.deleted_at;
     const config = isActive
       ? { bgColor: "#e8f5e9", color: "#2e7d32" }
       : { bgColor: "#ffebee", color: "#c62828" };
@@ -315,11 +306,25 @@ const Roles = () => {
     );
   }, []);
 
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+  }, []);
+
   const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
     <>
-      <Box sx={styles.mainContainer}>
+      <Box
+        sx={{
+          ...styles.mainContainer,
+          backgroundColor: "white",
+        }}>
         <Box
           sx={{
             ...styles.headerContainer,
@@ -339,7 +344,7 @@ const Roles = () => {
                   ...(isMobile && styles.headerTitleTextMobile),
                   ...(isVerySmall && styles.headerTitleTextVerySmall),
                 }}>
-                ROLES
+                CAT I TEMPLATES
               </Typography>
               {isVerySmall ? (
                 <IconButton
@@ -383,16 +388,30 @@ const Roles = () => {
         </Box>
 
         <Box sx={styles.tabsContainer}>
-          <TableContainer sx={styles.tableContainerStyles}>
+          <TableContainer
+            sx={{
+              ...styles.tableContainerStyles,
+              border: "none",
+              "& .MuiTable-root": {
+                borderCollapse: "separate",
+              },
+            }}>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell align="left" sx={styles.columnStyles.id}>
+                  <TableCell
+                    align="left"
+                    sx={{
+                      ...styles.columnStyles.id,
+                      paddingLeft: "24px !important",
+                    }}>
                     ID
                   </TableCell>
-                  <TableCell sx={styles.columnStyles.formName}>ROLE</TableCell>
+                  <TableCell sx={styles.columnStyles.formName}>
+                    TEMPLATE NAME
+                  </TableCell>
                   <TableCell sx={styles.columnStyles.status} align="center">
-                    PERMISSION
+                    UPDATED AT
                   </TableCell>
                   <TableCell sx={styles.columnStyles.status} align="center">
                     STATUS
@@ -414,13 +433,7 @@ const Roles = () => {
                           <Skeleton animation="wave" height={30} />
                         </TableCell>
                         <TableCell align="center">
-                          <Skeleton
-                            animation="wave"
-                            variant="circular"
-                            width={32}
-                            height={32}
-                            sx={{ margin: "0 auto" }}
-                          />
+                          <Skeleton animation="wave" height={30} />
                         </TableCell>
                         <TableCell align="center">
                           <Skeleton
@@ -445,33 +458,38 @@ const Roles = () => {
                       </TableRow>
                     ))}
                   </>
-                ) : roles.length > 0 ? (
-                  roles.map((role) => (
-                    <TableRow key={role.id} sx={styles.tableRowHover(theme)}>
-                      <TableCell align="left">{role.id}</TableCell>
+                ) : templates.length > 0 ? (
+                  templates.map((template) => (
+                    <TableRow
+                      key={template.id}
+                      onClick={() => handleRowClick(template)}
+                      sx={{
+                        ...styles.tableRowHover(theme),
+                        cursor: "pointer",
+                      }}>
+                      <TableCell
+                        align="left"
+                        sx={{
+                          paddingLeft: "24px !important",
+                        }}>
+                        {template.id}
+                      </TableCell>
                       <TableCell sx={styles.formNameCell}>
-                        <Tooltip title={role.role_name} placement="top">
+                        <Tooltip title={template.name} placement="top">
                           <span style={styles.cellContentStyles}>
-                            {role.role_name}
+                            {template.name}
                           </span>
                         </Tooltip>
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="View Permissions">
-                          <IconButton
-                            size="small"
-                            sx={styles.historyIconButton(theme)}
-                            onClick={() => handleViewPermissionsClick(role)}>
-                            <VisibilityIcon sx={{ fontSize: "20px" }} />
-                          </IconButton>
-                        </Tooltip>
+                        {formatDate(template.updated_at)}
                       </TableCell>
                       <TableCell align="center">
-                        {renderStatusChip(role)}
+                        {renderStatusChip(template)}
                       </TableCell>
                       <TableCell align="center">
                         <IconButton
-                          onClick={(e) => handleMenuOpen(e, role)}
+                          onClick={(e) => handleMenuOpen(e, template)}
                           size="small"
                           sx={styles.actionIconButton(theme)}>
                           <MoreVertIcon sx={{ fontSize: "20px" }} />
@@ -481,26 +499,43 @@ const Roles = () => {
                   ))
                 ) : (
                   <TableRow
+                    className="no-hover-row"
                     sx={{
-                      borderBottom: "none",
+                      backgroundColor: "white !important",
+                      cursor: "default !important",
+                      border: "none !important",
                       "&:hover": {
-                        backgroundColor: "transparent !important",
+                        backgroundColor: "white !important",
                         cursor: "default !important",
+                      },
+                      "& .MuiTableCell-root": {
+                        backgroundColor: "white !important",
+                        cursor: "default !important",
+                        border: "none !important",
+                        borderBottom: "none !important",
+                        "&:hover": {
+                          backgroundColor: "white !important",
+                          cursor: "default !important",
+                        },
                       },
                     }}>
                     <TableCell
                       colSpan={999}
                       rowSpan={999}
                       align="center"
-                      sx={styles.noDataContainer}>
-                      <NoDataFound
-                        message=""
-                        subMessage={
-                          searchQuery
-                            ? `No roles found for "${searchQuery}"`
-                            : "No roles available"
-                        }
-                      />
+                      sx={{
+                        border: "none !important",
+                        borderBottom: "none !important",
+                        height: "400px",
+                        verticalAlign: "middle",
+                        backgroundColor: "white !important",
+                        cursor: "default !important",
+                        "&:hover": {
+                          backgroundColor: "white !important",
+                          cursor: "default !important",
+                        },
+                      }}>
+                      <NoDataFound message="" subMessage="" />
                     </TableCell>
                   </TableRow>
                 )}
@@ -514,6 +549,12 @@ const Roles = () => {
             rowsPerPage={rowsPerPage}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
+            sx={{
+              borderTop: "none",
+              "& .MuiToolbar-root": {
+                borderTop: "none",
+              },
+            }}
           />
         </Box>
       </Box>
@@ -523,13 +564,8 @@ const Roles = () => {
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
         sx={styles.actionMenu(theme)}>
-        {!selectedRole?.deleted_at && (
-          <MenuItem onClick={handleEditClick}>
-            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-          </MenuItem>
-        )}
         <MenuItem onClick={handleArchiveRestoreClick}>
-          {selectedRole?.deleted_at ? (
+          {selectedTemplate?.deleted_at ? (
             <>
               <RestoreIcon sx={{ mr: 1 }} /> Restore
             </>
@@ -567,12 +603,14 @@ const Roles = () => {
         <DialogContent>
           <Typography variant="body1" sx={styles.confirmDialogMessage}>
             Are you sure you want to{" "}
-            <strong>{selectedRole?.deleted_at ? "restore" : "archive"}</strong>{" "}
-            this role?
+            <strong>
+              {selectedTemplate?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this template?
           </Typography>
-          {selectedRole && (
+          {selectedTemplate && (
             <Typography variant="body2" sx={styles.confirmDialogSubmissionInfo}>
-              {selectedRole.role_name}
+              {selectedTemplate.name}
             </Typography>
           )}
         </DialogContent>
@@ -597,16 +635,15 @@ const Roles = () => {
       </Dialog>
 
       {modalOpen && (
-        <RolesModal
+        <CatOneTemplateModal
           open={modalOpen}
           handleClose={handleModalClose}
-          selectedRole={selectedRole}
+          selectedTemplate={selectedTemplate}
           refetch={refetch}
-          isViewMode={isViewMode}
         />
       )}
     </>
   );
 };
 
-export default Roles;
+export default CatOneTemplate;

@@ -19,8 +19,6 @@ import {
   Checkbox,
   FormControlLabel,
   IconButton,
-  Tabs,
-  Tab,
   Badge,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
@@ -40,42 +38,12 @@ import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import MdaApprovalDialog from "./MdaApprovalDialog.jsx";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+import NoDataFound from "../../NoDataFound";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../forms/manpowerform/FormSubmissionStyles";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -86,23 +54,13 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`mda-approval-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -127,9 +85,8 @@ const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
   isLoading = false,
-  styles,
 }) => {
-  const isVerySmall = useMediaQuery("(max-width:430px)");
+  const isVerySmall = useMediaQuery("(max-width:369px)");
 
   return (
     <Box
@@ -199,7 +156,6 @@ const CustomSearchBar = ({
 const MdaApprovalTable = ({
   approvalStatus,
   searchQuery,
-  styles,
   isMobile,
   isVerySmall,
   onRowClick,
@@ -253,49 +209,147 @@ const MdaApprovalTable = ({
   const isLoadingState = queryLoading || isFetching;
 
   return (
-    <Box sx={styles.tableMainContainer}>
-      <TableContainer sx={styles.tableContainer}>
-        <Table stickyHeader>
+    <Box
+      sx={{
+        flex: 1,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "white",
+      }}>
+      <TableContainer
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          "& .MuiTableCell-head": {
+            backgroundColor: "white",
+            fontWeight: 700,
+            fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
+            color: "rgb(33, 61, 112)",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            borderBottom: "none",
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            height: isMobile ? "44px" : "48px",
+            padding: isMobile ? "6px 12px" : "8px 16px",
+          },
+          "& .MuiTableCell-body": {
+            fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
+            color: "#333",
+            borderBottom: "1px solid #f0f0f0",
+            padding: isMobile ? "6px 12px" : "8px 16px",
+            height: isMobile ? "48px" : "52px",
+          },
+          "& .MuiTableRow-root": {
+            transition: "background-color 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: "#f8f9fa",
+            },
+          },
+        }}>
+        <Table
+          stickyHeader
+          sx={{
+            height: mdaApprovalsList.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell
                 align="center"
-                sx={{ ...styles.headerCellStatus, whiteSpace: "nowrap" }}>
+                sx={{
+                  width: isVerySmall ? "100px" : isMobile ? "120px" : "140px",
+                  minWidth: isVerySmall
+                    ? "100px"
+                    : isMobile
+                    ? "120px"
+                    : "140px",
+                }}>
                 STATUS
               </TableCell>
               <TableCell
-                sx={{ ...styles.headerCellReference, whiteSpace: "nowrap" }}>
+                sx={{
+                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
+                  minWidth: isVerySmall
+                    ? "120px"
+                    : isMobile
+                    ? "150px"
+                    : "180px",
+                }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
               <TableCell
-                sx={{ ...styles.headerCellPosition, whiteSpace: "nowrap" }}>
+                sx={{
+                  width: isVerySmall ? "150px" : isMobile ? "200px" : "250px",
+                  minWidth: isVerySmall
+                    ? "150px"
+                    : isMobile
+                    ? "200px"
+                    : "250px",
+                }}>
                 EMPLOYEE NAME
               </TableCell>
               <TableCell
-                sx={{ ...styles.headerCellRequisition, whiteSpace: "nowrap" }}>
+                sx={{
+                  width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
+                  minWidth: isVerySmall
+                    ? "150px"
+                    : isMobile
+                    ? "180px"
+                    : "220px",
+                }}>
                 {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
               </TableCell>
               <TableCell
-                sx={{ ...styles.headerCellRequested, whiteSpace: "nowrap" }}>
+                sx={{
+                  width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
+                  minWidth: isVerySmall
+                    ? "150px"
+                    : isMobile
+                    ? "180px"
+                    : "220px",
+                }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
               <TableCell
-                sx={{ ...styles.headerCellDate, whiteSpace: "nowrap" }}>
+                sx={{
+                  width: isVerySmall ? "120px" : isMobile ? "140px" : "170px",
+                  minWidth: isVerySmall
+                    ? "120px"
+                    : isMobile
+                    ? "140px"
+                    : "170px",
+                }}>
                 {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: mdaApprovalsList.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingProgress} />
+              <TableRow sx={{ height: "100%" }}>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
+                  <CircularProgress
+                    size={32}
+                    sx={{ color: "rgb(33, 61, 112)" }}
+                  />
                 </TableCell>
               </TableRow>
             ) : error ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={styles.errorCell}>
-                  <Typography color="error" sx={styles.errorText}>
+              <TableRow sx={{ height: "100%" }}>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
+                  <Typography
+                    color="error"
+                    sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
                 </TableCell>
@@ -306,27 +360,49 @@ const MdaApprovalTable = ({
                   <TableRow
                     key={approval.id}
                     onClick={() => onRowClick(approval)}
-                    sx={styles.tableRow}>
-                    <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: "#f8f9fa",
+                      },
+                    }}>
+                    <TableCell align="center">
                       {renderStatusChip(approval)}
                     </TableCell>
                     <TableCell
-                      sx={{ ...styles.cellEllipsis, whiteSpace: "nowrap" }}>
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 600,
+                      }}>
                       {approval.reference_number || "-"}
                     </TableCell>
                     <TableCell
-                      sx={{ ...styles.cellPosition, whiteSpace: "nowrap" }}>
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
                       {approval.employee_name || "-"}
                     </TableCell>
                     <TableCell
-                      sx={{ ...styles.cellEllipsis, whiteSpace: "nowrap" }}>
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
                       {approval.movement_type || "-"}
                     </TableCell>
                     <TableCell
-                      sx={{ ...styles.cellEllipsis, whiteSpace: "nowrap" }}>
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
                       {approval.requested_by || "-"}
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
                             isVerySmall ? "M/D/YY" : "MMM D, YYYY"
@@ -337,31 +413,40 @@ const MdaApprovalTable = ({
                 );
               })
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  height: "100%",
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={6}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.emptyStateContainer}>
-                  <Box sx={styles.emptyStateBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography
-                      variant="h6"
-                      color="text.secondary"
-                      sx={styles.emptyStateTitle}>
-                      {approvalStatus === "approved"
-                        ? "No approved MDA submissions found"
-                        : "No MDA submissions found"}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={styles.emptyStateSubtitle}>
-                      {searchQuery
-                        ? `No results for "${searchQuery}"`
-                        : approvalStatus === "approved"
-                        ? "No approved submissions"
-                        : "No pending submissions found"}
-                    </Typography>
+                  sx={{
+                    height: "100%",
+                    verticalAlign: "middle",
+                    border: "none",
+                    borderBottom: "none",
+                    padding: 0,
+                    pointerEvents: "none",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "56%",
+                      top: "60%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage="" />
                   </Box>
                 </TableCell>
               </TableRow>
@@ -370,7 +455,32 @@ const MdaApprovalTable = ({
         </Table>
       </TableContainer>
 
-      <Box sx={styles.paginationContainer}>
+      <Box
+        sx={{
+          borderTop: "1px solid #e0e0e0",
+          backgroundColor: "#f8f9fa",
+          flexShrink: 0,
+          "& .MuiTablePagination-root": {
+            color: "#666",
+            "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+              {
+                fontSize: isMobile ? "12px" : "14px",
+                fontWeight: 500,
+              },
+            "& .MuiTablePagination-select": {
+              fontSize: isMobile ? "12px" : "14px",
+            },
+            "& .MuiIconButton-root": {
+              color: "rgb(33, 61, 112)",
+              "&:hover": {
+                backgroundColor: "rgba(33, 61, 112, 0.04)",
+              },
+              "&.Mui-disabled": {
+                color: "#ccc",
+              },
+            },
+          },
+        }}>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
@@ -380,7 +490,11 @@ const MdaApprovalTable = ({
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           sx={{
-            "& .MuiTablePagination-toolbar": styles.paginationToolbar,
+            "& .MuiTablePagination-toolbar": {
+              paddingLeft: isMobile ? "16px" : "24px",
+              paddingRight: isMobile ? "16px" : "24px",
+              minHeight: isMobile ? "48px" : "52px",
+            },
           }}
         />
       </Box>
@@ -395,7 +509,7 @@ const MdaApproval = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
-  const styles = useMemo(
+  const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
     [theme, isMobile, isTablet, isVerySmall]
@@ -504,21 +618,21 @@ const MdaApproval = () => {
         <Chip
           label={status.toUpperCase()}
           size="small"
-          sx={styles.statusChip(status)}
+          sx={customStyles.statusChip(status)}
         />
       );
     },
-    [styles]
+    [customStyles]
   );
 
   const tabsData = [
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       approvalStatus: "pending",
       badgeCount: 0,
     },
     {
-      label: "Approved",
+      label: "APPROVED",
       approvalStatus: "approved",
       badgeCount: 0,
     },
@@ -533,66 +647,38 @@ const MdaApproval = () => {
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "#fafafa",
-          minWidth: 0,
-        }}>
+      <Box sx={styles.mainContainer}>
         <Box
           sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
           }}>
           <Box
             sx={{
-              display: "flex",
-              alignItems: isMobile || isTablet ? "flex-start" : "center",
-              justifyContent:
-                isMobile || isTablet ? "flex-start" : "space-between",
-              flexDirection: isMobile || isTablet ? "column" : "row",
-              flexShrink: 0,
-              minHeight: isMobile || isTablet ? "auto" : "72px",
-              padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
-              backgroundColor: "white",
-              borderBottom: "1px solid #e0e0e0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-              gap: isMobile || isTablet ? "16px" : "0",
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
             }}>
-            <Box
+            <Typography
+              className="header"
               sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                width: isMobile || isTablet ? "100%" : "auto",
-                justifyContent: "flex-start",
+                ...styles.headerTitleText,
+                ...(isMobile && styles.headerTitleTextMobile),
+                ...(isVerySmall && styles.headerTitleTextVerySmall),
+                paddingRight: "14px",
               }}>
-              <Typography
-                className="header"
-                sx={{
-                  fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                  fontWeight: 500,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
-                {isVerySmall ? "MDA" : "MDA Approval"}
-              </Typography>
-            </Box>
-
-            <CustomSearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={handleSearchChange}
-              isLoading={false}
-              styles={styles}
-            />
+              {isVerySmall ? "MDA" : "MDA APPROVAL"}
+            </Typography>
           </Box>
 
+          <CustomSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={handleSearchChange}
+            isLoading={false}
+          />
+        </Box>
+
+        <Box sx={styles.tabsSection}>
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
@@ -601,9 +687,8 @@ const MdaApproval = () => {
             scrollButtons="auto"
             allowScrollButtonsMobile
             sx={{
-              "& .MuiTab-root": {
-                whiteSpace: "nowrap",
-              },
+              ...styles.tabsStyled,
+              ...(isVerySmall && styles.tabsStyledVerySmall),
             }}>
             {tabsData.map((tab, index) => (
               <StyledTab
@@ -611,21 +696,11 @@ const MdaApproval = () => {
                 label={
                   tab.badgeCount > 0 ? (
                     <Badge
-                      variant="dot"
+                      badgeContent={tab.badgeCount}
                       color="error"
-                      anchorOrigin={{
-                        vertical: "top",
-                        horizontal: "right",
-                      }}
                       sx={{
-                        "& .MuiBadge-badge": {
-                          minWidth: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          padding: 0,
-                          top: "8px",
-                          right: "-10px",
-                        },
+                        ...styles.tabBadge,
+                        ...(isVerySmall && styles.tabBadgeVerySmall),
                       }}>
                       {tab.label}
                     </Badge>
@@ -634,33 +709,24 @@ const MdaApproval = () => {
                   )
                 }
                 {...a11yProps(index)}
-                sx={{ whiteSpace: "nowrap" }}
               />
             ))}
           </StyledTabs>
+        </Box>
 
-          <Box
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}>
-            {tabsData.map((tab, index) => (
-              <TabPanel key={index} value={activeTab} index={index}>
-                <MdaApprovalTable
-                  approvalStatus={tab.approvalStatus}
-                  searchQuery={searchQuery}
-                  styles={styles}
-                  isMobile={isMobile}
-                  isVerySmall={isVerySmall}
-                  onRowClick={handleRowClick}
-                  renderStatusChip={renderStatusChip}
-                />
-              </TabPanel>
-            ))}
-          </Box>
+        <Box sx={styles.tabsContainer}>
+          {tabsData.map((tab, index) => (
+            <TabPanel key={index} value={activeTab} index={index}>
+              <MdaApprovalTable
+                approvalStatus={tab.approvalStatus}
+                searchQuery={searchQuery}
+                isMobile={isMobile}
+                isVerySmall={isVerySmall}
+                onRowClick={handleRowClick}
+                renderStatusChip={renderStatusChip}
+              />
+            </TabPanel>
+          ))}
         </Box>
 
         <MdaApprovalDialog
@@ -671,7 +737,7 @@ const MdaApproval = () => {
           onReject={handleReject}
           isLoading={approveLoading || rejectLoading}
           isLoadingData={selectedApprovalLoading}
-          styles={styles}
+          styles={customStyles}
         />
       </Box>
     </FormProvider>

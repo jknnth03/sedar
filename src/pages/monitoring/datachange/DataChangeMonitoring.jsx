@@ -35,7 +35,7 @@ import useDebounce from "../../../hooks/useDebounce";
 
 import DataChangeMonitoringForApproval from "./DataChangeMonitoringForApproval";
 import DataChangeMonitoringRejected from "./DataChangeMonitoringRejected";
-import DataChangeMonitoringAwaitingResubmission from "./DataChangeMonitoringAwaitingResubmission";
+import DataChangeMonitor ingAwaitingResubmission from "./DataChangeMonitoringAwaitingResubmission";
 import DataChangeMonitoringCompleted from "./DataChangeMonitoringCompleted";
 import DataChangeMonitoringCancelled from "./DataChangeMonitoringCancelled";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";

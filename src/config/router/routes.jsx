@@ -68,6 +68,10 @@ import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx
 import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
 import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
 import Redirect from "../../pages/login/Redirect.jsx";
+import AssessmentTemplate from "../../pages/assessment-templates/AssessmentTemplate.jsx";
+import CatOneTemplate from "../../pages/assessment-templates/CatOneTemplate.jsx";
+import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx";
+import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
 
 export const ROUTES = [
   {
@@ -133,6 +137,33 @@ export const ROUTES = [
         handle: {
           permission:
             MODULES.APPROVALSETTINGS.children.APPROVALFLOW.permissionId,
+        },
+      },
+      {
+        id: "ASSESSMENTTEMPLATES.CATONETEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.CATONETEMPLATE.path}`,
+        element: <CatOneTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.CATONETEMPLATE.permissionId,
+        },
+      },
+      {
+        id: "ASSESSMENTTEMPLATES.CATTWOTEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.CATTWOTEMPLATE.path}`,
+        element: <CatTwoTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.CATTWOTEMPLATE.permissionId,
+        },
+      },
+      {
+        id: "ASSESSMENTTEMPLATES.PDPTEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.PDPTEMPLATE.path}`,
+        element: <PdpTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.PDPTEMPLATE.permissionId,
         },
       },
       {

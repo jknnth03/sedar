@@ -65,6 +65,7 @@ import WeekendIcon from "@mui/icons-material/Weekend";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import RecommendIcon from "@mui/icons-material/Recommend";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
 import { calculateCounts } from "./NotificationBadge";
 
 export const createEnhancedModules = (dashboardData = {}) => {
@@ -186,6 +187,41 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Approval Flow",
           path: "approvalflow",
           icon: <DragIndicatorIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+      },
+    },
+
+    ASSESSMENTTEMPLATES: {
+      name: "Assessment Templates",
+      permissionId: "ASSESSMENTTEMPLATES",
+      displayName: "Assessment Templates",
+      path: "/assessment-templates",
+      icon: <FactCheckIcon sx={iconStyles.mainLarge} />,
+      icon_on: null,
+      children: {
+        CATONETEMPLATE: {
+          name: "Cat I Template",
+          permissionId: "ASSESSMENTTEMPLATES.CATONETEMPLATE",
+          displayName: "Cat I Template",
+          path: "cat-one-template",
+          icon: <LooksOneIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        CATTWOTEMPLATE: {
+          name: "Cat II Template",
+          permissionId: "ASSESSMENTTEMPLATES.CATTWOTEMPLATE",
+          displayName: "Cat II Template",
+          path: "cat-two-template",
+          icon: <LooksTwoIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
+        PDPTEMPLATE: {
+          name: "PDP",
+          permissionId: "ASSESSMENTTEMPLATES.PDPTEMPLATE",
+          displayName: "PDP",
+          path: "pdp-template",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
         },
       },
