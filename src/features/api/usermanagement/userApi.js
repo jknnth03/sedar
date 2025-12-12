@@ -204,6 +204,7 @@ const userApi = sedarApi
 export const {
   useGetSingleUserQuery,
   useGetEmployeeIdNumbersQuery,
+  useLazyGetAllUsersQuery,
   useGetAllUsersQuery,
   useCreateUserMutation,
   useUpdateUserMutation,

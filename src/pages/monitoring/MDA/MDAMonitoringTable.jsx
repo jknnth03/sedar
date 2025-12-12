@@ -11,14 +11,14 @@ import {
   IconButton,
   Chip,
   Tooltip,
-  CircularProgress,
+  Skeleton,
   useTheme,
 } from "@mui/material";
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import MDAHistoryDialog from "../../../pages/forms/mdaform/MDAHistoryDialog";
+import NoDataFound from "../../NoDataFound";
 
 const MDAMonitoringTable = ({
   submissionsList,
@@ -189,7 +189,12 @@ const MDAMonitoringTable = ({
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+            height: filteredSubmissions.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.id}>REQUESTOR</TableCell>
@@ -212,22 +217,59 @@ const MDAMonitoringTable = ({
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell
-                  colSpan={colSpan}
-                  align="center"
-                  sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
-              <TableRow>
+              <TableRow sx={{ height: "100%" }}>
                 <TableCell
                   colSpan={colSpan}
                   align="center"
-                  sx={styles.errorCell}>
+                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -297,19 +339,40 @@ const MDAMonitoringTable = ({
                 );
               })
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  height: "100%",
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={colSpan}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No MDA submissions found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {getNoDataMessage()}
-                    </Typography>
+                  sx={{
+                    height: "100%",
+                    verticalAlign: "middle",
+                    border: "none",
+                    borderBottom: "none",
+                    padding: 0,
+                    pointerEvents: "none",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "62%",
+                      top: "64%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage={getNoDataMessage()} />
                   </Box>
                 </TableCell>
               </TableRow>

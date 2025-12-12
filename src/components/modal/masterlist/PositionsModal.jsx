@@ -25,16 +25,17 @@ import { useSnackbar } from "notistack";
 import {
   usePostPositionMutation,
   useUpdatePositionMutation,
+  useLazyGetPositionByIdQuery,
 } from "../../../features/api/masterlist/positionsApi";
-import { useGetAllShowTitlesQuery } from "../../../features/api/extras/titleApi";
-import { useGetAllShowTeamsQuery } from "../../../features/api/extras/teamsApi";
-import { useGetAllShowSchedulesQuery } from "../../../features/api/extras/schedulesApi";
-import { useLazyGetAllEmployeesQuery } from "../../../features/api/employee/mainApi";
+import { useLazyGetAllShowTitlesQuery } from "../../../features/api/extras/titleApi";
+import { useLazyGetAllShowTeamsQuery } from "../../../features/api/extras/teamsApi";
+import { useLazyGetAllShowSchedulesQuery } from "../../../features/api/extras/schedulesApi";
 import { CONSTANT } from "../../../config";
-import { useGetAllShowToolsQuery } from "../../../features/api/extras/toolsApi";
-import { useGetAllOneRdfQuery } from "../../../features/api/masterlist/realonerdfApi";
+import { useLazyGetAllShowToolsQuery } from "../../../features/api/extras/toolsApi";
+import { useLazyGetAllOneRdfQuery } from "../../../features/api/masterlist/realonerdfApi";
 import RequestorSequence from "./RequestorSequence";
 import { styles, getEditIconStyle } from "./PositionModalStyles";
+import { useLazyGetAllUsersQuery } from "../../../features/api/usermanagement/userApi";
 
 export default function PositionsModal({
   open,
@@ -58,31 +59,33 @@ export default function PositionsModal({
 
   const [errors, setErrors] = useState({});
   const [errorMessage, setErrorMessage] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [requestorSequence, setRequestorSequence] = useState([]);
   const [currentMode, setCurrentMode] = useState(edit);
   const [originalMode, setOriginalMode] = useState(edit);
+  const [isInitialLoad, setIsInitialLoad] = useState(false);
+  const [fullPositionData, setFullPositionData] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  const { data: toolsListRaw = [], isLoading: toolsLoading } =
-    useGetAllShowToolsQuery();
+  const [fetchTools, { data: toolsListRaw = [], isLoading: toolsLoading }] =
+    useLazyGetAllShowToolsQuery();
 
-  const { data: titlesData, isLoading: titlesLoading } =
-    useGetAllShowTitlesQuery();
+  const [fetchTitles, { data: titlesData, isLoading: titlesLoading }] =
+    useLazyGetAllShowTitlesQuery();
 
-  const { data: schedulesData, isLoading: schedulesLoading } =
-    useGetAllShowSchedulesQuery();
+  const [fetchSchedules, { data: schedulesData, isLoading: schedulesLoading }] =
+    useLazyGetAllShowSchedulesQuery();
 
-  const { data: teamsData, isLoading: teamsLoading } =
-    useGetAllShowTeamsQuery();
+  const [fetchTeams, { data: teamsData, isLoading: teamsLoading }] =
+    useLazyGetAllShowTeamsQuery();
 
-  const [
-    getAllEmployees,
-    { data: employeesData, isLoading: employeesLoading },
-  ] = useLazyGetAllEmployeesQuery();
+  const [fetchUsers, { data: usersData, isLoading: usersLoading }] =
+    useLazyGetAllUsersQuery();
 
-  const { data: chargingData, isLoading: chargingLoading } =
-    useGetAllOneRdfQuery();
+  const [fetchCharging, { data: chargingData, isLoading: chargingLoading }] =
+    useLazyGetAllOneRdfQuery();
+
+  const [getPositionById, { isFetching: isFetchingPosition }] =
+    useLazyGetPositionByIdQuery();
 
   const [postPosition, { isLoading: isAdding }] = usePostPositionMutation();
   const [updatePosition, { isLoading: isUpdating }] =
@@ -101,10 +104,7 @@ export default function PositionsModal({
     [schedulesData]
   );
   const teamsList = useMemo(() => normalizeData(teamsData), [teamsData]);
-  const employeesList = useMemo(
-    () => normalizeData(employeesData),
-    [employeesData]
-  );
+  const usersList = useMemo(() => normalizeData(usersData), [usersData]);
   const chargingList = useMemo(
     () => normalizeData(chargingData),
     [chargingData]
@@ -115,21 +115,38 @@ export default function PositionsModal({
     titlesLoading ||
     schedulesLoading ||
     teamsLoading ||
-    employeesLoading ||
-    chargingLoading;
-
-  useEffect(() => {
-    if (open) {
-      getAllEmployees();
-    }
-  }, [open, getAllEmployees]);
+    usersLoading ||
+    chargingLoading ||
+    isFetchingPosition ||
+    isInitialLoad;
 
   useEffect(() => {
     if (open) {
       setCurrentMode(edit);
       setOriginalMode(edit);
+      setFullPositionData(null);
     }
   }, [open, edit]);
+
+  useEffect(() => {
+    if (open && position?.id && (edit === true || edit === "view")) {
+      const fetchFullData = async () => {
+        try {
+          setIsInitialLoad(true);
+          const response = await getPositionById(position.id).unwrap();
+          setFullPositionData(response.result);
+        } catch (error) {
+          enqueueSnackbar("Failed to load position details", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+        } finally {
+          setIsInitialLoad(false);
+        }
+      };
+      fetchFullData();
+    }
+  }, [open, position?.id, edit, getPositionById, enqueueSnackbar]);
 
   const handleClose = () => {
     if (onClose) {
@@ -137,15 +154,29 @@ export default function PositionsModal({
     }
   };
 
-  const handleModeChange = (newMode) => {
+  const handleModeChange = async (newMode) => {
+    if (newMode === "edit" && position?.id && currentMode === "view") {
+      if (!fullPositionData) {
+        try {
+          setIsInitialLoad(true);
+          const response = await getPositionById(position.id).unwrap();
+          setFullPositionData(response.result);
+        } catch (error) {
+          enqueueSnackbar("Failed to load position details", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+          return;
+        } finally {
+          setIsInitialLoad(false);
+        }
+      }
+    }
     setCurrentMode(newMode);
   };
 
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
-    if (position) {
-      initializeFormData();
-    }
   };
 
   const clearFieldError = (fieldName) => {
@@ -165,7 +196,7 @@ export default function PositionsModal({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "tools" ? value : value,
+      [name]: value,
     }));
     clearFieldError(name);
   };
@@ -193,7 +224,11 @@ export default function PositionsModal({
       requestor_sequence: requestorSequence.length === 0,
     };
 
-    if (currentMode !== true && currentMode !== "edit") {
+    if (
+      currentMode !== true &&
+      currentMode !== "edit" &&
+      currentMode !== "view"
+    ) {
       newErrors.position_attachment =
         !formData.position_attachment ||
         (formData.position_attachment instanceof FileList &&
@@ -206,13 +241,7 @@ export default function PositionsModal({
 
   const getToolsForPayload = () => {
     if (!formData.tools || formData.tools.length === 0) return [];
-
-    return formData.tools
-      .map((toolName) => {
-        const tool = toolsList.find((t) => t.name === toolName);
-        return tool?.id;
-      })
-      .filter(Boolean);
+    return formData.tools;
   };
 
   const getRequestorsForPayload = () => {
@@ -292,116 +321,12 @@ export default function PositionsModal({
     }
   };
 
-  const initializeFormData = () => {
-    if (
-      position &&
-      !isLoading &&
-      titlesList.length > 0 &&
-      employeesList.length > 0
-    ) {
-      console.log("Initializing form data with position:", position);
-
-      let toolNames = [];
-
-      if (Array.isArray(position.tools)) {
-        if (
-          position.tools.length > 0 &&
-          typeof position.tools[0] === "object" &&
-          position.tools[0] !== null
-        ) {
-          toolNames = position.tools
-            .map((tool) => tool?.name || "")
-            .filter(Boolean);
-        } else if (
-          position.tools.length > 0 &&
-          typeof position.tools[0] === "number"
-        ) {
-          toolNames = position.tools
-            .map((toolId) => {
-              const tool = toolsList.find((t) => t.id === toolId);
-              return tool?.name || "";
-            })
-            .filter(Boolean);
-        } else if (
-          position.tools.length > 0 &&
-          typeof position.tools[0] === "string"
-        ) {
-          toolNames = position.tools;
-        }
-      }
-
-      let attachmentInfo = null;
-      if (position.position_attachment) {
-        if (typeof position.position_attachment === "string") {
-          attachmentInfo = {
-            name: position.position_attachment.split("/").pop(),
-            original: position.position_attachment,
-          };
-        } else if (typeof position.position_attachment === "object") {
-          attachmentInfo = {
-            ...position.position_attachment,
-            original:
-              position.position_attachment.url ||
-              position.position_attachment.path ||
-              position.position_attachment.original,
-          };
-        }
-      }
-
-      const newFormData = {
-        name: position.name,
-        code: position.code || "",
-        superior_name: position.superior?.id || position.superior_id || null,
-        pay_frequency: position.pay_frequency || "",
-        tools: toolNames,
-        titles: position.title?.id || position.title_id || "",
-        schedule: position.schedule?.id || position.schedule_id || "",
-        team: position.team?.id || position.team_id || "",
-        charging: position.charging?.id || position.charging_id || "",
-        position_attachment: attachmentInfo,
-      };
-
-      console.log("Setting form data:", newFormData);
-      setFormData(newFormData);
-
-      if (position.requesters && Array.isArray(position.requesters)) {
-        const requestorsList = position.requesters.map((requestor) => {
-          const employee = employeesList.find(
-            (e) => e.id === requestor.employee_id
-          );
-          return {
-            id: requestor.id || requestor.user_id || requestor,
-            name:
-              requestor.full_name ||
-              requestor.name ||
-              requestor.user_name ||
-              "Unknown User",
-            position:
-              employee?.position?.name ||
-              employee?.title?.name ||
-              "No Position",
-            department:
-              employee?.department?.name ||
-              employee?.unit?.name ||
-              "No Department",
-            employee_id: requestor.employee_id,
-            user_id: requestor.id,
-          };
-        });
-        setRequestorSequence(requestorsList);
-      }
-
-      setIsInitialized(true);
-    }
-  };
-
   useEffect(() => {
     if (open) {
-      setIsInitialized(false);
       setErrors({});
       setErrorMessage(null);
 
-      if (!position) {
+      if (!position || Object.keys(position).length === 0) {
         setFormData({
           titles: "",
           code: "",
@@ -414,10 +339,42 @@ export default function PositionsModal({
           position_attachment: null,
         });
         setRequestorSequence([]);
-        setIsInitialized(true);
+      } else {
+        const dataToUse = fullPositionData || position;
+        const newFormData = {
+          code: dataToUse.code || "",
+          superior_name:
+            dataToUse.superior?.id || dataToUse.superior_id || null,
+          pay_frequency: dataToUse.pay_frequency || "",
+          tools: Array.isArray(dataToUse.tools) ? dataToUse.tools : [],
+          titles: dataToUse.title?.id || dataToUse.title_id || "",
+          schedule: dataToUse.schedule?.id || dataToUse.schedule_id || "",
+          team: dataToUse.team?.id || dataToUse.team_id || "",
+          charging: dataToUse.charging?.id || dataToUse.charging_id || "",
+          position_attachment: dataToUse.position_attachment
+            ? {
+                name:
+                  dataToUse.position_attachment_filename ||
+                  dataToUse.position_attachment.split("/").pop(),
+                original: dataToUse.position_attachment,
+              }
+            : null,
+        };
+        setFormData(newFormData);
+
+        if (dataToUse.requesters && Array.isArray(dataToUse.requesters)) {
+          const requestorsList = dataToUse.requesters.map((requestor) => ({
+            id: requestor.id,
+            name: requestor.full_name || "Unknown User",
+            position: requestor.position?.position_name || "No Position",
+            department: "No Department",
+            employee_id: requestor.employee_id,
+            user_id: requestor.id,
+          }));
+          setRequestorSequence(requestorsList);
+        }
       }
     } else {
-      setIsInitialized(false);
       setRequestorSequence([]);
       setFormData({
         titles: "",
@@ -433,31 +390,43 @@ export default function PositionsModal({
       setErrors({});
       setErrorMessage(null);
     }
-  }, [open, position]);
+  }, [open, position, fullPositionData]);
 
-  useEffect(() => {
-    if (
-      open &&
-      position &&
-      !isInitialized &&
-      !isLoading &&
-      titlesList.length > 0 &&
-      employeesList.length > 0
-    ) {
-      initializeFormData();
+  const handleTitlesOpen = () => {
+    if (titlesList.length === 0 && !isReadOnly) {
+      fetchTitles();
     }
-  }, [
-    open,
-    position,
-    isInitialized,
-    isLoading,
-    titlesList,
-    employeesList,
-    toolsList,
-    schedulesList,
-    teamsList,
-    chargingList,
-  ]);
+  };
+
+  const handleSchedulesOpen = () => {
+    if (schedulesList.length === 0 && !isReadOnly) {
+      fetchSchedules();
+    }
+  };
+
+  const handleTeamsOpen = () => {
+    if (teamsList.length === 0 && !isReadOnly) {
+      fetchTeams();
+    }
+  };
+
+  const handleUsersOpen = () => {
+    if (usersList.length === 0 && !isReadOnly) {
+      fetchUsers();
+    }
+  };
+
+  const handleChargingOpen = () => {
+    if (chargingList.length === 0 && !isReadOnly) {
+      fetchCharging();
+    }
+  };
+
+  const handleToolsOpen = () => {
+    if (toolsList.length === 0 && !isReadOnly) {
+      fetchTools();
+    }
+  };
 
   const getAttachmentDisplayName = () => {
     const attachment = formData.position_attachment;
@@ -490,6 +459,25 @@ export default function PositionsModal({
   const isReadOnly = currentMode === "view";
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === true || currentMode === "edit";
+
+  const dataToDisplay = fullPositionData || position;
+  const displayTitle = dataToDisplay?.title?.name || dataToDisplay?.title || "";
+  const displaySchedule =
+    dataToDisplay?.schedule?.name || dataToDisplay?.schedule || "";
+  const displayTeam = dataToDisplay?.team?.name || dataToDisplay?.team || "";
+  const displayCharging =
+    dataToDisplay?.charging?.name || dataToDisplay?.charging || "";
+  const displaySuperior =
+    dataToDisplay?.superior?.full_name || dataToDisplay?.superior || "";
+  const displayTools = fullPositionData?.tools
+    ? Array.isArray(fullPositionData.tools)
+      ? fullPositionData.tools.join(", ")
+      : ""
+    : position?.tools
+    ? Array.isArray(position.tools)
+      ? position.tools.join(", ")
+      : ""
+    : "";
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
@@ -547,32 +535,43 @@ export default function PositionsModal({
           <Box>
             <Box sx={styles.formGrid}>
               <Box sx={styles.fullWidthColumn}>
-                <Autocomplete
-                  options={titlesList}
-                  getOptionLabel={(option) => option?.name || ""}
-                  value={
-                    titlesList.find((t) => t.id === formData.titles) || null
-                  }
-                  onChange={(e, value) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      titles: value?.id || "",
-                    }));
-                    clearFieldError("titles");
-                  }}
-                  disabled={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Titles"
-                      name="titles"
-                      fullWidth
-                      error={errors.titles}
-                      helperText={errors.titles && "Please select a title"}
-                      required
-                    />
-                  )}
-                />
+                {isReadOnly ? (
+                  <TextField
+                    label="Titles"
+                    value={displayTitle}
+                    disabled
+                    fullWidth
+                    required
+                  />
+                ) : (
+                  <Autocomplete
+                    options={titlesList}
+                    getOptionLabel={(option) => option?.name || ""}
+                    value={
+                      titlesList.find((t) => t.id === formData.titles) || null
+                    }
+                    onChange={(e, value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        titles: value?.id || "",
+                      }));
+                      clearFieldError("titles");
+                    }}
+                    onOpen={handleTitlesOpen}
+                    disabled={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Titles"
+                        name="titles"
+                        fullWidth
+                        error={errors.titles}
+                        helperText={errors.titles && "Please select a title"}
+                        required
+                      />
+                    )}
+                  />
+                )}
               </Box>
 
               <TextField
@@ -586,41 +585,51 @@ export default function PositionsModal({
                 required
               />
 
-              <Autocomplete
-                options={employeesList}
-                getOptionLabel={(option) => {
-                  return (
-                    option?.name ||
-                    option?.full_name ||
-                    option?.employee_name ||
-                    ""
-                  );
-                }}
-                value={
-                  employeesList.find((e) => e.id === formData.superior_name) ||
-                  null
-                }
-                onChange={(e, value) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    superior_name: value?.id || null,
-                  }));
-                  clearFieldError("superior_name");
-                }}
-                disabled={isReadOnly}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Superior Name"
-                    name="superior_name"
-                    fullWidth
-                    error={errors.superior_name}
-                    helperText={
-                      errors.superior_name && "Please select a superior"
-                    }
-                  />
-                )}
-              />
+              {isReadOnly ? (
+                <TextField
+                  label="Superior Name"
+                  value={displaySuperior}
+                  disabled
+                  fullWidth
+                />
+              ) : (
+                <Autocomplete
+                  options={usersList}
+                  getOptionLabel={(option) => {
+                    return (
+                      option?.full_name ||
+                      option?.name ||
+                      option?.username ||
+                      ""
+                    );
+                  }}
+                  value={
+                    usersList.find((u) => u.id === formData.superior_name) ||
+                    null
+                  }
+                  onChange={(e, value) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      superior_name: value?.id || null,
+                    }));
+                    clearFieldError("superior_name");
+                  }}
+                  onOpen={handleUsersOpen}
+                  disabled={isReadOnly}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Superior Name"
+                      name="superior_name"
+                      fullWidth
+                      error={errors.superior_name}
+                      helperText={
+                        errors.superior_name && "Please select a superior"
+                      }
+                    />
+                  )}
+                />
+              )}
 
               <Autocomplete
                 options={["MONTHLY PAID", "DAILY PAID", "HOURLY PAID"]}
@@ -646,89 +655,123 @@ export default function PositionsModal({
                 )}
               />
 
-              <Autocomplete
-                options={schedulesList}
-                getOptionLabel={(option) => option?.name || ""}
-                value={
-                  schedulesList.find((s) => s.id === formData.schedule) || null
-                }
-                onChange={(e, value) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    schedule: value?.id || "",
-                  }));
-                  clearFieldError("schedule");
-                }}
-                disabled={isReadOnly}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Schedule"
-                    name="schedule"
-                    fullWidth
-                    error={errors.schedule}
-                    helperText={errors.schedule && "Please select a schedule"}
-                    required
-                  />
-                )}
-              />
+              {isReadOnly ? (
+                <TextField
+                  label="Schedule"
+                  value={displaySchedule}
+                  disabled
+                  fullWidth
+                  required
+                />
+              ) : (
+                <Autocomplete
+                  options={schedulesList}
+                  getOptionLabel={(option) => option?.name || ""}
+                  value={
+                    schedulesList.find((s) => s.id === formData.schedule) ||
+                    null
+                  }
+                  onChange={(e, value) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      schedule: value?.id || "",
+                    }));
+                    clearFieldError("schedule");
+                  }}
+                  onOpen={handleSchedulesOpen}
+                  disabled={isReadOnly}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Schedule"
+                      name="schedule"
+                      fullWidth
+                      error={errors.schedule}
+                      helperText={errors.schedule && "Please select a schedule"}
+                      required
+                    />
+                  )}
+                />
+              )}
 
-              <Autocomplete
-                options={teamsList}
-                getOptionLabel={(option) => option?.name || ""}
-                value={teamsList.find((t) => t.id === formData.team) || null}
-                onChange={(e, value) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    team: value?.id || "",
-                  }));
-                  clearFieldError("team");
-                }}
-                disabled={isReadOnly}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Team"
-                    name="team"
-                    fullWidth
-                    error={errors.team}
-                    helperText={errors.team && "Please select a team"}
-                    required
-                  />
-                )}
-              />
+              {isReadOnly ? (
+                <TextField
+                  label="Team"
+                  value={displayTeam}
+                  disabled
+                  fullWidth
+                  required
+                />
+              ) : (
+                <Autocomplete
+                  options={teamsList}
+                  getOptionLabel={(option) => option?.name || ""}
+                  value={teamsList.find((t) => t.id === formData.team) || null}
+                  onChange={(e, value) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      team: value?.id || "",
+                    }));
+                    clearFieldError("team");
+                  }}
+                  onOpen={handleTeamsOpen}
+                  disabled={isReadOnly}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Team"
+                      name="team"
+                      fullWidth
+                      error={errors.team}
+                      helperText={errors.team && "Please select a team"}
+                      required
+                    />
+                  )}
+                />
+              )}
 
-              <Autocomplete
-                options={chargingList}
-                getOptionLabel={(option) => {
-                  return option?.name || "";
-                }}
-                value={
-                  chargingList.find((c) => c.id === formData.charging) || null
-                }
-                onChange={(e, value) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    charging: value?.id || "",
-                  }));
-                  clearFieldError("charging");
-                }}
-                disabled={isReadOnly}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Charging"
-                    name="charging"
-                    fullWidth
-                    error={errors.charging}
-                    helperText={errors.charging && "Please select charging"}
-                    required
-                  />
-                )}
-                isOptionEqualToValue={(option, value) => {
-                  return option?.id === value?.id;
-                }}
-              />
+              {isReadOnly ? (
+                <TextField
+                  label="Charging"
+                  value={displayCharging}
+                  disabled
+                  fullWidth
+                  required
+                />
+              ) : (
+                <Autocomplete
+                  options={chargingList}
+                  getOptionLabel={(option) => {
+                    return option?.name || "";
+                  }}
+                  value={
+                    chargingList.find((c) => c.id === formData.charging) || null
+                  }
+                  onChange={(e, value) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      charging: value?.id || "",
+                    }));
+                    clearFieldError("charging");
+                  }}
+                  onOpen={handleChargingOpen}
+                  disabled={isReadOnly}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Charging"
+                      name="charging"
+                      fullWidth
+                      error={errors.charging}
+                      helperText={errors.charging && "Please select charging"}
+                      required
+                    />
+                  )}
+                  isOptionEqualToValue={(option, value) => {
+                    return option?.id === value?.id;
+                  }}
+                />
+              )}
 
               <Box sx={styles.fullWidthColumn}>
                 <TextField
@@ -756,81 +799,54 @@ export default function PositionsModal({
                   helperText={
                     errors.position_attachment ? "Attachment is required" : null
                   }
-                  required={currentMode !== true && currentMode !== "edit"}
+                  required={
+                    currentMode !== true &&
+                    currentMode !== "edit" &&
+                    currentMode !== "view"
+                  }
                   sx={styles.attachmentField}
                 />
               </Box>
 
               <Box sx={styles.fullWidthColumn}>
-                <Autocomplete
-                  multiple
-                  options={toolsList}
-                  getOptionLabel={(option) => {
-                    if (typeof option === "string") return option;
-                    return option?.name || "";
-                  }}
-                  value={formData.tools.map((toolName) => {
-                    const matchingTool = toolsList.find(
-                      (t) => t.name === toolName
-                    );
-                    return matchingTool || { name: toolName };
-                  })}
-                  onChange={(event, newValue) => {
-                    const toolNames = newValue
-                      .map((value) => {
-                        if (typeof value === "string") return value;
-                        return value?.name || "";
-                      })
-                      .filter(Boolean);
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      tools: toolNames,
-                    }));
-                    clearFieldError("tools");
-                  }}
-                  disabled={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Tools"
-                      name="tools"
-                      fullWidth
-                      error={errors.tools}
-                      helperText={
-                        errors.tools && "Please select at least one tool"
-                      }
-                      required
-                    />
-                  )}
-                  isOptionEqualToValue={(option, value) => {
-                    if (
-                      typeof option === "string" &&
-                      typeof value === "string"
-                    ) {
-                      return option === value;
-                    }
-                    if (
-                      typeof option === "object" &&
-                      typeof value === "object"
-                    ) {
-                      return option?.name === value?.name;
-                    }
-                    if (
-                      typeof option === "string" &&
-                      typeof value === "object"
-                    ) {
-                      return option === value?.name;
-                    }
-                    if (
-                      typeof option === "object" &&
-                      typeof value === "string"
-                    ) {
-                      return option?.name === value;
-                    }
-                    return false;
-                  }}
-                />
+                {isReadOnly ? (
+                  <TextField
+                    label="Tools"
+                    value={displayTools}
+                    disabled
+                    fullWidth
+                    required
+                  />
+                ) : (
+                  <Autocomplete
+                    multiple
+                    options={toolsList.map((tool) => tool.name)}
+                    getOptionLabel={(option) => option}
+                    value={formData.tools}
+                    onChange={(event, newValue) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        tools: newValue,
+                      }));
+                      clearFieldError("tools");
+                    }}
+                    onOpen={handleToolsOpen}
+                    disabled={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Tools"
+                        name="tools"
+                        fullWidth
+                        error={errors.tools}
+                        helperText={
+                          errors.tools && "Please select at least one tool"
+                        }
+                        required
+                      />
+                    )}
+                  />
+                )}
               </Box>
             </Box>
 
@@ -839,7 +855,8 @@ export default function PositionsModal({
               setRequestorSequence={setRequestorSequence}
               isReadOnly={isReadOnly}
               errors={errors}
-              employeesList={employeesList}
+              employeesList={usersList}
+              onOpen={handleUsersOpen}
             />
           </Box>
         )}

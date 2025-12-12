@@ -10,6 +10,7 @@ import {
   IconButton,
   CircularProgress,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -27,6 +28,7 @@ import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import CatTwoModalFields from "./CatTwoModalFields";
 import CatTwoModalPrinting from "./CatTwoModalPrinting";
+import { useGetCatTwoScoreQuery } from "../../../features/api/da-task/catTwoApi";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -152,8 +154,7 @@ const CatTwoModal = ({
   onRefreshDetails,
   onSuccessfulSave,
 }) => {
-  const { handleSubmit, reset, trigger, setValue, getValues, formState } =
-    useFormContext();
+  const { handleSubmit, reset, trigger, setValue } = useFormContext();
 
   const [getFormDataForSubmission, setGetFormDataForSubmission] =
     useState(null);
@@ -162,20 +163,24 @@ const CatTwoModal = ({
   const [formInitialized, setFormInitialized] = useState(false);
   const [lastEntryId, setLastEntryId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [currentEntryId, setCurrentEntryId] = useState(null);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
 
-  useEffect(() => {
-    if (open && selectedEntry?.id) {
-      setEditingEntryId(selectedEntry.id);
+  const { data: scoreData, isLoading: isLoadingScore } = useGetCatTwoScoreQuery(
+    selectedEntry?.id,
+    {
+      skip: !selectedEntry?.id || !open,
     }
-  }, [open, selectedEntry?.id]);
+  );
+
+  const totalScore = scoreData?.result?.total_score;
 
   const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
     if (
       status === "APPROVED" ||
       status === "CANCELLED" ||
+      status === "KICKOFF_COMPLETE" ||
       status === "FINAL_COMPLETE"
     ) {
       return false;
@@ -200,7 +205,11 @@ const CatTwoModal = ({
 
   const shouldShowPrintButton = () => {
     const status = selectedEntry?.status;
-    return status === "APPROVED" || status === "FINAL_COMPLETE";
+    return (
+      status === "APPROVED" ||
+      status === "KICKOFF_COMPLETE" ||
+      status === "FINAL_COMPLETE"
+    );
   };
 
   const handleModeChange = (newMode) => {
@@ -227,7 +236,7 @@ const CatTwoModal = ({
     setFormInitialized(false);
     setLastEntryId(null);
     setIsUpdating(false);
-    setEditingEntryId(null);
+    setCurrentEntryId(null);
     setGetFormDataForSubmission(null);
     reset();
     onClose();
@@ -273,83 +282,47 @@ const CatTwoModal = ({
     }
   }, [onSuccessfulSave, handleSuccessfulSaveComplete]);
 
-  const onSubmit = async (formValues) => {
-    try {
-      setIsUpdating(true);
+  useEffect(() => {
+    if (selectedEntry?.id) {
+      setCurrentEntryId(selectedEntry.id);
+    }
+  }, [selectedEntry?.id]);
 
+  const onSubmit = async (data) => {
+    if (isUpdating) {
+      return;
+    }
+
+    try {
       const isFormValid = await trigger();
       if (!isFormValid) {
-        console.error("Form validation failed");
-        console.error("Form Errors:", formState.errors);
-        alert("Please check all required fields");
-        setIsUpdating(false);
         return;
       }
 
       if (!getFormDataForSubmission) {
-        console.error("Form data function not available");
         alert("Form data function not available. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const formData = getFormDataForSubmission();
-      console.log("Form Data from getFormDataForSubmission:", formData);
-
       if (!formData) {
-        console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
-      if (!formData.answers || formData.answers.length === 0) {
-        console.error("No answers provided");
-        alert("Please answer all assessment items before submitting.");
-        setIsUpdating(false);
-        return;
-      }
-
-      const entryIdToUse = editingEntryId || selectedEntry?.id;
+      const entryIdToUse = selectedEntry?.id;
 
       if (!entryIdToUse) {
-        console.error("No entry ID available");
         alert("Entry ID is missing. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
-      const status = selectedEntry?.status;
-      const isForApproval = status === "FOR_APPROVAL";
-
-      console.log("Current status:", status);
-      console.log("Is for approval:", isForApproval);
-
-      let submissionData;
-      if (isForApproval) {
-        submissionData = {
-          date_assessed: formData.date_assessed,
-          answers: formData.answers,
-          action: "submit_for_validation",
-        };
-      } else {
-        submissionData = {
-          date_assessed: formData.date_assessed,
-          answers: formData.answers,
-          action: "submit_for_validation",
-        };
-      }
-
-      console.log("Final Submission Data:", submissionData);
+      setIsUpdating(true);
 
       if (onSave) {
-        await onSave(submissionData, currentMode, entryIdToUse);
-      } else {
-        console.error("onSave function not provided");
+        await onSave(formData, currentMode, entryIdToUse);
       }
     } catch (error) {
-      console.error("Submit error:", error);
-      console.error("Error stack:", error.stack);
       alert("An error occurred while submitting the form. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -357,41 +330,40 @@ const CatTwoModal = ({
   };
 
   const handleSaveAsDraft = async () => {
-    try {
-      setIsUpdating(true);
+    if (isUpdating) {
+      return;
+    }
 
+    try {
       if (!getFormDataForSubmission) {
-        console.error("Form data function not available");
         alert("Form data function not available. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const formData = getFormDataForSubmission();
-      console.log("Draft Form Data:", formData);
-
       if (!formData) {
-        console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
-        setIsUpdating(false);
+        return;
+      }
+
+      const entryIdToUse = selectedEntry?.id;
+
+      if (!entryIdToUse) {
+        alert("Entry ID is missing. Please try again.");
         return;
       }
 
       const draftData = {
-        date_assessed: formData.date_assessed,
-        answers: formData.answers,
+        ...formData,
         action: "save_draft",
       };
 
-      console.log("Final Draft Data:", draftData);
-
-      const entryIdToUse = editingEntryId || selectedEntry?.id;
+      setIsUpdating(true);
 
       if (onSaveAsDraft) {
         await onSaveAsDraft(draftData, entryIdToUse);
       }
     } catch (error) {
-      console.error("Save draft error:", error);
       alert("An error occurred while saving as draft. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -399,22 +371,23 @@ const CatTwoModal = ({
   };
 
   const handleResubmit = async () => {
-    const entryId = selectedEntry?.id;
+    if (isUpdating) {
+      return;
+    }
 
-    if (entryId && onResubmit) {
+    const entryIdToUse = selectedEntry?.id;
+    if (entryIdToUse && onResubmit) {
+      setIsUpdating(true);
       try {
-        setIsUpdating(true);
-        const success = await onResubmit(entryId);
-        if (success) {
-          setFormInitialized(false);
-          if (onRefreshDetails) {
-            setTimeout(() => {
-              onRefreshDetails();
-            }, 200);
-          }
+        await onResubmit(entryIdToUse);
+        setFormInitialized(false);
+        if (onRefreshDetails) {
+          setTimeout(() => {
+            onRefreshDetails();
+          }, 200);
         }
       } catch (error) {
-        console.error("Resubmit error:", error);
+        alert("An error occurred. Please try again.");
       } finally {
         setIsUpdating(false);
       }
@@ -452,8 +425,6 @@ const CatTwoModal = ({
           : null,
         answers: selectedEntry.answers || [],
       };
-
-      console.log("Initializing form with data:", formData);
 
       Object.keys(formData).forEach((key) => {
         setValue(key, formData[key], { shouldValidate: false });
@@ -504,6 +475,25 @@ const CatTwoModal = ({
                     />
                   </IconButton>
                 </Tooltip>
+              )}
+              {currentMode === "view" && totalScore !== undefined && (
+                <Chip
+                  label={`Total Score: ${totalScore}%`}
+                  sx={{
+                    ml: 1,
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "0.875rem",
+                    height: "32px",
+                    "& .MuiChip-label": {
+                      px: 2,
+                    },
+                  }}
+                />
+              )}
+              {currentMode === "view" && isLoadingScore && (
+                <CircularProgress size={20} sx={{ ml: 1 }} />
               )}
               {currentMode === "view" && shouldShowPrintButton() && (
                 <IconButton

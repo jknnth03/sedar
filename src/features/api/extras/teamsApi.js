@@ -49,6 +49,7 @@ const teamsApi = sedarApi
 export const {
   usePostTeamsMutation,
   useGetShowTeamsQuery,
+  useLazyGetAllShowTeamsQuery,
   useGetAllShowTeamsQuery,
   useUpdateTeamsMutation,
   useDeleteTeamsMutation,

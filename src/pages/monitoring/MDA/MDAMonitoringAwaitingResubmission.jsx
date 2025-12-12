@@ -41,8 +41,7 @@ const MDAMonitoringAwaitingResubmission = ({
     return {
       page,
       per_page: rowsPerPage,
-      status: "active",
-      approval_status: "awaiting resubmission",
+      status: "AWAITING RESUBMISSION",
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);

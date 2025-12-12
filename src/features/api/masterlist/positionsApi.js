@@ -1,5 +1,4 @@
 import { sedarApi } from "..";
-
 const positionsApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["positions"] })
   .injectEndpoints({
@@ -13,7 +12,6 @@ const positionsApi = sedarApi
         }),
         invalidatesTags: ["positions"],
       }),
-
       getPositions: build.query({
         query: ({
           page = 1,
@@ -21,32 +19,52 @@ const positionsApi = sedarApi
           status = "active",
           search = "",
         }) => ({
-          url: `positions?pagination=1&page=${page}&per_page=${per_page}&status=${status}&search=${search}`,
+          url: `positions`,
+          params: {
+            pagination: 1,
+            page,
+            per_page,
+            status,
+            search,
+          },
         }),
         providesTags: ["positions"],
       }),
-
       getAllPositions: build.query({
         query: () => ({
-          url: `positions?pagination=none&status=active`,
+          url: `positions`,
+          params: {
+            pagination: "none",
+            status: "active",
+          },
         }),
         providesTags: ["positions"],
       }),
-
       getManpowerOptions: build.query({
         query: () => ({
-          url: `positions/manpower-options?pagination=none&status=active`,
+          url: `positions/manpower-options`,
+          params: {
+            pagination: "none",
+            status: "active",
+          },
         }),
         providesTags: ["positions"],
       }),
-
       getPositionById: build.query({
         query: (id) => ({
           url: `positions/${id}`,
         }),
         providesTags: ["positions"],
       }),
-
+      getPositionModal: build.query({
+        query: (id) => ({
+          url: `positions/${id}`,
+          params: {
+            modal: 1,
+          },
+        }),
+        providesTags: ["positions"],
+      }),
       updatePosition: build.mutation({
         query: ({ formData, id }) => ({
           url: `positions/${id}`,
@@ -56,7 +74,6 @@ const positionsApi = sedarApi
         }),
         invalidatesTags: ["positions"],
       }),
-
       deletePosition: build.mutation({
         query: (id) => ({
           url: `positions/${id}`,
@@ -66,7 +83,6 @@ const positionsApi = sedarApi
       }),
     }),
   });
-
 export const {
   usePostPositionMutation,
   useGetPositionsQuery,
@@ -77,6 +93,8 @@ export const {
   useLazyGetManpowerOptionsQuery,
   useGetPositionByIdQuery,
   useLazyGetPositionByIdQuery,
+  useGetPositionModalQuery,
+  useLazyGetPositionModalQuery,
   useUpdatePositionMutation,
   useDeletePositionMutation,
 } = positionsApi;

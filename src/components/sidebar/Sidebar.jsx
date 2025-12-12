@@ -18,6 +18,7 @@ const Sidebar = ({
   open,
   mobileSidebarOpen = false,
   onCloseMobile = () => {},
+  onToggleSidebar, // Add this prop to control sidebar open/close from parent
 }) => {
   const userData = JSON.parse(localStorage.getItem("user")) || [];
   const accessUserPermission = userData?.role?.access_permissions;
@@ -56,6 +57,14 @@ const Sidebar = ({
     onCloseMobile();
   };
 
+  // Handler for when a parent item with children is clicked
+  const handleParentItemClick = (hasChildren) => {
+    // If sidebar is closed and the item has children, open the sidebar
+    if (!open && hasChildren && onToggleSidebar) {
+      onToggleSidebar();
+    }
+  };
+
   if (isLoading) {
     return (
       <Drawer
@@ -76,14 +85,16 @@ const Sidebar = ({
             mobileSidebarOpen ? "mobile-open" : ""
           }`}
           style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-          {open ? (
-            <div className="logo-container">
+          <Box className="sidebar__logo-container">
+            {open ? (
+              <>
+                <img src={icon} alt="Icon" className="sidebar__logo2" />
+                <img src={logo} alt="Logo" className="sidebar__logo" />
+              </>
+            ) : (
               <img src={icon} alt="Icon" className="sidebar__logo2" />
-              <img src={logo} alt="Logo" className="sidebar__logo" />
-            </div>
-          ) : (
-            <img src={icon} alt="Logo" className="sidebar__logo2" />
-          )}
+            )}
+          </Box>
 
           <Box
             className="sidebar-content"
@@ -103,11 +114,11 @@ const Sidebar = ({
               className="footer__logo"
             />
             {open && (
-              <span className="font-helvetica">
+              <span className="footer-text">
                 Powered by MIS All rights reserved
               </span>
             )}
-            {open && <span className="font-helvetica">Copyright © 2025</span>}
+            {open && <span className="footer-text">Copyright © 2025</span>}
           </Box>
         </Paper>
       </Drawer>
@@ -136,14 +147,16 @@ const Sidebar = ({
           elevation={24}
           className={`mainbox ${open ? "open" : "closed"}`}
           style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-          {open ? (
-            <div className="logo-container">
+          <Box className="sidebar__logo-container">
+            {open ? (
+              <>
+                <img src={icon} alt="Icon" className="sidebar__logo2" />
+                <img src={logo} alt="Logo" className="sidebar__logo" />
+              </>
+            ) : (
               <img src={icon} alt="Icon" className="sidebar__logo2" />
-              <img src={logo} alt="Logo" className="sidebar__logo" />
-            </div>
-          ) : (
-            <img src={icon} alt="Logo" className="sidebar__logo2" />
-          )}
+            )}
+          </Box>
 
           <Box
             className="sidebar-content"
@@ -157,6 +170,7 @@ const Sidebar = ({
                   icon={item.icon}
                   sidebarOpen={open}
                   notificationCount={item.notificationCount || 0}
+                  onParentClick={() => handleParentItemClick(!!item.children)}
                 />
               </div>
             ))}
@@ -169,11 +183,11 @@ const Sidebar = ({
               className="footer__logo"
             />
             {open && (
-              <span className="font-helvetica">
+              <span className="footer-text">
                 Powered by MIS All rights reserved
               </span>
             )}
-            {open && <span className="font-helvetica">Copyright © 2025</span>}
+            {open && <span className="footer-text">Copyright © 2025</span>}
           </Box>
         </Paper>
       </Drawer>
@@ -232,10 +246,10 @@ const Sidebar = ({
             </IconButton>
           </Box>
 
-          <div className="logo-container">
+          <Box className="sidebar__logo-container">
             <img src={icon} alt="Icon" className="sidebar__logo2" />
             <img src={logo} alt="Logo" className="sidebar__logo" />
-          </div>
+          </Box>
 
           <Box
             className="sidebar-content"
@@ -265,10 +279,10 @@ const Sidebar = ({
               alt="Business Logo"
               className="footer__logo"
             />
-            <span className="font-helvetica">
+            <span className="footer-text">
               Powered by MIS All rights reserved
             </span>
-            <span className="font-helvetica">Copyright © 2025</span>
+            <span className="footer-text">Copyright © 2025</span>
           </Box>
         </Paper>
       </Drawer>

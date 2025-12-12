@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -9,6 +9,7 @@ import {
   useGetDataChangeMonitoringQuery,
   useGetDataChangeMonitoringByIdQuery,
 } from "../../../features/api/monitoring/dataChangeMonitoringApi";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const DataChangeMonitoringForMDAProcessing = ({
   searchQuery,
@@ -18,7 +19,6 @@ const DataChangeMonitoringForMDAProcessing = ({
   setQueryParams,
   currentParams,
 }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
@@ -152,85 +152,41 @@ const DataChangeMonitoringForMDAProcessing = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
           display: "flex",
           flexDirection: "column",
+          height: "100%",
           overflow: "hidden",
-          backgroundColor: "#fafafa",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DataChangeMonitoringTable
-            submissionsList={submissionsList}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={false}
-          />
+        <DataChangeMonitoringTable
+          submissionsList={submissionsList}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
+        />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <DataChangeMonitoringModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          submissionId={selectedSubmissionId}
-          submissionData={selectedSubmissionData}
-          isLoading={isLoadingSubmissionData || isFetchingSubmissionData}
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <DataChangeMonitoringModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        submissionId={selectedSubmissionId}
+        submissionData={selectedSubmissionData}
+        isLoading={isLoadingSubmissionData || isFetchingSubmissionData}
+      />
     </FormProvider>
   );
 };

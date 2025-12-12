@@ -1,8 +1,8 @@
+// MainItem.jsx - Updated version
 import { Box, Collapse, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import PropTypes from "prop-types";
-import NotificationBadge from "../../../config/NotificationBadge";
 
 const MenuItem = ({
   name = "",
@@ -119,6 +119,7 @@ export const MainItem = ({
   icon = null,
   sidebarOpen = false,
   notificationCount = 0,
+  onParentClick = () => {}, // Add this prop
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,7 +171,15 @@ export const MainItem = ({
 
   const handleChildren = () => {
     if (subItem) {
-      setOpenChildren((prev) => !prev);
+      // Call the parent callback to expand sidebar if closed
+      onParentClick();
+      // Toggle children only if sidebar is already open
+      if (sidebarOpen) {
+        setOpenChildren((prev) => !prev);
+      } else {
+        // If sidebar is closed and will open, show children
+        setOpenChildren(true);
+      }
     } else {
       handleNavigation(path);
     }
@@ -231,4 +240,5 @@ MainItem.propTypes = {
   icon: PropTypes.node,
   sidebarOpen: PropTypes.bool,
   notificationCount: PropTypes.number,
+  onParentClick: PropTypes.func,
 };

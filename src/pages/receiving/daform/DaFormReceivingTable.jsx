@@ -11,14 +11,14 @@ import {
   IconButton,
   Chip,
   Tooltip,
-  CircularProgress,
+  Skeleton,
   useTheme,
 } from "@mui/material";
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import MDAHistoryDialog from "../../forms/mdaform/MDAHistoryDialog";
+import NoDataFound from "../../NoDataFound";
 
 const DaFormReceivingTable = ({
   submissionsList,
@@ -108,19 +108,15 @@ const DaFormReceivingTable = ({
     );
   };
 
-  const getNoDataMessage = () => {
-    if (searchQuery) {
-      return `No results for "${searchQuery}"`;
-    }
-    return isAssessmentMode
-      ? "No DA submissions currently in assessment"
-      : "No DA submissions ready for assessment";
-  };
-
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+            height: submissionsList.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
@@ -136,13 +132,42 @@ const DaFormReceivingTable = ({
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{ height: submissionsList.length === 0 ? "100%" : "auto" }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={styles.errorCell}>
@@ -159,7 +184,13 @@ const DaFormReceivingTable = ({
                     onClick={() => {
                       handleRowClick(submission);
                     }}
-                    sx={styles.tableRowHover(theme)}>
+                    sx={{
+                      ...styles.tableRowHover(theme),
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    }}>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,
@@ -194,20 +225,27 @@ const DaFormReceivingTable = ({
                 );
               })
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={5}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No DA Submissions Found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {getNoDataMessage()}
-                    </Typography>
-                  </Box>
+                  sx={{
+                    borderBottom: "none",
+                    height: "400px",
+                    verticalAlign: "middle",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <NoDataFound message="" subMessage="" />
                 </TableCell>
               </TableRow>
             )}

@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  useTheme,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -41,6 +42,7 @@ const MDADATable = ({
   onCancel,
   onRefetch,
 }) => {
+  const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedMdaHistory, setSelectedMdaHistory] = React.useState(null);
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
@@ -196,7 +198,7 @@ const MDADATable = ({
         <IconButton
           onClick={(e) => handleViewActivityClick(e, submission)}
           size="small"
-          sx={styles.historyIconButton()}>
+          sx={styles.historyIconButton(theme)}>
           <RestoreIcon sx={{ fontSize: "20px" }} />
         </IconButton>
       </Tooltip>
@@ -303,7 +305,7 @@ const MDADATable = ({
                     onClick={() => {
                       handleRowClick(submission);
                     }}
-                    sx={styles.tableRowHover()}>
+                    sx={styles.tableRowHover(theme)}>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,
@@ -358,7 +360,7 @@ const MDADATable = ({
                             handleMenuOpen(e, submission);
                           }}
                           size="small"
-                          sx={styles.actionIconButton()}>
+                          sx={styles.actionIconButton(theme)}>
                           <MoreVertIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -375,7 +377,7 @@ const MDADATable = ({
                           vertical: "bottom",
                         }}
                         PaperProps={{
-                          sx: styles.actionMenu(),
+                          sx: styles.actionMenu(theme),
                         }}
                         sx={{
                           zIndex: 10000,

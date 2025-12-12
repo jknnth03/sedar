@@ -1,15 +1,17 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
-  Paper,
   Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
-  CircularProgress,
   TableRow,
+  Box,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  Button,
   IconButton,
   Menu,
   MenuItem,
@@ -17,34 +19,29 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  Box,
-  Chip,
-  TextField,
-  Checkbox,
-  FormControlLabel,
-  useMediaQuery,
   useTheme,
+  useMediaQuery,
+  Chip,
+  Skeleton,
+  Tooltip,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  MoreVert as MoreVertIcon,
-  Edit as EditIcon,
-  Archive as ArchiveIcon,
-  Restore as RestoreIcon,
-  Help as HelpIcon,
-  Search as SearchIcon,
-} from "@mui/icons-material";
+import SearchIcon from "@mui/icons-material/Search";
+import ArchiveIcon from "@mui/icons-material/Archive";
+import AddIcon from "@mui/icons-material/Add";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import RestoreIcon from "@mui/icons-material/Restore";
+import HelpIcon from "@mui/icons-material/Help";
+import EditIcon from "@mui/icons-material/Edit";
 import { useSnackbar } from "notistack";
-import JobRatesModal from "../../../components/modal/masterlist/JobRatesModal";
+import "../../../pages/GeneralStyle.scss";
 import {
   useDeleteJobrateMutation,
   useGetJobratesQuery,
 } from "../../../features/api/masterlist/jobratesApi";
-import "../../../pages/GeneralStyle.scss";
-import "../../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../../config/index";
-import useDebounce from "../../../hooks/useDebounce";
+import JobRatesModal from "../../../components/modal/masterlist/JobRatesModal";
+import CustomTablePagination from "../../../pages/zzzreusable/CustomTablePagination";
+import NoDataFound from "../../../pages/NoDataFound";
+import { styles } from "../../forms/manpowerform/formSubmissionStyles";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -53,16 +50,19 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
-  const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
   const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
     <Box
-      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
-      className="search-bar-container">
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       {isVerySmall ? (
         <IconButton
           onClick={() => setShowArchived(!showArchived)}
@@ -129,53 +129,16 @@ const CustomSearchBar = ({
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
-        className="search-input"
         InputProps={{
           startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
-              }}
-            />
+            <SearchIcon sx={styles.searchIcon(isLoading, isVerySmall)} />
           ),
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
-          ),
-          sx: {
-            height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
+          sx: styles.searchInputProps(isLoading, isVerySmall, isMobile),
         }}
         sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
-          "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
+          ...(isVerySmall
+            ? styles.searchTextFieldVerySmall
+            : styles.searchTextField),
         }}
       />
     </Box>
@@ -187,6 +150,7 @@ const JobRates = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -196,31 +160,43 @@ const JobRates = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedJobRate, setSelectedJobRate] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const debounceValue = useDebounce(searchQuery, 500);
-  const { enqueueSnackbar } = useSnackbar();
+  const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const queryParams = useMemo(
     () => ({
-      search: debounceValue,
+      search: debouncedSearchQuery,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
     }),
-    [debounceValue, page, rowsPerPage, showArchived]
+    [debouncedSearchQuery, page, rowsPerPage, showArchived]
   );
 
   const {
-    data: jobrates,
-    isLoading,
-    isFetching,
+    data: backendData,
+    isFetching: backendFetching,
     refetch,
+    error,
   } = useGetJobratesQuery(queryParams, {
     refetchOnMountOrArgChange: true,
   });
 
   const [deleteJobRate] = useDeleteJobrateMutation();
 
-  const jobRateList = useMemo(() => jobrates?.result?.data || [], [jobrates]);
+  const jobrates = useMemo(
+    () => backendData?.result?.data || [],
+    [backendData]
+  );
+  const totalCount = backendData?.result?.total || 0;
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
@@ -232,22 +208,31 @@ const JobRates = () => {
     setPage(1);
   }, []);
 
-  const handleMenuOpen = (event, jobRateId) => {
-    setMenuAnchor({ [jobRateId]: event.currentTarget });
-  };
+  const handleMenuOpen = useCallback((event, jobrate) => {
+    event.stopPropagation();
+    setMenuAnchor((prev) => ({ ...prev, [jobrate.id]: event.currentTarget }));
+  }, []);
 
-  const handleMenuClose = (jobRateId) => {
-    setMenuAnchor((prev) => ({ ...prev, [jobRateId]: null }));
-  };
+  const handleMenuClose = useCallback((jobrateId) => {
+    setMenuAnchor((prev) => ({ ...prev, [jobrateId]: null }));
+  }, []);
 
-  const handleArchiveRestoreClick = (jobRate) => {
-    setSelectedJobRate(jobRate);
-    setConfirmOpen(true);
-    handleMenuClose(jobRate.id);
-  };
+  const handleArchiveRestoreClick = useCallback(
+    (jobrate, event) => {
+      if (event) {
+        event.stopPropagation();
+      }
+      setSelectedJobRate(jobrate);
+      setConfirmOpen(true);
+      handleMenuClose(jobrate.id);
+    },
+    [handleMenuClose]
+  );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedJobRate) return;
+
+    setIsLoading(true);
     try {
       await deleteJobRate(selectedJobRate.id).unwrap();
       enqueueSnackbar(
@@ -265,38 +250,35 @@ const JobRates = () => {
     } finally {
       setConfirmOpen(false);
       setSelectedJobRate(null);
+      setIsLoading(false);
     }
   };
 
-  const handleAddJobRate = () => {
+  const handleAddJobRate = useCallback(() => {
     setSelectedJobRate(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (jobRate) => {
-    setSelectedJobRate(jobRate);
-    setModalOpen(true);
-    handleMenuClose(jobRate.id);
-  };
+  const handleEditClick = useCallback(
+    (jobrate) => {
+      setSelectedJobRate(jobrate);
+      setModalOpen(true);
+      handleMenuClose(jobrate.id);
+    },
+    [handleMenuClose]
+  );
 
-  const safelyDisplayValue = (value) =>
-    value === null || value === undefined ? "N/A" : String(value);
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
 
-  const formatCurrency = (value) => {
-    if (value === null || value === undefined) return "N/A";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "PHP",
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
 
-  const getPositionTitle = (jobRate) => jobRate?.position?.title?.name || "N/A";
-
-  const getJobLevelName = (jobRate) => jobRate?.job_level?.label || "N/A";
-
-  const renderStatusChip = useCallback((jobRate) => {
-    const isActive = !jobRate.deleted_at;
+  const renderStatusChip = useCallback((jobrate) => {
+    const isActive = !jobrate.deleted_at;
 
     return (
       <Chip
@@ -318,392 +300,370 @@ const JobRates = () => {
     );
   }, []);
 
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined) return "-";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const getPositionTitle = (jobrate) => jobrate?.position?.title?.name || "-";
+  const getJobLevelName = (jobrate) => jobrate?.job_level?.label || "-";
+
+  const isLoadingState = backendFetching || isLoading;
+
   return (
-    <Box
-      sx={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        backgroundColor: "white",
-      }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: isMobile || isTablet ? "flex-start" : "center",
-          justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
-          flexDirection: isMobile || isTablet ? "column" : "row",
-          flexShrink: 0,
-          minHeight: isMobile || isTablet ? "auto" : "60px",
-          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
-          backgroundColor: "white",
-          borderBottom: "1px solid #e0e0e0",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          gap: isMobile || isTablet ? "16px" : "0",
-        }}>
+    <>
+      <Box sx={styles.mainContainer}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-            width: isMobile || isTablet ? "100%" : "auto",
-            justifyContent: "flex-start",
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
           }}>
-          <Typography className="header">
-            {isVerySmall ? "JOB RATES" : "JOB RATES"}
-          </Typography>
+          <Box
+            sx={{
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
+            }}>
+            <Box sx={styles.headerLeftSection}>
+              <Typography
+                className="header"
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                }}>
+                JOB RATES
+              </Typography>
+              {isVerySmall ? (
+                <IconButton
+                  onClick={handleAddJobRate}
+                  sx={{
+                    width: "36px",
+                    height: "36px",
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                    },
+                  }}>
+                  <AddIcon sx={{ fontSize: "18px" }} />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleAddJobRate}
+                  startIcon={<AddIcon />}
+                  sx={{
+                    ...styles.createButton,
+                    backgroundColor: "rgb(33, 61, 112)",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                    },
+                  }}>
+                  CREATE
+                </Button>
+              )}
+            </Box>
+          </Box>
 
-          {isVerySmall ? (
-            <IconButton
-              onClick={handleAddJobRate}
-              sx={{
-                backgroundColor: "rgb(33, 61, 112)",
-                color: "white",
-                width: "36px",
-                height: "36px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: "rgb(25, 45, 84)",
-                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                  transform: "translateY(-1px)",
-                },
-                "&:disabled": {
-                  backgroundColor: "#ccc",
-                  boxShadow: "none",
-                },
-              }}>
-              <AddIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          ) : (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddJobRate}
-              className="create-button"
-              sx={{
-                backgroundColor: "rgb(33, 61, 112)",
-                height: isMobile ? "36px" : "38px",
-                width: isMobile ? "auto" : "140px",
-                minWidth: isMobile ? "100px" : "140px",
-                padding: isMobile ? "0 16px" : "0 20px",
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: isMobile ? "12px" : "14px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                transition: "all 0.2s ease-in-out",
-                "& .MuiButton-startIcon": {
-                  marginRight: isMobile ? "4px" : "8px",
-                },
-                "&:hover": {
-                  backgroundColor: "rgb(25, 45, 84)",
-                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                  transform: "translateY(-1px)",
-                },
-                "&:disabled": {
-                  backgroundColor: "#ccc",
-                  boxShadow: "none",
-                },
-              }}>
-              CREATE
-            </Button>
-          )}
+          <CustomSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={handleSearchChange}
+            showArchived={showArchived}
+            setShowArchived={handleChangeArchived}
+            isLoading={isLoadingState}
+          />
         </Box>
 
-        <CustomSearchBar
-          searchQuery={searchQuery}
-          setSearchQuery={handleSearchChange}
-          showArchived={showArchived}
-          setShowArchived={handleChangeArchived}
-          isLoading={isLoading || isFetching}
-        />
-      </Box>
-
-      <Box
-        sx={{
-          flex: 1,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "white",
-        }}>
-        <TableContainer
-          sx={{
-            flex: 1,
-            overflow: "auto",
-            "& .MuiTableCell-head": {
-              backgroundColor: "#f8f9fa",
-              fontWeight: 700,
-              fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
-              color: "rgb(33, 61, 112)",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              borderBottom: "2px solid #e0e0e0",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              height: isMobile ? "44px" : "48px",
-              padding: isMobile ? "6px 12px" : "8px 16px",
-            },
-            "& .MuiTableCell-body": {
-              fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
-              color: "#333",
-              borderBottom: "1px solid #f0f0f0",
-              padding: isMobile ? "6px 12px" : "8px 16px",
-              height: isMobile ? "48px" : "52px",
-            },
-            "& .MuiTableRow-root": {
-              transition: "background-color 0.2s ease-in-out",
-            },
-          }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  align="center"
-                  sx={{ width: isVerySmall ? "40px" : "60px" }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  align="left"
-                  sx={{ width: isMobile ? "100px" : "140px" }}>
-                  POSITION
-                </TableCell>
-                <TableCell
-                  align="left"
-                  sx={{ width: isVerySmall ? "120px" : "140px" }}>
-                  LEVEL
-                </TableCell>
-                {!isMobile && (
-                  <TableCell align="left" sx={{ width: "120px" }}>
-                    JOB RATE
-                  </TableCell>
-                )}
-                {!isVerySmall && (
-                  <TableCell align="left" sx={{ width: "120px" }}>
-                    ALLOWANCE
-                  </TableCell>
-                )}
-                {!isMobile && (
+        <Box sx={styles.tabsContainer}>
+          <TableContainer
+            sx={{
+              ...styles.tableContainerStyles,
+              backgroundColor: "white",
+            }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
                   <TableCell
                     align="left"
-                    sx={{ width: "120px", whiteSpace: "nowrap" }}>
-                    TOTAL SALARY
+                    sx={{ ...styles.columnStyles.id, borderBottom: "none" }}>
+                    ID
                   </TableCell>
-                )}
-                {!isVerySmall && (
-                  <TableCell align="center" sx={{ width: "100px" }}>
-                    STATUS
-                  </TableCell>
-                )}
-                <TableCell
-                  align="center"
-                  sx={{ width: isMobile ? "80px" : "100px" }}>
-                  ACTION
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading || isFetching ? (
-                <TableRow>
                   <TableCell
-                    colSpan={isVerySmall ? 5 : isMobile ? 6 : 8}
-                    align="center"
-                    sx={{ py: 4 }}>
-                    <CircularProgress
-                      size={32}
-                      sx={{ color: "rgb(33, 61, 112)" }}
-                    />
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
+                    }}>
+                    POSITION
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
+                    }}>
+                    LEVEL
+                  </TableCell>
+                  {!isMobile && (
+                    <>
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.formName,
+                          borderBottom: "none",
+                        }}>
+                        JOB RATE
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.formName,
+                          borderBottom: "none",
+                        }}>
+                        ALLOWANCE
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.formName,
+                          borderBottom: "none",
+                        }}>
+                        TOTAL SALARY
+                      </TableCell>
+                    </>
+                  )}
+                  {!isMobile && (
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.status,
+                        borderBottom: "none",
+                      }}
+                      align="center">
+                      STATUS
+                    </TableCell>
+                  )}
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.status,
+                      borderBottom: "none",
+                    }}
+                    align="center">
+                    ACTIONS
                   </TableCell>
                 </TableRow>
-              ) : jobRateList.length > 0 ? (
-                jobRateList.map((jobRate) => (
-                  <TableRow key={jobRate.id}>
-                    <TableCell align="left">
-                      {safelyDisplayValue(jobRate.id)}
-                    </TableCell>
-                    <TableCell
-                      align="left"
-                      sx={{
-                        width: isMobile ? "100px" : "140px",
-                        minWidth: isMobile ? "80px" : "120px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 600,
-                      }}>
-                      {getPositionTitle(jobRate)}
-                    </TableCell>
-                    <TableCell
-                      align="left"
-                      sx={{
-                        width: isVerySmall ? "120px" : "140px",
-                        minWidth: "100px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {getJobLevelName(jobRate)}
-                    </TableCell>
-                    {!isMobile && (
-                      <TableCell
-                        align="left"
-                        sx={{
-                          width: "120px",
-                          minWidth: "100px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {formatCurrency(jobRate.job_rate)}
-                      </TableCell>
-                    )}
-                    {!isVerySmall && (
-                      <TableCell
-                        align="left"
-                        sx={{
-                          width: "120px",
-                          minWidth: "100px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {formatCurrency(jobRate.allowance)}
-                      </TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell
-                        align="left"
-                        sx={{
-                          width: "120px",
-                          minWidth: "100px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {formatCurrency(jobRate.total_salary)}
-                      </TableCell>
-                    )}
-                    {!isVerySmall && (
-                      <TableCell align="center">
-                        {renderStatusChip(jobRate)}
-                      </TableCell>
-                    )}
-                    <TableCell align="center">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, jobRate.id)}
-                        size="small">
-                        <MoreVertIcon />
-                      </IconButton>
-                      <Menu
-                        anchorEl={menuAnchor[jobRate.id]}
-                        open={Boolean(menuAnchor[jobRate.id])}
-                        onClose={() => handleMenuClose(jobRate.id)}>
-                        {!jobRate.deleted_at && (
-                          <MenuItem onClick={() => handleEditClick(jobRate)}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-                          </MenuItem>
+              </TableHead>
+              <TableBody>
+                {isLoadingState ? (
+                  <>
+                    {[...Array(5)].map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell align="left">
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        {!isMobile && (
+                          <>
+                            <TableCell>
+                              <Skeleton animation="wave" height={30} />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton animation="wave" height={30} />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton animation="wave" height={30} />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Skeleton
+                                animation="wave"
+                                variant="rounded"
+                                width={80}
+                                height={24}
+                                sx={{ margin: "0 auto" }}
+                              />
+                            </TableCell>
+                          </>
                         )}
-                        <MenuItem
-                          onClick={() => handleArchiveRestoreClick(jobRate)}>
-                          {jobRate.deleted_at ? (
-                            <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
-                              Archive
-                            </>
-                          )}
-                        </MenuItem>
-                      </Menu>
+                        <TableCell align="center">
+                          <Skeleton
+                            animation="wave"
+                            variant="circular"
+                            width={32}
+                            height={32}
+                            sx={{ margin: "0 auto" }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
+                ) : error ? (
+                  <TableRow
+                    sx={{
+                      borderBottom: "none",
+                      "&:hover": {
+                        backgroundColor: "transparent !important",
+                        cursor: "default !important",
+                      },
+                    }}>
+                    <TableCell
+                      colSpan={999}
+                      align="center"
+                      sx={{
+                        ...styles.noDataContainer,
+                        borderBottom: "none",
+                        "&:hover": {
+                          backgroundColor: "transparent !important",
+                        },
+                      }}>
+                      <NoDataFound
+                        message="Error loading data"
+                        subMessage={error.message || "Unknown error"}
+                      />
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={isVerySmall ? 5 : isMobile ? 6 : 8}
-                    align="center"
+                ) : jobrates.length > 0 ? (
+                  jobrates.map((jobrate) => (
+                    <TableRow key={jobrate.id} sx={styles.tableRowHover(theme)}>
+                      <TableCell align="left">{jobrate.id}</TableCell>
+                      <TableCell sx={styles.formNameCell}>
+                        <Tooltip
+                          title={getPositionTitle(jobrate)}
+                          placement="top">
+                          <span style={styles.cellContentStyles}>
+                            {getPositionTitle(jobrate)}
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell sx={styles.formNameCell}>
+                        <Tooltip
+                          title={getJobLevelName(jobrate)}
+                          placement="top">
+                          <span style={styles.cellContentStyles}>
+                            {getJobLevelName(jobrate)}
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                      {!isMobile && (
+                        <>
+                          <TableCell sx={styles.formNameCell}>
+                            <Tooltip
+                              title={formatCurrency(jobrate.job_rate)}
+                              placement="top">
+                              <span style={styles.cellContentStyles}>
+                                {formatCurrency(jobrate.job_rate)}
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={styles.formNameCell}>
+                            <Tooltip
+                              title={formatCurrency(jobrate.allowance)}
+                              placement="top">
+                              <span style={styles.cellContentStyles}>
+                                {formatCurrency(jobrate.allowance)}
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={styles.formNameCell}>
+                            <Tooltip
+                              title={formatCurrency(jobrate.total_salary)}
+                              placement="top">
+                              <span style={styles.cellContentStyles}>
+                                {formatCurrency(jobrate.total_salary)}
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell align="center">
+                            {renderStatusChip(jobrate)}
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell align="center">
+                        <IconButton
+                          onClick={(e) => handleMenuOpen(e, jobrate)}
+                          size="small">
+                          <MoreVertIcon />
+                        </IconButton>
+                        <Menu
+                          anchorEl={menuAnchor[jobrate.id]}
+                          open={Boolean(menuAnchor[jobrate.id])}
+                          onClose={() => handleMenuClose(jobrate.id)}>
+                          {!jobrate.deleted_at && (
+                            <MenuItem onClick={() => handleEditClick(jobrate)}>
+                              <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                              Edit
+                            </MenuItem>
+                          )}
+                          <MenuItem
+                            onClick={(e) =>
+                              handleArchiveRestoreClick(jobrate, e)
+                            }>
+                            {jobrate.deleted_at ? (
+                              <>
+                                <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
+                                Restore
+                              </>
+                            ) : (
+                              <>
+                                <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
+                                Archive
+                              </>
+                            )}
+                          </MenuItem>
+                        </Menu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow
                     sx={{
-                      py: 8,
                       borderBottom: "none",
-                      color: "#666",
-                      fontSize: isMobile ? "14px" : "16px",
+                      "&:hover": {
+                        backgroundColor: "transparent !important",
+                        cursor: "default !important",
+                      },
                     }}>
-                    {searchQuery && !isLoading ? (
-                      <Typography>
-                        No results found for "{searchQuery}"
-                      </Typography>
-                    ) : (
-                      <Typography>No data available</Typography>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    <TableCell
+                      colSpan={999}
+                      align="center"
+                      sx={{
+                        ...styles.noDataContainer,
+                        borderBottom: "none",
+                        "&:hover": {
+                          backgroundColor: "transparent !important",
+                        },
+                      }}>
+                      <NoDataFound
+                        message=""
+                        subMessage={
+                          searchQuery
+                            ? `No job rates found for "${searchQuery}"`
+                            : "No job rates available"
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        <Box
-          sx={{
-            borderTop: "1px solid #e0e0e0",
-            backgroundColor: "#f8f9fa",
-            flexShrink: 0,
-            "& .MuiTablePagination-root": {
-              color: "#666",
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  fontSize: isMobile ? "12px" : "14px",
-                  fontWeight: 500,
-                },
-              "& .MuiTablePagination-select": {
-                fontSize: isMobile ? "12px" : "14px",
-              },
-              "& .MuiIconButton-root": {
-                color: "rgb(33, 61, 112)",
-                "&:hover": {
-                  backgroundColor: "rgba(33, 61, 112, 0.04)",
-                },
-                "&.Mui-disabled": {
-                  color: "#ccc",
-                },
-              },
-            },
-          }}>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={jobrates?.result?.total || 0}
-            rowsPerPage={rowsPerPage}
+          <CustomTablePagination
+            count={totalCount}
             page={Math.max(0, page - 1)}
-            onPageChange={(event, newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(event) => {
-              setRowsPerPage(parseInt(event.target.value, 10));
-              setPage(1);
-            }}
-            sx={{
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: isMobile ? "12px" : "24px",
-                paddingRight: isMobile ? "12px" : "24px",
-              },
-            }}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
           />
         </Box>
       </Box>
-
-      <JobRatesModal
-        open={modalOpen}
-        handleClose={() => setModalOpen(false)}
-        refetch={refetch}
-        selectedJobRate={selectedJobRate}
-        showArchived={showArchived}
-      />
 
       <Dialog
         open={confirmOpen}
@@ -719,7 +679,7 @@ const JobRates = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
           </Box>
           <Typography
             variant="h6"
@@ -758,21 +718,27 @@ const JobRates = () => {
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Cancel
+              color="error">
+              No
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Confirm
+              color="success">
+              Yes
             </Button>
           </Box>
         </DialogActions>
       </Dialog>
-    </Box>
+
+      <JobRatesModal
+        open={modalOpen}
+        handleClose={() => setModalOpen(false)}
+        selectedJobRate={selectedJobRate}
+        showArchived={showArchived}
+        refetch={refetch}
+      />
+    </>
   );
 };
 

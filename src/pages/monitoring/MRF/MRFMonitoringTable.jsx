@@ -6,12 +6,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
   Typography,
   Box,
   IconButton,
   Chip,
   Tooltip,
+  Skeleton,
   useTheme,
   Dialog,
   DialogContent,
@@ -23,16 +23,13 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import PrintIcon from "@mui/icons-material/Print";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import BadgeIcon from "@mui/icons-material/Badge";
-import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import NoDataFound from "../../NoDataFound";
 
 const MRFMonitoringTable = ({
   submissionsList,
@@ -363,10 +360,23 @@ const MRFMonitoringTable = ({
     );
   };
 
+  const getNoDataMessage = () => {
+    return searchQuery
+      ? `No results for "${searchQuery}"`
+      : "No form submissions found";
+  };
+
+  const totalColumns = 6;
+
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1000 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1000,
+            height: submissionsList.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
@@ -385,16 +395,52 @@ const MRFMonitoringTable = ({
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: submissionsList.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={styles.errorCell}>
+              <TableRow sx={{ height: "100%" }}>
+                <TableCell
+                  colSpan={totalColumns}
+                  align="center"
+                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -453,21 +499,40 @@ const MRFMonitoringTable = ({
                 </TableRow>
               ))
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  height: "100%",
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={7}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No form submissions found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {searchQuery
-                        ? `No results for "${searchQuery}"`
-                        : "No submissions available"}
-                    </Typography>
+                  sx={{
+                    height: "100%",
+                    verticalAlign: "middle",
+                    border: "none",
+                    borderBottom: "none",
+                    padding: 0,
+                    pointerEvents: "none",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "62%",
+                      top: "64%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage={getNoDataMessage()} />
                   </Box>
                 </TableCell>
               </TableRow>

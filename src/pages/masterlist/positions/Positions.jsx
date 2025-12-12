@@ -1,60 +1,37 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  CircularProgress,
-  TableRow,
   IconButton,
-  Menu,
-  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
   Chip,
-  Tooltip,
   Box,
-  Link,
   TextField,
   Checkbox,
   FormControlLabel,
   useMediaQuery,
   useTheme,
-  Fade,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
-import ArchiveIcon from "@mui/icons-material/Archive";
-import RestoreIcon from "@mui/icons-material/Restore";
 import AddIcon from "@mui/icons-material/Add";
-import ShareLocationIcon from "@mui/icons-material/ShareLocation";
+import ArchiveIcon from "@mui/icons-material/Archive";
 import SearchIcon from "@mui/icons-material/Search";
-import HomeRepairServiceIcon from "@mui/icons-material/HomeRepairService";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import HelpIcon from "@mui/icons-material/Help";
 import {
   useDeletePositionMutation,
   useGetPositionsQuery,
+  useLazyGetPositionByIdQuery,
 } from "../../../features/api/masterlist/positionsApi";
 import PositionsModal from "../../../components/modal/masterlist/PositionsModal";
 import PositionDialog from "./PositionDialog";
 import CoaDialog from "./CoaDialog";
+import PositionsTable from "./PositionsTable";
 import "../../../pages/GeneralStyle.scss";
 import { useSnackbar } from "notistack";
-import useDebounce from "../../../hooks/useDebounce";
-import {
-  positionStyles,
-  searchBarStyles,
-  tableStyles,
-  headerStyles,
-  mainContainerStyles,
-  contentContainerStyles,
-} from "./PositionStyles";
+import CustomTablePagination from "../../../pages/zzzreusable/CustomTablePagination";
+import { styles } from "../../forms/manpowerform/formSubmissionStyles";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -63,20 +40,39 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
-  const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
   const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={searchBarStyles.container} className="search-bar-container">
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       {isVerySmall ? (
         <IconButton
           onClick={() => setShowArchived(!showArchived)}
           disabled={isLoading}
           size="small"
-          sx={searchBarStyles.archivedIconButton(showArchived)}>
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            color: iconColor,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+          }}>
           <ArchiveIcon sx={{ fontSize: "18px" }} />
         </IconButton>
       ) : (
@@ -92,7 +88,28 @@ const CustomSearchBar = ({
             />
           }
           label="ARCHIVED"
-          sx={searchBarStyles.archivedCheckbox(showArchived)}
+          sx={{
+            margin: 0,
+            border: `1px solid ${showArchived ? "#d32f2f" : "#ccc"}`,
+            borderRadius: "8px",
+            paddingLeft: "8px",
+            paddingRight: "12px",
+            height: "36px",
+            backgroundColor: showArchived ? "rgba(211, 47, 47, 0.04)" : "white",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: showArchived
+                ? "rgba(211, 47, 47, 0.08)"
+                : "#f5f5f5",
+              borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+            },
+            "& .MuiFormControlLabel-label": {
+              fontSize: "12px",
+              fontWeight: 600,
+              color: labelColor,
+              letterSpacing: "0.5px",
+            },
+          }}
         />
       )}
 
@@ -102,26 +119,17 @@ const CustomSearchBar = ({
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
-        className="search-input"
         InputProps={{
           startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
-              }}
-            />
+            <SearchIcon sx={styles.searchIcon(isLoading, isVerySmall)} />
           ),
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
-          ),
-          sx: {
-            height: "36px",
-            backgroundColor: "white",
-          },
+          sx: styles.searchInputProps(isLoading, isVerySmall, isMobile),
         }}
-        sx={searchBarStyles.searchTextField(isVerySmall, isLoading)}
+        sx={{
+          ...(isVerySmall
+            ? styles.searchTextFieldVerySmall
+            : styles.searchTextField),
+        }}
       />
     </Box>
   );
@@ -148,26 +156,36 @@ const Positions = () => {
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [requestorsDialogOpen, setRequestorsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
-  const debounceValue = useDebounce(searchQuery, 500);
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const queryParams = useMemo(
     () => ({
-      search: debounceValue,
+      search: debouncedSearchQuery,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
     }),
-    [debounceValue, page, rowsPerPage, showArchived]
+    [debouncedSearchQuery, page, rowsPerPage, showArchived]
   );
 
   const {
     data: positions,
-    isLoading: queryLoading,
     isFetching,
     refetch,
     error,
-  } = useGetPositionsQuery(queryParams);
+  } = useGetPositionsQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const [getPositionById] = useLazyGetPositionByIdQuery();
 
   const [archivePosition] = useDeletePositionMutation();
 
@@ -175,6 +193,7 @@ const Positions = () => {
     () => positions?.result?.data || [],
     [positions]
   );
+  const totalCount = positions?.result?.total || 0;
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
@@ -261,10 +280,10 @@ const Positions = () => {
 
   const handleEditClick = useCallback(
     (position) => {
+      handleMenuClose(position.id);
       setSelectedPosition(position);
       setEdit(true);
       setModalOpen(true);
-      handleMenuClose(position.id);
     },
     [handleMenuClose]
   );
@@ -332,42 +351,82 @@ const Positions = () => {
       <Chip
         label={isActive ? "ACTIVE" : "ARCHIVED"}
         size="small"
-        sx={positionStyles.statusChip(position.deleted_at)}
+        sx={{
+          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
+          color: isActive ? "#2e7d32" : "#d32f2f",
+          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          fontWeight: 600,
+          fontSize: "11px",
+          height: "24px",
+          borderRadius: "12px",
+          "& .MuiChip-label": {
+            padding: "0 8px",
+          },
+        }}
       />
     );
   }, []);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState = isFetching || isLoading;
 
   return (
     <>
-      <Box sx={mainContainerStyles}>
-        <Box sx={headerStyles.container}>
-          <Box sx={headerStyles.titleContainer}>
-            <Typography className="header">
-              {isVerySmall ? "POSITIONS" : "POSITIONS"}
-            </Typography>
-
-            {isVerySmall ? (
-              <IconButton
-                onClick={handleAddPosition}
-                disabled={isLoadingState}
-                sx={headerStyles.addIconButton}>
-                <AddIcon sx={{ fontSize: "18px" }} />
-              </IconButton>
-            ) : (
-              <Fade in={!isLoadingState}>
+      <Box sx={styles.mainContainer}>
+        <Box
+          sx={{
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
+          }}>
+          <Box
+            sx={{
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
+            }}>
+            <Box sx={styles.headerLeftSection}>
+              <Typography
+                className="header"
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                }}>
+                POSITIONS
+              </Typography>
+              {isVerySmall ? (
+                <IconButton
+                  onClick={handleAddPosition}
+                  sx={{
+                    width: "36px",
+                    height: "36px",
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                    },
+                  }}>
+                  <AddIcon sx={{ fontSize: "18px" }} />
+                </IconButton>
+              ) : (
                 <Button
                   variant="contained"
                   onClick={handleAddPosition}
                   startIcon={<AddIcon />}
-                  disabled={isLoadingState}
-                  className="create-button"
-                  sx={headerStyles.addButton}>
+                  sx={{
+                    ...styles.createButton,
+                    backgroundColor: "rgb(33, 61, 112)",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                    },
+                  }}>
                   CREATE
                 </Button>
-              </Fade>
-            )}
+              )}
+            </Box>
           </Box>
 
           <CustomSearchBar
@@ -379,389 +438,32 @@ const Positions = () => {
           />
         </Box>
 
-        <Box sx={contentContainerStyles}>
-          <TableContainer sx={tableStyles.container}>
-            <Table stickyHeader sx={{ minWidth: isMobile ? 800 : 1400 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    align="left"
-                    sx={{
-                      width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
-                      minWidth: isVerySmall
-                        ? "40px"
-                        : isMobile
-                        ? "50px"
-                        : "60px",
-                    }}>
-                    ID
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isVerySmall ? "70px" : isMobile ? "80px" : "100px",
-                      minWidth: isVerySmall
-                        ? "70px"
-                        : isMobile
-                        ? "80px"
-                        : "100px",
-                    }}>
-                    CODE
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isMobile ? "120px" : "180px",
-                      minWidth: isMobile ? "120px" : "180px",
-                    }}>
-                    NAME
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isMobile ? "100px" : "130px",
-                      minWidth: isMobile ? "100px" : "130px",
-                    }}>
-                    CHARGING
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
-                      minWidth: isVerySmall
-                        ? "50px"
-                        : isMobile
-                        ? "60px"
-                        : "70px",
-                    }}>
-                    COA
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isMobile ? "100px" : "140px",
-                      minWidth: isMobile ? "100px" : "140px",
-                    }}>
-                    SUPERIOR
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
-                      minWidth: isVerySmall
-                        ? "60px"
-                        : isMobile
-                        ? "70px"
-                        : "80px",
-                    }}>
-                    REQ
-                  </TableCell>
-                  {!isMobile && (
-                    <>
-                      <TableCell
-                        sx={{
-                          width: "160px",
-                          minWidth: "160px",
-                        }}>
-                        PAY FREQUENCY
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          width: "110px",
-                          minWidth: "110px",
-                        }}>
-                        SCHEDULE
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          width: "100px",
-                          minWidth: "100px",
-                        }}>
-                        TEAM
-                      </TableCell>
-                    </>
-                  )}
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
-                      minWidth: isVerySmall
-                        ? "50px"
-                        : isMobile
-                        ? "60px"
-                        : "70px",
-                    }}>
-                    TOOLS
-                  </TableCell>
-                  {!isMobile && (
-                    <TableCell
-                      sx={{
-                        width: "135px",
-                        minWidth: "135px",
-                      }}>
-                      ATTACHMENTS
-                    </TableCell>
-                  )}
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: isVerySmall ? "70px" : isMobile ? "80px" : "90px",
-                      minWidth: isVerySmall
-                        ? "70px"
-                        : isMobile
-                        ? "80px"
-                        : "90px",
-                    }}>
-                    STATUS
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
-                      minWidth: isVerySmall
-                        ? "60px"
-                        : isMobile
-                        ? "70px"
-                        : "80px",
-                    }}>
-                    ACTION
-                  </TableCell>
-                </TableRow>
-              </TableHead>
+        <Box sx={styles.tabsContainer}>
+          <PositionsTable
+            positionList={positionList}
+            isLoadingState={isLoadingState}
+            error={error}
+            searchQuery={searchQuery}
+            isMobile={isMobile}
+            menuAnchor={menuAnchor}
+            handleMenuOpen={handleMenuOpen}
+            handleMenuClose={handleMenuClose}
+            handleRowClick={handleRowClick}
+            handleOpenCoaDialog={handleOpenCoaDialog}
+            handleOpenRequestorsDialog={handleOpenRequestorsDialog}
+            handleOpenToolsDialog={handleOpenToolsDialog}
+            handleEditClick={handleEditClick}
+            handleArchiveRestoreClick={handleArchiveRestoreClick}
+            getDisplayFileName={getDisplayFileName}
+            renderStatusChip={renderStatusChip}
+          />
 
-              <TableBody>
-                {isLoadingState ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isMobile ? 9 : 14}
-                      align="center"
-                      sx={{ py: 4 }}>
-                      <CircularProgress
-                        size={32}
-                        sx={{ color: "rgb(33, 61, 112)" }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isMobile ? 9 : 14}
-                      align="center"
-                      sx={{ py: 4 }}>
-                      <Typography color="error">
-                        Error loading data: {error.message || "Unknown error"}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : positionList.length > 0 ? (
-                  positionList.map((position) => (
-                    <TableRow
-                      key={position.id}
-                      onClick={() => handleRowClick(position)}
-                      sx={tableStyles.rowHover(theme)}>
-                      <TableCell align="left">{position.id}</TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontSize: isVerySmall ? "10px" : "12px",
-                          color: "#666",
-                          fontFamily: "monospace",
-                        }}>
-                        {position.code}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontWeight: 600,
-                        }}>
-                        {position.title?.name || "—"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {position.charging?.name || "—"}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="View COA">
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenCoaDialog(position);
-                            }}
-                            size="small"
-                            sx={positionStyles.actionIconButton}>
-                            <ShareLocationIcon
-                              sx={{
-                                fontSize: isVerySmall ? "16px" : "18px",
-                              }}
-                            />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {position.superior?.full_name || "—"}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="View Requestors">
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenRequestorsDialog(position);
-                            }}
-                            size="small"
-                            sx={positionStyles.actionIconButton}>
-                            <VisibilityIcon
-                              sx={{
-                                fontSize: isVerySmall ? "16px" : "18px",
-                              }}
-                            />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                      {!isMobile && (
-                        <>
-                          <TableCell
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}>
-                            {position.pay_frequency || "—"}
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}>
-                            {position.schedule?.name || "—"}
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}>
-                            {position.team?.name || "—"}
-                          </TableCell>
-                        </>
-                      )}
-                      <TableCell align="center">
-                        <Tooltip title="View Tools">
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenToolsDialog(position);
-                            }}
-                            size="small"
-                            sx={positionStyles.actionIconButton}>
-                            <HomeRepairServiceIcon
-                              sx={{
-                                fontSize: isVerySmall ? "16px" : "18px",
-                              }}
-                            />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                      {!isMobile && (
-                        <TableCell
-                          sx={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>
-                          {getDisplayFileName(position) ? (
-                            <Link
-                              href={position.position_attachment}
-                              target="_blank"
-                              rel="noopener"
-                              onClick={(e) => e.stopPropagation()}
-                              sx={positionStyles.attachmentLink}>
-                              {getDisplayFileName(position)}
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                      )}
-                      <TableCell align="center">
-                        <Chip
-                          label={position.deleted_at ? "ARCHIVED" : "ACTIVE"}
-                          size="small"
-                          sx={positionStyles.statusChip(position.deleted_at)}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton
-                          onClick={(e) => handleMenuOpen(e, position)}
-                          size="small"
-                          sx={positionStyles.actionIconButton}>
-                          <MoreVertIcon sx={{ fontSize: "20px" }} />
-                        </IconButton>
-                        <Menu
-                          anchorEl={menuAnchor[position.id]}
-                          open={Boolean(menuAnchor[position.id])}
-                          onClose={() => handleMenuClose(position.id)}
-                          onClick={(e) => e.stopPropagation()}>
-                          <MenuItem onClick={() => handleEditClick(position)}>
-                            <EditIcon
-                              sx={{ marginRight: 1, fontSize: "18px" }}
-                            />
-                            Edit
-                          </MenuItem>
-                          <MenuItem
-                            onClick={() => handleArchiveRestoreClick(position)}>
-                            {position.deleted_at ? (
-                              <>
-                                <RestoreIcon
-                                  sx={{ marginRight: 1, fontSize: "18px" }}
-                                />
-                                Restore
-                              </>
-                            ) : (
-                              <>
-                                <ArchiveIcon
-                                  sx={{ marginRight: 1, fontSize: "18px" }}
-                                />
-                                Archive
-                              </>
-                            )}
-                          </MenuItem>
-                        </Menu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isMobile ? 9 : 14}
-                      align="center"
-                      sx={positionStyles.emptyRow}>
-                      No positions found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            component="div"
-            count={positions?.result?.total || 0}
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
             rowsPerPage={rowsPerPage}
-            page={page - 1}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
-            sx={positionStyles.tablePagination}
           />
         </Box>
       </Box>
@@ -776,6 +478,7 @@ const Positions = () => {
           edit={edit}
           position={selectedPosition}
           refetch={refetch}
+          showArchived={showArchived}
         />
       )}
 
@@ -818,31 +521,60 @@ const Positions = () => {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
-        fullWidth>
-        <DialogTitle sx={positionStyles.dialogTitle}>
-          {selectedPosition?.deleted_at
-            ? "Restore Position"
-            : "Archive Position"}
-        </DialogTitle>
-        <DialogContent sx={positionStyles.dialogContent}>
-          <Typography>
-            Are you sure you want to{" "}
-            {selectedPosition?.deleted_at ? "restore" : "archive"} this
-            position?
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 },
+        }}>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
+          </Box>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            color="rgb(33, 61, 112)">
+            Confirmation
           </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom textAlign="center">
+            Are you sure you want to{" "}
+            <strong>
+              {selectedPosition?.deleted_at ? "restore" : "archive"}
+            </strong>{" "}
+            this position?
+          </Typography>
+          {selectedPosition && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mt: 1 }}>
+              {selectedPosition.code} - {selectedPosition.title || ""}
+            </Typography>
+          )}
         </DialogContent>
-        <DialogActions sx={positionStyles.dialogActions}>
-          <Button
-            onClick={() => setConfirmOpen(false)}
-            sx={positionStyles.cancelButton}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleArchiveRestoreConfirm}
-            variant="contained"
-            sx={positionStyles.confirmButton(selectedPosition?.deleted_at)}>
-            {selectedPosition?.deleted_at ? "Restore" : "Archive"}
-          </Button>
+        <DialogActions>
+          <Box
+            display="flex"
+            justifyContent="center"
+            width="100%"
+            gap={2}
+            mb={2}>
+            <Button
+              onClick={() => setConfirmOpen(false)}
+              variant="outlined"
+              color="error">
+              No
+            </Button>
+            <Button
+              onClick={handleArchiveRestoreConfirm}
+              variant="contained"
+              color="success">
+              Yes
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </>

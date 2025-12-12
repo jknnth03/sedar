@@ -79,6 +79,7 @@ const CatTwoModalFields = ({
             ? dayjs(dateAssessed).format("YYYY-MM-DD")
             : null,
           answers: answers.filter((answer) => answer.rating_scale_id !== null),
+          action: "submit_for_validation",
         };
         return formData;
       };

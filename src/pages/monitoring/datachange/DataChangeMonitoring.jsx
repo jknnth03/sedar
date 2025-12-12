@@ -1,10 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
@@ -21,7 +17,7 @@ import {
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -35,48 +31,16 @@ import useDebounce from "../../../hooks/useDebounce";
 
 import DataChangeMonitoringForApproval from "./DataChangeMonitoringForApproval";
 import DataChangeMonitoringRejected from "./DataChangeMonitoringRejected";
-import DataChangeMonitor ingAwaitingResubmission from "./DataChangeMonitoringAwaitingResubmission";
+import DataChangeMonitoringAwaitingResubmission from "./DataChangeMonitoringAwaitingResubmission";
 import DataChangeMonitoringCompleted from "./DataChangeMonitoringCompleted";
 import DataChangeMonitoringCancelled from "./DataChangeMonitoringCancelled";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../forms/manpowerform/FormSubmissionStyles";
 import DataChangeMonitoringForMDAProcessing from "./DataChangeMonitoringForMDAProcessing";
 import MDAForApproval from "./MDAForApproval";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -87,23 +51,13 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`datachange-monitoring-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -541,7 +495,7 @@ const DataChangeMonitoring = () => {
 
   const tabsData = [
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       component: (
         <DataChangeMonitoringForApproval
           searchQuery={debouncedSearchQuery}
@@ -555,7 +509,7 @@ const DataChangeMonitoring = () => {
       badgeCount: null,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "AWAITING RESUBMISSION",
       component: (
         <DataChangeMonitoringAwaitingResubmission
           searchQuery={debouncedSearchQuery}
@@ -569,7 +523,7 @@ const DataChangeMonitoring = () => {
       badgeCount: null,
     },
     {
-      label: "Rejected",
+      label: "REJECTED",
       component: (
         <DataChangeMonitoringRejected
           searchQuery={debouncedSearchQuery}
@@ -583,7 +537,7 @@ const DataChangeMonitoring = () => {
       badgeCount: null,
     },
     {
-      label: "For MDA Processing",
+      label: "FOR MDA PROCESSING",
       component: (
         <DataChangeMonitoringForMDAProcessing
           searchQuery={debouncedSearchQuery}
@@ -597,7 +551,7 @@ const DataChangeMonitoring = () => {
       badgeCount: null,
     },
     {
-      label: "MDA For Approval",
+      label: "MDA FOR APPROVAL",
       component: (
         <MDAForApproval
           searchQuery={debouncedSearchQuery}
@@ -611,7 +565,7 @@ const DataChangeMonitoring = () => {
       badgeCount: null,
     },
     {
-      label: "Completed",
+      label: "COMPLETED",
       component: (
         <DataChangeMonitoringCompleted
           searchQuery={debouncedSearchQuery}
@@ -625,7 +579,7 @@ const DataChangeMonitoring = () => {
       badgeCount: null,
     },
     {
-      label: "Cancelled",
+      label: "CANCELLED",
       component: (
         <DataChangeMonitoringCancelled
           searchQuery={debouncedSearchQuery}
@@ -652,78 +606,51 @@ const DataChangeMonitoring = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
             <Box
               sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
-              <Box
+              <Typography
+                className="header"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                  width: isMobile || isTablet ? "100%" : "auto",
-                  justifyContent: "flex-start",
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
                 }}>
-                <Typography
-                  className="header"
-                  sx={{
-                    fontSize: isVerySmall ? "16px" : isMobile ? "18px" : "24px",
-                    fontWeight: 500,
-                    color: "rgb(33, 61, 112)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  {isVerySmall ? "MONITORING" : "201 DATA CHANGE MONITORING"}
-                </Typography>
-              </Box>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
+                {isVerySmall ? "MONITORING" : "201 DATA CHANGE MONITORING"}
+              </Typography>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="Data change monitoring tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
@@ -733,11 +660,8 @@ const DataChangeMonitoring = () => {
                         badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          "& .MuiBadge-badge": {
-                            fontSize: "0.75rem",
-                            minWidth: 18,
-                            height: 18,
-                          },
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
                         {tab.label}
                       </Badge>
@@ -749,21 +673,14 @@ const DataChangeMonitoring = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog

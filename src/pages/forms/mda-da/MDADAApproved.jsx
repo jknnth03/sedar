@@ -263,6 +263,7 @@ const MDADAApproved = ({
           searchQuery={searchQuery}
           onCancel={onCancel}
           onRefetch={refetch}
+          theme={theme}
         />
 
         <CustomTablePagination
