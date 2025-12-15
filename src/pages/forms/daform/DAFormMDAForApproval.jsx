@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
-  useLazyGetSingleDaSubmissionQuery,
+  useGetSingleDaSubmissionQuery,
   useUpdateDaMutation,
 } from "../../../features/api/forms/daformApi";
 import DAFormTable from "./DAFormTable";
@@ -24,7 +24,6 @@ const DAFormMDAForApproval = ({
   filterDataBySearch,
   onCancel,
 }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -34,10 +33,10 @@ const DAFormMDAForApproval = ({
     parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
-  const [modalLoading, setModalLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
@@ -53,7 +52,7 @@ const DAFormMDAForApproval = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: "MDA IN PROGRESS",
-      pagination: 1,
+      pagination: true,
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);
@@ -73,80 +72,45 @@ const DAFormMDAForApproval = ({
     skip: false,
   });
 
-  const [
-    triggerGetSubmission,
-    { data: submissionDetails, isLoading: detailsLoading },
-  ] = useLazyGetSingleDaSubmissionQuery();
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetSingleDaSubmissionQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
+  });
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
+  }, [submissionsData]);
 
-    let filtered = rawData;
+  const handleRowClick = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("view");
+    setModalOpen(true);
+  }, []);
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+  useEffect(() => {
+    if (submissionDetails?.result && modalOpen) {
+      setSelectedEntry(submissionDetails.result);
     }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
-
-  const handleRowClick = useCallback(
-    async (submission) => {
-      setSelectedSubmissionId(submission.id);
-      setModalMode("view");
-      setModalOpen(true);
-      setMenuAnchor({});
-
-      try {
-        await triggerGetSubmission(submission.id);
-      } catch (error) {
-        console.error("Error fetching submission details:", error);
-      }
-    },
-    [triggerGetSubmission]
-  );
+  }, [submissionDetails, modalOpen]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
+    setSelectedEntry(null);
     setSelectedSubmissionId(null);
-    setModalLoading(false);
     setModalMode("view");
-    methods.reset();
-  }, [methods]);
-
-  const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId) {
-      triggerGetSubmission(selectedSubmissionId);
-    }
-  }, [selectedSubmissionId, triggerGetSubmission]);
+  }, []);
 
   const handleSave = useCallback(
     async (formData, mode) => {
       try {
-        console.log("Saving DA Form submission:", formData, mode);
-
         if (mode === "edit" && selectedSubmissionId) {
-          const response = await updateDaSubmission({
+          await updateDaSubmission({
             id: selectedSubmissionId,
             data: formData,
           }).unwrap();
@@ -155,13 +119,12 @@ const DAFormMDAForApproval = ({
             variant: "success",
           });
 
-          await handleRefreshDetails();
+          await refetchDetails();
           await refetch();
 
           handleModalClose();
         }
       } catch (error) {
-        console.error("Error saving DA Form submission:", error);
         enqueueSnackbar(
           error?.data?.message || "Failed to update DA Form submission",
           {
@@ -174,7 +137,7 @@ const DAFormMDAForApproval = ({
       selectedSubmissionId,
       updateDaSubmission,
       enqueueSnackbar,
-      handleRefreshDetails,
+      refetchDetails,
       refetch,
       handleModalClose,
     ]
@@ -183,8 +146,6 @@ const DAFormMDAForApproval = ({
   const handleResubmit = useCallback(
     async (submissionId) => {
       try {
-        console.log("Resubmitting DA Form submission:", submissionId);
-
         await resubmitDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission resubmitted successfully", {
@@ -192,10 +153,9 @@ const DAFormMDAForApproval = ({
           autoHideDuration: 2000,
         });
 
-        await handleRefreshDetails();
+        await refetchDetails();
         await refetch();
       } catch (error) {
-        console.error("Error resubmitting DA Form submission:", error);
         enqueueSnackbar(
           error?.data?.message || "Failed to resubmit DA Form submission",
           {
@@ -205,14 +165,12 @@ const DAFormMDAForApproval = ({
         );
       }
     },
-    [resubmitDaSubmission, enqueueSnackbar, handleRefreshDetails, refetch]
+    [resubmitDaSubmission, enqueueSnackbar, refetchDetails, refetch]
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
       try {
-        console.log("Cancelling DA Form submission:", submissionId);
-
         await cancelDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission cancelled successfully", {
@@ -224,8 +182,6 @@ const DAFormMDAForApproval = ({
 
         return true;
       } catch (error) {
-        console.error("Error cancelling DA Form submission:", error);
-
         let errorMessage = "Failed to cancel DA Form submission";
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -297,6 +253,8 @@ const DAFormMDAForApproval = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -308,7 +266,7 @@ const DAFormMDAForApproval = ({
           backgroundColor: "white",
         }}>
         <DAFormTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -316,12 +274,12 @@ const DAFormMDAForApproval = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="MDA FOR APPROVAL"
+          statusFilter="MDA IN PROGRESS"
           onCancel={handleCancel}
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
@@ -334,8 +292,8 @@ const DAFormMDAForApproval = ({
         onClose={handleModalClose}
         onSave={handleSave}
         onResubmit={handleResubmit}
-        selectedEntry={submissionDetails}
-        isLoading={modalLoading || detailsLoading}
+        selectedEntry={selectedEntry}
+        isLoading={detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />

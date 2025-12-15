@@ -788,16 +788,17 @@ const PdpModalPrinting = ({ data }) => {
                 </p>
                 <div
                   style={{
-                    borderBottom: "1px solid #000",
                     minHeight: "60px",
                     marginBottom: "8px",
                   }}></div>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                  Immediate Superior
-                </p>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                  (Name, Signature, Date)
-                </p>
+                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    Immediate Superior
+                  </p>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    (Name, Signature, Date)
+                  </p>
+                </div>
               </div>
 
               <div style={{ textAlign: "center" }}>
@@ -806,32 +807,34 @@ const PdpModalPrinting = ({ data }) => {
                 </p>
                 <div
                   style={{
-                    borderBottom: "1px solid #000",
                     minHeight: "60px",
                     marginBottom: "8px",
                   }}></div>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                  Department Head
-                </p>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                  (Name, Signature, Date)
-                </p>
+                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    Department Head
+                  </p>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    (Name, Signature, Date)
+                  </p>
+                </div>
               </div>
 
               <div style={{ textAlign: "center" }}>
                 <p style={{ fontSize: "11px", marginBottom: "8px" }}>&nbsp;</p>
                 <div
                   style={{
-                    borderBottom: "1px solid #000",
                     minHeight: "60px",
                     marginBottom: "8px",
                   }}></div>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                  Department Manager/Director
-                </p>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                  (Name, Signature, Date)
-                </p>
+                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    Department Manager/Director
+                  </p>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    (Name, Signature, Date)
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -841,34 +844,50 @@ const PdpModalPrinting = ({ data }) => {
               </p>
               <div
                 style={{
-                  borderBottom: "1px solid #000",
                   minHeight: "60px",
                   marginBottom: "8px",
                   maxWidth: "300px",
                   margin: "0 auto 8px",
                 }}></div>
-              <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                Employee's Signature
-              </p>
-              <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                (Name, Signature, Date)
-              </p>
+              <div
+                style={{
+                  borderTop: "1px solid #000",
+                  paddingTop: "8px",
+                  maxWidth: "300px",
+                  margin: "0 auto",
+                }}>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  Employee's Signature
+                </p>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  (Name, Signature, Date)
+                </p>
+              </div>
             </div>
 
             <div style={{ textAlign: "center" }}>
               <p style={{ fontSize: "11px", marginBottom: "8px" }}>Noted by:</p>
               <div
                 style={{
-                  borderBottom: "1px solid #000",
                   minHeight: "60px",
                   marginBottom: "8px",
                   maxWidth: "300px",
                   margin: "0 auto 8px",
                 }}></div>
-              <p style={{ fontSize: "10px", margin: "4px 0" }}>HR Department</p>
-              <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                (Name, Signature, Date)
-              </p>
+              <div
+                style={{
+                  borderTop: "1px solid #000",
+                  paddingTop: "8px",
+                  maxWidth: "300px",
+                  margin: "0 auto",
+                }}>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  HR Department
+                </p>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  (Name, Signature, Date)
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -879,7 +898,7 @@ const PdpModalPrinting = ({ data }) => {
           @media print {
             @page {
               size: A4;
-              margin: 20mm;
+              margin: 0;
             }
             
             * {

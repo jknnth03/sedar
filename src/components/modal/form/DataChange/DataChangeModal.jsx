@@ -183,6 +183,10 @@ const DataChangeModal = ({
     return selectedEntry?.result?.status === "PENDING MDA CREATION";
   };
 
+  const shouldEnableCreateMDAButton = () => {
+    return selectedEntry?.result?.actions?.can_create_mda === true;
+  };
+
   const shouldShowPrintButton = () => {
     return selectedEntry?.result?.status === "COMPLETED";
   };
@@ -641,17 +645,23 @@ const DataChangeModal = ({
                 <Button
                   onClick={handleCreateMDAClick}
                   variant="contained"
-                  disabled={isProcessing}
+                  disabled={!shouldEnableCreateMDAButton() || isProcessing}
                   startIcon={
                     isProcessing ? <CircularProgress size={16} /> : <AddIcon />
                   }
                   sx={{
-                    backgroundColor: "#4CAF50",
+                    backgroundColor:
+                      shouldEnableCreateMDAButton() && !isProcessing
+                        ? "#4CAF50"
+                        : "rgba(76, 175, 80, 0.3)",
                     color: "white",
                     fontWeight: 600,
                     textTransform: "uppercase",
                     "&:hover": {
-                      backgroundColor: "#45a049",
+                      backgroundColor:
+                        shouldEnableCreateMDAButton() && !isProcessing
+                          ? "#45a049"
+                          : "rgba(76, 175, 80, 0.3)",
                     },
                     "&:disabled": {
                       backgroundColor: "rgba(76, 175, 80, 0.3)",

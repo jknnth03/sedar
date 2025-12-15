@@ -25,8 +25,6 @@ const userApi = sedarApi
           },
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllUsers):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: response.result.data };
@@ -80,7 +78,6 @@ const userApi = sedarApi
           method: "GET",
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getShowUser):", response);
           if (response.result) {
             return {
               data: response.result.data || [],
@@ -104,7 +101,6 @@ const userApi = sedarApi
           method: "GET",
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getPendingRequests):", response);
           if (response.result) {
             return {
               data: response.result.data || [],
@@ -138,8 +134,6 @@ const userApi = sedarApi
           },
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllApprovers):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: { data: response.result.data } };
@@ -174,8 +168,6 @@ const userApi = sedarApi
           },
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllReceivers):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: { data: response.result.data } };

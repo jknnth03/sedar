@@ -319,20 +319,19 @@ const CatTwoModalPrinting = ({ data }) => {
             mt: 4,
             display: "flex",
             justifyContent: "space-between",
-            border: "2px solid #000",
             mx: 2.5,
             "@media print": {
               mx: 0,
+              mt: 4,
             },
           }}>
           <Box
             sx={{
               flex: 1,
-              borderRight: "1px solid #000",
               p: 2,
               textAlign: "center",
             }}>
-            <Box sx={{ minHeight: "60px" }}></Box>
+            <Box sx={{ minHeight: "80px" }}></Box>
             <Box sx={{ borderTop: "1px solid #000", pt: 1, fontSize: "11px" }}>
               <Typography sx={{ fontSize: "11px" }}>
                 Signature over Printed Name/Date
@@ -343,7 +342,18 @@ const CatTwoModalPrinting = ({ data }) => {
             </Box>
           </Box>
           <Box sx={{ flex: 1, p: 2, textAlign: "center" }}>
-            <Box sx={{ minHeight: "60px" }}></Box>
+            <Box
+              sx={{
+                minHeight: "80px",
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                pb: 1,
+              }}>
+              <Typography sx={{ fontSize: "11px" }}>
+                {data.employee_name || ""}
+              </Typography>
+            </Box>
             <Box sx={{ borderTop: "1px solid #000", pt: 1, fontSize: "11px" }}>
               <Typography sx={{ fontSize: "11px" }}>
                 Signature over Printed Name/Date
@@ -361,7 +371,7 @@ const CatTwoModalPrinting = ({ data }) => {
           @media print {
             @page {
               size: A4;
-              margin: 20mm;
+              margin: 0;
             }
             
             * {

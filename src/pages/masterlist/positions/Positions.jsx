@@ -153,7 +153,7 @@ const Positions = () => {
   const [edit, setEdit] = useState(false);
   const [coaDialogOpen, setCoaDialogOpen] = useState(false);
   const [toolsDialogOpen, setToolsDialogOpen] = useState(false);
-  const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+  const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const [requestorsDialogOpen, setRequestorsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
@@ -214,7 +214,7 @@ const Positions = () => {
       try {
         const urlParts = position.position_attachment.split("/");
         const filename = urlParts[urlParts.length - 1];
-        return decodeURIComponent(filename);
+        return decodeURIComponent(filename.split("?")[0]);
       } catch (error) {
         return position.position_attachment;
       }
@@ -315,14 +315,14 @@ const Positions = () => {
     setToolsDialogOpen(false);
   };
 
-  const handleOpenPositionDialog = (position) => {
+  const handleOpenAttachmentDialog = (position) => {
     setSelectedPosition(position);
-    setPositionDialogOpen(true);
+    setAttachmentDialogOpen(true);
   };
 
-  const handleClosePositionDialog = () => {
+  const handleCloseAttachmentDialog = () => {
     setSelectedPosition(null);
-    setPositionDialogOpen(false);
+    setAttachmentDialogOpen(false);
   };
 
   const handleOpenRequestorsDialog = (position) => {
@@ -452,6 +452,7 @@ const Positions = () => {
             handleOpenCoaDialog={handleOpenCoaDialog}
             handleOpenRequestorsDialog={handleOpenRequestorsDialog}
             handleOpenToolsDialog={handleOpenToolsDialog}
+            handleOpenAttachmentDialog={handleOpenAttachmentDialog}
             handleEditClick={handleEditClick}
             handleArchiveRestoreClick={handleArchiveRestoreClick}
             getDisplayFileName={getDisplayFileName}
@@ -499,12 +500,11 @@ const Positions = () => {
         />
       )}
 
-      {positionDialogOpen && (
+      {attachmentDialogOpen && (
         <PositionDialog
-          open={positionDialogOpen}
-          onClose={handleClosePositionDialog}
+          open={attachmentDialogOpen}
+          onClose={handleCloseAttachmentDialog}
           position={selectedPosition}
-          type="position"
         />
       )}
 

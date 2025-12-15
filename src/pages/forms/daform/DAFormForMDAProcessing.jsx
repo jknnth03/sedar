@@ -52,7 +52,7 @@ const DAFormMDAProcessing = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: "PENDING MDA CREATION",
-      pagination: true,
+      pagination: "true",
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);
@@ -81,8 +81,35 @@ const DAFormMDAProcessing = ({
     refetchOnMountOrArgChange: true,
   });
 
+  useEffect(() => {
+    console.log("=== DAFormMDAProcessing Debug ===");
+    console.log("API Query Params:", apiQueryParams);
+    console.log("Raw API Response:", submissionsData);
+    console.log("Is Loading:", queryLoading);
+    console.log("Is Fetching:", isFetching);
+    console.log("Error:", error);
+    console.log("Result Data:", submissionsData?.result?.data);
+  }, [submissionsData, queryLoading, isFetching, error, apiQueryParams]);
+
   const submissionsList = useMemo(() => {
-    const data = submissionsData?.result?.data || [];
+    if (!submissionsData) {
+      console.log("No submissions data");
+      return [];
+    }
+
+    if (!submissionsData.result) {
+      console.log("No result object in submissions data");
+      return [];
+    }
+
+    if (!submissionsData.result.data) {
+      console.log("No data array in result");
+      return [];
+    }
+
+    const data = submissionsData.result.data;
+    console.log("Final submissions list:", data);
+    console.log("List length:", data.length);
     return data;
   }, [submissionsData]);
 
@@ -265,6 +292,8 @@ const DAFormMDAProcessing = ({
 
   const totalCount = submissionsData?.result?.total || 0;
 
+  console.log("About to render - submissions:", submissionsList.length);
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -284,7 +313,7 @@ const DAFormMDAProcessing = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="FOR MDA PROCESSING"
+          statusFilter="PENDING MDA CREATION"
           onCancel={handleCancel}
         />
 

@@ -9,11 +9,10 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Tooltip,
-  Link,
   Skeleton,
   useTheme,
   Chip,
+  Box,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
@@ -22,6 +21,7 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import ShareLocationIcon from "@mui/icons-material/ShareLocation";
 import HomeRepairServiceIcon from "@mui/icons-material/HomeRepairService";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 import NoDataFound from "../../../pages/NoDataFound";
 import { styles } from "../../forms/manpowerform/formSubmissionStyles";
 
@@ -38,6 +38,7 @@ const PositionsTable = ({
   handleOpenCoaDialog,
   handleOpenRequestorsDialog,
   handleOpenToolsDialog,
+  handleOpenAttachmentDialog,
   handleEditClick,
   handleArchiveRestoreClick,
   getDisplayFileName,
@@ -117,125 +118,110 @@ const PositionsTable = ({
         return position.id;
 
       case "code":
-        return (
-          <Tooltip title={position.code} placement="top">
-            <span style={styles.cellContentStyles}>{position.code}</span>
-          </Tooltip>
-        );
+        return <span style={styles.cellContentStyles}>{position.code}</span>;
 
       case "name":
-        return (
-          <Tooltip title={position.title || "—"} placement="top">
-            <span style={styles.cellContentStyles}>
-              {position.title || "—"}
-            </span>
-          </Tooltip>
-        );
+        const titleValue =
+          typeof position.title === "object" && position.title !== null
+            ? position.title.name || position.title.title || "—"
+            : position.title || "—";
+        return <span style={styles.cellContentStyles}>{titleValue}</span>;
 
       case "charging":
-        return (
-          <Tooltip title={position.charging || "—"} placement="top">
-            <span style={styles.cellContentStyles}>
-              {position.charging || "—"}
-            </span>
-          </Tooltip>
-        );
+        const chargingValue =
+          typeof position.charging === "object" && position.charging !== null
+            ? position.charging.name || position.charging.code || "—"
+            : position.charging || "—";
+        return <span style={styles.cellContentStyles}>{chargingValue}</span>;
 
       case "coa":
         return (
-          <Tooltip title="View COA">
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenCoaDialog(position);
-              }}
-              size="small">
-              <ShareLocationIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenCoaDialog(position);
+            }}
+            size="small">
+            <ShareLocationIcon />
+          </IconButton>
         );
 
       case "superior":
-        return (
-          <Tooltip title={position.superior || "—"} placement="top">
-            <span style={styles.cellContentStyles}>
-              {position.superior || "—"}
-            </span>
-          </Tooltip>
-        );
+        const superiorValue =
+          typeof position.superior === "object" && position.superior !== null
+            ? position.superior.name ||
+              position.superior.code ||
+              position.superior.full_name ||
+              "—"
+            : position.superior || "—";
+        return <span style={styles.cellContentStyles}>{superiorValue}</span>;
 
       case "req":
         return (
-          <Tooltip title="View Requestors">
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenRequestorsDialog(position);
-              }}
-              size="small">
-              <VisibilityIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenRequestorsDialog(position);
+            }}
+            size="small">
+            <VisibilityIcon />
+          </IconButton>
         );
 
       case "pay_frequency":
         return (
-          <Tooltip title={position.pay_frequency || "—"} placement="top">
-            <span style={styles.cellContentStyles}>
-              {position.pay_frequency || "—"}
-            </span>
-          </Tooltip>
+          <span style={styles.cellContentStyles}>
+            {position.pay_frequency || "—"}
+          </span>
         );
 
       case "schedule":
-        return (
-          <Tooltip title={position.schedule || "—"} placement="top">
-            <span style={styles.cellContentStyles}>
-              {position.schedule || "—"}
-            </span>
-          </Tooltip>
-        );
+        const scheduleValue =
+          typeof position.schedule === "object" && position.schedule !== null
+            ? position.schedule.name || position.schedule.code || "—"
+            : position.schedule || "—";
+        return <span style={styles.cellContentStyles}>{scheduleValue}</span>;
 
       case "team":
-        return (
-          <Tooltip title={position.team || "—"} placement="top">
-            <span style={styles.cellContentStyles}>{position.team || "—"}</span>
-          </Tooltip>
-        );
+        const teamValue =
+          typeof position.team === "object" && position.team !== null
+            ? position.team.name || position.team.code || "—"
+            : position.team || "—";
+        return <span style={styles.cellContentStyles}>{teamValue}</span>;
 
       case "tools":
         return (
-          <Tooltip title="View Tools">
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenToolsDialog(position);
-              }}
-              size="small">
-              <HomeRepairServiceIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenToolsDialog(position);
+            }}
+            size="small">
+            <HomeRepairServiceIcon />
+          </IconButton>
         );
 
       case "attachments":
         const fileName = getDisplayFileName(position);
         return fileName ? (
-          <Link
-            href={position.position_attachment}
-            target="_blank"
-            rel="noopener"
-            onClick={(e) => e.stopPropagation()}
+          <Box
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenAttachmentDialog(position);
+            }}
             sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.5,
+              cursor: "pointer",
               color: "rgb(33, 61, 112)",
-              textDecoration: "none",
               "&:hover": {
                 textDecoration: "underline",
               },
             }}>
-            <Tooltip title={fileName} placement="top">
-              <span style={styles.cellContentStyles}>{fileName}</span>
-            </Tooltip>
-          </Link>
+            <AttachFileIcon sx={{ fontSize: 18 }} />
+            <span style={styles.cellContentStyles}>{fileName}</span>
+          </Box>
         ) : (
           "—"
         );
