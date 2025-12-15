@@ -173,6 +173,7 @@ const MdaApprovalTable = ({
       status: "active",
       approval_status: approvalStatus,
       pagination: true,
+      type: "data-change",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -256,18 +257,6 @@ const MdaApprovalTable = ({
           }}>
           <TableHead>
             <TableRow>
-              <TableCell
-                align="center"
-                sx={{
-                  width: isVerySmall ? "100px" : isMobile ? "120px" : "140px",
-                  minWidth: isVerySmall
-                    ? "100px"
-                    : isMobile
-                    ? "120px"
-                    : "140px",
-                }}>
-                STATUS
-              </TableCell>
               <TableCell
                 sx={{
                   width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
@@ -366,9 +355,6 @@ const MdaApprovalTable = ({
                         backgroundColor: "#f8f9fa",
                       },
                     }}>
-                    <TableCell align="center">
-                      {renderStatusChip(approval)}
-                    </TableCell>
                     <TableCell
                       sx={{
                         overflow: "hidden",

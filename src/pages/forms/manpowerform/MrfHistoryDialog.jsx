@@ -299,6 +299,30 @@ const MrfHistoryDialog = ({
     return null;
   }
 
+  const sortedActivityLog = [...selectedMrfHistory.activity_log].sort(
+    (a, b) => {
+      const eventTypeA = (
+        a?.event_type ||
+        a?.status ||
+        a?.action ||
+        ""
+      ).toLowerCase();
+      const eventTypeB = (
+        b?.event_type ||
+        b?.status ||
+        b?.action ||
+        ""
+      ).toLowerCase();
+
+      if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
+      if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
+
+      const dateA = new Date(a.timestamp || 0);
+      const dateB = new Date(b.timestamp || 0);
+      return dateB - dateA;
+    }
+  );
+
   return (
     <Dialog
       open={historyDialogOpen}
@@ -439,7 +463,7 @@ const MrfHistoryDialog = ({
             </Box>
           </Box>
 
-          {selectedMrfHistory?.date_created && (
+          {selectedMrfHistory?.submission_title && (
             <Box sx={{ pl: 3, mb: 3 }}>
               <Typography
                 variant="h6"
@@ -451,53 +475,33 @@ const MrfHistoryDialog = ({
                   mb: 1,
                   fontSize: "14px",
                 }}>
-                Date Created
+                Submission Title
               </Typography>
               <Typography
                 variant="body1"
                 sx={{ color: "#666", fontSize: "16px" }}>
-                {dayjs(selectedMrfHistory.date_created).format("MMM D, YYYY")}
+                {selectedMrfHistory.submission_title}
               </Typography>
             </Box>
           )}
 
           <Box sx={{ pl: 2 }}>
-            {selectedMrfHistory.activity_log
-              .slice()
-              .reverse()
-              .map((activity, index) => (
-                <Box
-                  key={activity.id || index}
-                  sx={{
-                    mb:
-                      index === selectedMrfHistory.activity_log.length - 1
-                        ? 0
-                        : 2,
-                  }}>
-                  <TimelineStep
-                    activity={activity}
-                    index={index}
-                    isLast={
-                      index === selectedMrfHistory.activity_log.length - 1
-                    }
-                    isCompleted={true}
-                  />
-                </Box>
-              ))}
+            {sortedActivityLog.map((activity, index) => (
+              <Box
+                key={activity.id || index}
+                sx={{
+                  mb: index === sortedActivityLog.length - 1 ? 0 : 2,
+                }}>
+                <TimelineStep
+                  activity={activity}
+                  index={index}
+                  isLast={index === sortedActivityLog.length - 1}
+                  isCompleted={true}
+                />
+              </Box>
+            ))}
           </Box>
         </Box>
-
-        {selectedMrfHistory.activity_log.length === 0 && (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <AssignmentIcon sx={{ fontSize: 64, color: "#ccc", mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-              No Timeline History Available
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This MRF request doesn't have any recorded activities yet.
-            </Typography>
-          </Box>
-        )}
       </DialogContent>
     </Dialog>
   );

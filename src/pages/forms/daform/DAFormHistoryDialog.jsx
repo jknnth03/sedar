@@ -241,14 +241,6 @@ const DAFormHistoryDialog = ({
                 </Typography>
               )}
 
-              {activity?.context && activity?.context?.step && (
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#888", fontSize: "12px", mb: 1 }}>
-                  Step {activity.context.step}, Round {activity.context.round}
-                </Typography>
-              )}
-
               <Typography
                 variant="body2"
                 sx={{ color: "#999", fontSize: "13px" }}>
@@ -296,6 +288,28 @@ const DAFormHistoryDialog = ({
   ) {
     return null;
   }
+
+  const sortedActivityLog = [...selectedDaHistory.activity_log].sort((a, b) => {
+    const eventTypeA = (
+      a?.event_type ||
+      a?.status ||
+      a?.action ||
+      ""
+    ).toLowerCase();
+    const eventTypeB = (
+      b?.event_type ||
+      b?.status ||
+      b?.action ||
+      ""
+    ).toLowerCase();
+
+    if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
+    if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
+
+    const dateA = new Date(a.timestamp || 0);
+    const dateB = new Date(b.timestamp || 0);
+    return dateB - dateA;
+  });
 
   return (
     <Dialog
@@ -387,7 +401,7 @@ const DAFormHistoryDialog = ({
                   mb: 1,
                   fontSize: "14px",
                 }}>
-                Employee Code
+                Employee #
               </Typography>
               <Typography
                 variant="body1"
@@ -396,7 +410,7 @@ const DAFormHistoryDialog = ({
               </Typography>
             </Box>
 
-            <Box sx={{ flex: 1, mr: 3 }}>
+            <Box sx={{ flex: 1 }}>
               <Typography
                 variant="h6"
                 sx={{
@@ -415,63 +429,25 @@ const DAFormHistoryDialog = ({
                 {getReferenceNumber(selectedDaHistory)}
               </Typography>
             </Box>
-
-            <Box sx={{ flex: 0.8 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.3px",
-                  mb: 1,
-                  fontSize: "14px",
-                }}>
-                Charging Name
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: "#666", fontSize: "16px" }}>
-                {getChargingName(selectedDaHistory)}
-              </Typography>
-            </Box>
           </Box>
 
           <Box sx={{ pl: 2 }}>
-            {selectedDaHistory.activity_log
-              .slice()
-              .reverse()
-              .map((activity, index) => (
-                <Box
-                  key={activity.id || index}
-                  sx={{
-                    mb:
-                      index === selectedDaHistory.activity_log.length - 1
-                        ? 0
-                        : 2,
-                  }}>
-                  <TimelineStep
-                    activity={activity}
-                    index={index}
-                    isLast={index === selectedDaHistory.activity_log.length - 1}
-                    isCompleted={true}
-                  />
-                </Box>
-              ))}
+            {sortedActivityLog.map((activity, index) => (
+              <Box
+                key={activity.id || index}
+                sx={{
+                  mb: index === sortedActivityLog.length - 1 ? 0 : 2,
+                }}>
+                <TimelineStep
+                  activity={activity}
+                  index={index}
+                  isLast={index === sortedActivityLog.length - 1}
+                  isCompleted={true}
+                />
+              </Box>
+            ))}
           </Box>
         </Box>
-
-        {selectedDaHistory.activity_log.length === 0 && (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <AssignmentIcon sx={{ fontSize: 64, color: "#ccc", mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-              No Timeline History Available
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This DA Form submission doesn't have any recorded activities yet.
-            </Typography>
-          </Box>
-        )}
       </DialogContent>
     </Dialog>
   );

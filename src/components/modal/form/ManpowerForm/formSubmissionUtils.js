@@ -77,21 +77,24 @@ export const populateFormWithEntry = (entry, setValue) => {
   if (submittable.position_id || submittable.position) {
     setValue(
       "position_id",
-      submittable.position || { id: submittable.position_id }
+      submittable.position || { id: submittable.position_id },
+      { shouldValidate: false }
     );
   }
 
   if (submittable.job_level_id || submittable.job_level) {
     setValue(
       "job_level_id",
-      submittable.job_level || { id: submittable.job_level_id }
+      submittable.job_level || { id: submittable.job_level_id },
+      { shouldValidate: false }
     );
   }
 
   if (submittable.requisition_type_id || submittable.requisition_type) {
     setValue(
       "requisition_type_id",
-      submittable.requisition_type || { id: submittable.requisition_type_id }
+      submittable.requisition_type || { id: submittable.requisition_type_id },
+      { shouldValidate: false }
     );
   }
 
@@ -103,24 +106,31 @@ export const populateFormWithEntry = (entry, setValue) => {
       "employee_to_be_replaced_id",
       submittable.employee_to_be_replaced || {
         id: submittable.employee_to_be_replaced_id,
-      }
+      },
+      { shouldValidate: false }
     );
   }
 
   if (submittable.expected_salary) {
-    setValue("expected_salary", submittable.expected_salary);
+    setValue("expected_salary", submittable.expected_salary, {
+      shouldValidate: false,
+    });
   }
 
   if (submittable.employment_type) {
-    setValue("employment_type", submittable.employment_type);
+    setValue("employment_type", submittable.employment_type, {
+      shouldValidate: false,
+    });
   }
 
   if (submittable.justification) {
-    setValue("justification", submittable.justification);
+    setValue("justification", submittable.justification, {
+      shouldValidate: false,
+    });
   }
 
   if (submittable.remarks) {
-    setValue("remarks", submittable.remarks);
+    setValue("remarks", submittable.remarks, { shouldValidate: false });
   }
 
   if (submittable.employee_movement_details) {
@@ -129,31 +139,45 @@ export const populateFormWithEntry = (entry, setValue) => {
     if (movement.employee_id || movement.employee) {
       setValue(
         "movement_employee_id",
-        movement.employee || { id: movement.employee_id }
+        movement.employee || { id: movement.employee_id },
+        { shouldValidate: false }
       );
     }
 
     if (movement.new_position_id || movement.new_position) {
       setValue(
         "movement_new_position_id",
-        movement.new_position || { id: movement.new_position_id }
+        movement.new_position || { id: movement.new_position_id },
+        { shouldValidate: false }
       );
     }
 
     if (movement.reason_for_change) {
-      setValue("movement_reason_for_change", movement.reason_for_change);
+      setValue("movement_reason_for_change", movement.reason_for_change, {
+        shouldValidate: false,
+      });
     }
 
     if (movement.is_developmental_assignment !== undefined) {
-      setValue("movement_is_da", Boolean(movement.is_developmental_assignment));
+      setValue(
+        "movement_is_da",
+        Boolean(movement.is_developmental_assignment),
+        {
+          shouldValidate: false,
+        }
+      );
     }
 
     if (movement.da_start_date) {
-      setValue("movement_da_start_date", dayjs(movement.da_start_date));
+      setValue("movement_da_start_date", dayjs(movement.da_start_date), {
+        shouldValidate: false,
+      });
     }
 
     if (movement.da_end_date) {
-      setValue("movement_da_end_date", dayjs(movement.da_end_date));
+      setValue("movement_da_end_date", dayjs(movement.da_end_date), {
+        shouldValidate: false,
+      });
     }
   }
 };

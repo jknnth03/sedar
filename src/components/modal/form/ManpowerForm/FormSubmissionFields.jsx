@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
   Grid,
@@ -8,26 +8,21 @@ import {
   FormControlLabel,
   Checkbox,
   CircularProgress,
-  Skeleton,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { useLazyGetManpowerOptionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import { useLazyGetAllJobLevelsQuery } from "../../../../features/api/masterlist/jobLevelsApi";
 import { useLazyGetAllRequisitionsQuery } from "../../../../features/api/extras/requisitionsApi";
 import { useLazyGetAllEmployeesToBeReplacedQuery } from "../../../../features/api/employee/mainApi";
-import { useLazyGetAllEmployeesQuery } from "../../../../features/api/approvalsetting/approvalFormApi";
 import { expectedSalaryInputProps } from "../../../../schema/approver/formSubmissionSchema";
 import FileViewerDialog from "./FileViewerDialog";
 import AttachmentField from "./AttachmentField";
 import { formStyles } from "./FormSubmissionFieldStyles";
-import dayjs from "dayjs";
 
 const safeStringRender = (value, fallback = "") => {
   if (typeof value === "string") return value;
   if (typeof value === "number") return value.toString();
-  if (value && typeof value === "object") {
-    return fallback;
-  }
+  if (value && typeof value === "object") return fallback;
   return value || fallback;
 };
 
@@ -37,8 +32,6 @@ const FormSubmissionFields = ({
   onFileChange,
   selectedFile,
   disabled = false,
-  isEmployeeFieldEnabled = false,
-  resetTrigger = 0,
 }) => {
   const {
     control,
@@ -55,7 +48,6 @@ const FormSubmissionFields = ({
     positions: false,
     jobLevels: false,
     employees: false,
-    allEmployees: false,
     movementPosition: false,
   });
 
@@ -64,7 +56,6 @@ const FormSubmissionFields = ({
   const watchedForDevelopmentalAssignment = watch("movement_is_da");
 
   const isReadOnly = mode === "view" || disabled;
-  const isCreateMode = mode === "create";
   const isEditMode = mode === "edit";
   const isViewMode = mode === "view" || disabled;
   const shouldLoadDropdowns = mode === "create" || mode === "edit";
@@ -89,11 +80,6 @@ const FormSubmissionFields = ({
     { data: employeesData, isLoading: employeesLoading },
   ] = useLazyGetAllEmployeesToBeReplacedQuery();
 
-  const [
-    triggerGetAllEmployees,
-    { data: allEmployeesData, isLoading: allEmployeesLoading },
-  ] = useLazyGetAllEmployeesQuery();
-
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -107,59 +93,50 @@ const FormSubmissionFields = ({
     () => normalizeApiData(positionsData),
     [positionsData, normalizeApiData]
   );
+
   const jobLevels = useMemo(
     () => normalizeApiData(jobLevelsData),
     [jobLevelsData, normalizeApiData]
   );
+
   const requisitions = useMemo(
     () => normalizeApiData(requisitionsData),
     [requisitionsData, normalizeApiData]
   );
+
   const employees = useMemo(
     () => normalizeApiData(employeesData),
     [employeesData, normalizeApiData]
   );
-  const allEmployees = useMemo(
-    () => normalizeApiData(allEmployeesData),
-    [allEmployeesData, normalizeApiData]
-  );
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
-      if (!shouldLoadDropdowns) return;
+      if (!shouldLoadDropdowns || dropdownsLoaded[dropdownName]) return;
 
-      if (!dropdownsLoaded[dropdownName]) {
-        setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
+      setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
 
-        switch (dropdownName) {
-          case "requisitions":
-            triggerGetRequisitions();
-            break;
-          case "positions":
-          case "movementPosition":
-            triggerGetPositions();
-            break;
-          case "jobLevels":
-            triggerGetJobLevels();
-            break;
-          case "employees":
-            if (watchedPositionId?.id && watchedRequisitionType?.id) {
-              triggerGetEmployees({
-                position_id: watchedPositionId.id,
-                requisition_type_id: watchedRequisitionType.id,
-                ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
-              });
-            }
-            break;
-          case "allEmployees":
-            triggerGetAllEmployees({
-              pagination: false,
-              status: "active",
+      switch (dropdownName) {
+        case "requisitions":
+          triggerGetRequisitions();
+          break;
+        case "positions":
+        case "movementPosition":
+          triggerGetPositions();
+          break;
+        case "jobLevels":
+          triggerGetJobLevels();
+          break;
+        case "employees":
+          if (watchedPositionId?.id && watchedRequisitionType?.id) {
+            triggerGetEmployees({
+              position_id: watchedPositionId.id,
+              requisition_type_id: watchedRequisitionType.id,
+              ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
             });
-            break;
-          default:
-            break;
-        }
+          }
+          break;
+        default:
+          break;
       }
     },
     [
@@ -167,217 +144,130 @@ const FormSubmissionFields = ({
       shouldLoadDropdowns,
       watchedPositionId,
       watchedRequisitionType,
-      selectedEntry,
+      selectedEntry?.id,
       triggerGetRequisitions,
       triggerGetPositions,
       triggerGetJobLevels,
       triggerGetEmployees,
-      triggerGetAllEmployees,
     ]
   );
 
-  useEffect(() => {
-    if ((mode === "view" || mode === "edit") && selectedEntry) {
-      const submittable =
-        selectedEntry.result?.submittable ||
-        selectedEntry.submittable ||
-        selectedEntry;
-
-      if (submittable.requisition_type) {
-        setValue("requisition_type_id", submittable.requisition_type, {
-          shouldValidate: false,
-        });
-      }
-
-      if (submittable.position) {
-        setValue("position_id", submittable.position, {
-          shouldValidate: false,
-        });
-      }
-
-      if (submittable.job_level) {
-        setValue("job_level_id", submittable.job_level, {
-          shouldValidate: false,
-        });
-      }
-
-      if (submittable.employee_to_be_replaced) {
-        setValue(
-          "employee_to_be_replaced_id",
-          submittable.employee_to_be_replaced,
-          { shouldValidate: false }
-        );
-      }
-
-      if (submittable.expected_salary) {
-        setValue("expected_salary", submittable.expected_salary, {
-          shouldValidate: false,
-        });
-      }
-
-      if (submittable.employment_type) {
-        setValue("employment_type", submittable.employment_type, {
-          shouldValidate: false,
-        });
-      }
-
-      if (submittable.justification) {
-        setValue("justification", submittable.justification, {
-          shouldValidate: false,
-        });
-      }
-
-      if (submittable.remarks) {
-        setValue("remarks", submittable.remarks, { shouldValidate: false });
-      }
-
-      if (submittable.employee_movement_details) {
-        const movement = submittable.employee_movement_details;
-
-        if (movement.employee) {
-          setValue("movement_employee_id", movement.employee, {
-            shouldValidate: false,
-          });
-        }
-
-        if (movement.new_position) {
-          setValue("movement_new_position_id", movement.new_position, {
-            shouldValidate: false,
-          });
-        }
-
-        if (movement.reason_for_change) {
-          setValue("movement_reason_for_change", movement.reason_for_change, {
-            shouldValidate: false,
-          });
-        }
-
-        if (movement.is_developmental_assignment !== undefined) {
-          setValue(
-            "movement_is_da",
-            Boolean(movement.is_developmental_assignment),
-            { shouldValidate: false }
-          );
-        }
-
-        if (movement.da_start_date) {
-          setValue("movement_da_start_date", dayjs(movement.da_start_date), {
-            shouldValidate: false,
-          });
-        }
-
-        if (movement.da_end_date) {
-          setValue("movement_da_end_date", dayjs(movement.da_end_date), {
-            shouldValidate: false,
-          });
-        }
-      }
-    }
-  }, [mode, selectedEntry, setValue]);
-
-  const isReplacementDueToEmployeeMovement = () => {
+  const isReplacementDueToEmployeeMovement = useCallback(() => {
     if (!watchedRequisitionType) return false;
     return (
       watchedRequisitionType.name === "REPLACEMENT DUE TO EMPLOYEE MOVEMENT"
     );
-  };
+  }, [watchedRequisitionType]);
 
-  const isAdditionalManpower = () => {
+  const isAdditionalManpower = useCallback(() => {
     if (!watchedRequisitionType) return false;
     return watchedRequisitionType.name === "ADDITIONAL MANPOWER";
-  };
+  }, [watchedRequisitionType]);
 
-  const shouldShowMovementFields = () => {
+  const shouldShowMovementFields = useCallback(() => {
     return isReplacementDueToEmployeeMovement();
-  };
+  }, [isReplacementDueToEmployeeMovement]);
 
-  const shouldShowDateFields = () => {
+  const shouldShowDateFields = useCallback(() => {
     return (
       isReplacementDueToEmployeeMovement() && watchedForDevelopmentalAssignment
     );
-  };
+  }, [isReplacementDueToEmployeeMovement, watchedForDevelopmentalAssignment]);
 
-  const shouldShowReasonForChange = () => {
+  const shouldShowReasonForChange = useCallback(() => {
     return isReplacementDueToEmployeeMovement();
-  };
+  }, [isReplacementDueToEmployeeMovement]);
 
-  const handleFileViewerOpen = () => {
+  const handleFileViewerOpen = useCallback(() => {
     const formSubmissionId = selectedEntry?.id;
     if (formSubmissionId) {
       setCurrentFormSubmissionId(formSubmissionId);
       setFileViewerOpen(true);
     }
-  };
+  }, [selectedEntry?.id]);
 
-  const handleFileViewerClose = () => {
+  const handleFileViewerClose = useCallback(() => {
     setFileViewerOpen(false);
     setCurrentFormSubmissionId(null);
-  };
+  }, []);
 
-  const handleEmploymentTypeChange = (event) => {
-    if (disabled) return;
-    const value = event.target.value;
-    setValue("employment_type", value);
-    if (value && value !== "") {
-      clearErrors("employment_type");
-    }
-  };
+  const handleEmploymentTypeChange = useCallback(
+    (event) => {
+      if (disabled) return;
+      const value = event.target.value;
+      setValue("employment_type", value, { shouldValidate: false });
+      if (value && value !== "") {
+        clearErrors("employment_type");
+      }
+    },
+    [disabled, setValue, clearErrors]
+  );
 
-  const handleReasonForChangeChange = (event) => {
-    if (disabled) return;
-    const value = event.target.value;
-    setValue("movement_reason_for_change", value);
-    if (value && value !== "") {
-      clearErrors("movement_reason_for_change");
-    }
-  };
+  const handleReasonForChangeChange = useCallback(
+    (event) => {
+      if (disabled) return;
+      const value = event.target.value;
+      setValue("movement_reason_for_change", value, { shouldValidate: false });
+      if (value && value !== "") {
+        clearErrors("movement_reason_for_change");
+      }
+    },
+    [disabled, setValue, clearErrors]
+  );
 
-  const getErrorMessage = (error) => {
+  const getErrorMessage = useCallback((error) => {
     if (!error) return "";
     if (typeof error.message === "string") return error.message;
     if (typeof error === "string") return error;
-    if (error && typeof error === "object") {
-      return "Validation error";
-    }
+    if (error && typeof error === "object") return "Validation error";
     return "";
-  };
+  }, []);
 
-  const StyledTextField = ({ label, required = false, ...props }) => (
-    <TextField
-      {...props}
-      label={
-        required ? (
-          <span>
-            {safeStringRender(label)}{" "}
-            <span style={formStyles?.requiredAsterisk?.(isViewMode) || {}}>
-              *
+  const StyledTextField = useCallback(
+    ({ label, required = false, ...props }) => (
+      <TextField
+        {...props}
+        label={
+          required ? (
+            <span>
+              {safeStringRender(label)}{" "}
+              <span style={formStyles?.requiredAsterisk?.(isViewMode) || {}}>
+                *
+              </span>
             </span>
-          </span>
-        ) : (
-          safeStringRender(label)
-        )
-      }
-    />
+          ) : (
+            safeStringRender(label)
+          )
+        }
+      />
+    ),
+    [isViewMode]
   );
 
-  const employmentTypeOptions = [
-    "REGULAR",
-    "PROBATIONARY",
-    "PROJECT-BASED",
-    "SEASONAL",
-    "FIXED-TERM",
-    "CASUAL",
-  ];
+  const employmentTypeOptions = useMemo(
+    () => [
+      "REGULAR",
+      "PROBATIONARY",
+      "PROJECT-BASED",
+      "SEASONAL",
+      "FIXED-TERM",
+      "CASUAL",
+    ],
+    []
+  );
 
-  const reasonForChangeOptions = [
-    "PROMOTION",
-    "DEMOTION",
-    "TRANSFER",
-    "REASSIGNMENT",
-    "LATERAL MOVE",
-    "ACTING CAPACITY",
-    "SECONDMENT",
-  ];
+  const reasonForChangeOptions = useMemo(
+    () => [
+      "PROMOTION",
+      "DEMOTION",
+      "TRANSFER",
+      "REASSIGNMENT",
+      "LATERAL MOVE",
+      "ACTING CAPACITY",
+      "SECONDMENT",
+    ],
+    []
+  );
 
   return (
     <>
@@ -392,12 +282,15 @@ const FormSubmissionFields = ({
                   if (isReadOnly || isEditMode) return;
                   onChange(item);
                   if (item) {
-                    setValue("employee_to_be_replaced_id", null);
-                    setValue("movement_employee_id", null);
+                    setValue("employee_to_be_replaced_id", null, {
+                      shouldValidate: false,
+                    });
+                    setValue("movement_employee_id", null, {
+                      shouldValidate: false,
+                    });
                     setDropdownsLoaded((prev) => ({
                       ...prev,
                       employees: false,
-                      allEmployees: false,
                     }));
                   }
                 }}
@@ -457,13 +350,13 @@ const FormSubmissionFields = ({
                 onChange={(event, item) => {
                   if (isReadOnly || isEditMode) return;
                   onChange(item);
-                  setValue("employee_to_be_replaced_id", null);
-                  setValue("movement_employee_id", null);
-                  setDropdownsLoaded((prev) => ({
-                    ...prev,
-                    employees: false,
-                    allEmployees: false,
-                  }));
+                  setValue("employee_to_be_replaced_id", null, {
+                    shouldValidate: false,
+                  });
+                  setValue("movement_employee_id", null, {
+                    shouldValidate: false,
+                  });
+                  setDropdownsLoaded((prev) => ({ ...prev, employees: false }));
                 }}
                 onOpen={() => handleDropdownFocus("positions")}
                 value={value || null}

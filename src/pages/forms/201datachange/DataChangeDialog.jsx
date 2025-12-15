@@ -52,7 +52,7 @@ const DataChangeDialog = ({
   };
 
   const getEmployeeCode = (dataChange) => {
-    return dataChange?.employee_code || "N/A";
+    return dataChange?.employee_number || dataChange?.employee_code || "N/A";
   };
 
   const getReferenceNumber = (dataChange) => {
@@ -257,14 +257,6 @@ const DataChangeDialog = ({
                 </Typography>
               )}
 
-              {activity?.context && (
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#888", fontSize: "12px", mb: 1 }}>
-                  Step {activity.context.step}, Round {activity.context.round}
-                </Typography>
-              )}
-
               <Typography
                 variant="body2"
                 sx={{ color: "#999", fontSize: "13px" }}>
@@ -310,6 +302,30 @@ const DataChangeDialog = ({
   ) {
     return null;
   }
+
+  const sortedActivityLog = [...selectedDataChangeHistory.activity_log].sort(
+    (a, b) => {
+      const eventTypeA = (
+        a?.event_type ||
+        a?.status ||
+        a?.action ||
+        ""
+      ).toLowerCase();
+      const eventTypeB = (
+        b?.event_type ||
+        b?.status ||
+        b?.action ||
+        ""
+      ).toLowerCase();
+
+      if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
+      if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
+
+      const dateA = new Date(a.timestamp || 0);
+      const dateB = new Date(b.timestamp || 0);
+      return dateB - dateA;
+    }
+  );
 
   return (
     <Dialog
@@ -401,7 +417,7 @@ const DataChangeDialog = ({
                   mb: 1,
                   fontSize: "14px",
                 }}>
-                Employee Code
+                Employee #
               </Typography>
               <Typography
                 variant="body1"
@@ -410,7 +426,7 @@ const DataChangeDialog = ({
               </Typography>
             </Box>
 
-            <Box sx={{ flex: 1, mr: 3 }}>
+            <Box sx={{ flex: 1 }}>
               <Typography
                 variant="h6"
                 sx={{
@@ -427,30 +443,6 @@ const DataChangeDialog = ({
                 variant="body1"
                 sx={{ color: "#666", fontSize: "16px" }}>
                 {getReferenceNumber(selectedDataChangeHistory)}
-              </Typography>
-            </Box>
-
-            <Box sx={{ flex: 0.4 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.3px",
-                  mb: 1,
-                  fontSize: "14px",
-                }}>
-                Date Requested
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: "#666", fontSize: "16px" }}>
-                {selectedDataChangeHistory?.date_requested
-                  ? dayjs(selectedDataChangeHistory.date_requested).format(
-                      "MMM D, YYYY"
-                    )
-                  : "N/A"}
               </Typography>
             </Box>
           </Box>
@@ -478,30 +470,20 @@ const DataChangeDialog = ({
           )}
 
           <Box sx={{ pl: 2 }}>
-            {selectedDataChangeHistory.activity_log
-              .slice()
-              .reverse()
-              .map((activity, index) => (
-                <Box
-                  key={activity.id || index}
-                  sx={{
-                    mb:
-                      index ===
-                      selectedDataChangeHistory.activity_log.length - 1
-                        ? 0
-                        : 2,
-                  }}>
-                  <TimelineStep
-                    activity={activity}
-                    index={index}
-                    isLast={
-                      index ===
-                      selectedDataChangeHistory.activity_log.length - 1
-                    }
-                    isCompleted={true}
-                  />
-                </Box>
-              ))}
+            {sortedActivityLog.map((activity, index) => (
+              <Box
+                key={activity.id || index}
+                sx={{
+                  mb: index === sortedActivityLog.length - 1 ? 0 : 2,
+                }}>
+                <TimelineStep
+                  activity={activity}
+                  index={index}
+                  isLast={index === sortedActivityLog.length - 1}
+                  isCompleted={true}
+                />
+              </Box>
+            ))}
           </Box>
         </Box>
 

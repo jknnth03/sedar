@@ -257,18 +257,6 @@ const DAFormApprovalTable = ({
           <TableHead>
             <TableRow>
               <TableCell
-                align="center"
-                sx={{
-                  width: isVerySmall ? "100px" : isMobile ? "120px" : "140px",
-                  minWidth: isVerySmall
-                    ? "100px"
-                    : isMobile
-                    ? "120px"
-                    : "140px",
-                }}>
-                STATUS
-              </TableCell>
-              <TableCell
                 sx={{
                   width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
                   minWidth: isVerySmall
@@ -366,9 +354,6 @@ const DAFormApprovalTable = ({
                         backgroundColor: "#f8f9fa",
                       },
                     }}>
-                    <TableCell align="center">
-                      {renderStatusChip(approval)}
-                    </TableCell>
                     <TableCell
                       sx={{
                         overflow: "hidden",
