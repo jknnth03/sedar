@@ -6,8 +6,8 @@ import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
-  useCancelDaRecommendationMutation,
-  useResubmitDaRecommendationMutation,
+  useCancelDaSubmissionMutation,
+  useResubmitDaSubmissionMutation,
 } from "../../../features/api/forms/daRecommentdationApi";
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -46,8 +46,8 @@ const DARecommendationAwaitingResubmission = ({
     defaultValues: {},
   });
 
-  const [resubmitDaRecommendation] = useResubmitDaRecommendationMutation();
-  const [cancelDaRecommendation] = useCancelDaRecommendationMutation();
+  const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
+  const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -180,14 +180,14 @@ const DARecommendationAwaitingResubmission = ({
 
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaRecommendation(selectedSubmissionForAction.id).unwrap();
+        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation cancelled successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaRecommendation(selectedSubmissionForAction.id).unwrap();
+        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,

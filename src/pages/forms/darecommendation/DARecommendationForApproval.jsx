@@ -6,8 +6,8 @@ import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
-  useCancelDaRecommendationMutation,
-  useResubmitDaRecommendationMutation,
+  useCancelDaSubmissionMutation,
+  useResubmitDaSubmissionMutation,
 } from "../../../features/api/forms/daRecommentdationApi";
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -46,8 +46,8 @@ const DARecommendationForApproval = ({
     defaultValues: {},
   });
 
-  const [resubmitDaRecommendation] = useResubmitDaRecommendationMutation();
-  const [cancelDaRecommendation] = useCancelDaRecommendationMutation();
+  const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
+  const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -180,14 +180,15 @@ const DARecommendationForApproval = ({
 
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaRecommendation(selectedSubmissionForAction.id).unwrap();
+        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation cancelled successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
+        handleModalClose();
         refetch();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaRecommendation(selectedSubmissionForAction.id).unwrap();
+        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
@@ -276,6 +277,16 @@ const DARecommendationForApproval = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const normalizedSubmissionDetails = useMemo(() => {
+    if (!submissionDetails) return null;
+
+    if (submissionDetails.result) {
+      return submissionDetails.result;
+    }
+
+    return submissionDetails;
+  }, [submissionDetails]);
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -295,7 +306,7 @@ const DARecommendationForApproval = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="FOR_APPROVAL"
+          statusFilter="PENDING RECOMMENDATION APPROVAL"
           onCancel={handleCancel}
         />
 
@@ -312,7 +323,7 @@ const DARecommendationForApproval = ({
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
-        selectedEntry={submissionDetails}
+        selectedEntry={normalizedSubmissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
@@ -325,6 +336,7 @@ const DARecommendationForApproval = ({
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
+        module="DA Recommendation"
       />
     </FormProvider>
   );

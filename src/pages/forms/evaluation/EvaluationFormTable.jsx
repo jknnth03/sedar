@@ -13,24 +13,24 @@ import {
   MenuItem,
   Chip,
   Tooltip,
-  CircularProgress,
   Skeleton,
+  useTheme,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  useTheme,
+  CircularProgress,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
+import EvaluationFormHistoryDialog from "./EvaluationFormHistoryDialog";
 import NoDataFound from "../../NoDataFound";
 
-const MDADATable = ({
+const EvaluationFormTable = ({
   submissionsList,
   isLoadingState,
   error,
@@ -41,11 +41,11 @@ const MDADATable = ({
   searchQuery,
   statusFilter,
   onCancel,
-  onRefetch,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
-  const [selectedMdaHistory, setSelectedMdaHistory] = React.useState(null);
+  const [selectedEvaluationHistory, setSelectedEvaluationHistory] =
+    React.useState(null);
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
   const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
     React.useState(null);
@@ -58,14 +58,12 @@ const MDADATable = ({
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
           {submission.employee_name}
         </Typography>
-        {submission.employee_number && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontSize: "14px" }}>
-            {submission.employee_number}
-          </Typography>
-        )}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "14px" }}>
+          {submission.employee_code || ""}
+        </Typography>
       </Box>
     );
   };
@@ -81,6 +79,26 @@ const MDADATable = ({
         color: "#f57c00",
         bgColor: "#fff4e6",
         label: "FOR APPROVAL",
+      },
+      "for recommendation": {
+        color: "#f57c00",
+        bgColor: "#fff4e6",
+        label: "FOR RECOMMENDATION",
+      },
+      "for mda processing": {
+        color: "#1976d2",
+        bgColor: "#e3f2fd",
+        label: "FOR MDA PROCESSING",
+      },
+      "mda for approval": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "MDA FOR APPROVAL",
+      },
+      completed: {
+        color: "#2e7d32",
+        bgColor: "#e8f5e9",
+        label: "COMPLETED",
       },
       approved: {
         color: "#2e7d32",
@@ -133,13 +151,13 @@ const MDADATable = ({
 
   const handleViewActivityClick = (e, submission) => {
     e.stopPropagation();
-    setSelectedMdaHistory(submission);
+    setSelectedEvaluationHistory(submission);
     setHistoryDialogOpen(true);
   };
 
   const handleHistoryDialogClose = () => {
     setHistoryDialogOpen(false);
-    setSelectedMdaHistory(null);
+    setSelectedEvaluationHistory(null);
   };
 
   const handleCancelClick = (submission) => {
@@ -159,21 +177,11 @@ const MDADATable = ({
       return;
     }
 
-    const submissionId = selectedSubmissionToCancel.id;
-
-    if (!submissionId || typeof submissionId === "object") {
-      return;
-    }
-
     setIsCancelling(true);
 
     try {
       if (onCancel) {
-        const success = await onCancel(submissionId, () => {
-          if (onRefetch && typeof onRefetch === "function") {
-            onRefetch();
-          }
-        });
+        const success = await onCancel(selectedSubmissionToCancel.id);
 
         if (success) {
           handleCancelDialogClose();
@@ -206,10 +214,50 @@ const MDADATable = ({
     );
   };
 
+  const filteredSubmissions = React.useMemo(() => {
+    if (!statusFilter) return submissionsList;
+    return submissionsList.filter(
+      (submission) =>
+        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+    );
+  }, [submissionsList, statusFilter]);
+
+  const getNoDataMessage = () => {
+    if (statusFilter) {
+      const statusLabels = {
+        PENDING: "pending",
+        "FOR RECOMMENDATION": "for recommendation",
+        "PENDING MDA CREATION": "pending mda creation",
+        "FOR MDA PROCESSING": "for mda processing",
+        "MDA FOR APPROVAL": "mda for approval",
+        COMPLETED: "completed",
+        APPROVED: "approved",
+        REJECTED: "rejected",
+        CANCELLED: "cancelled",
+        RETURNED: "returned",
+        "AWAITING APPROVAL": "awaiting approval",
+        "AWAITING RESUBMISSION": "awaiting resubmission",
+      };
+      const statusLabel =
+        statusLabels[statusFilter] || statusFilter.toLowerCase();
+      return searchQuery
+        ? `No ${statusLabel} submissions found for "${searchQuery}"`
+        : `No ${statusLabel} submissions found`;
+    }
+    return searchQuery
+      ? `No results for "${searchQuery}"`
+      : "No submissions found";
+  };
+
   const shouldHideActions =
-    statusFilter === "APPROVED" || statusFilter === "CANCELLED";
+    statusFilter === "CANCELLED" ||
+    statusFilter === "COMPLETED" ||
+    statusFilter === "PENDING MDA CREATION" ||
+    statusFilter === "MDA FOR APPROVAL" ||
+    statusFilter === "FOR MDA PROCESSING" ||
+    statusFilter === "MDA IN PROGRESS";
   const shouldShowActionsColumn = !shouldHideActions;
-  const totalColumns = shouldShowActionsColumn ? 8 : 7;
+  const totalColumns = shouldShowActionsColumn ? 7 : 6;
 
   return (
     <>
@@ -218,21 +266,16 @@ const MDADATable = ({
           stickyHeader
           sx={{
             minWidth: 1200,
-            height: submissionsList.length === 0 ? "100%" : "auto",
+            height: filteredSubmissions.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
-              <TableCell sx={styles.columnStyles.formName}>
-                MOVEMENT TYPE
-              </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
+              <TableCell sx={styles.columnStyles.formName}>CHARGING</TableCell>
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
-              <TableCell sx={styles.columnStyles.dateCreated}>
-                EFFECTIVE DATE
-              </TableCell>
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
               </TableCell>
@@ -247,7 +290,9 @@ const MDADATable = ({
             </TableRow>
           </TableHead>
           <TableBody
-            sx={{ height: submissionsList.length === 0 ? "100%" : "auto" }}>
+            sx={{
+              height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
               <>
                 {[...Array(5)].map((_, index) => (
@@ -257,10 +302,10 @@ const MDADATable = ({
                     </TableCell>
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
                     </TableCell>
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
-                      <Skeleton animation="wave" height={20} width="60%" />
                     </TableCell>
                     <TableCell>
                       <Skeleton
@@ -269,9 +314,6 @@ const MDADATable = ({
                         width={120}
                         sx={{ borderRadius: "12px" }}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton animation="wave" height={30} />
                     </TableCell>
                     <TableCell align="center">
                       <Skeleton
@@ -310,14 +352,12 @@ const MDADATable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : submissionsList.length > 0 ? (
-              submissionsList.map((submission) => {
+            ) : filteredSubmissions.length > 0 ? (
+              filteredSubmissions.map((submission) => {
                 return (
                   <TableRow
                     key={submission.id}
-                    onClick={() => {
-                      handleRowClick(submission);
-                    }}
+                    onClick={() => handleRowClick(submission)}
                     sx={styles.tableRowHover(theme)}>
                     <TableCell
                       sx={{
@@ -329,29 +369,20 @@ const MDADATable = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.formName,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {submission.movement_type || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
                         ...styles.columnStyles.position,
                         ...styles.cellContentStyles,
                       }}>
                       {renderEmployee(submission)}
                     </TableCell>
-                    <TableCell sx={styles.columnStyles.status}>
-                      {renderStatusChip(submission)}
-                    </TableCell>
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.dateCreated,
+                        ...styles.columnStyles.formName,
                         ...styles.cellContentStyles,
                       }}>
-                      {submission.effective_date
-                        ? dayjs(submission.effective_date).format("MMM D, YYYY")
-                        : "-"}
+                      {submission.charging_name || "-"}
+                    </TableCell>
+                    <TableCell sx={styles.columnStyles.status}>
+                      {renderStatusChip(submission)}
                     </TableCell>
                     <TableCell align="center" sx={styles.columnStyles.history}>
                       {renderActivityLog(submission)}
@@ -371,10 +402,7 @@ const MDADATable = ({
                         sx={styles.columnStyles.actions}>
                         <Tooltip title="Actions">
                           <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMenuOpen(e, submission);
-                            }}
+                            onClick={(e) => handleMenuOpen(e, submission)}
                             size="small"
                             sx={styles.actionIconButton(theme)}>
                             <MoreVertIcon fontSize="small" />
@@ -421,6 +449,8 @@ const MDADATable = ({
             ) : (
               <TableRow
                 sx={{
+                  height: 0,
+                  pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
                     cursor: "default !important",
@@ -431,15 +461,27 @@ const MDADATable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
+                    height: 0,
+                    padding: 0,
+                    border: "none",
                     borderBottom: "none",
-                    height: "400px",
-                    verticalAlign: "middle",
+                    pointerEvents: "none",
+                    position: "relative",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
                     },
                   }}>
-                  <NoDataFound message="" subMessage="" />
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "62%",
+                      top: "64%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage={getNoDataMessage()} />
+                  </Box>
                 </TableCell>
               </TableRow>
             )}
@@ -447,10 +489,10 @@ const MDADATable = ({
         </Table>
       </TableContainer>
 
-      <MDAHistoryDialog
+      <EvaluationFormHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMdaHistory={selectedMdaHistory}
+        selectedEvaluationHistory={selectedEvaluationHistory}
       />
 
       <Dialog
@@ -512,7 +554,8 @@ const MDADATable = ({
               color: "#333",
               fontWeight: 400,
             }}>
-            Are you sure you want to <strong>Cancel</strong> this DA Submission?
+            Are you sure you want to <strong>Cancel</strong> this Probationary
+            Evaluation Request?
           </Typography>
           {selectedSubmissionToCancel && (
             <Typography
@@ -581,4 +624,4 @@ const MDADATable = ({
   );
 };
 
-export default MDADATable;
+export default EvaluationFormTable;

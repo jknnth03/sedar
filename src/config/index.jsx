@@ -66,6 +66,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import RecommendIcon from "@mui/icons-material/Recommend";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
+import RateReviewIcon from "@mui/icons-material/RateReview";
 import { calculateCounts } from "./NotificationBadge";
 
 export const createEnhancedModules = (dashboardData = {}) => {
@@ -290,6 +291,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon_on: null,
           notificationCount: counts.daFormApprovals,
         },
+        DARECOMMENDATIONAPPROVAL: {
+          name: "DA Recommendation",
+          permissionId: "APPROVING.DARECOMMENDATIONAPPROVAL",
+          displayName: "DA Recommendation",
+          path: "darecommendationapproval",
+          icon: <DescriptionIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: counts.daFormApprovals,
+        },
         CATONEAPPROVAL: {
           name: "CAT I",
           permissionId: "APPROVING.CATONEAPPROVAL",
@@ -394,6 +404,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <PendingActionsIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.pendingRegistrations,
+        },
+        EVALUATIONFORM: {
+          name: "Evaluation Form",
+          permissionId: "REQUEST.EVALUATIONFORM",
+          displayName: "Evaluation Form",
+          path: "evaluationform",
+          icon: <RateReviewIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
         },
       },
     },

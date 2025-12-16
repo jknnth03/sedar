@@ -261,6 +261,7 @@ const MDADAApproved = ({
           handleEditSubmission={handleEditSubmission}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
+          statusFilter="APPROVED"
           onCancel={onCancel}
           onRefetch={refetch}
           theme={theme}

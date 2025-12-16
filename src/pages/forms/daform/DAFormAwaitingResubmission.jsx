@@ -140,19 +140,29 @@ const DAFormAwaitingResubmission = ({
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
+      setIsLoading(true);
+      try {
+        await cancelDaSubmission(submissionId).unwrap();
+        enqueueSnackbar("DA Form submission cancelled successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to cancel submission. Please try again.";
+        enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
         });
+        return false;
+      } finally {
+        setIsLoading(false);
       }
     },
-    [submissionsList, enqueueSnackbar]
+    [cancelDaSubmission, enqueueSnackbar, refetch]
   );
 
   const handleActionConfirm = async () => {
@@ -161,15 +171,7 @@ const DAFormAwaitingResubmission = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        handleModalClose();
-      } else if (
+      if (
         confirmAction === "update" &&
         pendingFormData &&
         selectedSubmissionId

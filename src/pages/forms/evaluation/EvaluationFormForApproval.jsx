@@ -4,13 +4,13 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetDaSubmissionsQuery,
-  useGetSingleDaSubmissionQuery,
-  useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
-import DAFormTable from "./DAFormTable";
+  useGetProbationaryEvaluationsQuery,
+  useGetSingleProbationaryEvaluationQuery,
+  useUpdateProbationaryEvaluationMutation,
+} from "../../../features/api/forms/evaluationFormApi";
+import EvaluationFormTable from "./EvaluationFormTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
+import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
 import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
@@ -18,7 +18,7 @@ import {
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormForApproval = ({
+const EvaluationFormForApproval = ({
   searchQuery,
   dateFilters,
   filterDataByDate,
@@ -49,16 +49,16 @@ const DAFormForApproval = ({
     defaultValues: {},
   });
 
-  const [updateDaSubmission] = useUpdateDaMutation();
-  const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
+  const [updateProbationaryEvaluation] =
+    useUpdateProbationaryEvaluationMutation();
+  const [resubmitProbationaryEvaluation] = useResubmitFormSubmissionMutation();
+  const [cancelProbationaryEvaluation] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "PENDING",
       pagination: true,
       search: searchQuery || "",
     };
@@ -74,7 +74,7 @@ const DAFormForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetDaSubmissionsQuery(apiQueryParams, {
+  } = useGetProbationaryEvaluationsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -83,7 +83,7 @@ const DAFormForApproval = ({
     data: submissionDetails,
     isLoading: detailsLoading,
     refetch: refetchDetails,
-  } = useGetSingleDaSubmissionQuery(selectedSubmissionId, {
+  } = useGetSingleProbationaryEvaluationQuery(selectedSubmissionId, {
     skip: !selectedSubmissionId,
     refetchOnMountOrArgChange: true,
   });
@@ -142,8 +142,8 @@ const DAFormForApproval = ({
     async (submissionId) => {
       setIsLoading(true);
       try {
-        await cancelDaSubmission(submissionId).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully", {
+        await cancelProbationaryEvaluation(submissionId).unwrap();
+        enqueueSnackbar("Probationary Evaluation cancelled successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -162,7 +162,7 @@ const DAFormForApproval = ({
         setIsLoading(false);
       }
     },
-    [cancelDaSubmission, enqueueSnackbar, refetch]
+    [cancelProbationaryEvaluation, enqueueSnackbar, refetch]
   );
 
   const handleActionConfirm = async () => {
@@ -176,11 +176,11 @@ const DAFormForApproval = ({
         pendingFormData &&
         selectedSubmissionId
       ) {
-        await updateDaSubmission({
+        await updateProbationaryEvaluation({
           id: selectedSubmissionId,
           data: pendingFormData,
         }).unwrap();
-        enqueueSnackbar("DA Form submission updated successfully", {
+        enqueueSnackbar("Probationary Evaluation updated successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -188,8 +188,10 @@ const DAFormForApproval = ({
         await refetch();
         handleModalClose();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission resubmitted successfully", {
+        await resubmitProbationaryEvaluation(
+          selectedSubmissionForAction.id
+        ).unwrap();
+        enqueueSnackbar("Probationary Evaluation resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -222,7 +224,8 @@ const DAFormForApproval = ({
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "DA Form";
+      selectedSubmissionForAction?.reference_number ||
+      "Probationary Evaluation";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
@@ -291,7 +294,7 @@ const DAFormForApproval = ({
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <DAFormTable
+        <EvaluationFormTable
           submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
@@ -313,7 +316,7 @@ const DAFormForApproval = ({
         />
       </Box>
 
-      <DAFormModal
+      <EvaluationFormModal
         open={modalOpen}
         onClose={handleModalClose}
         onSave={handleSave}
@@ -336,4 +339,4 @@ const DAFormForApproval = ({
   );
 };
 
-export default DAFormForApproval;
+export default EvaluationFormForApproval;

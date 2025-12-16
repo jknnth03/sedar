@@ -31,8 +31,8 @@ import "../../../pages/GeneralStyle.scss";
 import {
   useGetMyDaApprovalsQuery,
   useGetDaApprovalByIdQuery,
-  useApproveDaFormMutation,
-  useRejectDaFormMutation,
+  useApproveDaSubmissionMutation,
+  useRejectDaSubmissionMutation,
 } from "../../../features/api/approving/daFormApproval.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
@@ -172,7 +172,7 @@ const DAFormApprovalTable = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: approvalStatus,
-      pagination: true,
+      pagination: 1,
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -514,10 +514,10 @@ const DAFormApproval = () => {
     },
   });
 
-  const [approveDaForm, { isLoading: approveLoading }] =
-    useApproveDaFormMutation();
-  const [rejectDaForm, { isLoading: rejectLoading }] =
-    useRejectDaFormMutation();
+  const [approveDaSubmission, { isLoading: approveLoading }] =
+    useApproveDaSubmissionMutation();
+  const [rejectDaSubmission, { isLoading: rejectLoading }] =
+    useRejectDaSubmissionMutation();
 
   const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
     useGetDaApprovalByIdQuery(selectedApprovalId, {
@@ -546,12 +546,12 @@ const DAFormApproval = () => {
       const { submission } = detailsDialog;
       try {
         const payload = {
-          id: submission.id,
+          submissionId: submission.id,
           comments,
           reason,
         };
 
-        await approveDaForm(payload).unwrap();
+        await approveDaSubmission(payload).unwrap();
         enqueueSnackbar("DA Form approved successfully!", {
           variant: "success",
         });
@@ -563,7 +563,7 @@ const DAFormApproval = () => {
         });
       }
     },
-    [detailsDialog, approveDaForm, enqueueSnackbar]
+    [detailsDialog, approveDaSubmission, enqueueSnackbar]
   );
 
   const handleReject = useCallback(
@@ -571,12 +571,12 @@ const DAFormApproval = () => {
       const { submission } = detailsDialog;
       try {
         const payload = {
-          id: submission.id,
+          submissionId: submission.id,
           comments,
           reason,
         };
 
-        await rejectDaForm(payload).unwrap();
+        await rejectDaSubmission(payload).unwrap();
         enqueueSnackbar("DA Form returned successfully!", {
           variant: "success",
         });
@@ -588,7 +588,7 @@ const DAFormApproval = () => {
         });
       }
     },
-    [detailsDialog, rejectDaForm, enqueueSnackbar]
+    [detailsDialog, rejectDaSubmission, enqueueSnackbar]
   );
 
   const handleDetailsDialogClose = useCallback(() => {

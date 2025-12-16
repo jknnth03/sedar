@@ -261,6 +261,7 @@ const MDADACancelled = ({
           handleEditSubmission={handleEditSubmission}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
+          statusFilter="CANCELLED"
           onCancel={onCancel}
           onRefetch={refetch}
         />

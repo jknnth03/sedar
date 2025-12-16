@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
@@ -22,6 +23,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
@@ -34,14 +36,18 @@ import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
-import DAForRecommendation from "./DAForRecommendation";
-import DARecommendationForApproval from "./DARecommendationForApproval";
-import DARecommendationAwaitingResubmission from "./DARecommendationAwaitingResubmission";
-import DARecommendationRejected from "./DARecommendationRejected";
-import DARecommendationForMDAProcessing from "./DARecommendationForMDAProcessing";
-import DARecommendationMDAInProgress from "./DARecommendationMDAInProgress";
-import DARecommendationCompleted from "./DARecommendationCompleted";
-import DARecommendationCancelled from "./DARecommendationCancelled";
+import EvaluationFormForApproval from "./EvaluationFormForApproval";
+import EvaluationFormAwaitingResubmission from "./EvaluationFormAwaitingResubmission";
+import EvaluationFormRejected from "./EvaluationFormRejected";
+import EvaluationFormMDAInProgress from "./EvaluationFormMDAInProgress";
+import EvaluationFormCancelled from "./EvaluationFormCancelled";
+import EvaluationFormForMDAProcessing from "./EvaluationFormForMDAProcessing";
+import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
+import {
+  useCreateProbationaryEvaluationMutation,
+  useUpdateProbationaryEvaluationMutation,
+} from "../../../features/api/forms/evaluationFormApi";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -49,8 +55,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`da-recommendation-tabpanel-${index}`}
-      aria-labelledby={`da-recommendation-tab-${index}`}
+      id={`evaluation-tabpanel-${index}`}
+      aria-labelledby={`evaluation-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -339,7 +345,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search DA Recommendation..."}
+        placeholder={isVerySmall ? "Search..." : "Search Evaluation Form..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -394,11 +400,12 @@ const CustomSearchBar = ({
   );
 };
 
-const DARecommendation = () => {
+const EvaluationForm = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
   const { data: dashboardData } = useShowDashboardQuery();
@@ -406,25 +413,21 @@ const DARecommendation = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForRecommendation",
-    1: "ForApproval",
-    2: "AwaitingResubmission",
-    3: "Rejected",
+    0: "ForApproval",
+    1: "AwaitingResubmission",
+    2: "Rejected",
+    3: "Cancelled",
     4: "ForMDAProcessing",
     5: "MDAInProgress",
-    6: "Completed",
-    7: "Cancelled",
   };
 
   const reverseTabMap = {
-    ForRecommendation: 0,
-    ForApproval: 1,
-    AwaitingResubmission: 2,
-    Rejected: 3,
+    ForApproval: 0,
+    AwaitingResubmission: 1,
+    Rejected: 2,
+    Cancelled: 3,
     ForMDAProcessing: 4,
     MDAInProgress: 5,
-    Completed: 6,
-    Cancelled: 7,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -437,18 +440,27 @@ const DARecommendation = () => {
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  const [createProbationaryEvaluation] =
+    useCreateProbationaryEvaluationMutation();
+  const [updateProbationaryEvaluation] =
+    useUpdateProbationaryEvaluationMutation();
+  const [cancelProbationaryEvaluation] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const daCounts = {
-    forRecommendation: dashboardData?.result?.approval?.da_recommendation || 0,
-    forApproval: 0,
+  const evaluationCounts = {
+    forApproval:
+      dashboardData?.result?.approval?.probationary_evaluation_approval || 0,
     awaitingResubmission: 0,
     rejected: 0,
+    cancelled: 0,
     forMDAProcessing: 0,
     mdaInProgress: 0,
-    completed: 0,
-    cancelled: 0,
   };
 
   const handleTabChange = useCallback(
@@ -462,7 +474,7 @@ const DARecommendation = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -476,7 +488,7 @@ const DARecommendation = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -487,109 +499,169 @@ const DARecommendation = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const tabsData = [
-    {
-      label: "FOR RECOMMENDATION",
-      component: (
-        <DAForRecommendation
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.forRecommendation,
+  const handleAddNew = useCallback(() => {
+    setSelectedEntry(null);
+    setModalMode("create");
+    methods.reset();
+    setModalOpen(true);
+  }, [methods]);
+
+  const handleCloseModal = useCallback(() => {
+    setModalOpen(false);
+    setSelectedEntry(null);
+    setModalMode("create");
+    setModalLoading(false);
+    methods.reset();
+  }, [methods]);
+
+  const handleModeChange = useCallback((newMode) => {
+    setModalMode(newMode);
+  }, []);
+
+  const handleCancel = useCallback(
+    async (entryId, cancellationReason) => {
+      try {
+        await cancelProbationaryEvaluation({
+          id: entryId,
+          cancellation_reason: cancellationReason,
+        }).unwrap();
+
+        enqueueSnackbar("Probationary Evaluation cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        return true;
+      } catch (error) {
+        let errorMessage =
+          "Failed to cancel Probationary Evaluation. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
     },
+    [cancelProbationaryEvaluation, enqueueSnackbar]
+  );
+
+  const handleSave = useCallback(
+    async (formData, mode, entryId) => {
+      setModalLoading(true);
+
+      try {
+        let result;
+
+        if (mode === "edit") {
+          if (!entryId) {
+            throw new Error("Entry ID is required for updating");
+          }
+
+          result = await updateProbationaryEvaluation({
+            id: entryId,
+            data: formData,
+          }).unwrap();
+
+          enqueueSnackbar("Probationary Evaluation updated successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        } else {
+          result = await createProbationaryEvaluation(formData).unwrap();
+
+          enqueueSnackbar("Probationary Evaluation created successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        }
+
+        handleCloseModal();
+      } catch (error) {
+        let errorMessage =
+          mode === "edit"
+            ? "Failed to update Probationary Evaluation. Please try again."
+            : "Failed to create Probationary Evaluation. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [
+      createProbationaryEvaluation,
+      updateProbationaryEvaluation,
+      enqueueSnackbar,
+      handleCloseModal,
+    ]
+  );
+
+  const tabsData = [
     {
       label: "FOR APPROVAL",
       component: (
-        <DARecommendationForApproval
+        <EvaluationFormForApproval
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
-      badgeCount: daCounts.forApproval,
+      badgeCount: evaluationCounts.forApproval,
     },
     {
       label: "AWAITING RESUBMISSION",
       component: (
-        <DARecommendationAwaitingResubmission
+        <EvaluationFormAwaitingResubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
-      badgeCount: daCounts.awaitingResubmission,
+      badgeCount: evaluationCounts.awaitingResubmission,
     },
     {
       label: "REJECTED",
       component: (
-        <DARecommendationRejected
+        <EvaluationFormRejected
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
           currentParams={currentParams}
+          onCancel={handleCancel}
         />
       ),
-      badgeCount: daCounts.rejected,
-    },
-    {
-      label: "FOR MDA PROCESSING",
-      component: (
-        <DARecommendationForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.forMDAProcessing,
-    },
-    {
-      label: "MDA IN PROGRESS",
-      component: (
-        <DARecommendationMDAInProgress
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.mdaInProgress,
-    },
-    {
-      label: "COMPLETED",
-      component: (
-        <DARecommendationCompleted
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.completed,
+      badgeCount: evaluationCounts.rejected,
     },
     {
       label: "CANCELLED",
       component: (
-        <DARecommendationCancelled
+        <EvaluationFormCancelled
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -598,14 +670,44 @@ const DARecommendation = () => {
           currentParams={currentParams}
         />
       ),
-      badgeCount: daCounts.cancelled,
+      badgeCount: evaluationCounts.cancelled,
+    },
+    {
+      label: "FOR MDA PROCESSING",
+      component: (
+        <EvaluationFormForMDAProcessing
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: evaluationCounts.forMDAProcessing,
+    },
+    {
+      label: "MDA IN PROGRESS",
+      component: (
+        <EvaluationFormMDAInProgress
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: evaluationCounts.mdaInProgress,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `da-recommendation-tab-${index}`,
-      "aria-controls": `da-recommendation-tabpanel-${index}`,
+      id: `evaluation-tab-${index}`,
+      "aria-controls": `evaluation-tabpanel-${index}`,
     };
   };
 
@@ -634,8 +736,71 @@ const DARecommendation = () => {
                   ...(isVerySmall && styles.headerTitleTextVerySmall),
                   paddingRight: "14px",
                 }}>
-                {isVerySmall ? "DA REC" : "DA RECOMMENDATION"}
+                {isVerySmall ? "EVAL" : "EVALUATION FORM"}
               </Typography>
+
+              <Fade in={!isLoading}>
+                <Box>
+                  {isVerySmall ? (
+                    <IconButton
+                      onClick={handleAddNew}
+                      disabled={isLoading}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        color: "white",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      <AddIcon sx={{ fontSize: "18px" }} />
+                    </IconButton>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleAddNew}
+                      startIcon={<AddIcon />}
+                      disabled={isLoading}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        height: isMobile ? "36px" : "38px",
+                        width: isMobile ? "auto" : "140px",
+                        minWidth: isMobile ? "100px" : "140px",
+                        padding: isMobile ? "0 16px" : "0 20px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "12px" : "14px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          marginRight: isMobile ? "4px" : "8px",
+                        },
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      CREATE
+                    </Button>
+                  )}
+                </Box>
+              </Fade>
             </Box>
 
             <CustomSearchBar
@@ -647,30 +812,17 @@ const DARecommendation = () => {
             />
           </Box>
 
-          <Box sx={{ ...styles.tabsSection, paddingLeft: 0 }}>
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="DA Recommendation submissions tabs"
+              aria-label="Probationary Evaluation submissions tabs"
               variant="scrollable"
-              scrollButtons={true}
+              scrollButtons="auto"
               allowScrollButtonsMobile
               sx={{
                 ...styles.tabsStyled,
                 ...(isVerySmall && styles.tabsStyledVerySmall),
-                paddingLeft: 0,
-                "& .MuiTabs-scrollButtons": {
-                  "&.Mui-disabled": {
-                    opacity: 0.3,
-                  },
-                },
-                "& .MuiTabs-scroller": {
-                  paddingLeft: 0,
-                },
-                "& .MuiTab-root:first-of-type": {
-                  paddingLeft: 0,
-                  marginLeft: 0,
-                },
               }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
@@ -686,7 +838,6 @@ const DARecommendation = () => {
                         }}>
                         {isVerySmall && tab.label.length > 12
                           ? tab.label
-                              .replace("FOR RECOMMENDATION", "FOR REC")
                               .replace("AWAITING ", "")
                               .replace("RESUBMISSION", "RESUB")
                               .replace("FOR MDA PROCESSING", "MDA PROC")
@@ -695,7 +846,6 @@ const DARecommendation = () => {
                       </Badge>
                     ) : isVerySmall && tab.label.length > 12 ? (
                       tab.label
-                        .replace("FOR RECOMMENDATION", "FOR REC")
                         .replace("AWAITING ", "")
                         .replace("RESUBMISSION", "RESUB")
                         .replace("FOR MDA PROCESSING", "MDA PROC")
@@ -724,10 +874,21 @@ const DARecommendation = () => {
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
           />
+
+          <EvaluationFormModal
+            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
+            open={modalOpen}
+            onClose={handleCloseModal}
+            onSave={handleSave}
+            selectedEntry={selectedEntry}
+            isLoading={modalLoading}
+            mode={modalMode}
+            onModeChange={handleModeChange}
+          />
         </Box>
       </FormProvider>
     </LocalizationProvider>
   );
 };
 
-export default DARecommendation;
+export default EvaluationForm;

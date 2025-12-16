@@ -138,8 +138,21 @@ const DAForMDAProcessingTable = ({
     );
   };
 
+  const shouldShowActionsForSubmission = (submission) => {
+    const status = submission?.status?.toLowerCase();
+    return status !== "pending mda creation";
+  };
+
+  const shouldShowActionsColumn = React.useMemo(() => {
+    if (!forMDAProcessing) return false;
+    return submissionsList.some((submission) =>
+      shouldShowActionsForSubmission(submission)
+    );
+  }, [forMDAProcessing, submissionsList]);
+
   const renderActionMenu = (submission) => {
     if (!forMDAProcessing || !handleMenuOpen || !handleMenuClose) return null;
+    if (!shouldShowActionsForSubmission(submission)) return null;
 
     return (
       <>
@@ -178,6 +191,9 @@ const DAForMDAProcessingTable = ({
     return "";
   };
 
+  const totalColumns =
+    (hideStatusColumn ? 0 : 1) + (shouldShowActionsColumn ? 1 : 0) + 5;
+
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
@@ -202,7 +218,7 @@ const DAForMDAProcessingTable = ({
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
               </TableCell>
-              {forMDAProcessing && (
+              {shouldShowActionsColumn && (
                 <TableCell align="center" sx={styles.columnStyles.actions}>
                   ACTIONS
                 </TableCell>
@@ -247,7 +263,7 @@ const DAForMDAProcessingTable = ({
                         sx={{ margin: "0 auto" }}
                       />
                     </TableCell>
-                    {forMDAProcessing && (
+                    {shouldShowActionsColumn && (
                       <TableCell align="center">
                         <Skeleton
                           animation="wave"
@@ -267,7 +283,7 @@ const DAForMDAProcessingTable = ({
             ) : error ? (
               <TableRow>
                 <TableCell
-                  colSpan={forMDAProcessing ? 7 : 6}
+                  colSpan={totalColumns}
                   align="center"
                   sx={styles.errorCell}>
                   <Typography color="error">
@@ -314,7 +330,7 @@ const DAForMDAProcessingTable = ({
                     <TableCell align="center" sx={styles.columnStyles.history}>
                       {renderActivityLog(submission)}
                     </TableCell>
-                    {forMDAProcessing && (
+                    {shouldShowActionsColumn && (
                       <TableCell
                         align="center"
                         sx={styles.columnStyles.actions}>

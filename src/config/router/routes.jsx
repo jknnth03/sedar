@@ -68,10 +68,11 @@ import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx
 import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
 import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
 import Redirect from "../../pages/login/Redirect.jsx";
-import AssessmentTemplate from "../../pages/assessment-templates/AssessmentTemplate.jsx";
 import CatOneTemplate from "../../pages/assessment-templates/CatOneTemplate.jsx";
 import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx";
 import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
+import DaRecommendationApproval from "../../pages/approvals/da-recommendation/DaRecommendationApproval.jsx";
+import EVALUATIONFORM from "../../pages/forms/evaluation/EvaluationForm.jsx";
 
 export const ROUTES = [
   {
@@ -224,6 +225,14 @@ export const ROUTES = [
         },
       },
       {
+        id: "REQUEST.EVALUATIONFORM",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.EVALUATIONFORM.path}`,
+        element: <EVALUATIONFORM />,
+        handle: {
+          permission: MODULES.REQUEST.children.EVALUATIONFORM.permissionId,
+        },
+      },
+      {
         id: "REQUESTMONITORING.MRFMONITORING",
         path: `${MODULES.REQUESTMONITORING.path}/${MODULES.REQUESTMONITORING.children.MRFMONITORING.path}`,
         element: <MRFMonitoring />,
@@ -316,6 +325,15 @@ export const ROUTES = [
         element: <DAFormApproval />,
         handle: {
           permission: MODULES.APPROVING.children.DAFORMAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.DARECOMMENDATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.path}`,
+        element: <DaRecommendationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.permissionId,
         },
       },
       {

@@ -109,31 +109,28 @@ const DAFormCancelled = ({
   const handleSave = useCallback(
     async (formData, mode) => {
       try {
-        console.log("Saving DA Form submission:", formData, mode);
-
         if (mode === "edit" && selectedSubmissionId) {
-          const response = await updateDaSubmission({
+          await updateDaSubmission({
             id: selectedSubmissionId,
             data: formData,
           }).unwrap();
 
           enqueueSnackbar("DA Form submission updated successfully", {
             variant: "success",
+            autoHideDuration: 2000,
           });
 
           await refetchDetails();
           await refetch();
-
           handleModalClose();
         }
       } catch (error) {
-        console.error("Error saving DA Form submission:", error);
-        enqueueSnackbar(
-          error?.data?.message || "Failed to update DA Form submission",
-          {
-            variant: "error",
-          }
-        );
+        const errorMessage =
+          error?.data?.message || "Failed to update DA Form submission";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
       }
     },
     [
@@ -149,8 +146,6 @@ const DAFormCancelled = ({
   const handleResubmit = useCallback(
     async (submissionId) => {
       try {
-        console.log("Resubmitting DA Form submission:", submissionId);
-
         await resubmitDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission resubmitted successfully", {
@@ -161,14 +156,12 @@ const DAFormCancelled = ({
         await refetchDetails();
         await refetch();
       } catch (error) {
-        console.error("Error resubmitting DA Form submission:", error);
-        enqueueSnackbar(
-          error?.data?.message || "Failed to resubmit DA Form submission",
-          {
-            variant: "error",
-            autoHideDuration: 2000,
-          }
-        );
+        const errorMessage =
+          error?.data?.message || "Failed to resubmit DA Form submission";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
       }
     },
     [resubmitDaSubmission, enqueueSnackbar, refetchDetails, refetch]
@@ -177,8 +170,6 @@ const DAFormCancelled = ({
   const handleCancel = useCallback(
     async (submissionId) => {
       try {
-        console.log("Cancelling DA Form submission:", submissionId);
-
         await cancelDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission cancelled successfully", {
@@ -187,17 +178,12 @@ const DAFormCancelled = ({
         });
 
         await refetch();
-
         return true;
       } catch (error) {
-        console.error("Error cancelling DA Form submission:", error);
-
-        let errorMessage = "Failed to cancel DA Form submission";
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to cancel DA Form submission";
 
         enqueueSnackbar(errorMessage, {
           variant: "error",

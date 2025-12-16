@@ -81,16 +81,6 @@ const DAFormMDAProcessing = ({
     refetchOnMountOrArgChange: true,
   });
 
-  useEffect(() => {
-    console.log("=== DAFormMDAProcessing Debug ===");
-    console.log("API Query Params:", apiQueryParams);
-    console.log("Raw API Response:", submissionsData);
-    console.log("Is Loading:", queryLoading);
-    console.log("Is Fetching:", isFetching);
-    console.log("Error:", error);
-    console.log("Result Data:", submissionsData?.result?.data);
-  }, [submissionsData, queryLoading, isFetching, error, apiQueryParams]);
-
   const submissionsList = useMemo(() => {
     if (!submissionsData) {
       console.log("No submissions data");

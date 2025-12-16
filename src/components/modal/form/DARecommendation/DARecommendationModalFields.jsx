@@ -14,6 +14,8 @@ import {
   TableHead,
   TableRow,
   Paper,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
@@ -61,6 +63,10 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const positions = Array.isArray(positionsData?.result)
     ? positionsData.result
     : [];
+
+  const forPermanentAppointment = watch("for_permanent_appointment");
+  const notForPermanentAppointment = watch("not_for_permanent_appointment");
+  const forExtension = watch("for_extension");
 
   useEffect(() => {
     if (!isCreate && currentMode !== prevModeRef.current) {
@@ -148,19 +154,30 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
           [field]: value,
         };
 
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-
-        updateTimeoutRef.current = setTimeout(() => {
-          setValue("kpis", updatedKpis, { shouldValidate: false });
-        }, 300);
+        setValue("kpis", updatedKpis, { shouldValidate: false });
 
         return updatedKpis;
       });
     },
     [setValue]
   );
+
+  const handleCheckboxChange = (field, value) => {
+    if (field === "for_permanent_appointment" && value) {
+      setValue("not_for_permanent_appointment", false);
+      setValue("for_extension", false);
+      setValue("extension_end_date", null);
+    } else if (field === "not_for_permanent_appointment" && value) {
+      setValue("for_permanent_appointment", false);
+      setValue("for_extension", false);
+      setValue("extension_end_date", null);
+    } else if (field === "for_extension" && value) {
+      setValue("for_permanent_appointment", false);
+      setValue("not_for_permanent_appointment", false);
+    } else if (field === "for_extension" && !value) {
+      setValue("extension_end_date", null);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -224,24 +241,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                   sx={{ bgcolor: "white", width: "348px" }}
                 />
               )}
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name="action_type"
-                control={control}
-                rules={{ required: "Action Type is required" }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="ACTION TYPE"
-                    error={!!errors.action_type}
-                    helperText={errors.action_type?.message}
-                    disabled={isReadOnly}
-                    sx={{ bgcolor: "white", width: "348px" }}
-                  />
-                )}
-              />
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -439,26 +438,30 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             </Typography>
           </Box>
         ) : kpisList.length > 0 ? (
-          <TableContainer
-            component={Paper}
-            sx={{
-              width: 1140,
-            }}>
-            <Table>
+          <TableContainer component={Paper} sx={{ width: 1140 }}>
+            <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+              <colgroup>
+                <col style={{ width: "420px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "420px" }} />
+              </colgroup>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
                   <TableCell
+                    colSpan={2}
                     sx={{
                       fontWeight: 700,
-                      width: "50%",
+                      textAlign: "center",
+                      borderRight: "1px solid #e0e0e0",
                     }}>
                     PERFORMANCE METRICS
                   </TableCell>
                   <TableCell
+                    colSpan={2}
                     align="center"
                     sx={{
                       fontWeight: 700,
-                      width: "50%",
                     }}>
                     ASSESSMENT
                     <br />
@@ -468,107 +471,123 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Box sx={{ flex: 1, fontWeight: 600 }}>
-                        Key Performance Indicators
-                      </Box>
-                      <Box
-                        sx={{ flex: 1, textAlign: "center", fontWeight: 600 }}>
-                        Target
-                      </Box>
-                    </Box>
+                  <TableCell
+                    sx={{
+                      fontWeight: 600,
+                      p: 2,
+                      borderRight: "1px solid #e0e0e0",
+                    }}>
+                    Key Performance Indicators
                   </TableCell>
-                  <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Box
-                        sx={{ flex: 1, textAlign: "center", fontWeight: 600 }}>
-                        Actual
-                      </Box>
-                      <Box
-                        sx={{ flex: 1, textAlign: "center", fontWeight: 600 }}>
-                        Remarks
-                      </Box>
-                    </Box>
+                  <TableCell
+                    sx={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      p: 2,
+                      borderRight: "1px solid #e0e0e0",
+                    }}>
+                    Target
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      p: 2,
+                      borderRight: "1px solid #e0e0e0",
+                    }}>
+                    Actual
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      p: 2,
+                    }}>
+                    Remarks
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {kpisList.map((kpi, index) => (
                   <TableRow key={index}>
-                    <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, mb: 1 }}>
-                            {kpi.objective_name}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary", display: "block" }}>
-                            {kpi.deliverable}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={kpi.target_percentage}
-                            inputProps={{
-                              min: 0,
-                              max: 100,
-                              step: "any",
-                            }}
-                            sx={{ width: "80px" }}
-                            disabled
-                          />
-                        </Box>
-                      </Box>
+                    <TableCell
+                      sx={{
+                        p: 2,
+                        verticalAlign: "top",
+                        borderRight: "1px solid #e0e0e0",
+                      }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, mb: 1 }}>
+                        {kpi.objective_name}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary", display: "block" }}>
+                        {kpi.deliverable}
+                      </Typography>
                     </TableCell>
-                    <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={kpi.actual_performance || ""}
-                            onChange={(e) =>
-                              handleKpiFieldChange(
-                                index,
-                                "actual_performance",
-                                e.target.value ? Number(e.target.value) : null
-                              )
-                            }
-                            inputProps={{
-                              min: 0,
-                              max: 100,
-                              step: "any",
-                            }}
-                            placeholder="-"
-                            sx={{ width: "80px" }}
-                            disabled={isReadOnly}
-                          />
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          <TextField
-                            size="small"
-                            value={kpi.remarks || ""}
-                            onChange={(e) =>
-                              handleKpiFieldChange(
-                                index,
-                                "remarks",
-                                e.target.value
-                              )
-                            }
-                            placeholder="-"
-                            multiline
-                            maxRows={2}
-                            sx={{ width: "200px" }}
-                            disabled={isReadOnly}
-                          />
-                        </Box>
-                      </Box>
+                    <TableCell
+                      sx={{
+                        p: 2,
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        borderRight: "1px solid #e0e0e0",
+                      }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={kpi.target_percentage}
+                        inputProps={{
+                          min: 0,
+                          max: 100,
+                          step: "any",
+                        }}
+                        sx={{ width: "100px" }}
+                        disabled
+                      />
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        p: 2,
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        borderRight: "1px solid #e0e0e0",
+                      }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={kpi.actual_performance || ""}
+                        onChange={(e) =>
+                          handleKpiFieldChange(
+                            index,
+                            "actual_performance",
+                            e.target.value ? Number(e.target.value) : null
+                          )
+                        }
+                        inputProps={{
+                          min: 0,
+                          max: 100,
+                          step: "any",
+                        }}
+                        placeholder="-"
+                        sx={{ width: "100px" }}
+                        disabled={isReadOnly}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ p: 2, verticalAlign: "top" }}>
+                      <TextField
+                        size="small"
+                        value={kpi.remarks || ""}
+                        onChange={(e) =>
+                          handleKpiFieldChange(index, "remarks", e.target.value)
+                        }
+                        placeholder="-"
+                        multiline
+                        maxRows={2}
+                        sx={{ width: "100%" }}
+                        disabled={isReadOnly}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -599,6 +618,143 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             </Typography>
           </Box>
         )}
+      </Grid>
+
+      <Grid item xs={12}>
+        <Typography variant="h6" sx={sectionTitleStyles}>
+          PART II - RECOMMENDATION
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            fontStyle: "italic",
+            color: "text.secondary",
+            display: "block",
+            mb: 2,
+          }}>
+          (To be accomplished 30 days before the end of DA)
+        </Typography>
+        <Box
+          sx={{
+            p: 3.5,
+            borderRadius: 2,
+          }}>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Please tick:
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Controller
+                name="for_permanent_appointment"
+                control={control}
+                defaultValue={false}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        {...field}
+                        checked={field.value || false}
+                        onChange={(e) => {
+                          field.onChange(e.target.checked);
+                          handleCheckboxChange(
+                            "for_permanent_appointment",
+                            e.target.checked
+                          );
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    }
+                    label="For Permanent Appointment"
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Controller
+                name="not_for_permanent_appointment"
+                control={control}
+                defaultValue={false}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        {...field}
+                        checked={field.value || false}
+                        onChange={(e) => {
+                          field.onChange(e.target.checked);
+                          handleCheckboxChange(
+                            "not_for_permanent_appointment",
+                            e.target.checked
+                          );
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    }
+                    label="NOT for permanent appointment at this time"
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Controller
+                name="for_extension"
+                control={control}
+                defaultValue={false}
+                render={({ field }) => (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          {...field}
+                          checked={field.value || false}
+                          onChange={(e) => {
+                            field.onChange(e.target.checked);
+                            handleCheckboxChange(
+                              "for_extension",
+                              e.target.checked
+                            );
+                          }}
+                          disabled={isReadOnly}
+                        />
+                      }
+                      label="For extension until"
+                    />
+                    {forExtension && (
+                      <Controller
+                        name="extension_end_date"
+                        control={control}
+                        render={({ field: dateField }) => (
+                          <DatePicker
+                            {...dateField}
+                            value={
+                              dateField.value && dayjs.isDayjs(dateField.value)
+                                ? dateField.value
+                                : dateField.value
+                                ? dayjs(dateField.value)
+                                : null
+                            }
+                            onChange={(date) => dateField.onChange(date)}
+                            disabled={isReadOnly}
+                            slotProps={{
+                              textField: {
+                                size: "small",
+                                error: !!errors.extension_end_date,
+                                helperText: errors.extension_end_date?.message,
+                                sx: { bgcolor: "white", width: "200px" },
+                              },
+                            }}
+                          />
+                        )}
+                      />
+                    )}
+                  </Box>
+                )}
+              />
+            </Grid>
+          </Grid>
+        </Box>
       </Grid>
     </Grid>
   );

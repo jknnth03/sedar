@@ -23,19 +23,18 @@ import {
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import DARecommendationModalFields from "./DARecommendationModalFields";
+import EvaluationFormModalFields from "./EvaluationFormModalFields";
 import {
   getCreateModeInitialValues,
   getViewEditModeFormData,
-} from "./DARecommendationGetValues";
-import * as styles from "../DAForm/DAFormModal.styles";
+} from "./EvaluationFieldsGetValues";
+import * as styles from "./EvaluationFormModal.styles";
 
-const DARecommendationModal = ({
+const EvaluationFormModal = ({
   open = false,
   onClose,
   onSave,
   onResubmit,
-  onSubmit,
   selectedEntry = null,
   isLoading = false,
   mode = "create",
@@ -60,42 +59,24 @@ const DARecommendationModal = ({
     }
   }, [open, selectedEntry]);
 
-  const normalizeStatus = (status) => {
-    if (!status) return "";
-    return status.toUpperCase().replace(/[-_]/g, " ").trim();
-  };
-
   const shouldEnableEditButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
-    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
-
-    if (disabledStatuses.includes(normalizedStatus)) return false;
-
-    return true;
+    if (status === "APPROVED" || status === "CANCELLED") return false;
+    const actions =
+      selectedEntry?.actions ||
+      selectedEntry?.result?.actions ||
+      selectedEntry?.result?.submittable?.actions;
+    return actions?.can_update === true;
   };
 
   const shouldEnableResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
-    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
-
-    if (disabledStatuses.includes(normalizedStatus)) return false;
-
-    return true;
-  };
-
-  const shouldEnableSubmitButton = () => {
-    const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
-    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
-
-    if (disabledStatuses.includes(normalizedStatus)) return false;
-
-    return true;
+    if (status === "APPROVED" || status === "CANCELLED") return false;
+    const actions =
+      selectedEntry?.actions ||
+      selectedEntry?.result?.actions ||
+      selectedEntry?.result?.submittable?.actions;
+    return actions?.can_resubmit === true;
   };
 
   useEffect(() => {
@@ -161,112 +142,71 @@ const DARecommendationModal = ({
     }
   };
 
-  const handleFormSubmit = async (data) => {
-    const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
+  const onSubmit = async (data) => {
     if (currentMode === "create") {
       if (!data.employee_id) {
         alert("Please select an Employee");
         return;
       }
-      if (!data.to_position_id) {
-        alert("Please select a TO Position");
-        return;
-      }
-      if (!data.kpis || data.kpis.length === 0) {
-        alert("Please add at least one KPI");
-        return;
-      }
-      const totalDistribution = data.kpis.reduce(
-        (sum, kpi) => sum + Number(kpi.distribution_percentage || 0),
-        0
-      );
-      if (totalDistribution !== 100) {
-        alert(
-          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`
-        );
-        return;
-      }
-    }
-
-    let finalRecommendation = null;
-    if (data.for_permanent_appointment) {
-      finalRecommendation = "FOR PERMANENT";
-    } else if (data.not_for_permanent_appointment) {
-      finalRecommendation = "NOT FOR PERMANENT";
-    } else if (data.for_extension) {
-      finalRecommendation = "FOR EXTENSION";
-    }
-
-    if (currentMode === "edit" && normalizedStatus === "FOR RECOMMENDATION") {
-      if (!finalRecommendation) {
-        alert("Please select a recommendation option");
-        return;
-      }
-
-      const objectives = data.kpis.map((kpi) => ({
-        id: kpi.id,
-        actual_performance: kpi.actual_performance || null,
-        remarks: kpi.remarks || "",
-      }));
 
       const formattedData = {
-        final_recommendation: finalRecommendation,
-        objectives: objectives,
+        form_id: 8,
+        employee_id: data.employee_id,
+        probation_start_date: data.probation_start_date
+          ? dayjs(data.probation_start_date).format("YYYY-MM-DD")
+          : null,
+        probation_end_date: data.probation_end_date
+          ? dayjs(data.probation_end_date).format("YYYY-MM-DD")
+          : null,
+        kpis: data.objectives
+          ? data.objectives.map((kpi) => ({
+              source_kpi_id: kpi.source_kpi_id,
+              objective_id: kpi.objective_id,
+              objective_name: kpi.objective_name,
+              distribution_percentage: kpi.distribution_percentage,
+              deliverable: kpi.deliverable,
+              target_percentage: kpi.target_percentage,
+            }))
+          : [],
       };
 
-      console.log("Submitting:", formattedData);
+      if (onSave) {
+        await onSave(formattedData, currentMode, null);
+      }
+    } else {
+      const formattedData = {
+        form_id: 8,
+        employee_id: data.employee_id,
+        evaluation_date: data.evaluation_date
+          ? dayjs(data.evaluation_date).format("YYYY-MM-DD")
+          : null,
+        evaluator_id: data.evaluator_id,
+        performance_rating: data.performance_rating,
+        comments: data.comments,
+        recommendation: data.recommendation,
+        objectives: data.objectives
+          ? data.objectives.map((kpi) => ({
+              source_kpi_id: kpi.source_kpi_id,
+              objective_id: kpi.objective_id,
+              objective_name: kpi.objective_name,
+              distribution_percentage: kpi.distribution_percentage,
+              deliverable: kpi.deliverable,
+              target_percentage: kpi.target_percentage,
+              actual_performance: kpi.actual_performance,
+              rating: kpi.rating,
+              remarks: kpi.remarks,
+            }))
+          : [],
+      };
 
-      if (onSubmit) {
+      if (onSave) {
         const entryId =
           editingEntryId ||
           selectedEntry?.id ||
           selectedEntry?.result?.id ||
           null;
-        await onSubmit(formattedData, entryId);
+        await onSave(formattedData, currentMode, entryId);
       }
-      return;
-    }
-
-    const formattedData = {
-      form_id: 7,
-      employee_id: data.employee_id,
-      from_position_id: data.from_position_id,
-      to_position_id: data.to_position_id,
-      start_date: data.start_date
-        ? dayjs(data.start_date).format("YYYY-MM-DD")
-        : null,
-      end_date: data.end_date
-        ? dayjs(data.end_date).format("YYYY-MM-DD")
-        : null,
-      objective: data.objective,
-      kpis: data.kpis.map((kpi) => ({
-        source_kpi_id: kpi.source_kpi_id,
-        objective_id: kpi.objective_id,
-        objective_name: kpi.objective_name,
-        distribution_percentage: Number(kpi.distribution_percentage),
-        deliverable: kpi.deliverable,
-        target_percentage: Number(kpi.target_percentage),
-        actual_performance: kpi.actual_performance || null,
-        remarks: kpi.remarks || "",
-      })),
-      final_recommendation: finalRecommendation,
-      extension_end_date:
-        data.extension_end_date && data.for_extension
-          ? dayjs(data.extension_end_date).format("YYYY-MM-DD")
-          : null,
-    };
-
-    if (onSave) {
-      const entryId =
-        currentMode === "edit"
-          ? editingEntryId ||
-            selectedEntry?.id ||
-            selectedEntry?.result?.id ||
-            null
-          : null;
-      await onSave(formattedData, currentMode, entryId);
     }
   };
 
@@ -304,26 +244,17 @@ const DARecommendationModal = ({
 
   const getModalTitle = () => {
     const titles = {
-      create: "CREATE DA RECOMMENDATION",
-      view: "VIEW DA RECOMMENDATION",
-      edit: "EDIT DA RECOMMENDATION",
+      create: "CREATE PROBATIONARY EVALUATION",
+      view: "VIEW PROBATIONARY EVALUATION",
+      edit: "EDIT PROBATIONARY EVALUATION",
     };
-    return titles[currentMode] || "DA Recommendation";
+    return titles[currentMode] || "Probationary Evaluation";
   };
 
   const showResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
-    const disabledStatuses = [
-      "COMPLETED",
-      "APPROVED",
-      "CANCELLED",
-      "FOR RECOMMENDATION",
-    ];
-
     return (
-      currentMode === "view" && !disabledStatuses.includes(normalizedStatus)
+      currentMode === "view" && status !== "APPROVED" && status !== "CANCELLED"
     );
   };
 
@@ -333,22 +264,7 @@ const DARecommendationModal = ({
   const isEditMode = currentMode === "edit";
   const isProcessing = isLoading || isUpdating;
 
-  const getButtonLabel = () => {
-    const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
-    if (currentMode === "create") {
-      return isProcessing ? "Creating..." : "Create";
-    }
-
-    if (currentMode === "edit" && normalizedStatus === "FOR RECOMMENDATION") {
-      return isProcessing ? "Submitting..." : "Submit";
-    }
-
-    return isProcessing ? "Updating..." : "Update";
-  };
-
-  const formKey = `da-recommendation-${
+  const formKey = `evaluation-form-${
     open ? "open" : "closed"
   }-${mode}-${hasInitialized}`;
 
@@ -369,7 +285,7 @@ const DARecommendationModal = ({
               {getModalTitle()}
             </Typography>
             {isViewMode && (
-              <Tooltip title="EDIT DA RECOMMENDATION" arrow placement="top">
+              <Tooltip title="EDIT EVALUATION" arrow placement="top">
                 <span>
                   <IconButton
                     onClick={() => setCurrentMode("edit")}
@@ -404,10 +320,10 @@ const DARecommendationModal = ({
           </IconButton>
         </DialogTitle>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} key={formKey}>
+        <form onSubmit={handleSubmit(onSubmit)} key={formKey}>
           <DialogContent sx={styles.dialogContentStyles}>
             {isFormReady ? (
-              <DARecommendationModalFields
+              <EvaluationFormModalFields
                 key={formKey}
                 isCreate={isCreate}
                 isReadOnly={isReadOnly}
@@ -458,7 +374,11 @@ const DARecommendationModal = ({
                   )
                 }
                 sx={styles.saveButtonStyles}>
-                {getButtonLabel()}
+                {isProcessing
+                  ? "Saving..."
+                  : currentMode === "create"
+                  ? "Create"
+                  : "Update"}
               </Button>
             )}
           </DialogActions>
@@ -468,4 +388,4 @@ const DARecommendationModal = ({
   );
 };
 
-export default DARecommendationModal;
+export default EvaluationFormModal;

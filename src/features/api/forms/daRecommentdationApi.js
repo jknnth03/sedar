@@ -9,12 +9,12 @@ const daRecommendationApi = sedarApi
       getDaSubmissions: build.query({
         query: (params = {}) => {
           const {
-            pagination = true,
+            pagination = 1,
             page = 1,
             per_page = 10,
-            status,
-            approval_status,
-            search,
+            status = "active",
+            approval_status = "",
+            search = "",
             ...otherParams
           } = params;
 
@@ -23,18 +23,9 @@ const daRecommendationApi = sedarApi
           queryParams.append("pagination", pagination.toString());
           queryParams.append("page", page.toString());
           queryParams.append("per_page", per_page.toString());
-
-          if (status) {
-            queryParams.append("status", status);
-          }
-
-          if (approval_status) {
-            queryParams.append("approval_status", approval_status);
-          }
-
-          if (search && search.trim() !== "") {
-            queryParams.append("search", search.trim());
-          }
+          queryParams.append("status", status);
+          queryParams.append("approval_status", approval_status);
+          queryParams.append("search", search);
 
           Object.entries(otherParams).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== "") {
@@ -42,13 +33,8 @@ const daRecommendationApi = sedarApi
             }
           });
 
-          const queryString = queryParams.toString();
-          const url = queryString
-            ? `me/da-submissions?${queryString}`
-            : "me/da-submissions";
-
           return {
-            url,
+            url: `me/da-submissions?${queryParams.toString()}`,
             method: "GET",
           };
         },
@@ -66,16 +52,31 @@ const daRecommendationApi = sedarApi
         ],
       }),
 
-      submitDaRecommendation: build.mutation({
-        query: (body) => ({
-          url: "form-submissions",
-          method: "POST",
+      updateDaSubmission: build.mutation({
+        query: ({ id, body }) => ({
+          url: `me/da-submissions/${id}`,
+          method: "PUT",
           body,
         }),
-        invalidatesTags: ["daSubmissions"],
+        invalidatesTags: (result, error, { id }) => [
+          { type: "daSubmissions", id },
+          "daSubmissions",
+        ],
       }),
 
-      resubmitDaRecommendation: build.mutation({
+      submitDaRecommendation: build.mutation({
+        query: ({ id, body }) => ({
+          url: `me/da-submissions/${id}/recommend`,
+          method: "PUT",
+          body,
+        }),
+        invalidatesTags: (result, error, { id }) => [
+          { type: "daSubmissions", id },
+          "daSubmissions",
+        ],
+      }),
+
+      resubmitDaSubmission: build.mutation({
         query: (id) => ({
           url: `form-submissions/${id}/resubmit`,
           method: "POST",
@@ -86,7 +87,7 @@ const daRecommendationApi = sedarApi
         ],
       }),
 
-      cancelDaRecommendation: build.mutation({
+      cancelDaSubmission: build.mutation({
         query: (id) => ({
           url: `form-submissions/${id}/cancel`,
           method: "POST",
@@ -104,9 +105,10 @@ export const {
   useLazyGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
   useLazyGetSingleDaSubmissionQuery,
+  useUpdateDaSubmissionMutation,
   useSubmitDaRecommendationMutation,
-  useResubmitDaRecommendationMutation,
-  useCancelDaRecommendationMutation,
+  useResubmitDaSubmissionMutation,
+  useCancelDaSubmissionMutation,
 } = daRecommendationApi;
 
 export default daRecommendationApi;

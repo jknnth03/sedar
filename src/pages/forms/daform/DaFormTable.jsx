@@ -243,7 +243,12 @@ const DAFormTable = ({
   };
 
   const shouldHideActions =
-    statusFilter === "CANCELLED" || statusFilter === "COMPLETED";
+    statusFilter === "CANCELLED" ||
+    statusFilter === "COMPLETED" ||
+    statusFilter === "PENDING MDA CREATION" ||
+    statusFilter === "MDA FOR APPROVAL" ||
+    statusFilter === "FOR MDA PROCESSING" ||
+    statusFilter === "MDA IN PROGRESS";
   const shouldShowActionsColumn = !shouldHideActions;
   const totalColumns = shouldShowActionsColumn ? 7 : 6;
 

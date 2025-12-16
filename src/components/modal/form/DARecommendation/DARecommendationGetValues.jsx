@@ -4,7 +4,6 @@ export const getCreateModeInitialValues = () => ({
   form_id: 7,
   employee_id: null,
   employee_name: "",
-  action_type: "",
   from_position_id: null,
   from_position_title: "",
   from_department: "",
@@ -32,7 +31,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
     form_id: selectedEntry?.form?.id || selectedEntry?.result?.form?.id || 7,
     employee_id: employee.id || null,
     employee_name: employee.full_name || "",
-    action_type: submittable.action_type || "",
     from_position_id: fromPosition.id || null,
     from_position_title: fromPosition.title?.name || "",
     from_department: fromPosition.charging?.department_name || "",
@@ -60,7 +58,6 @@ export const formatFormDataForSubmission = (formData) => {
   const baseData = {
     form_id: formData.form_id || 7,
     employee_id: formData.employee_id,
-    action_type: formData.action_type,
     from_position_id: formData.from_position_id,
     to_position_id: formData.to_position_id,
     start_date: formData.start_date
@@ -93,7 +90,6 @@ export const validateDARecommendationData = (formData) => {
   const errors = [];
 
   if (!formData.employee_id) errors.push("Employee is required");
-  if (!formData.action_type) errors.push("Action Type is required");
   if (!formData.to_position_id) errors.push("Position - TO is required");
   if (!formData.start_date) errors.push("Start date is required");
   if (!formData.end_date) errors.push("End date is required");

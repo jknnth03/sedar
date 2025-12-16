@@ -6,8 +6,10 @@ import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
-  useCancelDaRecommendationMutation,
-  useResubmitDaRecommendationMutation,
+  useUpdateDaSubmissionMutation,
+  useSubmitDaRecommendationMutation,
+  useResubmitDaSubmissionMutation,
+  useCancelDaSubmissionMutation,
 } from "../../../features/api/forms/daRecommentdationApi";
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -20,7 +22,6 @@ const DAForRecommendation = ({
   dateFilters,
   filterDataByDate,
   filterDataBySearch,
-  onCancel,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -46,8 +47,9 @@ const DAForRecommendation = ({
     defaultValues: {},
   });
 
-  const [resubmitDaRecommendation] = useResubmitDaRecommendationMutation();
-  const [cancelDaRecommendation] = useCancelDaRecommendationMutation();
+  const [submitDaRecommendation] = useSubmitDaRecommendationMutation();
+  const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
+  const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -142,6 +144,39 @@ const DAForRecommendation = ({
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
+  const handleSubmitForRecommendation = useCallback(
+    async (formattedData, entryId) => {
+      setModalLoading(true);
+      try {
+        console.log("Sending to API:", formattedData);
+
+        const response = await submitDaRecommendation({
+          id: entryId,
+          body: formattedData,
+        }).unwrap();
+
+        enqueueSnackbar("DA Recommendation submitted successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        handleModalClose();
+        await refetch();
+      } catch (error) {
+        console.error("Submit error:", error);
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to submit recommendation. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [submitDaRecommendation, enqueueSnackbar, handleModalClose, refetch]
+  );
+
   const handleResubmit = useCallback(
     async (submissionId) => {
       const submission = filteredSubmissions.find(
@@ -180,14 +215,14 @@ const DAForRecommendation = ({
 
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaRecommendation(selectedSubmissionForAction.id).unwrap();
+        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation cancelled successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaRecommendation(selectedSubmissionForAction.id).unwrap();
+        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
@@ -312,6 +347,7 @@ const DAForRecommendation = ({
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
+        onSubmit={handleSubmitForRecommendation}
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
@@ -325,6 +361,7 @@ const DAForRecommendation = ({
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
+        module="DA Recommendation"
       />
     </FormProvider>
   );

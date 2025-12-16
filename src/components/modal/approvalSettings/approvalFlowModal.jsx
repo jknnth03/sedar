@@ -33,18 +33,22 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import { ReactSortable } from "react-sortablejs";
+import { useSnackbar } from "notistack";
 import ApprovalFlowFormFields from "./ApprovalFlowFormFields";
 import ApprovalFlowActions from "./ApprovalFlowActions";
 import {
   useLazyGetAllOneRdfQuery,
   useGetAllOneRdfQuery,
 } from "../../../features/api/masterlist/realonerdfApi";
-
 import { useGetAllApprovalFormsQuery } from "../../../features/api/approvalsetting/approvalFormApi";
 import {
   useGetAllApproversQuery,
   useGetAllReceiversQuery,
 } from "../../../features/api/usermanagement/userApi";
+import {
+  useCreateApprovalFlowMutation,
+  useUpdateApprovalFlowMutation,
+} from "../../../features/api/approvalsetting/approvalFlowApi";
 
 const ApprovalFlowModal = ({
   open = false,
@@ -55,6 +59,8 @@ const ApprovalFlowModal = ({
   mode = "create",
   chargings = [],
 }) => {
+  const { enqueueSnackbar } = useSnackbar();
+
   const defaultValues = {
     form_id: "",
     rdf_charging: "",
@@ -112,6 +118,11 @@ const ApprovalFlowModal = ({
       pagination: "none",
       status: "active",
     });
+
+  const [createApprovalFlow, { isLoading: isCreating }] =
+    useCreateApprovalFlowMutation();
+  const [updateApprovalFlow, { isLoading: isUpdating }] =
+    useUpdateApprovalFlowMutation();
 
   const approvers =
     approversData?.result?.data ||
@@ -514,19 +525,47 @@ const ApprovalFlowModal = ({
     setApproverSequence([...updatedSequence]);
   };
 
-  const onSubmit = (data) => {
-    const formData = {
-      ...data,
-      form_id: data.form_id?.id || null,
-      rdf_charging: data.rdf_charging?.id || null,
-      receiver_user_id: data.receiver_user_id?.id || null,
-      approver_sequence: approverSequence.map((app) => app.id),
-      charging_id: data.rdf_charging?.id || data.charging_id || null,
-      no_charging: noChargingChecked,
-    };
+  const onSubmit = async (data) => {
+    try {
+      const formData = {
+        form_id: data.form_id?.id || null,
+        name: data.name,
+        description: data.description,
+        receiver_user_id: data.receiver_user_id?.id || null,
+        approver_sequence: approverSequence.map((app) => app.id),
+        charging_id: data.rdf_charging?.id || data.charging_id || null,
+        no_charging: noChargingChecked,
+      };
 
-    if (onSave) {
-      onSave(formData, currentMode);
+      if (currentMode === "create") {
+        await createApprovalFlow(formData).unwrap();
+        enqueueSnackbar("Approval flow created successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (currentMode === "edit") {
+        await updateApprovalFlow({
+          id: selectedEntry.id,
+          data: formData,
+        }).unwrap();
+        enqueueSnackbar("Approval flow updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      }
+
+      if (onSave) {
+        onSave();
+      }
+      handleClose();
+    } catch (error) {
+      enqueueSnackbar(
+        error?.data?.message || "An error occurred. Please try again.",
+        {
+          variant: "error",
+          autoHideDuration: 2000,
+        }
+      );
     }
   };
 
@@ -596,6 +635,7 @@ const ApprovalFlowModal = ({
   const isReadOnly = currentMode === "view";
   const isCreate = currentMode === "create";
   const chargingOptions = allChargings.length > 0 ? allChargings : chargings;
+  const isSaving = isCreating || isUpdating;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -605,7 +645,7 @@ const ApprovalFlowModal = ({
         currentMode={currentMode}
         onModeChange={handleModeChange}
         onSubmit={onSubmit}
-        isLoading={isLoading}
+        isLoading={isSaving}
         selectedEntry={selectedEntry}
         isCreate={isCreate}
         approverSequence={approverSequence}

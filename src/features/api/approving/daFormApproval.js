@@ -9,12 +9,12 @@ const daFormApprovalApi = sedarApi
       getMyDaApprovals: build.query({
         query: (params = {}) => {
           const {
-            pagination = true,
+            pagination = 1,
             page = 1,
             per_page = 10,
             status = "active",
-            search,
-            approval_status = "pending",
+            approval_status = "",
+            search = "",
             ...otherParams
           } = params;
 
@@ -36,13 +36,8 @@ const daFormApprovalApi = sedarApi
             }
           });
 
-          const queryString = queryParams.toString();
-          const url = queryString
-            ? `me/da-approvals?${queryString}`
-            : "me/da-approvals";
-
           return {
-            url,
+            url: `me/da-form-approvals?${queryParams.toString()}`,
             method: "GET",
           };
         },
@@ -55,33 +50,27 @@ const daFormApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [{ type: "daFormApprovals", id }],
       }),
-      approveDaForm: build.mutation({
-        query: ({ id, comments, reason }) => ({
-          url: `submission-approvals/${id}/approve`,
+      approveDaSubmission: build.mutation({
+        query: ({ submissionId, comments, reason }) => ({
+          url: `submission-approvals/${submissionId}/approve`,
           method: "POST",
           body: {
             comments,
             reason,
           },
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "daFormApprovals", id },
-          "daFormApprovals",
-        ],
+        invalidatesTags: ["daFormApprovals"],
       }),
-      rejectDaForm: build.mutation({
-        query: ({ id, comments, reason }) => ({
-          url: `submission-approvals/${id}/reject`,
+      rejectDaSubmission: build.mutation({
+        query: ({ submissionId, comments, reason }) => ({
+          url: `submission-approvals/${submissionId}/reject`,
           method: "POST",
           body: {
             comments,
             reason,
           },
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "daFormApprovals", id },
-          "daFormApprovals",
-        ],
+        invalidatesTags: ["daFormApprovals"],
       }),
     }),
   });
@@ -91,8 +80,8 @@ export const {
   useLazyGetMyDaApprovalsQuery,
   useGetDaApprovalByIdQuery,
   useLazyGetDaApprovalByIdQuery,
-  useApproveDaFormMutation,
-  useRejectDaFormMutation,
+  useApproveDaSubmissionMutation,
+  useRejectDaSubmissionMutation,
 } = daFormApprovalApi;
 
 export default daFormApprovalApi;
