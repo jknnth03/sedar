@@ -73,6 +73,11 @@ import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx"
 import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
 import DaRecommendationApproval from "../../pages/approvals/da-recommendation/DaRecommendationApproval.jsx";
 import EVALUATIONFORM from "../../pages/forms/evaluation/EvaluationForm.jsx";
+import MDARecommendation from "../../pages/forms/mdarecommendation/MDARecommendation.jsx";
+import MdaRecommendationApproval from "../../pages/approvals/mdaRecommendation/MDARecommendationApproval.jsx";
+import EvaluationApproval from "../../pages/approvals/evaluationApproval/EvaluationApproval.jsx";
+import EvaluationRecommendation from "../../pages/forms/evaluationRecommendation/EvaluationRecommendation.jsx";
+import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
 
 export const ROUTES = [
   {
@@ -217,6 +222,14 @@ export const ROUTES = [
         },
       },
       {
+        id: "REQUEST.MDARECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDARECOMMENDATION.path}`,
+        element: <MDARecommendation />,
+        handle: {
+          permission: MODULES.REQUEST.children.MDARECOMMENDATION.permissionId,
+        },
+      },
+      {
         id: "REQUEST.PENDINGREGISTRATION",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.PENDINGREGISTRATION.path}`,
         element: <PENDINGREGISTRATION />,
@@ -230,6 +243,15 @@ export const ROUTES = [
         element: <EVALUATIONFORM />,
         handle: {
           permission: MODULES.REQUEST.children.EVALUATIONFORM.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.EVALUATIONRECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.path}`,
+        element: <EvaluationRecommendation />,
+        handle: {
+          permission:
+            MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.permissionId,
         },
       },
       {
@@ -334,6 +356,34 @@ export const ROUTES = [
         handle: {
           permission:
             MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.EVALUATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATIONAPPROVAL.path}`,
+        element: <EvaluationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.EVALUATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.EVALUATIONRECOMMENDATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL.path}`,
+        element: <EvaluationRecommendationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL
+              .permissionId,
+        },
+      },
+      {
+        id: "APPROVING.MDARECOMMENDATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.path}`,
+        element: <MdaRecommendationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.permissionId,
         },
       },
       {

@@ -1,22 +1,19 @@
 import { sedarApi } from "..";
 
-const daMdaApprovalApi = sedarApi
+const evaluationRecommendationApprovalApi = sedarApi
   .enhanceEndpoints({
-    addTagTypes: ["daMdaApprovals"],
+    addTagTypes: ["evaluationRecommendationApprovals"],
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      getMyDaMdaApprovals: build.query({
+      getMyProbationaryRecommendationApprovals: build.query({
         query: (params = {}) => {
           const {
-            pagination = 1,
+            pagination = true,
             page = 1,
             per_page = 10,
             status = "active",
             search,
-            approval_status = "pending",
-            type = "da",
-            stage = "initial",
             ...otherParams
           } = params;
 
@@ -26,9 +23,6 @@ const daMdaApprovalApi = sedarApi
           queryParams.append("page", page.toString());
           queryParams.append("per_page", per_page.toString());
           queryParams.append("status", status);
-          queryParams.append("approval_status", approval_status);
-          queryParams.append("type", type);
-          queryParams.append("stage", stage);
 
           if (search && search.trim() !== "") {
             queryParams.append("search", search.trim());
@@ -42,24 +36,26 @@ const daMdaApprovalApi = sedarApi
 
           const queryString = queryParams.toString();
           const url = queryString
-            ? `me/mda-approvals?${queryString}`
-            : "me/mda-approvals";
+            ? `me/probationary-recommendation-approvals?${queryString}`
+            : "me/probationary-recommendation-approvals";
 
           return {
             url,
             method: "GET",
           };
         },
-        providesTags: ["daMdaApprovals"],
+        providesTags: ["evaluationRecommendationApprovals"],
       }),
-      getDaMdaApprovalById: build.query({
+      getProbationaryRecommendationApprovalById: build.query({
         query: (id) => ({
-          url: `me/mda-approvals/${id}`,
+          url: `me/probationary-approvals/${id}`,
           method: "GET",
         }),
-        providesTags: (result, error, id) => [{ type: "daMdaApprovals", id }],
+        providesTags: (result, error, id) => [
+          { type: "evaluationRecommendationApprovals", id },
+        ],
       }),
-      approveDaMdaSubmission: build.mutation({
+      approveRecommendation: build.mutation({
         query: ({ id, comments, reason }) => ({
           url: `submission-approvals/${id}/approve`,
           method: "POST",
@@ -69,11 +65,11 @@ const daMdaApprovalApi = sedarApi
           },
         }),
         invalidatesTags: (result, error, { id }) => [
-          { type: "daMdaApprovals", id },
-          "daMdaApprovals",
+          { type: "evaluationRecommendationApprovals", id },
+          "evaluationRecommendationApprovals",
         ],
       }),
-      rejectDaMdaSubmission: build.mutation({
+      rejectRecommendation: build.mutation({
         query: ({ id, comments, reason }) => ({
           url: `submission-approvals/${id}/reject`,
           method: "POST",
@@ -83,20 +79,20 @@ const daMdaApprovalApi = sedarApi
           },
         }),
         invalidatesTags: (result, error, { id }) => [
-          { type: "daMdaApprovals", id },
-          "daMdaApprovals",
+          { type: "evaluationRecommendationApprovals", id },
+          "evaluationRecommendationApprovals",
         ],
       }),
     }),
   });
 
 export const {
-  useGetMyDaMdaApprovalsQuery,
-  useLazyGetMyDaMdaApprovalsQuery,
-  useGetDaMdaApprovalByIdQuery,
-  useLazyGetDaMdaApprovalByIdQuery,
-  useApproveDaMdaSubmissionMutation,
-  useRejectDaMdaSubmissionMutation,
-} = daMdaApprovalApi;
+  useGetMyProbationaryRecommendationApprovalsQuery,
+  useLazyGetMyProbationaryRecommendationApprovalsQuery,
+  useGetProbationaryRecommendationApprovalByIdQuery,
+  useLazyGetProbationaryRecommendationApprovalByIdQuery,
+  useApproveRecommendationMutation,
+  useRejectRecommendationMutation,
+} = evaluationRecommendationApprovalApi;
 
-export default daMdaApprovalApi;
+export default evaluationRecommendationApprovalApi;

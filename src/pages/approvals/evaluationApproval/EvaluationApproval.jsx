@@ -24,19 +24,20 @@ import {
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetMyDaRecommendationApprovalsQuery,
-  useGetDaRecommendationApprovalByIdQuery,
-  useApproveDaRecommendationSubmissionMutation,
-  useRejectDaRecommendationSubmissionMutation,
-} from "../../../features/api/approving/daRecommendationApproval.js";
+  useGetMyProbationaryFormApprovalsQuery,
+  useGetProbationaryApprovalByIdQuery,
+  useApproveEvaluationMutation,
+  useRejectEvaluationMutation,
+} from "../../../features/api/approving/evaluationApprovalApi.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
-import DaRecommendationApprovalDialog from "./DaRecommendationApprovalDialog.jsx";
+import EvaluationApprovalDialog from "./EvaluationApprovalDialog.jsx";
 import NoDataFound from "../../NoDataFound";
 import {
   styles,
@@ -44,13 +45,15 @@ import {
   StyledTab,
 } from "../../forms/manpowerform/FormSubmissionStyles";
 
+// Path: ../../pages/approvals/evaluationApproval/EvaluationApproval.jsx
+
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`da-recommendation-approval-tabpanel-${index}`}
-      aria-labelledby={`da-recommendation-approval-tab-${index}`}
+      id={`evaluation-approval-tabpanel-${index}`}
+      aria-labelledby={`evaluation-approval-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -96,7 +99,7 @@ const CustomSearchBar = ({
       }}>
       <TextField
         placeholder={
-          isVerySmall ? "Search..." : "Search DA Recommendation Approvals..."
+          isVerySmall ? "Search..." : "Search Evaluation Approvals..."
         }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
@@ -154,7 +157,7 @@ const CustomSearchBar = ({
   );
 };
 
-const DaRecommendationApprovalTable = ({
+const EvaluationApprovalTable = ({
   approvalStatus,
   searchQuery,
   isMobile,
@@ -172,7 +175,7 @@ const DaRecommendationApprovalTable = ({
       page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: approvalStatus,
+      approval_status: "pending",
       pagination: 1,
     };
 
@@ -181,21 +184,21 @@ const DaRecommendationApprovalTable = ({
     }
 
     return params;
-  }, [debounceValue, page, rowsPerPage, approvalStatus]);
+  }, [debounceValue, page, rowsPerPage]);
 
   const {
-    data: daRecommendationApprovalsData,
+    data: evaluationApprovalsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetMyDaRecommendationApprovalsQuery(queryParams, {
+  } = useGetMyProbationaryFormApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const daRecommendationApprovalsList = useMemo(
-    () => daRecommendationApprovalsData?.result?.data || [],
-    [daRecommendationApprovalsData]
+  const evaluationApprovalsList = useMemo(
+    () => evaluationApprovalsData?.result?.data || [],
+    [evaluationApprovalsData]
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -253,8 +256,7 @@ const DaRecommendationApprovalTable = ({
         <Table
           stickyHeader
           sx={{
-            height:
-              daRecommendationApprovalsList.length === 0 ? "100%" : "auto",
+            height: evaluationApprovalsList.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -282,6 +284,17 @@ const DaRecommendationApprovalTable = ({
               </TableCell>
               <TableCell
                 sx={{
+                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
+                  minWidth: isVerySmall
+                    ? "120px"
+                    : isMobile
+                    ? "150px"
+                    : "180px",
+                }}>
+                {isVerySmall ? "START" : "START DATE"}
+              </TableCell>
+              <TableCell
+                sx={{
                   width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
                   minWidth: isVerySmall
                     ? "150px"
@@ -289,7 +302,7 @@ const DaRecommendationApprovalTable = ({
                     ? "180px"
                     : "220px",
                 }}>
-                CHARGING
+                {isVerySmall ? "END" : "END DATE"}
               </TableCell>
               <TableCell
                 sx={{
@@ -304,21 +317,20 @@ const DaRecommendationApprovalTable = ({
               </TableCell>
               <TableCell
                 sx={{
-                  width: isVerySmall ? "120px" : isMobile ? "160px" : "200px",
+                  width: isVerySmall ? "120px" : isMobile ? "140px" : "170px",
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "160px"
-                    : "200px",
+                    ? "140px"
+                    : "170px",
                 }}>
-                {isVerySmall ? "DATE" : "DATE REQUESTED"}
+                {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody
             sx={{
-              height:
-                daRecommendationApprovalsList.length === 0 ? "100%" : "auto",
+              height: evaluationApprovalsList.length === 0 ? "100%" : "auto",
             }}>
             {isLoadingState ? (
               <TableRow sx={{ height: "100%" }}>
@@ -345,8 +357,8 @@ const DaRecommendationApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : daRecommendationApprovalsList.length > 0 ? (
-              daRecommendationApprovalsList.map((approval) => {
+            ) : evaluationApprovalsList.length > 0 ? (
+              evaluationApprovalsList.map((approval) => {
                 return (
                   <TableRow
                     key={approval.id}
@@ -380,7 +392,23 @@ const DaRecommendationApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {approval.charging_name || "-"}
+                      {approval.probation_start_date
+                        ? dayjs(approval.probation_start_date).format(
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                          )
+                        : "-"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {approval.probation_end_date
+                        ? dayjs(approval.probation_end_date).format(
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                          )
+                        : "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -472,7 +500,7 @@ const DaRecommendationApprovalTable = ({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={daRecommendationApprovalsData?.result?.total || 0}
+          count={evaluationApprovalsData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={Math.max(0, page - 1)}
           onPageChange={handlePageChange}
@@ -490,7 +518,7 @@ const DaRecommendationApprovalTable = ({
   );
 };
 
-const DaRecommendationApproval = () => {
+const EvaluationApproval = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -517,13 +545,13 @@ const DaRecommendationApproval = () => {
     },
   });
 
-  const [approveDaRecommendation, { isLoading: approveLoading }] =
-    useApproveDaRecommendationSubmissionMutation();
-  const [rejectDaRecommendation, { isLoading: rejectLoading }] =
-    useRejectDaRecommendationSubmissionMutation();
+  const [approveEvaluation, { isLoading: approveLoading }] =
+    useApproveEvaluationMutation();
+  const [rejectEvaluation, { isLoading: rejectLoading }] =
+    useRejectEvaluationMutation();
 
   const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
-    useGetDaRecommendationApprovalByIdQuery(selectedApprovalId, {
+    useGetProbationaryApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
 
@@ -554,22 +582,22 @@ const DaRecommendationApproval = () => {
           reason,
         };
 
-        await approveDaRecommendation(payload).unwrap();
-        enqueueSnackbar("DA recommendation approved successfully!", {
+        await approveEvaluation(payload).unwrap();
+        enqueueSnackbar("Evaluation approved successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
         enqueueSnackbar(
-          error?.data?.message || "Failed to approve DA recommendation",
+          error?.data?.message || "Failed to approve evaluation",
           {
             variant: "error",
           }
         );
       }
     },
-    [detailsDialog, approveDaRecommendation, enqueueSnackbar]
+    [detailsDialog, approveEvaluation, enqueueSnackbar]
   );
 
   const handleReject = useCallback(
@@ -582,22 +610,19 @@ const DaRecommendationApproval = () => {
           reason,
         };
 
-        await rejectDaRecommendation(payload).unwrap();
-        enqueueSnackbar("DA recommendation returned successfully!", {
+        await rejectEvaluation(payload).unwrap();
+        enqueueSnackbar("Evaluation returned successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(
-          error?.data?.message || "Failed to return DA recommendation",
-          {
-            variant: "error",
-          }
-        );
+        enqueueSnackbar(error?.data?.message || "Failed to return evaluation", {
+          variant: "error",
+        });
       }
     },
-    [detailsDialog, rejectDaRecommendation, enqueueSnackbar]
+    [detailsDialog, rejectEvaluation, enqueueSnackbar]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -606,8 +631,8 @@ const DaRecommendationApproval = () => {
   }, []);
 
   const renderStatusChip = useCallback(
-    (approvalStatus) => {
-      const status = approvalStatus === "approved" ? "approved" : "pending";
+    (approval) => {
+      const status = approval?.status?.toLowerCase() || "pending";
       return (
         <Chip
           label={status.toUpperCase()}
@@ -634,8 +659,8 @@ const DaRecommendationApproval = () => {
 
   const a11yProps = (index) => {
     return {
-      id: `da-recommendation-approval-tab-${index}`,
-      "aria-controls": `da-recommendation-approval-tabpanel-${index}`,
+      id: `evaluation-approval-tab-${index}`,
+      "aria-controls": `evaluation-approval-tabpanel-${index}`,
     };
   };
 
@@ -661,7 +686,7 @@ const DaRecommendationApproval = () => {
                 ...(isVerySmall && styles.headerTitleTextVerySmall),
                 paddingRight: "14px",
               }}>
-              {isVerySmall ? "DA RECOMMENDATION" : "DA RECOMMENDATION APPROVAL"}
+              {isVerySmall ? "EVAL APPROVAL" : "EVALUATION APPROVAL"}
             </Typography>
           </Box>
 
@@ -676,7 +701,7 @@ const DaRecommendationApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="DA Recommendation Approval tabs"
+            aria-label="Evaluation Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile
@@ -711,7 +736,7 @@ const DaRecommendationApproval = () => {
         <Box sx={styles.tabsContainer}>
           {tabsData.map((tab, index) => (
             <TabPanel key={index} value={activeTab} index={index}>
-              <DaRecommendationApprovalTable
+              <EvaluationApprovalTable
                 approvalStatus={tab.approvalStatus}
                 searchQuery={searchQuery}
                 isMobile={isMobile}
@@ -723,7 +748,7 @@ const DaRecommendationApproval = () => {
           ))}
         </Box>
 
-        <DaRecommendationApprovalDialog
+        <EvaluationApprovalDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
           approval={selectedApprovalData?.result || detailsDialog.submission}
@@ -738,4 +763,4 @@ const DaRecommendationApproval = () => {
   );
 };
 
-export default DaRecommendationApproval;
+export default EvaluationApproval;

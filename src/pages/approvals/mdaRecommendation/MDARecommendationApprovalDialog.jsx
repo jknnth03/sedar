@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,24 +15,23 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import HelpIcon from "@mui/icons-material/Help";
-import * as styles from "../dataChangeApproval/DataChangeApprovalStyles";
+import * as styles from "../daMDAApproval/DAMDAApprovalDialogStyles";
 
-const DaRecommendationApprovalDialog = ({
+const MdaRecommendationApprovalDialog = ({
   open,
   onClose,
   approval,
-  onApprove,
-  onReject,
+  onApprove = () => {},
+  onReject = () => {},
   isLoading = false,
   isLoadingData = false,
 }) => {
   const [comments, setComments] = useState("");
-  const [reason, setReason] = useState("");
   const [actionType, setActionType] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const reasonRef = useRef(null);
 
   const handleApprove = () => {
     setActionType("approve");
@@ -48,9 +47,10 @@ const DaRecommendationApprovalDialog = ({
 
   const handleActionConfirm = () => {
     if (confirmAction === "approve") {
-      onApprove({ comments, submissionId: approval?.id });
+      onApprove({ comments });
     } else if (confirmAction === "reject") {
-      onReject({ reason: reason.trim(), comments, submissionId: approval?.id });
+      const reasonValue = reasonRef.current?.value.trim() || "";
+      onReject({ reason: reasonValue, comments });
     }
     setConfirmOpen(false);
     handleReset();
@@ -63,7 +63,9 @@ const DaRecommendationApprovalDialog = ({
 
   const handleReset = () => {
     setComments("");
-    setReason("");
+    if (reasonRef.current) {
+      reasonRef.current.value = "";
+    }
     setActionType(null);
     setConfirmAction(null);
   };
@@ -78,38 +80,47 @@ const DaRecommendationApprovalDialog = ({
     });
   };
 
-  const formDetails = approval?.form_details || {};
-  const fromPosition = formDetails?.from_position || {};
-  const toPosition = formDetails?.to_position || {};
+  const formatCurrency = (amount) => {
+    if (!amount) return "N/A";
+    return `₱${parseFloat(amount).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const submission = approval?.submission || {};
+  const formDetails = submission.form_details || {};
   const status = approval?.status?.toLowerCase() || "pending";
   const isProcessed = status === "approved" || status === "rejected";
-
-  if (!approval && !isLoadingData) {
-    return null;
-  }
+  const fromPosition = formDetails.from || {};
+  const toPosition = formDetails.to || {};
 
   const renderSkeletonField = () => (
-    <Box sx={styles.fieldBoxStyles}>
-      <Skeleton variant="text" width="40%" height={16} sx={{ mb: 0.5 }} />
+    <Box sx={styles.skeletonFieldBoxStyles}>
+      <Skeleton
+        variant="text"
+        width="40%"
+        height={16}
+        sx={styles.skeletonTextStyles}
+      />
       <Skeleton variant="text" width="80%" height={20} />
     </Box>
   );
 
-  const renderSkeletonSection = () => (
+  const renderSkeletonRow = (fields = 3) => (
+    <Box sx={styles.skeletonRowStyles}>
+      {Array.from({ length: fields }).map((_, index) => (
+        <React.Fragment key={index}>{renderSkeletonField()}</React.Fragment>
+      ))}
+    </Box>
+  );
+
+  const renderSkeletonSection = (title, rows = 2) => (
     <Box sx={styles.sectionBoxStyles}>
       <Skeleton variant="text" width="30%" height={24} sx={{ mb: 2 }} />
-      <Box>
-        <Box sx={styles.fieldContainerStyles}>
-          {renderSkeletonField()}
-          {renderSkeletonField()}
-          {renderSkeletonField()}
-        </Box>
-        <Box sx={styles.lastFieldContainerStyles}>
-          {renderSkeletonField()}
-          {renderSkeletonField()}
-          {renderSkeletonField()}
-        </Box>
-      </Box>
+      {Array.from({ length: rows }).map((_, index) => (
+        <React.Fragment key={index}>{renderSkeletonRow()}</React.Fragment>
+      ))}
     </Box>
   );
 
@@ -123,12 +134,9 @@ const DaRecommendationApprovalDialog = ({
         PaperProps={{ sx: styles.dialogPaperStyles }}>
         <DialogTitle sx={styles.dialogTitleStyles}>
           <Box sx={styles.titleBoxStyles}>
-            <Box sx={styles.titleInnerBoxStyles}>
-              📋
-              <Typography variant="h6" sx={styles.titleTextStyles}>
-                VIEW DA RECOMMENDATION REQUEST
-              </Typography>
-            </Box>
+            <Typography variant="h6" sx={styles.titleTextStyles}>
+              VIEW MDA RECOMMENDATION REQUEST
+            </Typography>
             <IconButton onClick={handleClose} size="small">
               <CloseIcon sx={styles.closeIconStyles} />
             </IconButton>
@@ -138,8 +146,8 @@ const DaRecommendationApprovalDialog = ({
         <DialogContent>
           {isLoadingData ? (
             <>
-              {renderSkeletonSection()}
-              {renderSkeletonSection()}
+              {renderSkeletonSection("Employee Information", 3)}
+              {renderSkeletonSection("MDA Details", 4)}
             </>
           ) : (
             <>
@@ -149,12 +157,12 @@ const DaRecommendationApprovalDialog = ({
                 </Typography>
 
                 <Box>
-                  <Box sx={styles.fieldContainerStyles}>
+                  <Box sx={styles.fieldRowStyles}>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        EMPLOYEE CODE
+                        EMPLOYEE NUMBER
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
                         {formDetails.employee_number || "N/A"}
@@ -182,205 +190,232 @@ const DaRecommendationApprovalDialog = ({
                     </Box>
                   </Box>
 
-                  <Box sx={styles.lastFieldContainerStyles}>
+                  <Box sx={styles.fieldRowStyles}>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        DEPARTMENT
+                        BIRTH DATE
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.department || "N/A"}
+                        {formatDate(formDetails.birth_date)}
                       </Typography>
                     </Box>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        SUB UNIT
+                        GENDER
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.sub_unit || "N/A"}
+                        {formDetails.gender || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        POSITION
+                        NATIONALITY
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.position_title || "N/A"}
+                        {formDetails.nationality || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
-                </Box>
-              </Box>
 
-              <Box sx={styles.sectionBoxStyles}>
-                <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
-                  Recommendation Details
-                </Typography>
-
-                <Box>
-                  <Box sx={styles.fieldContainerStyles}>
-                    <Box sx={styles.fieldBoxStyles}>
+                  <Box sx={styles.fieldRowLastStyles}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        FROM POSITION
+                        ADDRESS
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.position_title || "N/A"}
+                        {formDetails.address || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        TO POSITION
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.position_title || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
                         REQUESTED BY
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {approval.requested_by || "N/A"}
+                        {submission.requested_by || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }} />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box sx={styles.sectionBoxStyles}>
+                <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
+                  MDA Details
+                </Typography>
+
+                <Box>
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        MOVEMENT TYPE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.movement_type || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        EFFECTIVE DATE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatDate(formDetails.effective_date)}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles} />
+                  </Box>
+
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        FROM POSITION
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {fromPosition.position || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TO POSITION
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {toPosition.position || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
 
-                  <Box sx={styles.fieldContainerStyles}>
-                    <Box sx={styles.fieldBoxStyles}>
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        START DATE
+                        FROM DEPARTMENT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(formDetails.start_date)}
+                        {fromPosition.department || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={styles.fieldBoxStyles}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        END DATE
+                        TO DEPARTMENT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(formDetails.end_date)}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        STATUS
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {approval.status || "N/A"}
+                        {toPosition.department || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
 
-                  <Box sx={styles.lastFieldContainerStyles}>
-                    <Box sx={styles.fieldBoxStyles}>
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        CREATED DATE
+                        FROM SUB UNIT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(approval.created_at)}
+                        {fromPosition.sub_unit || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={styles.fieldBoxStyles}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        UPDATED DATE
+                        TO SUB UNIT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(approval.updated_at)}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        CHARGING NAME
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.charging_name || "N/A"}
+                        {toPosition.sub_unit || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
 
-                  {formDetails.objectives &&
-                    formDetails.objectives.length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="caption"
-                          sx={styles.fieldLabelStyles}>
-                          OBJECTIVES / KPIs
-                        </Typography>
-                        <Box sx={{ mt: 1 }}>
-                          {formDetails.objectives.map((objective, index) => (
-                            <Box
-                              key={objective.id}
-                              sx={{
-                                p: 1.5,
-                                mb: 1,
-                                border: "1px solid #e0e0e0",
-                                borderRadius: 1,
-                                backgroundColor: "#fafafa",
-                              }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, mb: 0.5 }}>
-                                {index + 1}. {objective.objective_name} (
-                                {objective.distribution_percentage}%)
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontSize: "13px",
-                                  color: "#666",
-                                  mb: 0.5,
-                                }}>
-                                {objective.deliverable}
-                              </Typography>
-                              <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "#666" }}>
-                                  Target: {objective.target_percentage}%
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "#666" }}>
-                                  Actual:{" "}
-                                  {objective.actual_performance || "N/A"}
-                                </Typography>
-                                {objective.remarks && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{ color: "#666" }}>
-                                    Remarks: {objective.remarks}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        FROM JOB LEVEL
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {fromPosition.job_level || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TO JOB LEVEL
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {toPosition.job_level || "N/A"}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={styles.fieldRowStyles}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        FROM JOB RATE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatCurrency(fromPosition.job_rate)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TO JOB RATE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatCurrency(toPosition.job_rate)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={styles.fieldRowLastStyles}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        FROM ALLOWANCE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatCurrency(fromPosition.allowance)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        TO ALLOWANCE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatCurrency(toPosition.allowance)}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
               </Box>
 
@@ -390,7 +425,7 @@ const DaRecommendationApprovalDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={styles.processedTextStyles}>
-                    This DA recommendation request has already been {status}
+                    This MDA Recommendation request has already been {status}
                   </Typography>
                 </Box>
               )}
@@ -465,28 +500,28 @@ const DaRecommendationApprovalDialog = ({
             gutterBottom
             sx={styles.confirmMessageStyles}>
             {confirmAction === "approve"
-              ? "Are you sure you want to Approve this DA recommendation request?"
-              : "Are you sure you want to Reject this DA recommendation request?"}
+              ? "Are you sure you want to Approve this MDA Recommendation request?"
+              : "Are you sure you want to Reject this MDA Recommendation request?"}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={styles.confirmIdStyles}>
-            Reference Number: {formDetails.reference_number || "N/A"}
+            MDA Recommendation Request ID: {approval?.id || "N/A"}
           </Typography>
 
           {confirmAction === "reject" && (
             <TextField
+              inputRef={reasonRef}
               label="Reason for Rejection"
               placeholder="Please provide a reason for rejecting this request..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              defaultValue=""
               multiline
               rows={3}
               fullWidth
               required
               variant="outlined"
-              sx={styles.confirmTextFieldStyles}
+              sx={styles.textFieldStyles}
             />
           )}
         </DialogContent>
@@ -504,9 +539,7 @@ const DaRecommendationApprovalDialog = ({
               onClick={handleActionConfirm}
               variant="contained"
               sx={styles.confirmActionButtonStyles(confirmAction)}
-              disabled={
-                isLoading || (confirmAction === "reject" && !reason.trim())
-              }>
+              disabled={isLoading}>
               {isLoading ? (
                 <CircularProgress size={20} color="inherit" />
               ) : confirmAction === "approve" ? (
@@ -522,4 +555,4 @@ const DaRecommendationApprovalDialog = ({
   );
 };
 
-export default DaRecommendationApprovalDialog;
+export default MdaRecommendationApprovalDialog;

@@ -13,32 +13,44 @@ import {
   MenuItem,
   Chip,
   Tooltip,
+  CircularProgress,
   Skeleton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   useTheme,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
+import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
+import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
 import NoDataFound from "../../NoDataFound";
 
-const DARecommendationTable = ({
+const MDARecommendationTable = ({
   submissionsList,
   isLoadingState,
   error,
   handleRowClick,
   handleMenuOpen,
   handleMenuClose,
+  handleEditSubmission,
   menuAnchor,
   searchQuery,
-  statusFilter,
   onCancel,
+  onRefetch,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
-  const [selectedDaHistory, setSelectedDaHistory] = React.useState(null);
+  const [selectedMdaHistory, setSelectedMdaHistory] = React.useState(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
+  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+    React.useState(null);
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -47,87 +59,69 @@ const DARecommendationTable = ({
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
           {submission.employee_name}
         </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontSize: "14px" }}>
-          {submission.employee_code || ""}
-        </Typography>
+        {submission.employee_number && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "14px" }}>
+            {submission.employee_number}
+          </Typography>
+        )}
       </Box>
-    );
-  };
-
-  const renderRecommendation = (submission) => {
-    const recommendation = submission.recommendation || "-";
-    return (
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 700,
-          fontSize: "14px",
-          textTransform: "uppercase",
-        }}>
-        {recommendation}
-      </Typography>
     );
   };
 
   const renderStatusChip = (submission) => {
     const statusConfig = {
-      "for recommendation": {
-        color: "#1976d2",
-        bgColor: "#e3f2fd",
-        label: "FOR RECOMMENDATION",
-      },
-      "for submission": {
-        color: "#0288d1",
-        bgColor: "#e1f5fe",
-        label: "FOR SUBMISSION",
-      },
-      "pending recommendation": {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
-      },
       "pending recommendation approval": {
         color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
+        bgColor: "#fff4e6",
+        label: "PENDING RECOMMENDATION APPROVAL",
+      },
+      "pending mda creation": {
+        color: "#f57c00",
+        bgColor: "#fff4e6",
+        label: "PENDING MDA CREATION",
       },
       pending: {
         color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
+        bgColor: "#fff4e6",
+        label: "FOR APPROVAL",
       },
-      "recommendation approved": {
+      approved: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "APPROVED",
       },
-      "recommendation rejected": {
+      received: {
+        color: "#2e7d32",
+        bgColor: "#e8f5e9",
+        label: "RECEIVED",
+      },
+      rejected: {
         color: "#d32f2f",
         bgColor: "#ffebee",
         label: "REJECTED",
-      },
-      "awaiting recommendation resubmission": {
-        color: "#9c27b0",
-        bgColor: "#f3e5f5",
-        label: "AWAITING RESUBMISSION",
-      },
-      "mda in progress": {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "MDA IN PROGRESS",
-      },
-      completed: {
-        color: "#2e7d32",
-        bgColor: "#e8f5e8",
-        label: "COMPLETED",
       },
       cancelled: {
         color: "#757575",
         bgColor: "#f5f5f5",
         label: "CANCELLED",
+      },
+      returned: {
+        color: "#d32f2f",
+        bgColor: "#ffebee",
+        label: "RETURNED",
+      },
+      "awaiting approval": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "AWAITING APPROVAL",
+      },
+      "awaiting resubmission": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "FOR SUBMISSION",
       },
     };
 
@@ -135,7 +129,7 @@ const DARecommendationTable = ({
     const config = statusConfig[status] || {
       color: "#757575",
       bgColor: "#f5f5f5",
-      label: submission.status?.toUpperCase() || "UNKNOWN",
+      label: status?.toUpperCase() || "UNKNOWN",
     };
 
     return (
@@ -145,21 +139,64 @@ const DARecommendationTable = ({
 
   const handleViewActivityClick = (e, submission) => {
     e.stopPropagation();
-    setSelectedDaHistory(submission);
+    setSelectedMdaHistory(submission);
     setHistoryDialogOpen(true);
   };
 
   const handleHistoryDialogClose = () => {
     setHistoryDialogOpen(false);
-    setSelectedDaHistory(null);
+    setSelectedMdaHistory(null);
   };
 
-  const handleCancelClick = (e, submission) => {
-    e.stopPropagation();
+  const handleCancelClick = (submission) => {
+    setSelectedSubmissionToCancel(submission);
+    setCancelDialogOpen(true);
     handleMenuClose(submission.id);
-    if (onCancel) {
-      onCancel(submission.id);
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelDialogOpen(false);
+    setSelectedSubmissionToCancel(null);
+    setIsCancelling(false);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedSubmissionToCancel) {
+      return;
     }
+
+    const submissionId = selectedSubmissionToCancel.id;
+
+    if (!submissionId || typeof submissionId === "object") {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      if (onCancel) {
+        const success = await onCancel(submissionId, () => {
+          if (onRefetch && typeof onRefetch === "function") {
+            onRefetch();
+          }
+        });
+
+        if (success) {
+          handleCancelDialogClose();
+        } else {
+          setIsCancelling(false);
+        }
+      } else {
+        setIsCancelling(false);
+        handleCancelDialogClose();
+      }
+    } catch (error) {
+      setIsCancelling(false);
+    }
+  };
+
+  const canEditSubmission = (submission) => {
+    return submission?.actions?.can_edit === true;
   };
 
   const canCancelSubmission = (submission) => {
@@ -179,41 +216,8 @@ const DARecommendationTable = ({
     );
   };
 
-  const filteredSubmissions = React.useMemo(() => {
-    if (!statusFilter) return submissionsList;
-    return submissionsList.filter(
-      (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
-    );
-  }, [submissionsList, statusFilter]);
-
-  const getNoDataMessage = () => {
-    if (statusFilter) {
-      const statusLabels = {
-        "FOR RECOMMENDATION": "for recommendation",
-        "FOR SUBMISSION": "for submission",
-        "PENDING RECOMMENDATION": "pending",
-        "PENDING RECOMMENDATION APPROVAL": "pending",
-        PENDING: "pending",
-        "RECOMMENDATION APPROVED": "approved",
-        "RECOMMENDATION REJECTED": "rejected",
-        "AWAITING RECOMMENDATION RESUBMISSION": "awaiting resubmission",
-        "MDA IN PROGRESS": "MDA in progress",
-        COMPLETED: "completed",
-        CANCELLED: "cancelled",
-      };
-      const statusLabel =
-        statusLabels[statusFilter] || statusFilter.toLowerCase();
-      return searchQuery
-        ? `No ${statusLabel} recommendations found for "${searchQuery}"`
-        : `No ${statusLabel} recommendations found`;
-    }
-  };
-
-  const shouldHideActions =
-    statusFilter === "CANCELLED" || statusFilter === "COMPLETED";
-  const shouldShowActionsColumn = !shouldHideActions;
-  const totalColumns = shouldShowActionsColumn ? 8 : 7;
+  const shouldShowActionsColumn = true;
+  const totalColumns = 7;
 
   return (
     <>
@@ -222,7 +226,7 @@ const DARecommendationTable = ({
           stickyHeader
           sx={{
             minWidth: 1200,
-            height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            height: submissionsList.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -230,13 +234,10 @@ const DARecommendationTable = ({
                 REFERENCE NO.
               </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
-              <TableCell sx={styles.columnStyles.formName}>
-                CHARGING NAME
-              </TableCell>
-              <TableCell sx={styles.columnStyles.recommendation}>
-                RECOMMENDATION
-              </TableCell>
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
+              <TableCell sx={styles.columnStyles.dateCreated}>
+                EFFECTIVE DATE
+              </TableCell>
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
               </TableCell>
@@ -251,9 +252,7 @@ const DARecommendationTable = ({
             </TableRow>
           </TableHead>
           <TableBody
-            sx={{
-              height: filteredSubmissions.length === 0 ? "100%" : "auto",
-            }}>
+            sx={{ height: submissionsList.length === 0 ? "100%" : "auto" }}>
             {isLoadingState ? (
               <>
                 {[...Array(5)].map((_, index) => (
@@ -266,18 +265,15 @@ const DARecommendationTable = ({
                       <Skeleton animation="wave" height={20} width="60%" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton animation="wave" height={30} />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton animation="wave" height={30} />
-                    </TableCell>
-                    <TableCell>
                       <Skeleton
                         animation="wave"
                         height={24}
                         width={120}
                         sx={{ borderRadius: "12px" }}
                       />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
                     </TableCell>
                     <TableCell align="center">
                       <Skeleton
@@ -316,12 +312,14 @@ const DARecommendationTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : filteredSubmissions.length > 0 ? (
-              filteredSubmissions.map((submission) => {
+            ) : submissionsList.length > 0 ? (
+              submissionsList.map((submission) => {
                 return (
                   <TableRow
                     key={submission.id}
-                    onClick={() => handleRowClick(submission)}
+                    onClick={() => {
+                      handleRowClick(submission);
+                    }}
                     sx={styles.tableRowHover(theme)}>
                     <TableCell
                       sx={{
@@ -338,22 +336,17 @@ const DARecommendationTable = ({
                       }}>
                       {renderEmployee(submission)}
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.formName,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {submission.charging_name || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.recommendation,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {renderRecommendation(submission)}
-                    </TableCell>
                     <TableCell sx={styles.columnStyles.status}>
                       {renderStatusChip(submission)}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.dateCreated,
+                        ...styles.cellContentStyles,
+                      }}>
+                      {submission.effective_date
+                        ? dayjs(submission.effective_date).format("MMM D, YYYY")
+                        : "-"}
                     </TableCell>
                     <TableCell align="center" sx={styles.columnStyles.history}>
                       {renderActivityLog(submission)}
@@ -373,7 +366,10 @@ const DARecommendationTable = ({
                         sx={styles.columnStyles.actions}>
                         <Tooltip title="Actions">
                           <IconButton
-                            onClick={(e) => handleMenuOpen(e, submission)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMenuOpen(e, submission);
+                            }}
                             size="small"
                             sx={styles.actionIconButton(theme)}>
                             <MoreVertIcon fontSize="small" />
@@ -398,7 +394,25 @@ const DARecommendationTable = ({
                             zIndex: 10000,
                           }}>
                           <MenuItem
-                            onClick={(e) => handleCancelClick(e, submission)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditSubmission(submission);
+                              handleMenuClose(submission.id);
+                            }}
+                            disabled={!canEditSubmission(submission)}
+                            sx={
+                              canEditSubmission(submission)
+                                ? styles.editMenuItem
+                                : styles.editMenuItemDisabled
+                            }>
+                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                            Edit Recommendation
+                          </MenuItem>
+                          <MenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelClick(submission);
+                            }}
                             disabled={!canCancelSubmission(submission)}
                             sx={
                               canCancelSubmission(submission)
@@ -406,7 +420,7 @@ const DARecommendationTable = ({
                                 : styles.cancelMenuItemDisabled
                             }>
                             <CancelIcon fontSize="small" sx={{ mr: 1 }} />
-                            Cancel Request
+                            Cancel Recommendation
                           </MenuItem>
                         </Menu>
                       </TableCell>
@@ -417,8 +431,6 @@ const DARecommendationTable = ({
             ) : (
               <TableRow
                 sx={{
-                  height: 0,
-                  pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
                     cursor: "default !important",
@@ -429,27 +441,15 @@ const DARecommendationTable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
-                    height: 0,
-                    padding: 0,
-                    border: "none",
                     borderBottom: "none",
-                    pointerEvents: "none",
-                    position: "relative",
+                    height: "400px",
+                    verticalAlign: "middle",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
                     },
                   }}>
-                  <Box
-                    sx={{
-                      position: "fixed",
-                      left: "62%",
-                      top: "64%",
-                      transform: "translate(-50%, -50%)",
-                      zIndex: 1,
-                    }}>
-                    <NoDataFound message="" subMessage={getNoDataMessage()} />
-                  </Box>
+                  <NoDataFound message="" subMessage="" />
                 </TableCell>
               </TableRow>
             )}
@@ -457,13 +457,139 @@ const DARecommendationTable = ({
         </Table>
       </TableContainer>
 
-      <DAFormHistoryDialog
+      <MDAHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedDaHistory}
+        selectedMdaHistory={selectedMdaHistory}
       />
+
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            padding: 2,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            textAlign: "center",
+          },
+        }}>
+        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 2,
+            }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                backgroundColor: "#ff4400",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "30px",
+                  fontWeight: "normal",
+                }}>
+                ?
+              </Typography>
+            </Box>
+          </Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: "rgb(25, 45, 84)",
+              marginBottom: 0,
+            }}>
+            Confirmation
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              marginBottom: 2,
+              fontSize: "16px",
+              color: "#333",
+              fontWeight: 400,
+            }}>
+            Are you sure you want to <strong>Cancel</strong> this MDA
+            Recommendation?
+          </Typography>
+          {selectedSubmissionToCancel && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}>
+              {selectedSubmissionToCancel?.reference_number}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            padding: 0,
+            marginTop: 3,
+            gap: 2,
+          }}>
+          <Button
+            onClick={handleCancelDialogClose}
+            variant="outlined"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              borderColor: "#f44336",
+              color: "#f44336",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+            disabled={isCancelling}>
+            NO
+          </Button>
+          <Button
+            onClick={handleConfirmCancel}
+            variant="contained"
+            sx={{
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: "#4caf50",
+              paddingX: 3,
+              paddingY: 1,
+              borderRadius: 2,
+              "&:hover": {
+                backgroundColor: "#388e3c",
+              },
+            }}
+            disabled={isCancelling}>
+            {isCancelling ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "YES"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
 
-export default DARecommendationTable;
+export default MDARecommendationTable;

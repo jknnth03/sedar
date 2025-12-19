@@ -24,7 +24,7 @@ import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
 import NoDataFound from "../../NoDataFound";
 
-const DARecommendationTable = ({
+const EvaluationRecommendationTable = ({
   submissionsList,
   isLoadingState,
   error,
@@ -38,7 +38,8 @@ const DARecommendationTable = ({
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
-  const [selectedDaHistory, setSelectedDaHistory] = React.useState(null);
+  const [selectedEvaluationHistory, setSelectedEvaluationHistory] =
+    React.useState(null);
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -54,21 +55,6 @@ const DARecommendationTable = ({
           {submission.employee_code || ""}
         </Typography>
       </Box>
-    );
-  };
-
-  const renderRecommendation = (submission) => {
-    const recommendation = submission.recommendation || "-";
-    return (
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 700,
-          fontSize: "14px",
-          textTransform: "uppercase",
-        }}>
-        {recommendation}
-      </Typography>
     );
   };
 
@@ -114,11 +100,6 @@ const DARecommendationTable = ({
         bgColor: "#f3e5f5",
         label: "AWAITING RESUBMISSION",
       },
-      "mda in progress": {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "MDA IN PROGRESS",
-      },
       completed: {
         color: "#2e7d32",
         bgColor: "#e8f5e8",
@@ -143,15 +124,30 @@ const DARecommendationTable = ({
     );
   };
 
+  const renderRecommendation = (submission) => {
+    const recommendation = submission.recommendation || "-";
+    return (
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: 700,
+          fontSize: "14px",
+          textTransform: "uppercase",
+        }}>
+        {recommendation}
+      </Typography>
+    );
+  };
+
   const handleViewActivityClick = (e, submission) => {
     e.stopPropagation();
-    setSelectedDaHistory(submission);
+    setSelectedEvaluationHistory(submission);
     setHistoryDialogOpen(true);
   };
 
   const handleHistoryDialogClose = () => {
     setHistoryDialogOpen(false);
-    setSelectedDaHistory(null);
+    setSelectedEvaluationHistory(null);
   };
 
   const handleCancelClick = (e, submission) => {
@@ -198,22 +194,31 @@ const DARecommendationTable = ({
         "RECOMMENDATION APPROVED": "approved",
         "RECOMMENDATION REJECTED": "rejected",
         "AWAITING RECOMMENDATION RESUBMISSION": "awaiting resubmission",
-        "MDA IN PROGRESS": "MDA in progress",
         COMPLETED: "completed",
         CANCELLED: "cancelled",
       };
       const statusLabel =
         statusLabels[statusFilter] || statusFilter.toLowerCase();
       return searchQuery
-        ? `No ${statusLabel} recommendations found for "${searchQuery}"`
-        : `No ${statusLabel} recommendations found`;
+        ? `No ${statusLabel} evaluations found for "${searchQuery}"`
+        : `No ${statusLabel} evaluations found`;
     }
   };
 
   const shouldHideActions =
     statusFilter === "CANCELLED" || statusFilter === "COMPLETED";
   const shouldShowActionsColumn = !shouldHideActions;
-  const totalColumns = shouldShowActionsColumn ? 8 : 7;
+
+  // Hide recommendation column if status is "FOR RECOMMENDATION"
+  const shouldShowRecommendationColumn = statusFilter !== "FOR RECOMMENDATION";
+
+  const totalColumns = shouldShowActionsColumn
+    ? shouldShowRecommendationColumn
+      ? 8
+      : 7
+    : shouldShowRecommendationColumn
+    ? 7
+    : 6;
 
   return (
     <>
@@ -233,9 +238,11 @@ const DARecommendationTable = ({
               <TableCell sx={styles.columnStyles.formName}>
                 CHARGING NAME
               </TableCell>
-              <TableCell sx={styles.columnStyles.recommendation}>
-                RECOMMENDATION
-              </TableCell>
+              {shouldShowRecommendationColumn && (
+                <TableCell sx={styles.columnStyles.recommendation}>
+                  RECOMMENDATION
+                </TableCell>
+              )}
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
@@ -268,9 +275,11 @@ const DARecommendationTable = ({
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
-                    <TableCell>
-                      <Skeleton animation="wave" height={30} />
-                    </TableCell>
+                    {shouldShowRecommendationColumn && (
+                      <TableCell>
+                        <Skeleton animation="wave" height={30} />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Skeleton
                         animation="wave"
@@ -345,13 +354,15 @@ const DARecommendationTable = ({
                       }}>
                       {submission.charging_name || "-"}
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.recommendation,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {renderRecommendation(submission)}
-                    </TableCell>
+                    {shouldShowRecommendationColumn && (
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.recommendation,
+                          ...styles.cellContentStyles,
+                        }}>
+                        {renderRecommendation(submission)}
+                      </TableCell>
+                    )}
                     <TableCell sx={styles.columnStyles.status}>
                       {renderStatusChip(submission)}
                     </TableCell>
@@ -460,10 +471,10 @@ const DARecommendationTable = ({
       <DAFormHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedDaHistory}
+        selectedDaHistory={selectedEvaluationHistory}
       />
     </>
   );
 };
 
-export default DARecommendationTable;
+export default EvaluationRecommendationTable;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -11,15 +11,17 @@ import {
   Box,
   CircularProgress,
   Skeleton,
+  Chip,
+  Divider,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import HelpIcon from "@mui/icons-material/Help";
-import * as styles from "../dataChangeApproval/DataChangeApprovalStyles";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import * as styles from "../daform/DAFormApprovalStyles";
 
-const DaRecommendationApprovalDialog = ({
+const EvaluationApprovalDialog = ({
   open,
   onClose,
   approval,
@@ -48,9 +50,9 @@ const DaRecommendationApprovalDialog = ({
 
   const handleActionConfirm = () => {
     if (confirmAction === "approve") {
-      onApprove({ comments, submissionId: approval?.id });
+      onApprove({ comments });
     } else if (confirmAction === "reject") {
-      onReject({ reason: reason.trim(), comments, submissionId: approval?.id });
+      onReject({ reason: reason.trim(), comments });
     }
     setConfirmOpen(false);
     handleReset();
@@ -79,14 +81,11 @@ const DaRecommendationApprovalDialog = ({
   };
 
   const formDetails = approval?.form_details || {};
-  const fromPosition = formDetails?.from_position || {};
-  const toPosition = formDetails?.to_position || {};
+  const objectives = formDetails.objectives || [];
+  const recommendation = formDetails.recommendation || {};
+  const approvalHistory = approval?.approval_history || [];
   const status = approval?.status?.toLowerCase() || "pending";
   const isProcessed = status === "approved" || status === "rejected";
-
-  if (!approval && !isLoadingData) {
-    return null;
-  }
 
   const renderSkeletonField = () => (
     <Box sx={styles.fieldBoxStyles}>
@@ -126,7 +125,7 @@ const DaRecommendationApprovalDialog = ({
             <Box sx={styles.titleInnerBoxStyles}>
               📋
               <Typography variant="h6" sx={styles.titleTextStyles}>
-                VIEW DA RECOMMENDATION REQUEST
+                VIEW EVALUATION FORM REQUEST
               </Typography>
             </Box>
             <IconButton onClick={handleClose} size="small">
@@ -138,6 +137,7 @@ const DaRecommendationApprovalDialog = ({
         <DialogContent>
           {isLoadingData ? (
             <>
+              {renderSkeletonSection()}
               {renderSkeletonSection()}
               {renderSkeletonSection()}
             </>
@@ -154,7 +154,7 @@ const DaRecommendationApprovalDialog = ({
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        EMPLOYEE CODE
+                        EMPLOYEE NUMBER
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
                         {formDetails.employee_number || "N/A"}
@@ -187,10 +187,20 @@ const DaRecommendationApprovalDialog = ({
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
+                        POSITION TITLE
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formDetails.position_title || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
                         DEPARTMENT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.department || "N/A"}
+                        {formDetails.department || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={styles.fieldBoxStyles}>
@@ -200,17 +210,7 @@ const DaRecommendationApprovalDialog = ({
                         SUB UNIT
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.sub_unit || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        POSITION
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.position_title || "N/A"}
+                        {formDetails.sub_unit || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -219,7 +219,7 @@ const DaRecommendationApprovalDialog = ({
 
               <Box sx={styles.sectionBoxStyles}>
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
-                  Recommendation Details
+                  Probation Period
                 </Typography>
 
                 <Box>
@@ -228,43 +228,10 @@ const DaRecommendationApprovalDialog = ({
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        FROM POSITION
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {fromPosition.position_title || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        TO POSITION
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.position_title || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        REQUESTED BY
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {approval.requested_by || "N/A"}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={styles.fieldContainerStyles}>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
                         START DATE
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(formDetails.start_date)}
+                        {formatDate(formDetails.probation_start_date)}
                       </Typography>
                     </Box>
                     <Box sx={styles.fieldBoxStyles}>
@@ -274,115 +241,271 @@ const DaRecommendationApprovalDialog = ({
                         END DATE
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(formDetails.end_date)}
+                        {formatDate(formDetails.probation_end_date)}
                       </Typography>
                     </Box>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        STATUS
+                        REQUESTED BY
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {approval.status || "N/A"}
+                        {approval?.requested_by || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
+                </Box>
+              </Box>
 
-                  <Box sx={styles.lastFieldContainerStyles}>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        CREATED DATE
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(approval.created_at)}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        UPDATED DATE
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formatDate(approval.updated_at)}
-                      </Typography>
-                    </Box>
-                    <Box sx={styles.fieldBoxStyles}>
-                      <Typography
-                        variant="caption"
-                        sx={styles.fieldLabelStyles}>
-                        CHARGING NAME
-                      </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {toPosition.charging_name || "N/A"}
-                      </Typography>
-                    </Box>
+              {objectives.length > 0 && (
+                <Box sx={styles.sectionBoxStyles}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}>
+                    <TrendingUpIcon sx={{ color: "rgb(33, 61, 112)" }} />
+                    <Typography
+                      variant="subtitle2"
+                      sx={styles.sectionTitleStyles}>
+                      Key Performance Indicators ({objectives.length})
+                    </Typography>
                   </Box>
 
-                  {formDetails.objectives &&
-                    formDetails.objectives.length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="caption"
-                          sx={styles.fieldLabelStyles}>
-                          OBJECTIVES / KPIs
-                        </Typography>
-                        <Box sx={{ mt: 1 }}>
-                          {formDetails.objectives.map((objective, index) => (
-                            <Box
-                              key={objective.id}
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {objectives.map((objective, index) => (
+                      <Box
+                        key={objective.id}
+                        sx={{
+                          p: 2,
+                          backgroundColor: "#f8f9fa",
+                          borderRadius: "8px",
+                          border: "1px solid #e0e0e0",
+                        }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 1.5,
+                          }}>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: 700,
+                              color: "rgb(33, 61, 112)",
+                              fontSize: "14px",
+                            }}>
+                            {index + 1}. {objective.objective_name}
+                          </Typography>
+                          <Chip
+                            label={`${objective.distribution_percentage}%`}
+                            size="small"
+                            sx={{
+                              backgroundColor: "rgb(33, 61, 112)",
+                              color: "white",
+                              fontWeight: 600,
+                            }}
+                          />
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}>
+                          <Box>
+                            <Typography
+                              variant="caption"
                               sx={{
-                                p: 1.5,
-                                mb: 1,
-                                border: "1px solid #e0e0e0",
-                                borderRadius: 1,
-                                backgroundColor: "#fafafa",
+                                color: "#666",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
                               }}>
+                              Deliverable
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "#333",
+                                fontSize: "13px",
+                                mt: 0.5,
+                                whiteSpace: "pre-wrap",
+                              }}>
+                              {objective.deliverable || "N/A"}
+                            </Typography>
+                          </Box>
+
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 2,
+                              mt: 1,
+                              pt: 1,
+                              borderTop: "1px solid #e0e0e0",
+                            }}>
+                            <Box sx={{ flex: 1 }}>
                               <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, mb: 0.5 }}>
-                                {index + 1}. {objective.objective_name} (
-                                {objective.distribution_percentage}%)
+                                variant="caption"
+                                sx={{
+                                  color: "#666",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                }}>
+                                Target %
                               </Typography>
                               <Typography
                                 variant="body2"
                                 sx={{
+                                  color: "#333",
                                   fontSize: "13px",
-                                  color: "#666",
-                                  mb: 0.5,
+                                  fontWeight: 600,
+                                  mt: 0.5,
                                 }}>
-                                {objective.deliverable}
+                                {objective.target_percentage || "N/A"}%
                               </Typography>
-                              <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "#666" }}>
-                                  Target: {objective.target_percentage}%
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "#666" }}>
-                                  Actual:{" "}
-                                  {objective.actual_performance || "N/A"}
-                                </Typography>
-                                {objective.remarks && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{ color: "#666" }}>
-                                    Remarks: {objective.remarks}
-                                  </Typography>
-                                )}
-                              </Box>
                             </Box>
-                          ))}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "#666",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                }}>
+                                Actual Performance
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "#333",
+                                  fontSize: "13px",
+                                  fontWeight: 600,
+                                  mt: 0.5,
+                                }}>
+                                {objective.actual_performance || "N/A"}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "#666",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                }}>
+                                Rating
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "#333",
+                                  fontSize: "13px",
+                                  fontWeight: 600,
+                                  mt: 0.5,
+                                }}>
+                                {objective.rating || "N/A"}
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {objective.remarks && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "#666",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                }}>
+                                Remarks
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "#333",
+                                  fontSize: "13px",
+                                  mt: 0.5,
+                                }}>
+                                {objective.remarks}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {(recommendation.final_recommendation ||
+                recommendation.recommendation_remarks) && (
+                <Box sx={styles.sectionBoxStyles}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={styles.sectionTitleStyles}>
+                    Recommendation
+                  </Typography>
+
+                  <Box>
+                    <Box sx={styles.fieldContainerStyles}>
+                      <Box sx={styles.fieldBoxStyles}>
+                        <Typography
+                          variant="caption"
+                          sx={styles.fieldLabelStyles}>
+                          FINAL RECOMMENDATION
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={styles.fieldValueStyles}>
+                          {recommendation.final_recommendation || "N/A"}
+                        </Typography>
+                      </Box>
+                      <Box sx={styles.fieldBoxStyles}>
+                        <Typography
+                          variant="caption"
+                          sx={styles.fieldLabelStyles}>
+                          EXTENSION END DATE
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={styles.fieldValueStyles}>
+                          {formatDate(recommendation.extension_end_date)}
+                        </Typography>
+                      </Box>
+                      <Box sx={styles.fieldBoxStyles} />
+                    </Box>
+
+                    {recommendation.recommendation_remarks && (
+                      <Box sx={styles.lastFieldContainerStyles}>
+                        <Box sx={{ ...styles.fieldBoxStyles, flex: 1 }}>
+                          <Typography
+                            variant="caption"
+                            sx={styles.fieldLabelStyles}>
+                            REMARKS
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={styles.fieldValueStyles}>
+                            {recommendation.recommendation_remarks}
+                          </Typography>
                         </Box>
                       </Box>
                     )}
+                  </Box>
                 </Box>
-              </Box>
+              )}
 
               {isProcessed && (
                 <Box sx={styles.processedBoxStyles}>
@@ -390,7 +513,7 @@ const DaRecommendationApprovalDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={styles.processedTextStyles}>
-                    This DA recommendation request has already been {status}
+                    This Evaluation Form request has already been {status}
                   </Typography>
                 </Box>
               )}
@@ -465,14 +588,14 @@ const DaRecommendationApprovalDialog = ({
             gutterBottom
             sx={styles.confirmMessageStyles}>
             {confirmAction === "approve"
-              ? "Are you sure you want to Approve this DA recommendation request?"
-              : "Are you sure you want to Reject this DA recommendation request?"}
+              ? "Are you sure you want to Approve this Evaluation Form request?"
+              : "Are you sure you want to Reject this Evaluation Form request?"}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={styles.confirmIdStyles}>
-            Reference Number: {formDetails.reference_number || "N/A"}
+            Evaluation Form Request ID: {approval?.id || "N/A"}
           </Typography>
 
           {confirmAction === "reject" && (
@@ -522,4 +645,4 @@ const DaRecommendationApprovalDialog = ({
   );
 };
 
-export default DaRecommendationApprovalDialog;
+export default EvaluationApprovalDialog;

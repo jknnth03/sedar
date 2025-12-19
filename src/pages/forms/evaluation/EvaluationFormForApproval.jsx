@@ -59,6 +59,7 @@ const EvaluationFormForApproval = ({
       page: page,
       per_page: rowsPerPage,
       status: "active",
+      approval_status: "PENDING",
       pagination: true,
       search: searchQuery || "",
     };

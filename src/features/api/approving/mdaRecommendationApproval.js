@@ -1,12 +1,12 @@
 import { sedarApi } from "..";
 
-const daMdaApprovalApi = sedarApi
+const mdaRecommendationApprovalApi = sedarApi
   .enhanceEndpoints({
-    addTagTypes: ["daMdaApprovals"],
+    addTagTypes: ["mdaRecommendationApprovals"],
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      getMyDaMdaApprovals: build.query({
+      getMyMdaRecommendationApprovals: build.query({
         query: (params = {}) => {
           const {
             pagination = 1,
@@ -14,9 +14,9 @@ const daMdaApprovalApi = sedarApi
             per_page = 10,
             status = "active",
             search,
-            approval_status = "pending",
+            approval_status = "",
             type = "da",
-            stage = "initial",
+            stage = "final",
             ...otherParams
           } = params;
 
@@ -50,30 +50,31 @@ const daMdaApprovalApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["daMdaApprovals"],
+        providesTags: ["mdaRecommendationApprovals"],
       }),
-      getDaMdaApprovalById: build.query({
+      getMdaRecommendationApprovalById: build.query({
         query: (id) => ({
           url: `me/mda-approvals/${id}`,
           method: "GET",
         }),
-        providesTags: (result, error, id) => [{ type: "daMdaApprovals", id }],
+        providesTags: (result, error, id) => [
+          { type: "mdaRecommendationApprovals", id },
+        ],
       }),
-      approveDaMdaSubmission: build.mutation({
-        query: ({ id, comments, reason }) => ({
+      approveMdaRecommendationSubmission: build.mutation({
+        query: ({ id, comments }) => ({
           url: `submission-approvals/${id}/approve`,
           method: "POST",
           body: {
             comments,
-            reason,
           },
         }),
         invalidatesTags: (result, error, { id }) => [
-          { type: "daMdaApprovals", id },
-          "daMdaApprovals",
+          { type: "mdaRecommendationApprovals", id },
+          "mdaRecommendationApprovals",
         ],
       }),
-      rejectDaMdaSubmission: build.mutation({
+      rejectMdaRecommendationSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
           url: `submission-approvals/${id}/reject`,
           method: "POST",
@@ -83,20 +84,20 @@ const daMdaApprovalApi = sedarApi
           },
         }),
         invalidatesTags: (result, error, { id }) => [
-          { type: "daMdaApprovals", id },
-          "daMdaApprovals",
+          { type: "mdaRecommendationApprovals", id },
+          "mdaRecommendationApprovals",
         ],
       }),
     }),
   });
 
 export const {
-  useGetMyDaMdaApprovalsQuery,
-  useLazyGetMyDaMdaApprovalsQuery,
-  useGetDaMdaApprovalByIdQuery,
-  useLazyGetDaMdaApprovalByIdQuery,
-  useApproveDaMdaSubmissionMutation,
-  useRejectDaMdaSubmissionMutation,
-} = daMdaApprovalApi;
+  useGetMyMdaRecommendationApprovalsQuery,
+  useLazyGetMyMdaRecommendationApprovalsQuery,
+  useGetMdaRecommendationApprovalByIdQuery,
+  useLazyGetMdaRecommendationApprovalByIdQuery,
+  useApproveMdaRecommendationSubmissionMutation,
+  useRejectMdaRecommendationSubmissionMutation,
+} = mdaRecommendationApprovalApi;
 
-export default daMdaApprovalApi;
+export default mdaRecommendationApprovalApi;

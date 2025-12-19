@@ -279,7 +279,6 @@ const MdaApprovalDialog = ({
                     <Box sx={styles.fieldBoxStyles} />
                   </Box>
 
-                  {/* FROM and TO Position side by side like DAMDA */}
                   <Box sx={styles.fieldRowStyles}>
                     <Box sx={{ flex: 1 }}>
                       <Typography
@@ -287,7 +286,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         FROM POSITION
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {fromPosition.position || "N/A"}
                       </Typography>
                     </Box>
@@ -297,7 +298,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         TO POSITION
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {toPosition.position || "N/A"}
                       </Typography>
                     </Box>
@@ -310,7 +313,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         FROM DEPARTMENT
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {fromPosition.department || "N/A"}
                       </Typography>
                     </Box>
@@ -320,7 +325,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         TO DEPARTMENT
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {toPosition.department || "N/A"}
                       </Typography>
                     </Box>
@@ -333,7 +340,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         FROM SUB UNIT
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {fromPosition.sub_unit || "N/A"}
                       </Typography>
                     </Box>
@@ -343,7 +352,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         TO SUB UNIT
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {toPosition.sub_unit || "N/A"}
                       </Typography>
                     </Box>
@@ -356,7 +367,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         FROM JOB LEVEL
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {fromPosition.job_level || "N/A"}
                       </Typography>
                     </Box>
@@ -366,7 +379,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         TO JOB LEVEL
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {toPosition.job_level || "N/A"}
                       </Typography>
                     </Box>
@@ -379,7 +394,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         FROM JOB RATE
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {formatCurrency(fromPosition.job_rate)}
                       </Typography>
                     </Box>
@@ -389,7 +406,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         TO JOB RATE
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {formatCurrency(toPosition.job_rate)}
                       </Typography>
                     </Box>
@@ -402,7 +421,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         FROM ALLOWANCE
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {formatCurrency(fromPosition.allowance)}
                       </Typography>
                     </Box>
@@ -412,7 +433,9 @@ const MdaApprovalDialog = ({
                         sx={styles.fieldLabelStyles}>
                         TO ALLOWANCE
                       </Typography>
-                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                      <Typography
+                        variant="body2"
+                        sx={{ ...styles.fieldValueStyles, fontWeight: 600 }}>
                         {formatCurrency(toPosition.allowance)}
                       </Typography>
                     </Box>

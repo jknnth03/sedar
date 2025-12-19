@@ -6,6 +6,7 @@ const evaluationFormApi = sedarApi
       "probationaryEvaluations",
       "positionKpis",
       "employeesProbationary",
+      "singleEmployee",
     ],
   })
   .injectEndpoints({
@@ -159,6 +160,17 @@ const evaluationFormApi = sedarApi
         providesTags: ["employeesProbationary"],
       }),
 
+      getSingleEmployee: build.query({
+        query: (employeeId) => ({
+          url: `employees/${employeeId}`,
+          method: "GET",
+        }),
+        providesTags: (result, error, employeeId) => [
+          { type: "singleEmployee", id: employeeId },
+          "singleEmployee",
+        ],
+      }),
+
       resubmitProbationaryEvaluation: build.mutation({
         query: (submissionId) => ({
           url: `form-submissions/${submissionId}/resubmit`,
@@ -194,6 +206,8 @@ export const {
   useLazyGetPositionKpisQuery,
   useGetEmployeesProbationaryQuery,
   useLazyGetEmployeesProbationaryQuery,
+  useGetSingleEmployeeQuery,
+  useLazyGetSingleEmployeeQuery,
   useResubmitProbationaryEvaluationMutation,
   useCancelProbationaryEvaluationMutation,
 } = evaluationFormApi;

@@ -20,13 +20,12 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { sectionTitleStyles } from "../DAForm/DAFormModal.styles";
-import { useGetAllPositionsQuery } from "../../../../features/api/masterlist/positionsApi";
-import {
-  useLazyGetPositionKpisQuery,
-  useGetAllEmployeesDaQuery,
-} from "../../../../features/api/forms/daformApi";
 
-const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
+const EvaluationRecommendationModalFields = ({
+  isCreate,
+  isReadOnly,
+  currentMode,
+}) => {
   const {
     control,
     watch,
@@ -35,34 +34,12 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   } = useFormContext();
 
   const formValues = watch();
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [selectedToPosition, setSelectedToPosition] = useState(null);
   const [kpisList, setKpisList] = useState([]);
-  const [shouldFetchEmployees, setShouldFetchEmployees] = useState(false);
-  const [shouldFetchPositions, setShouldFetchPositions] = useState(false);
   const [isKpisLoading, setIsKpisLoading] = useState(false);
 
   const isInitialMount = useRef(true);
   const prevModeRef = useRef(currentMode);
   const updateTimeoutRef = useRef(null);
-
-  const { data: employeesData, isLoading: isEmployeesLoading } =
-    useGetAllEmployeesDaQuery(undefined, {
-      skip: !shouldFetchEmployees,
-    });
-  const { data: positionsData, isLoading: isPositionsLoading } =
-    useGetAllPositionsQuery(undefined, {
-      skip: !shouldFetchPositions,
-    });
-
-  const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
-
-  const employees = Array.isArray(employeesData?.result?.data)
-    ? employeesData.result.data
-    : [];
-  const positions = Array.isArray(positionsData?.result)
-    ? positionsData.result
-    : [];
 
   const forPermanentAppointment = watch("for_permanent_appointment");
   const notForPermanentAppointment = watch("not_for_permanent_appointment");
@@ -76,74 +53,17 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   }, [currentMode, isCreate]);
 
   useEffect(() => {
-    if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
-      if (isInitialMount.current && formValues.kpis.length > 0) {
-        setKpisList(formValues.kpis);
+    if (
+      !isCreate &&
+      formValues.objectives &&
+      Array.isArray(formValues.objectives)
+    ) {
+      if (isInitialMount.current && formValues.objectives.length > 0) {
+        setKpisList(formValues.objectives);
         isInitialMount.current = false;
       }
     }
-  }, [isCreate, formValues.kpis]);
-
-  useEffect(() => {
-    if (selectedEmployee) {
-      setValue("employee_id", selectedEmployee.id);
-      setValue("employee_name", selectedEmployee.employee_name);
-      setValue("from_position_id", selectedEmployee.position_id);
-      setValue("from_position_title", selectedEmployee.position_title);
-      setValue("from_department", selectedEmployee.department || "-");
-    }
-  }, [selectedEmployee, setValue]);
-
-  useEffect(() => {
-    const loadPositionKpis = async () => {
-      if (selectedToPosition) {
-        setValue("to_position_id", selectedToPosition.id);
-        setValue("to_position_code", selectedToPosition.code);
-        setValue("to_position_title", selectedToPosition.title.name);
-
-        if (selectedToPosition.charging) {
-          setValue(
-            "to_department",
-            selectedToPosition.charging.department_name || "-"
-          );
-        } else {
-          setValue("to_department", "-");
-        }
-
-        try {
-          setIsKpisLoading(true);
-          const kpisResponse = await fetchPositionKpis(
-            selectedToPosition.id
-          ).unwrap();
-
-          if (kpisResponse?.result && kpisResponse.result.length > 0) {
-            const autoFilledKpis = kpisResponse.result.map((kpi) => ({
-              source_kpi_id: kpi.id,
-              objective_id: kpi.objective_id,
-              objective_name: kpi.objective_name,
-              distribution_percentage: kpi.distribution_percentage,
-              deliverable: kpi.deliverable,
-              target_percentage: kpi.target_percentage,
-              actual_performance: kpi.actual_performance || null,
-              remarks: kpi.remarks || "",
-            }));
-            setKpisList(autoFilledKpis);
-            setValue("kpis", autoFilledKpis);
-          } else {
-            setKpisList([]);
-            setValue("kpis", []);
-          }
-        } catch (error) {
-          setKpisList([]);
-          setValue("kpis", []);
-        } finally {
-          setIsKpisLoading(false);
-        }
-      }
-    };
-
-    loadPositionKpis();
-  }, [selectedToPosition, setValue, fetchPositionKpis]);
+  }, [isCreate, formValues.objectives]);
 
   const handleKpiFieldChange = useCallback(
     (index, field, value) => {
@@ -169,7 +89,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
           };
         }
 
-        setValue("kpis", updatedKpis, { shouldValidate: false });
+        setValue("objectives", updatedKpis, { shouldValidate: false });
 
         return updatedKpis;
       });
@@ -215,112 +135,9 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
           }}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              {isCreate ? (
-                <Autocomplete
-                  options={employees}
-                  getOptionLabel={(option) => option.employee_name}
-                  loading={isEmployeesLoading}
-                  value={selectedEmployee}
-                  onChange={(event, newValue) => {
-                    setSelectedEmployee(newValue);
-                  }}
-                  onOpen={() => setShouldFetchEmployees(true)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="EMPLOYEE NAME"
-                      error={!!errors.employee_id}
-                      helperText={errors.employee_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isEmployeesLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                      sx={{ bgcolor: "white", width: "348px" }}
-                    />
-                  )}
-                  disabled={isReadOnly}
-                  sx={{ width: "348px" }}
-                />
-              ) : (
-                <TextField
-                  label="EMPLOYEE NAME"
-                  value={formValues.employee_name || ""}
-                  disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
-                />
-              )}
-            </Grid>
-
-            <Grid item xs={12} md={6}>
               <TextField
-                label="POSITION - FROM"
-                value={formValues.from_position_title || ""}
-                disabled
-                sx={{ bgcolor: "white", width: "348px" }}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              {isCreate ? (
-                <Autocomplete
-                  options={positions}
-                  getOptionLabel={(option) =>
-                    `${option.code} - ${option.title.name}`
-                  }
-                  loading={isPositionsLoading}
-                  value={selectedToPosition}
-                  onChange={(event, newValue) => {
-                    setSelectedToPosition(newValue);
-                  }}
-                  onOpen={() => setShouldFetchPositions(true)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="POSITION - TO"
-                      error={!!errors.to_position_id}
-                      helperText={errors.to_position_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isPositionsLoading || isKpisLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                      sx={{ bgcolor: "white", width: "348px" }}
-                    />
-                  )}
-                  disabled={isReadOnly || !selectedEmployee}
-                  sx={{ width: "348px" }}
-                />
-              ) : (
-                <TextField
-                  label="POSITION - TO"
-                  value={
-                    formValues.to_position_code && formValues.to_position_title
-                      ? `${formValues.to_position_code} - ${formValues.to_position_title}`
-                      : ""
-                  }
-                  disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
-                />
-              )}
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="DEPARTMENT - FROM"
-                value={formValues.from_department || "-"}
+                label="EMPLOYEE NAME"
+                value={formValues.employee_name || ""}
                 disabled
                 sx={{ bgcolor: "white", width: "348px" }}
               />
@@ -328,8 +145,17 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
             <Grid item xs={12} md={6}>
               <TextField
-                label="DEPARTMENT - TO"
-                value={formValues.to_department || "-"}
+                label="ID NUMBER"
+                value={formValues.employee_code || ""}
+                disabled
+                sx={{ bgcolor: "white", width: "348px" }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="POSITION"
+                value={formValues.position_title || ""}
                 disabled
                 sx={{ bgcolor: "white", width: "348px" }}
               />
@@ -337,36 +163,19 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name="start_date"
+                name="probation_start_date"
                 control={control}
-                rules={{ required: "Start date is required" }}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
-                    value={
-                      field.value && dayjs.isDayjs(field.value)
-                        ? field.value
-                        : field.value
-                        ? dayjs(field.value)
-                        : null
-                    }
-                    onChange={(date) => {
-                      field.onChange(date);
-                      const endDate = watch("end_date");
-                      if (
-                        endDate &&
-                        date &&
-                        dayjs(date).isAfter(dayjs(endDate))
-                      ) {
-                        setValue("end_date", null);
-                      }
-                    }}
-                    label="INCLUSIVE DATES - FROM"
+                    label="PROBATION START DATE"
+                    value={field.value ? dayjs(field.value) : null}
+                    onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
-                        error: !!errors.start_date,
-                        helperText: errors.start_date?.message,
+                        error: !!errors.probation_start_date,
+                        helperText: errors.probation_start_date?.message,
                         sx: { bgcolor: "white", width: "348px" },
                       },
                     }}
@@ -377,43 +186,19 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name="end_date"
+                name="probation_end_date"
                 control={control}
-                rules={{
-                  required: "End date is required",
-                  validate: (value) => {
-                    const startDate = watch("start_date");
-                    if (startDate && value) {
-                      return (
-                        dayjs(value).isAfter(dayjs(startDate)) ||
-                        "End date must be after start date"
-                      );
-                    }
-                    return true;
-                  },
-                }}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
-                    value={
-                      field.value && dayjs.isDayjs(field.value)
-                        ? field.value
-                        : field.value
-                        ? dayjs(field.value)
-                        : null
-                    }
-                    onChange={(date) => field.onChange(date)}
-                    minDate={
-                      watch("start_date")
-                        ? dayjs(watch("start_date")).add(1, "day")
-                        : undefined
-                    }
-                    label="INCLUSIVE DATES - TO"
-                    disabled={isReadOnly || !watch("start_date")}
+                    label="PROBATION END DATE"
+                    value={field.value ? dayjs(field.value) : null}
+                    onChange={(newValue) => field.onChange(newValue)}
+                    disabled={isReadOnly}
                     slotProps={{
                       textField: {
-                        error: !!errors.end_date,
-                        helperText: errors.end_date?.message,
+                        error: !!errors.probation_end_date,
+                        helperText: errors.probation_end_date?.message,
                         sx: { bgcolor: "white", width: "348px" },
                       },
                     }}
@@ -427,7 +212,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
       <Grid item xs={12}>
         <Typography variant="h6" sx={sectionTitleStyles}>
-          PART I - SETTING OF OBJECTIVES
+          PART I - PERFORMANCE OBJECTIVES
         </Typography>
 
         {isKpisLoading ? (
@@ -449,7 +234,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             <Typography
               variant="body1"
               sx={{ color: "text.secondary", fontWeight: 500, mt: 2 }}>
-              Loading KPIs...
+              Loading Performance Objectives...
             </Typography>
           </Box>
         ) : kpisList.length > 0 ? (
@@ -481,7 +266,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     ASSESSMENT
                     <br />
                     <span style={{ fontSize: "0.75rem", fontStyle: "italic" }}>
-                      (to be filled up 30 days before end of DA)
+                      (to be filled up 30 days before end of probation)
                     </span>
                   </TableCell>
                 </TableRow>
@@ -711,9 +496,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             <Typography
               variant="body1"
               sx={{ color: "text.secondary", fontWeight: 500 }}>
-              {isCreate && !selectedToPosition
-                ? "Please select a TO Position to load KPIs"
-                : "No KPIs available"}
+              No Performance Objectives available
             </Typography>
           </Box>
         )}
@@ -731,7 +514,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             display: "block",
             mb: 2,
           }}>
-          (To be accomplished 30 days before the end of DA)
+          (To be accomplished 30 days before the end of probation)
         </Typography>
         <Box
           sx={{
@@ -877,4 +660,4 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   );
 };
 
-export default DARecommendationModalFields;
+export default EvaluationRecommendationModalFields;

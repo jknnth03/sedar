@@ -14,6 +14,10 @@ export const getCreateModeInitialValues = () => ({
   start_date: null,
   end_date: null,
   kpis: [],
+  for_permanent_appointment: false,
+  not_for_permanent_appointment: false,
+  for_extension: false,
+  extension_end_date: null,
 });
 
 export const getViewEditModeFormData = (selectedEntry) => {
@@ -26,6 +30,7 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const fromPosition = submittable.from_position || {};
   const toPosition = submittable.to_position || {};
   const objectives = submittable.objectives || [];
+  const finalRecommendation = submittable.final_recommendation;
 
   return {
     form_id: selectedEntry?.form?.id || selectedEntry?.result?.form?.id || 7,
@@ -51,6 +56,12 @@ export const getViewEditModeFormData = (selectedEntry) => {
       actual_performance: obj.actual_performance || null,
       remarks: obj.remarks || "",
     })),
+    for_permanent_appointment: finalRecommendation === "FOR PERMANENT",
+    not_for_permanent_appointment: finalRecommendation === "NOT FOR PERMANENT",
+    for_extension: finalRecommendation === "FOR EXTENSION",
+    extension_end_date: submittable.extension_end_date
+      ? dayjs(submittable.extension_end_date)
+      : null,
   };
 };
 

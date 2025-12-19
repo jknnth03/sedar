@@ -23,18 +23,19 @@ import {
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import EvaluationFormModalFields from "./EvaluationFormModalFields";
+import EvaluationRecommendationModalFields from "./EvaluationRecommendationModalFields";
 import {
   getCreateModeInitialValues,
   getViewEditModeFormData,
-} from "./EvaluationFieldsGetValues";
-import * as styles from "./EvaluationFormModal.styles";
+} from "./EvaluationRecommendationGetValues";
+import * as styles from "../DAForm/DAFormModal.styles";
 
-const EvaluationFormModal = ({
+const EvaluationRecommendationModal = ({
   open = false,
   onClose,
   onSave,
   onResubmit,
+  onSubmit,
   selectedEntry = null,
   isLoading = false,
   mode = "create",
@@ -59,24 +60,42 @@ const EvaluationFormModal = ({
     }
   }, [open, selectedEntry]);
 
+  const normalizeStatus = (status) => {
+    if (!status) return "";
+    return status.toUpperCase().replace(/[-_]/g, " ").trim();
+  };
+
   const shouldEnableEditButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
-    if (status === "APPROVED" || status === "CANCELLED") return false;
-    const actions =
-      selectedEntry?.actions ||
-      selectedEntry?.result?.actions ||
-      selectedEntry?.result?.submittable?.actions;
-    return actions?.can_update === true;
+    const normalizedStatus = normalizeStatus(status);
+
+    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
+
+    if (disabledStatuses.includes(normalizedStatus)) return false;
+
+    return true;
   };
 
   const shouldEnableResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
-    if (status === "APPROVED" || status === "CANCELLED") return false;
-    const actions =
-      selectedEntry?.actions ||
-      selectedEntry?.result?.actions ||
-      selectedEntry?.result?.submittable?.actions;
-    return actions?.can_resubmit === true;
+    const normalizedStatus = normalizeStatus(status);
+
+    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
+
+    if (disabledStatuses.includes(normalizedStatus)) return false;
+
+    return true;
+  };
+
+  const shouldEnableSubmitButton = () => {
+    const status = selectedEntry?.status || selectedEntry?.result?.status;
+    const normalizedStatus = normalizeStatus(status);
+
+    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
+
+    if (disabledStatuses.includes(normalizedStatus)) return false;
+
+    return true;
   };
 
   useEffect(() => {
@@ -142,43 +161,143 @@ const EvaluationFormModal = ({
     }
   };
 
-  const onSubmit = async (data) => {
+  const handleFormSubmit = async (data) => {
+    const status = selectedEntry?.status || selectedEntry?.result?.status;
+    const normalizedStatus = normalizeStatus(status);
+
     if (currentMode === "create") {
       if (!data.employee_id) {
         alert("Please select an Employee");
         return;
       }
-      if (!data.probation_start_date) {
-        alert("Probation Start Date is required");
-        return;
-      }
-      if (!data.probation_end_date) {
-        alert("Probation End Date is required");
+      if (!data.to_position_id) {
+        alert("Please select a TO Position");
         return;
       }
       if (!data.objectives || data.objectives.length === 0) {
-        alert("Performance Objectives are required");
+        alert("Please add at least one objective");
         return;
       }
+      const totalDistribution = data.objectives.reduce(
+        (sum, obj) => sum + Number(obj.distribution_percentage || 0),
+        0
+      );
+      if (totalDistribution !== 100) {
+        alert(
+          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`
+        );
+        return;
+      }
+    }
+
+    let finalRecommendation = null;
+    if (data.for_permanent_appointment) {
+      finalRecommendation = "FOR PERMANENT";
+    } else if (data.not_for_permanent_appointment) {
+      finalRecommendation = "NOT FOR PERMANENT";
+    } else if (data.for_extension) {
+      finalRecommendation = "FOR EXTENSION";
+    }
+
+    if (
+      normalizedStatus === "FOR RECOMMENDATION" ||
+      normalizedStatus === "PENDING RECOMMENDATION APPROVAL"
+    ) {
+      if (!finalRecommendation) {
+        alert("Please select a recommendation option");
+        return;
+      }
+
+      const invalidObjectives = [];
+      data.objectives.forEach((obj, index) => {
+        const actualPerf = obj.actual_performance;
+        if (
+          actualPerf === null ||
+          actualPerf === undefined ||
+          actualPerf === "" ||
+          isNaN(Number(actualPerf))
+        ) {
+          invalidObjectives.push(index + 1);
+        }
+      });
+
+      if (invalidObjectives.length > 0) {
+        alert(
+          `Please fill in the Actual Performance for objective(s) #${invalidObjectives.join(
+            ", "
+          )} before submitting.`
+        );
+        return;
+      }
+
+      const objectives = data.objectives.map((obj) => ({
+        id: obj.id,
+        actual_performance: Number(obj.actual_performance),
+        remarks: obj.remarks || "",
+      }));
+
+      const formattedData = {
+        final_recommendation: finalRecommendation,
+        objectives: objectives,
+      };
+
+      if (data.for_extension && data.extension_end_date) {
+        formattedData.extension_end_date = dayjs(
+          data.extension_end_date
+        ).format("YYYY-MM-DD");
+      }
+
+      console.log("=== SUBMITTING TO API ===");
+      console.log("Formatted Data:", JSON.stringify(formattedData, null, 2));
+
+      if (normalizedStatus === "FOR RECOMMENDATION" && onSubmit) {
+        const entryId =
+          editingEntryId ||
+          selectedEntry?.id ||
+          selectedEntry?.result?.id ||
+          null;
+        await onSubmit(formattedData, entryId);
+      } else if (
+        normalizedStatus === "PENDING RECOMMENDATION APPROVAL" &&
+        onSave
+      ) {
+        const entryId =
+          editingEntryId ||
+          selectedEntry?.id ||
+          selectedEntry?.result?.id ||
+          null;
+        await onSave(formattedData, currentMode, entryId);
+      }
+      return;
     }
 
     const formattedData = {
       form_id: 8,
       employee_id: data.employee_id,
-      evaluation_date: data.evaluation_date
-        ? dayjs(data.evaluation_date).format("YYYY-MM-DD")
+      from_position_id: data.from_position_id,
+      to_position_id: data.to_position_id,
+      start_date: data.start_date
+        ? dayjs(data.start_date).format("YYYY-MM-DD")
         : null,
-      evaluator_id: data.evaluator_id,
-      performance_rating: data.performance_rating,
-      comments: data.comments,
-      recommendation: data.recommendation,
-      probation_start_date: data.probation_start_date
-        ? dayjs(data.probation_start_date).format("YYYY-MM-DD")
+      end_date: data.end_date
+        ? dayjs(data.end_date).format("YYYY-MM-DD")
         : null,
-      probation_end_date: data.probation_end_date
-        ? dayjs(data.probation_end_date).format("YYYY-MM-DD")
-        : null,
-      kpis: data.objectives || [],
+      objective: data.objective,
+      objectives: data.objectives.map((obj) => ({
+        source_kpi_id: obj.source_kpi_id,
+        objective_id: obj.objective_id,
+        objective_name: obj.objective_name,
+        distribution_percentage: Number(obj.distribution_percentage),
+        deliverable: obj.deliverable,
+        target_percentage: Number(obj.target_percentage),
+        actual_performance: obj.actual_performance || null,
+        remarks: obj.remarks || "",
+      })),
+      final_recommendation: finalRecommendation,
+      extension_end_date:
+        data.extension_end_date && data.for_extension
+          ? dayjs(data.extension_end_date).format("YYYY-MM-DD")
+          : null,
     };
 
     if (onSave) {
@@ -227,17 +346,27 @@ const EvaluationFormModal = ({
 
   const getModalTitle = () => {
     const titles = {
-      create: "CREATE PROBATIONARY EVALUATION",
-      view: "VIEW PROBATIONARY EVALUATION",
-      edit: "EDIT PROBATIONARY EVALUATION",
+      create: "CREATE EVALUATION RECOMMENDATION",
+      view: "VIEW EVALUATION RECOMMENDATION",
+      edit: "EDIT EVALUATION RECOMMENDATION",
     };
-    return titles[currentMode] || "Probationary Evaluation";
+    return titles[currentMode] || "Evaluation Recommendation";
   };
 
   const showResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
+    const normalizedStatus = normalizeStatus(status);
+
+    const disabledStatuses = [
+      "COMPLETED",
+      "APPROVED",
+      "CANCELLED",
+      "FOR RECOMMENDATION",
+      "PENDING RECOMMENDATION APPROVAL",
+    ];
+
     return (
-      currentMode === "view" && status !== "APPROVED" && status !== "CANCELLED"
+      currentMode === "view" && !disabledStatuses.includes(normalizedStatus)
     );
   };
 
@@ -247,7 +376,26 @@ const EvaluationFormModal = ({
   const isEditMode = currentMode === "edit";
   const isProcessing = isLoading || isUpdating;
 
-  const formKey = `evaluation-form-${
+  const getButtonLabel = () => {
+    const status = selectedEntry?.status || selectedEntry?.result?.status;
+    const normalizedStatus = normalizeStatus(status);
+
+    if (currentMode === "create") {
+      return isProcessing ? "Creating..." : "Create";
+    }
+
+    if (normalizedStatus === "FOR RECOMMENDATION") {
+      return isProcessing ? "Submitting..." : "Submit";
+    }
+
+    if (normalizedStatus === "PENDING RECOMMENDATION APPROVAL") {
+      return isProcessing ? "Updating..." : "Update";
+    }
+
+    return isProcessing ? "Updating..." : "Update";
+  };
+
+  const formKey = `evaluation-recommendation-${
     open ? "open" : "closed"
   }-${mode}-${hasInitialized}`;
 
@@ -268,7 +416,10 @@ const EvaluationFormModal = ({
               {getModalTitle()}
             </Typography>
             {isViewMode && (
-              <Tooltip title="EDIT EVALUATION" arrow placement="top">
+              <Tooltip
+                title="EDIT EVALUATION RECOMMENDATION"
+                arrow
+                placement="top">
                 <span>
                   <IconButton
                     onClick={() => setCurrentMode("edit")}
@@ -303,10 +454,10 @@ const EvaluationFormModal = ({
           </IconButton>
         </DialogTitle>
 
-        <form onSubmit={handleSubmit(onSubmit)} key={formKey}>
+        <form onSubmit={handleSubmit(handleFormSubmit)} key={formKey}>
           <DialogContent sx={styles.dialogContentStyles}>
             {isFormReady ? (
-              <EvaluationFormModalFields
+              <EvaluationRecommendationModalFields
                 key={formKey}
                 isCreate={isCreate}
                 isReadOnly={isReadOnly}
@@ -353,15 +504,11 @@ const EvaluationFormModal = ({
                   ) : currentMode === "create" ? (
                     <AddIcon />
                   ) : (
-                    <EditIcon />
+                    <SendIcon />
                   )
                 }
                 sx={styles.saveButtonStyles}>
-                {isProcessing
-                  ? "Saving..."
-                  : currentMode === "create"
-                  ? "Create"
-                  : "Update"}
+                {getButtonLabel()}
               </Button>
             )}
           </DialogActions>
@@ -371,4 +518,4 @@ const EvaluationFormModal = ({
   );
 };
 
-export default EvaluationFormModal;
+export default EvaluationRecommendationModal;

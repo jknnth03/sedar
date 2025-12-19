@@ -21,6 +21,7 @@ import { sectionTitleStyles } from "./EvaluationFormModal.styles";
 import {
   useGetEmployeesProbationaryQuery,
   useLazyGetPositionKpisQuery,
+  useLazyGetSingleEmployeeQuery,
 } from "../../../../features/api/forms/evaluationFormApi";
 
 const EvaluationFormModalFields = ({
@@ -51,6 +52,7 @@ const EvaluationFormModalFields = ({
     });
 
   const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
+  const [fetchSingleEmployee] = useLazyGetSingleEmployeeQuery();
 
   const employees = Array.isArray(employeesData?.result?.data)
     ? employeesData.result.data
@@ -81,25 +83,96 @@ const EvaluationFormModalFields = ({
   useEffect(() => {
     const loadEmployeeKpis = async () => {
       if (selectedEmployee) {
+        console.log("=== EMPLOYEE SELECTED ===");
+        console.log("Full selectedEmployee object:", selectedEmployee);
+
         setValue("employee_id", selectedEmployee.id);
         setValue(
           "employee_name",
           selectedEmployee.full_name || selectedEmployee.employee_name
         );
+        setValue("employee_code", selectedEmployee.code || "");
 
-        const positionId =
+        if (selectedEmployee.probation_start_date) {
+          setValue(
+            "probation_start_date",
+            dayjs(selectedEmployee.probation_start_date)
+          );
+        }
+        if (selectedEmployee.probation_end_date) {
+          setValue(
+            "probation_end_date",
+            dayjs(selectedEmployee.probation_end_date)
+          );
+        }
+
+        let positionId =
           selectedEmployee.position?.position?.id ||
           selectedEmployee.position_id;
+
+        console.log("Initial position_id:", positionId);
+        console.log("Employee code:", selectedEmployee.code);
+
+        if (!positionId) {
+          console.log(
+            "No position_id found, fetching full employee details..."
+          );
+          try {
+            const employeeDetails = await fetchSingleEmployee(
+              selectedEmployee.id
+            ).unwrap();
+
+            console.log("=== FULL EMPLOYEE DETAILS ===");
+            console.log("Raw response:", employeeDetails);
+
+            const positionDetailsObj =
+              employeeDetails?.result?.position_details;
+            const positionObj = positionDetailsObj?.position;
+            const extractedId = positionObj?.id;
+
+            console.log("Step 1 - position_details:", positionDetailsObj);
+            console.log("Step 2 - position:", positionObj);
+            console.log("Step 3 - position.id:", extractedId);
+
+            if (extractedId) {
+              positionId = extractedId;
+              console.log("✅ Successfully extracted position_id:", positionId);
+            } else {
+              console.error("❌ Could not find position.id in the response");
+              console.log("Trying alternative paths...");
+
+              positionId =
+                employeeDetails?.result?.position?.id ||
+                employeeDetails?.result?.position_id ||
+                employeeDetails?.position_details?.position?.id ||
+                employeeDetails?.position?.id ||
+                employeeDetails?.position_id;
+
+              console.log("Alternative extraction result:", positionId);
+            }
+          } catch (error) {
+            console.error("Error fetching employee details:", error);
+          }
+        }
+
+        console.log("Final position_id:", positionId);
+
         const positionTitle =
           selectedEmployee.position?.position?.title?.name ||
           selectedEmployee.position_title ||
           "";
+
+        console.log("Position title:", positionTitle);
         setValue("position_title", positionTitle);
 
         if (positionId) {
           try {
             setIsKpisLoading(true);
+            console.log("Fetching KPIs for position_id:", positionId);
+
             const kpisResponse = await fetchPositionKpis(positionId).unwrap();
+
+            console.log("KPIs API Response:", kpisResponse);
 
             if (kpisResponse?.result && kpisResponse.result.length > 0) {
               const autoFilledKpis = kpisResponse.result.map((kpi) => ({
@@ -113,9 +186,12 @@ const EvaluationFormModalFields = ({
                 rating: null,
                 remarks: null,
               }));
+
+              console.log("Auto-filled KPIs:", autoFilledKpis);
               setKpisList(autoFilledKpis);
               setValue("objectives", autoFilledKpis);
             } else {
+              console.log("No KPIs found in response");
               setKpisList([]);
               setValue("objectives", []);
             }
@@ -126,12 +202,17 @@ const EvaluationFormModalFields = ({
           } finally {
             setIsKpisLoading(false);
           }
+        } else {
+          console.error("❌ NO POSITION_ID FOUND - KPIs cannot be fetched!");
+          console.error(
+            "This means both the employee list and employee details are missing position_id"
+          );
         }
       }
     };
 
     loadEmployeeKpis();
-  }, [selectedEmployee, setValue, fetchPositionKpis]);
+  }, [selectedEmployee, setValue, fetchPositionKpis, fetchSingleEmployee]);
 
   return (
     <Grid container spacing={3} sx={{ height: "100%" }}>
@@ -155,6 +236,7 @@ const EvaluationFormModalFields = ({
                   loading={isEmployeesLoading}
                   value={selectedEmployee}
                   onChange={(event, newValue) => {
+                    console.log("Employee selection changed:", newValue);
                     setSelectedEmployee(newValue);
                   }}
                   onOpen={() => setShouldFetchEmployees(true)}
@@ -193,10 +275,65 @@ const EvaluationFormModalFields = ({
 
             <Grid item xs={12} md={6}>
               <TextField
+                label="ID NUMBER"
+                value={formValues.employee_code || ""}
+                disabled
+                sx={{ bgcolor: "white", width: "348px" }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
                 label="POSITION"
                 value={formValues.position_title || ""}
                 disabled
                 sx={{ bgcolor: "white", width: "348px" }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="probation_start_date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    label="PROBATION START DATE"
+                    value={field.value ? dayjs(field.value) : null}
+                    onChange={(newValue) => field.onChange(newValue)}
+                    disabled={isReadOnly}
+                    slotProps={{
+                      textField: {
+                        error: !!errors.probation_start_date,
+                        helperText: errors.probation_start_date?.message,
+                        sx: { bgcolor: "white", width: "348px" },
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="probation_end_date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    label="PROBATION END DATE"
+                    value={field.value ? dayjs(field.value) : null}
+                    onChange={(newValue) => field.onChange(newValue)}
+                    disabled={isReadOnly}
+                    slotProps={{
+                      textField: {
+                        error: !!errors.probation_end_date,
+                        helperText: errors.probation_end_date?.message,
+                        sx: { bgcolor: "white", width: "348px" },
+                      },
+                    }}
+                  />
+                )}
               />
             </Grid>
           </Grid>

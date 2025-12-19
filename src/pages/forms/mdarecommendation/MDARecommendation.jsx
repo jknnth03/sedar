@@ -11,11 +11,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
+  Fade,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -23,7 +23,6 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
@@ -36,16 +35,13 @@ import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
-import EvaluationFormForApproval from "./EvaluationFormForApproval";
-import EvaluationFormAwaitingResubmission from "./EvaluationFormAwaitingResubmission";
-import EvaluationFormRejected from "./EvaluationFormRejected";
-import EvaluationFormCancelled from "./EvaluationFormCancelled";
-import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
-import {
-  useCreateProbationaryEvaluationMutation,
-  useUpdateProbationaryEvaluationMutation,
-} from "../../../features/api/forms/evaluationFormApi";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import DAForMDAProcessing from "./DAForMDAProcessing";
+import MDARecommendationForApproval from "./MDARecommendationForApproval";
+import MDARecommendationRejected from "./MDARecommendationRejected";
+import MDARecommendationAwaitingResubmission from "./MDARecommendationAwaitingResubmission";
+import MDARecommendationApproved from "./MDARecommendationApproved";
+import MDARecommendationCancelled from "./MDARecommendationCancelled";
+import { useCancelFormSubmissionMutation } from "../../../features/api/forms/mdaRecommendationApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -53,8 +49,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`evaluation-tabpanel-${index}`}
-      aria-labelledby={`evaluation-tab-${index}`}
+      id={`mdarecommendation-tabpanel-${index}`}
+      aria-labelledby={`mdarecommendation-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -101,7 +97,8 @@ const filterDataBySearch = (data, searchQuery) => {
     (item) =>
       item.reference_number.toLowerCase().includes(query) ||
       item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query)
+      item.employee_code.toLowerCase().includes(query) ||
+      item.action_type.toLowerCase().includes(query)
   );
 };
 
@@ -343,7 +340,7 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search Evaluation Form..."}
+        placeholder={isVerySmall ? "Search..." : "Search Recommendation..."}
         value={searchQuery}
         onChange={handleSearchChange}
         disabled={isLoading}
@@ -398,7 +395,7 @@ const CustomSearchBar = ({
   );
 };
 
-const EvaluationForm = () => {
+const MDARecommendation = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
@@ -411,17 +408,21 @@ const EvaluationForm = () => {
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
-    0: "ForApproval",
-    1: "AwaitingResubmission",
-    2: "Rejected",
-    3: "Cancelled",
+    0: "DAForMDAProcessing",
+    1: "ForApproval",
+    2: "AwaitingResubmission",
+    3: "Rejected",
+    4: "Approved",
+    5: "Cancelled",
   };
 
   const reverseTabMap = {
-    ForApproval: 0,
-    AwaitingResubmission: 1,
-    Rejected: 2,
-    Cancelled: 3,
+    DAForMDAProcessing: 0,
+    ForApproval: 1,
+    AwaitingResubmission: 2,
+    Rejected: 3,
+    Approved: 4,
+    Cancelled: 5,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -434,24 +435,17 @@ const EvaluationForm = () => {
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create");
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
 
-  const [createProbationaryEvaluation] =
-    useCreateProbationaryEvaluationMutation();
-  const [updateProbationaryEvaluation] =
-    useUpdateProbationaryEvaluationMutation();
-  const [cancelProbationaryEvaluation] = useCancelFormSubmissionMutation();
+  const [cancelRecommendationSubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const evaluationCounts = {
-    forApproval:
-      dashboardData?.result?.approval?.probationary_evaluation_approval || 0,
-    awaitingResubmission: 0,
+  const mdaRecommendationCounts = {
+    daForMDAProcessing: 0,
+    forApproval: 0,
     rejected: 0,
+    awaitingResubmission: 0,
+    approved: 0,
     cancelled: 0,
   };
 
@@ -491,42 +485,24 @@ const EvaluationForm = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const handleAddNew = useCallback(() => {
-    setSelectedEntry(null);
-    setModalMode("create");
-    methods.reset();
-    setModalOpen(true);
-  }, [methods]);
-
-  const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalLoading(false);
-    methods.reset();
-  }, [methods]);
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
-
   const handleCancel = useCallback(
-    async (entryId, cancellationReason) => {
+    async (entryId, onSuccess) => {
       try {
-        await cancelProbationaryEvaluation({
-          id: entryId,
-          cancellation_reason: cancellationReason,
-        }).unwrap();
+        const result = await cancelRecommendationSubmission(entryId).unwrap();
 
-        enqueueSnackbar("Probationary Evaluation cancelled successfully!", {
+        enqueueSnackbar("MDA Recommendation cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
+        if (onSuccess && typeof onSuccess === "function") {
+          onSuccess();
+        }
+
         return true;
       } catch (error) {
         let errorMessage =
-          "Failed to cancel Probationary Evaluation. Please try again.";
+          "Failed to cancel MDA Recommendation. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -542,73 +518,14 @@ const EvaluationForm = () => {
         return false;
       }
     },
-    [cancelProbationaryEvaluation, enqueueSnackbar]
-  );
-
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      setModalLoading(true);
-
-      try {
-        let result;
-
-        if (mode === "edit") {
-          if (!entryId) {
-            throw new Error("Entry ID is required for updating");
-          }
-
-          result = await updateProbationaryEvaluation({
-            id: entryId,
-            data: formData,
-          }).unwrap();
-
-          enqueueSnackbar("Probationary Evaluation updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        } else {
-          result = await createProbationaryEvaluation(formData).unwrap();
-
-          enqueueSnackbar("Probationary Evaluation created successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        }
-
-        handleCloseModal();
-      } catch (error) {
-        let errorMessage =
-          mode === "edit"
-            ? "Failed to update Probationary Evaluation. Please try again."
-            : "Failed to create Probationary Evaluation. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      createProbationaryEvaluation,
-      updateProbationaryEvaluation,
-      enqueueSnackbar,
-      handleCloseModal,
-    ]
+    [cancelRecommendationSubmission, enqueueSnackbar]
   );
 
   const tabsData = [
     {
-      label: "FOR APPROVAL",
+      label: "DA FOR MDA PROCESSING",
       component: (
-        <EvaluationFormForApproval
+        <DAForMDAProcessing
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -618,12 +535,27 @@ const EvaluationForm = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: evaluationCounts.forApproval,
+      badgeCount: mdaRecommendationCounts.daForMDAProcessing,
+    },
+    {
+      label: "FOR APPROVAL",
+      component: (
+        <MDARecommendationForApproval
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: mdaRecommendationCounts.forApproval,
     },
     {
       label: "AWAITING RESUBMISSION",
       component: (
-        <EvaluationFormAwaitingResubmission
+        <MDARecommendationAwaitingResubmission
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -633,12 +565,12 @@ const EvaluationForm = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: evaluationCounts.awaitingResubmission,
+      badgeCount: mdaRecommendationCounts.awaitingResubmission,
     },
     {
       label: "REJECTED",
       component: (
-        <EvaluationFormRejected
+        <MDARecommendationRejected
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -648,12 +580,27 @@ const EvaluationForm = () => {
           onCancel={handleCancel}
         />
       ),
-      badgeCount: evaluationCounts.rejected,
+      badgeCount: mdaRecommendationCounts.rejected,
+    },
+    {
+      label: "APPROVED",
+      component: (
+        <MDARecommendationApproved
+          searchQuery={debouncedSearchQuery}
+          dateFilters={dateFilters}
+          filterDataByDate={filterDataByDate}
+          filterDataBySearch={filterDataBySearch}
+          setQueryParams={setQueryParams}
+          currentParams={currentParams}
+          onCancel={handleCancel}
+        />
+      ),
+      badgeCount: mdaRecommendationCounts.approved,
     },
     {
       label: "CANCELLED",
       component: (
-        <EvaluationFormCancelled
+        <MDARecommendationCancelled
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
           filterDataByDate={filterDataByDate}
@@ -662,14 +609,14 @@ const EvaluationForm = () => {
           currentParams={currentParams}
         />
       ),
-      badgeCount: evaluationCounts.cancelled,
+      badgeCount: mdaRecommendationCounts.cancelled,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `evaluation-tab-${index}`,
-      "aria-controls": `evaluation-tabpanel-${index}`,
+      id: `mdarecommendation-tab-${index}`,
+      "aria-controls": `mdarecommendation-tabpanel-${index}`,
     };
   };
 
@@ -698,71 +645,10 @@ const EvaluationForm = () => {
                   ...(isVerySmall && styles.headerTitleTextVerySmall),
                   paddingRight: "14px",
                 }}>
-                {isVerySmall ? "EVAL" : "EVALUATION FORM"}
+                {isVerySmall
+                  ? "MDA (REC)"
+                  : "MASTER DATA AUTHORITY (RECOMMENDATION)"}
               </Typography>
-
-              <Fade in={!isLoading}>
-                <Box>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "140px",
-                        minWidth: isMobile ? "100px" : "140px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      CREATE
-                    </Button>
-                  )}
-                </Box>
-              </Fade>
             </Box>
 
             <CustomSearchBar
@@ -778,7 +664,7 @@ const EvaluationForm = () => {
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="Probationary Evaluation submissions tabs"
+              aria-label="MDA Recommendation submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile
@@ -802,12 +688,14 @@ const EvaluationForm = () => {
                           ? tab.label
                               .replace("AWAITING ", "")
                               .replace("RESUBMISSION", "RESUB")
+                              .replace("DA FOR MDA PROCESSING", "DA PROC")
                           : tab.label}
                       </Badge>
                     ) : isVerySmall && tab.label.length > 12 ? (
                       tab.label
                         .replace("AWAITING ", "")
                         .replace("RESUBMISSION", "RESUB")
+                        .replace("DA FOR MDA PROCESSING", "DA PROC")
                     ) : (
                       tab.label
                     )
@@ -832,21 +720,10 @@ const EvaluationForm = () => {
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
           />
-
-          <EvaluationFormModal
-            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
-            open={modalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEntry={selectedEntry}
-            isLoading={modalLoading}
-            mode={modalMode}
-            onModeChange={handleModeChange}
-          />
         </Box>
       </FormProvider>
     </LocalizationProvider>
   );
 };
 
-export default EvaluationForm;
+export default MDARecommendation;
