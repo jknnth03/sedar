@@ -256,7 +256,7 @@ const EvaluationRecommendationApprovalDialog = ({
                         REQUESTED BY
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {approval.requested_by || "N/A"}
+                        {approval?.requested_by || "N/A"}
                       </Typography>
                     </Box>
                   </Box>

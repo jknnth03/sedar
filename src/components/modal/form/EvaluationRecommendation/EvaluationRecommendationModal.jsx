@@ -201,7 +201,9 @@ const EvaluationRecommendationModal = ({
 
     if (
       normalizedStatus === "FOR RECOMMENDATION" ||
-      normalizedStatus === "PENDING RECOMMENDATION APPROVAL"
+      normalizedStatus === "PENDING RECOMMENDATION APPROVAL" ||
+      normalizedStatus === "RECOMMENDATION REJECTED" ||
+      normalizedStatus === "AWAITING RECOMMENDATION RESUBMISSION"
     ) {
       if (!finalRecommendation) {
         alert("Please select a recommendation option");
@@ -247,25 +249,20 @@ const EvaluationRecommendationModal = ({
         ).format("YYYY-MM-DD");
       }
 
-      console.log("=== SUBMITTING TO API ===");
-      console.log("Formatted Data:", JSON.stringify(formattedData, null, 2));
+      const entryId =
+        editingEntryId ||
+        selectedEntry?.id ||
+        selectedEntry?.result?.id ||
+        null;
 
       if (normalizedStatus === "FOR RECOMMENDATION" && onSubmit) {
-        const entryId =
-          editingEntryId ||
-          selectedEntry?.id ||
-          selectedEntry?.result?.id ||
-          null;
         await onSubmit(formattedData, entryId);
       } else if (
-        normalizedStatus === "PENDING RECOMMENDATION APPROVAL" &&
+        (normalizedStatus === "PENDING RECOMMENDATION APPROVAL" ||
+          normalizedStatus === "RECOMMENDATION REJECTED" ||
+          normalizedStatus === "AWAITING RECOMMENDATION RESUBMISSION") &&
         onSave
       ) {
-        const entryId =
-          editingEntryId ||
-          selectedEntry?.id ||
-          selectedEntry?.result?.id ||
-          null;
         await onSave(formattedData, currentMode, entryId);
       }
       return;
@@ -388,7 +385,11 @@ const EvaluationRecommendationModal = ({
       return isProcessing ? "Submitting..." : "Submit";
     }
 
-    if (normalizedStatus === "PENDING RECOMMENDATION APPROVAL") {
+    if (
+      normalizedStatus === "PENDING RECOMMENDATION APPROVAL" ||
+      normalizedStatus === "RECOMMENDATION REJECTED" ||
+      normalizedStatus === "AWAITING RECOMMENDATION RESUBMISSION"
+    ) {
       return isProcessing ? "Updating..." : "Update";
     }
 

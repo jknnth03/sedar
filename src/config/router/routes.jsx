@@ -78,6 +78,8 @@ import MdaRecommendationApproval from "../../pages/approvals/mdaRecommendation/M
 import EvaluationApproval from "../../pages/approvals/evaluationApproval/EvaluationApproval.jsx";
 import EvaluationRecommendation from "../../pages/forms/evaluationRecommendation/EvaluationRecommendation.jsx";
 import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
+import MDAEvaluationRecommendation from "../../pages/forms/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
+import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
 
 export const ROUTES = [
   {
@@ -230,6 +232,15 @@ export const ROUTES = [
         },
       },
       {
+        id: "REQUEST.MDAEVALUATIONRECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDAEVALUATIONRECOMMENDATION.path}`,
+        element: <MDAEvaluationRecommendation />,
+        handle: {
+          permission:
+            MODULES.REQUEST.children.MDAEVALUATIONRECOMMENDATION.permissionId,
+        },
+      },
+      {
         id: "REQUEST.PENDINGREGISTRATION",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.PENDINGREGISTRATION.path}`,
         element: <PENDINGREGISTRATION />,
@@ -375,6 +386,15 @@ export const ROUTES = [
           permission:
             MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL
               .permissionId,
+        },
+      },
+      {
+        id: "APPROVING.MDAEVALUATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDAEVALUATIONAPPROVAL.path}`,
+        element: <MDAEvaluationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.MDAEVALUATIONAPPROVAL.permissionId,
         },
       },
       {
