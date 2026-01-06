@@ -8,6 +8,7 @@ const CustomTablePagination = ({
   onPageChange,
   onRowsPerPageChange,
   rowsPerPageOptions = [5, 10, 25, 50, 100],
+  sx,
   ...otherProps
 }) => {
   return (
@@ -43,6 +44,7 @@ const CustomTablePagination = ({
             },
           },
         },
+        ...sx,
       }}>
       <TablePagination
         rowsPerPageOptions={rowsPerPageOptions}

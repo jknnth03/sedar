@@ -6,9 +6,9 @@ import "../../../pages/GeneralStyle.scss";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import {
   useGetMrfSubmissionsQuery,
+  useGetSingleMrfSubmissionQuery,
   useCreateMrfSubmissionMutation,
   useUpdateMrfSubmissionMutation,
-  useGetSingleMrfSubmissionQuery,
   useResubmitMrfSubmissionMutation,
   useCancelMrfSubmissionMutation,
 } from "../../../features/api/forms/mrfApi";
@@ -69,8 +69,9 @@ const MrfForApproval = ({
       status: "active",
       pagination: 1,
       approval_status: "pending",
+      search: searchQuery || "",
     };
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
     setPage(1);
@@ -103,7 +104,6 @@ const MrfForApproval = ({
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
-
     let filtered = rawData;
 
     if (dateFilters && filterDataByDate) {
@@ -114,24 +114,10 @@ const MrfForApproval = ({
       );
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
     return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  }, [submissionsData, dateFilters, filterDataByDate]);
 
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -402,7 +388,7 @@ const MrfForApproval = ({
           backgroundColor: "white",
         }}>
         <MrfTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -417,7 +403,7 @@ const MrfForApproval = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

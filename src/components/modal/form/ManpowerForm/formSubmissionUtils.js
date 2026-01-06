@@ -379,7 +379,7 @@ export const buildEditPayload = (
   };
 
   if (data.position_id?.id) {
-    updateData.to_position_id = data.position_id.id;
+    updateData.position_id = data.position_id.id;
   }
 
   if (data.job_level_id?.id) {
@@ -407,7 +407,7 @@ export const buildEditPayload = (
   }
 
   if (data.employee_to_be_replaced_id?.id && !isAdditional && !isReplacement) {
-    updateData.employee_id = data.employee_to_be_replaced_id.id;
+    updateData.employee_to_be_replaced_id = data.employee_to_be_replaced_id.id;
   }
 
   if (isReplacement) {
@@ -491,7 +491,8 @@ export const buildResubmitPayload = (data, requisitionType) => {
   }
 
   if (data.employee_to_be_replaced_id?.id && !isAdditional && !isReplacement) {
-    resubmitData.employee_id = data.employee_to_be_replaced_id.id;
+    resubmitData.employee_to_be_replaced_id =
+      data.employee_to_be_replaced_id.id;
   }
 
   if (isReplacement) {
@@ -500,7 +501,7 @@ export const buildResubmitPayload = (data, requisitionType) => {
     }
 
     if (data.movement_new_position_id?.id) {
-      resubmitData.to_position_id = data.movement_new_position_id.id;
+      resubmitData.new_position_id = data.movement_new_position_id.id;
     }
 
     if (

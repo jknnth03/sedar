@@ -173,6 +173,7 @@ const DAFormModal = ({
       employee_id: data.employee_id,
       from_position_id: data.from_position_id,
       to_position_id: data.to_position_id,
+      approved_mrf_id: data.approved_mrf_id,
       start_date: data.start_date
         ? dayjs(data.start_date).format("YYYY-MM-DD")
         : null,
@@ -201,7 +202,6 @@ const DAFormModal = ({
       await onSave(formattedData, currentMode, entryId);
     }
   };
-
   const handleResubmitClick = async () => {
     if (!editingEntryId) {
       const fallbackId = selectedEntry?.id || selectedEntry?.result?.id;

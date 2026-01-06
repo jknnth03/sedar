@@ -10,7 +10,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
     window.print();
   };
 
-  const printData = data || selectedEntry;
+  const printData = data?.result || data || selectedEntry;
 
   if (!printData) {
     return (
@@ -20,49 +20,96 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
     );
   }
 
-  const employeeName = printData?.employee_name || "";
-  const position = printData?.position || "";
-  const department = printData?.department || "";
-  const period = printData?.period || "";
-  const year = printData?.year || "";
+  const employeeName = printData?.employee?.name || "";
+  const position = printData?.employee?.position || "";
+  const department = printData?.employee?.department || "";
+  const period = "";
+  const year = "";
 
-  const individualKPIWeight = printData?.individual_kpi_weight || "70%";
-  const coreCompetencyWeight = printData?.core_competency_weight || "20%";
-  const demeritWeight = printData?.demerit_weight || "10%";
+  const individualKPIWeight = "70%";
+  const coreCompetencyWeight = "20%";
+  const demeritWeight = "10%";
   const totalWeight = "100%";
 
-  const individualKPIRawScore = printData?.individual_kpi_raw_score || "";
-  const coreCompetencyRawScore = printData?.core_competency_raw_score || "";
-  const demeritRawScore = printData?.demerit_raw_score || "";
+  const individualKPIRawScore = printData?.scores?.kpi_total || "";
+  const coreCompetencyRawScore = printData?.scores?.competency_average || "";
+  const demeritRawScore = printData?.scores?.demerit_deduction || "";
 
-  const individualKPIOverall = printData?.individual_kpi_overall || "";
-  const coreCompetencyOverall = printData?.core_competency_overall || "";
-  const demeritOverall = printData?.demerit_overall || "";
-  const totalOverall = printData?.total_overall || "";
+  const individualKPIOverall = "";
+  const coreCompetencyOverall = "";
+  const demeritOverall = "";
+  const totalOverall = printData?.scores?.final_score || "";
 
-  const exceedsExpectations = printData?.overall_rating === "exceeds";
-  const meetsExpectations = printData?.overall_rating === "meets";
-  const needsImprovement = printData?.overall_rating === "needs";
+  const finalRatingLabel = printData?.scores?.final_rating_label || "";
+  const exceedsExpectations = finalRatingLabel.toLowerCase().includes("exceed");
+  const meetsExpectations =
+    finalRatingLabel.toLowerCase().includes("satisfactory") ||
+    finalRatingLabel.toLowerCase().includes("meets");
+  const needsImprovement =
+    finalRatingLabel.toLowerCase().includes("needs") ||
+    finalRatingLabel.toLowerCase().includes("improvement");
 
-  const strengths = printData?.strengths || "";
-  const developmentOpportunities = printData?.development_opportunities || "";
-  const learningNeeds = printData?.learning_needs || "";
+  const strengths = printData?.content?.discussions?.strengths || "";
+  const developmentOpportunities =
+    printData?.content?.discussions?.development || "";
+  const learningNeeds = printData?.content?.discussions?.learning_needs || "";
 
-  const performanceMetrics = printData?.performance_metrics || [];
-  const totalDivision = printData?.total_division || "#DIV/0!";
-  const overallPoints = printData?.overall_points || "#DIV/0!";
+  const performanceMetrics = (printData?.content?.kpis || []).map((kpi) => ({
+    deliverable: kpi.deliverable || "",
+    target: kpi.target_percentage || "",
+    actual: kpi.actual_performance || "",
+    remarks: kpi.remarks || "",
+  }));
 
-  const minorOffensesWeight = printData?.minor_offenses_weight || "";
-  const minorOffensesScore = printData?.minor_offenses_score || "";
-  const majorOffensesWeight = printData?.major_offenses_weight || "";
-  const majorOffensesScore = printData?.major_offenses_score || "";
+  const totalDivision = "";
+  const overallPoints = printData?.scores?.kpi_total || "";
+
+  const minorOffensesWeight = "";
+  const minorOffensesScore = "";
+  const majorOffensesWeight = "";
+  const majorOffensesScore = "";
   const demeritTotalWeight = "100%";
-  const demeritTotalScore = printData?.demerit_total_score || "";
+  const demeritTotalScore = printData?.scores?.demerit_deduction || "";
 
-  const competencies = printData?.competencies || [];
-  const coreCompetencyAverage = printData?.core_competency_average || "";
-  const coreCompetencyGrade = printData?.core_competency_grade || "";
-  const overallGrade = printData?.overall_grade || "";
+  const competencies = [];
+  if (
+    printData?.content?.competencies &&
+    Array.isArray(printData.content.competencies)
+  ) {
+    printData.content.competencies.forEach((section) => {
+      if (section.items && Array.isArray(section.items)) {
+        section.items.forEach((item) => {
+          if (item.is_header) {
+            competencies.push({
+              isHeader: true,
+              title: item.text,
+            });
+          }
+
+          if (item.children && Array.isArray(item.children)) {
+            item.children.forEach((child, idx) => {
+              if (!child.is_header) {
+                competencies.push({
+                  isHeader: false,
+                  number: "",
+                  rating: child.saved_answer?.rating_scale?.value || "",
+                  description: child.text,
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  const coreCompetencyAverage = printData?.scores?.competency_average || "";
+  const competencyScaleMax = printData?.scores?.competency_scale_max || 3;
+  const coreCompetencyGrade =
+    coreCompetencyAverage && competencyScaleMax
+      ? ((coreCompetencyAverage / competencyScaleMax) * 100).toFixed(2) + "%"
+      : "";
+  const overallGrade = printData?.scores?.final_score || "";
 
   return (
     <Box sx={styles.containerStyles}>
@@ -83,7 +130,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
           <div style={styles.headerContainerStyles}>
             <div style={styles.logoStyles}>
               <img
-                src="/assets/rdf.png"
+                src="/rdf.png"
                 alt="RDF Logo"
                 style={styles.logoImageStyles}
               />

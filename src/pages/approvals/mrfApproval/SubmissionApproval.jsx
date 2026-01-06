@@ -29,6 +29,7 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetMySubmissionApprovalsQuery,
+  useGetSingleSubmissionApprovalQuery,
   useApproveSubmissionMutation,
   useRejectSubmissionMutation,
 } from "../../../features/api/approvalsetting/submissionApprovalApi.js";
@@ -171,7 +172,7 @@ const SubmissionApprovalTable = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: status,
-      pagination: true,
+      pagination: 1,
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -354,7 +355,6 @@ const SubmissionApprovalTable = ({
               </TableRow>
             ) : submissionApprovalsList.length > 0 ? (
               submissionApprovalsList.map((submission) => {
-                const submissionData = submission.submission || submission;
                 return (
                   <TableRow
                     key={submission.id}
@@ -372,7 +372,7 @@ const SubmissionApprovalTable = ({
                         whiteSpace: "nowrap",
                         fontWeight: 600,
                       }}>
-                      {submissionData.form_details?.reference_number || "-"}
+                      {submission.reference_number || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -380,8 +380,7 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.form_details?.position?.title?.name ||
-                        "Unknown Position"}
+                      {submission.position_title || "Unknown Position"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -389,8 +388,7 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.form_details?.requisition_type?.name ||
-                        "-"}
+                      {submission.requisition_type || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -398,9 +396,7 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.requested_by?.full_name ||
-                        submissionData.requested_by?.first_name ||
-                        "Unknown"}
+                      {submission.requested_by || "Unknown"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -408,11 +404,11 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.charging?.department_name || "-"}
+                      {submission.department_name || "-"}
                     </TableCell>
                     <TableCell>
-                      {submissionData.created_at
-                        ? dayjs(submissionData.created_at).format(
+                      {submission.created_at
+                        ? dayjs(submission.created_at).format(
                             isVerySmall ? "M/D/YY" : "MMM D, YYYY"
                           )
                         : "-"}
@@ -528,6 +524,17 @@ const SubmissionApproval = () => {
     defaultValues: {
       status: "active",
     },
+  });
+
+  const selectedSubmissionId = detailsDialog.submission?.id;
+
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetSingleSubmissionApprovalQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
   });
 
   const [approveSubmission, { isLoading: approveLoading }] =
@@ -712,10 +719,10 @@ const SubmissionApproval = () => {
         <SubmissionDetailsDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
-          submission={detailsDialog.submission}
+          submission={submissionDetails?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReject={handleReject}
-          isLoading={approveLoading || rejectLoading}
+          isLoading={approveLoading || rejectLoading || detailsLoading}
         />
       </Box>
     </FormProvider>

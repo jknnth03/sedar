@@ -14,6 +14,8 @@ export const getCreateModeInitialValues = () => ({
   start_date: null,
   end_date: null,
   kpis: [],
+  approved_mrf_id: null,
+  mrf_reference_number: "",
 });
 
 export const getViewEditModeFormData = (selectedEntry) => {
@@ -25,7 +27,9 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const employee = submittable.employee || {};
   const fromPosition = submittable.from_position || {};
   const toPosition = submittable.to_position || {};
-  const objectives = submittable.objectives || [];
+  const objectives = submittable.objectives || {};
+  const mrfDetails =
+    submittable.mrf_details || selectedEntry?.mrf_details || {};
 
   return {
     form_id: selectedEntry?.form?.id || selectedEntry?.result?.form?.id || 7,
@@ -40,6 +44,8 @@ export const getViewEditModeFormData = (selectedEntry) => {
     to_department: toPosition.charging?.department_name || "",
     start_date: submittable.start_date ? dayjs(submittable.start_date) : null,
     end_date: submittable.end_date ? dayjs(submittable.end_date) : null,
+    approved_mrf_id: mrfDetails.id || null,
+    mrf_reference_number: mrfDetails.linked_mrf_title || "",
     kpis: objectives.map((obj) => ({
       id: obj.id || null,
       source_kpi_id: obj.source_kpi_id || null,
@@ -60,6 +66,7 @@ export const formatFormDataForSubmission = (formData) => {
     employee_id: formData.employee_id,
     from_position_id: formData.from_position_id,
     to_position_id: formData.to_position_id,
+    approved_mrf_id: formData.approved_mrf_id,
     start_date: formData.start_date
       ? dayjs(formData.start_date).format("YYYY-MM-DD")
       : null,

@@ -32,6 +32,7 @@ import {
 import { biAnnualPerformanceSchema } from "./BiAnnualPerformanceSchema";
 import * as styles from "../DAForm/DAFormModal.styles";
 import BiAnnualPrintingDialog from "./BiAnnualPrintingDialog";
+import { useLazyPrintPerformanceEvaluationQuery } from "../../../../features/api/forms/biAnnualPerformanceApi";
 
 const BiAnnualPerformanceModal = ({
   open = false,
@@ -57,7 +58,7 @@ const BiAnnualPerformanceModal = ({
   const [printData, setPrintData] = useState(null);
 
   const [fetchPrintData, { isLoading: isPrintDataLoading }] =
-    useLazyPrintPerformanceEvaluationQuer();
+    useLazyPrintPerformanceEvaluationQuery();
 
   const prevOpenRef = useRef(open);
   const prevModeRef = useRef(mode);
@@ -166,7 +167,6 @@ const BiAnnualPerformanceModal = ({
       await biAnnualPerformanceSchema.validate(data, { abortEarly: false });
 
       const formattedData = formatFormDataForSubmission(data);
-      console.log("Formatted data for submission:", formattedData);
 
       if (onSave) {
         const entryId =

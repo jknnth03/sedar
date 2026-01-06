@@ -1,3 +1,6 @@
+import { styled } from "@mui/material/styles";
+import { Tabs, Tab } from "@mui/material";
+
 export const styles = {
   mainContainer: {
     width: "100%",
@@ -22,63 +25,96 @@ export const styles = {
   searchBarContainer: {
     display: "flex",
     alignItems: "center",
-    gap: 2,
-    flexShrink: 0,
+    gap: 1.5,
   },
-  filterLabelBox: {
-    fontSize: "0.75rem",
-    fontWeight: 500,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  filterControlLabel: (hasActiveFilters) => ({
-    marginRight: 0,
-    "& .MuiFormControlLabel-label": {
-      fontSize: "0.75rem",
-      fontWeight: 500,
-      color: hasActiveFilters ? "#1976d2" : "#666",
+  filterIconButton: (hasActiveFilters) => ({
+    width: "36px",
+    height: "36px",
+    border: `1px solid ${hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"}`,
+    borderRadius: "8px",
+    backgroundColor: hasActiveFilters ? "rgba(0, 133, 49, 0.04)" : "white",
+    color: hasActiveFilters ? "rgba(0, 133, 49, 1)" : "rgb(33, 61, 112)",
+    position: "relative",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      backgroundColor: hasActiveFilters ? "rgba(0, 133, 49, 0.08)" : "#f5f5f5",
+      borderColor: hasActiveFilters
+        ? "rgba(0, 133, 49, 1)"
+        : "rgb(33, 61, 112)",
     },
-    "& .MuiCheckbox-root": {
-      padding: "6px",
-      color: hasActiveFilters ? "#1976d2" : "#666",
-      "&:hover": {
-        backgroundColor: "rgba(25, 118, 210, 0.04)",
-      },
+  }),
+  filterBadge: {
+    position: "absolute",
+    top: "-6px",
+    right: "-6px",
+    backgroundColor: "rgba(0, 133, 49, 1)",
+    color: "white",
+    borderRadius: "50%",
+    width: "16px",
+    height: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "10px",
+    fontWeight: 600,
+  },
+  filterFormControlLabel: (hasActiveFilters) => ({
+    margin: 0,
+    border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+    borderRadius: "8px",
+    paddingLeft: "8px",
+    paddingRight: "12px",
+    height: "36px",
+    backgroundColor: hasActiveFilters ? "rgba(76, 175, 80, 0.04)" : "white",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      backgroundColor: hasActiveFilters ? "rgba(76, 175, 80, 0.08)" : "#f5f5f5",
+      borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+    },
+    "& .MuiFormControlLabel-label": {
+      fontSize: "12px",
+      fontWeight: 600,
+      color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+      letterSpacing: "0.5px",
     },
   }),
   searchIcon: (isLoading) => ({
     color: isLoading ? "#ccc" : "#666",
-    fontSize: 18,
     marginRight: 1,
+    fontSize: "20px",
   }),
   searchProgress: {
     color: "#1976d2",
     marginLeft: 1,
   },
-  searchInputProps: (isLoading) => ({
-    fontSize: "0.875rem",
-    backgroundColor: isLoading ? "#f5f5f5" : "transparent",
-    "& input": {
-      padding: "8px 0px",
-      "&::placeholder": {
-        color: isLoading ? "#ccc" : "#999",
-        opacity: 1,
+  searchInputPropsStyle: (isLoading) => ({
+    height: "36px",
+    width: "320px",
+    backgroundColor: "white",
+    transition: "all 0.2s ease-in-out",
+    "& .MuiOutlinedInput-root": {
+      height: "36px",
+      "& fieldset": {
+        borderColor: "#ccc",
+        transition: "border-color 0.2s ease-in-out",
+      },
+      "&:hover fieldset": {
+        borderColor: "rgb(33, 61, 112)",
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: "rgb(33, 61, 112)",
+        borderWidth: "2px",
+      },
+      "&.Mui-disabled": {
+        backgroundColor: "#f5f5f5",
       },
     },
   }),
   searchTextField: {
-    minWidth: 250,
-    "& .MuiOutlinedInput-root": {
-      borderRadius: 2,
-      backgroundColor: "#f8f9fa",
-      "& fieldset": {
-        borderColor: "#e0e0e0",
-      },
-      "&:hover fieldset": {
-        borderColor: "#1976d2",
-      },
-      "&.Mui-focused fieldset": {
-        borderColor: "#1976d2",
+    "& .MuiInputBase-input": {
+      fontSize: "14px",
+      "&::placeholder": {
+        opacity: 0.7,
       },
     },
   },
@@ -89,21 +125,115 @@ export const styles = {
     padding: "16px 24px",
     borderBottom: "1px solid #e0e0e0",
   },
+  headerContainerMobile: {
+    flexDirection: "column",
+    gap: 2,
+    alignItems: "stretch",
+  },
+  headerContainerTablet: {
+    flexDirection: "column",
+    gap: 2,
+    alignItems: "stretch",
+  },
   headerLeftSection: {
     display: "flex",
     alignItems: "center",
     gap: 2,
   },
-  createButton: {
-    textTransform: "uppercase",
+  headerTitle: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  headerTitleMobile: {
+    width: "100%",
+  },
+  headerTitleText: {
+    fontSize: "1.25rem",
     fontWeight: 600,
-    fontSize: "0.75rem",
-    borderRadius: 2,
-    paddingX: 3,
-    paddingY: 1,
-    backgroundColor: "#1976d2",
+    color: "rgb(33, 61, 112)",
+  },
+  headerTitleTextMobile: {
+    fontSize: "1rem",
+  },
+  headerTitleTextVerySmall: {
+    fontSize: "0.875rem",
+  },
+  createIconButton: {
+    backgroundColor: "rgb(33, 61, 112)",
+    color: "white",
+    width: "36px",
+    height: "36px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+    transition: "all 0.2s ease-in-out",
     "&:hover": {
-      backgroundColor: "#1565c0",
+      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+      transform: "translateY(-1px)",
+    },
+    "&:disabled": {
+      backgroundColor: "#ccc",
+      boxShadow: "none",
+    },
+  },
+  createButton: {
+    backgroundColor: "rgb(33, 61, 112)",
+    height: "38px",
+    width: "140px",
+    minWidth: "140px",
+    padding: "0 20px",
+    textTransform: "none",
+    fontWeight: 600,
+    fontSize: "14px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+    transition: "all 0.2s ease-in-out",
+    "& .MuiButton-startIcon": {
+      marginRight: "8px",
+    },
+    "&:hover": {
+      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+      transform: "translateY(-1px)",
+    },
+    "&:disabled": {
+      backgroundColor: "#ccc",
+      boxShadow: "none",
+    },
+  },
+  createButtonMobile: {
+    height: "36px",
+    width: "auto",
+    minWidth: "100px",
+    padding: "0 16px",
+    fontSize: "12px",
+    "& .MuiButton-startIcon": {
+      marginRight: "4px",
+    },
+  },
+  tabsSection: {
+    borderBottom: 1,
+    borderColor: "divider",
+  },
+  tabsStyled: {
+    minHeight: 48,
+  },
+  tabsStyledVerySmall: {
+    minHeight: 40,
+  },
+  tabBadge: {
+    "& .MuiBadge-badge": {
+      right: -3,
+      top: -3,
+    },
+  },
+  tabBadgeVerySmall: {
+    "& .MuiBadge-badge": {
+      fontSize: "0.55rem",
+      minWidth: 14,
+      height: 14,
     },
   },
   tabsContainer: {
@@ -299,7 +429,7 @@ export const styles = {
   },
 };
 
-export const styledTabsConfig = (theme) => ({
+export const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: "#ffffff",
   borderRadius: "0",
   minHeight: 48,
@@ -311,9 +441,9 @@ export const styledTabsConfig = (theme) => ({
     paddingLeft: 0,
     paddingRight: 0,
   },
-});
+}));
 
-export const styledTabConfig = (theme) => ({
+export const StyledTab = styled(Tab)(({ theme }) => ({
   textTransform: "uppercase",
   fontWeight: 600,
   fontSize: "0.875rem",
@@ -333,4 +463,4 @@ export const styledTabConfig = (theme) => ({
   transition: theme.transitions.create(["color", "background-color"], {
     duration: theme.transitions.duration.standard,
   }),
-});
+}));

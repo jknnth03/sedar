@@ -22,6 +22,7 @@ import {
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,
 } from "../../../../features/api/forms/daformApi";
+import { useGetAllMrfSubmissionsQuery } from "../../../../features/api/forms/mrfApi";
 
 const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const {
@@ -34,9 +35,11 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const formValues = watch();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedToPosition, setSelectedToPosition] = useState(null);
+  const [selectedMrf, setSelectedMrf] = useState(null);
   const [kpisList, setKpisList] = useState([]);
   const [shouldFetchEmployees, setShouldFetchEmployees] = useState(false);
   const [shouldFetchPositions, setShouldFetchPositions] = useState(false);
+  const [shouldFetchMrf, setShouldFetchMrf] = useState(false);
   const [isKpisLoading, setIsKpisLoading] = useState(false);
 
   const isInitialMount = useRef(true);
@@ -50,6 +53,16 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
     useGetAllPositionsQuery(undefined, {
       skip: !shouldFetchPositions,
     });
+  const { data: mrfData, isLoading: isMrfLoading } =
+    useGetAllMrfSubmissionsQuery(
+      {
+        status: "active",
+        approval_status: "approved",
+      },
+      {
+        skip: !shouldFetchMrf,
+      }
+    );
 
   const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
 
@@ -58,6 +71,11 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
     : [];
   const positions = Array.isArray(positionsData?.result)
     ? positionsData.result
+    : [];
+  const mrfSubmissions = Array.isArray(mrfData?.result?.data)
+    ? mrfData.result.data
+    : Array.isArray(mrfData?.result)
+    ? mrfData.result
     : [];
 
   useEffect(() => {
@@ -85,6 +103,16 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
       setValue("from_department", selectedEmployee.department || "-");
     }
   }, [selectedEmployee, setValue]);
+
+  useEffect(() => {
+    if (selectedMrf) {
+      setValue("approved_mrf_id", selectedMrf.id);
+      setValue(
+        "mrf_reference_number",
+        selectedMrf.reference_number || selectedMrf.submission_title
+      );
+    }
+  }, [selectedMrf, setValue]);
 
   useEffect(() => {
     const loadPositionKpis = async () => {
@@ -155,7 +183,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               },
               gap: 2,
             }}>
-            <Box sx={{ gridColumn: "1 / -1" }}>
+            <Box>
               {isCreate ? (
                 <Autocomplete
                   options={employees}
@@ -193,6 +221,53 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                 <TextField
                   label="EMPLOYEE NAME"
                   value={formValues.employee_name || ""}
+                  disabled
+                  fullWidth
+                  sx={{ bgcolor: "white" }}
+                />
+              )}
+            </Box>
+
+            <Box>
+              {isCreate ? (
+                <Autocomplete
+                  options={mrfSubmissions}
+                  getOptionLabel={(option) =>
+                    option.reference_number || option.submission_title || ""
+                  }
+                  loading={isMrfLoading}
+                  value={selectedMrf}
+                  onChange={(event, newValue) => {
+                    setSelectedMrf(newValue);
+                  }}
+                  onOpen={() => setShouldFetchMrf(true)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="MRF"
+                      fullWidth
+                      error={!!errors.approved_mrf_id}
+                      helperText={errors.approved_mrf_id?.message}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {isMrfLoading ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                      sx={{ bgcolor: "white" }}
+                    />
+                  )}
+                  disabled={isReadOnly}
+                />
+              ) : (
+                <TextField
+                  label="MRF"
+                  value={formValues.mrf_reference_number || ""}
                   disabled
                   fullWidth
                   sx={{ bgcolor: "white" }}

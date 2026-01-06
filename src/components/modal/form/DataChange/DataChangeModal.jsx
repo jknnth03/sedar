@@ -397,6 +397,7 @@ const DataChangeModal = ({
         movement_type_id: null,
         effective_date: null,
         to_position_id: null,
+        approved_mrf_id: null,
         to_job_rate: null,
         justification: "",
         remarks: "",
@@ -417,6 +418,7 @@ const DataChangeModal = ({
       const submittable = selectedEntry.result?.submittable;
       const submittedBy = selectedEntry.result?.submitted_by;
       const employee = selectedEntry.result?.employee || submittable?.employee;
+      const mrfDetails = selectedEntry.result?.mrf_details || {};
 
       if (submittable) {
         const employeeInfo = employee || submittedBy || {};
@@ -460,6 +462,16 @@ const DataChangeModal = ({
                 name: submittable.to_position.title?.name || "Unknown Position",
               }
             : null,
+          approved_mrf_id:
+            submittable.approved_mrf || mrfDetails.id
+              ? {
+                  id: submittable.approved_mrf?.id || mrfDetails.id,
+                  submission_title:
+                    submittable.approved_mrf?.submission_title ||
+                    mrfDetails.linked_mrf_title ||
+                    "",
+                }
+              : null,
           to_job_rate: submittable.to_job_rate || "",
           justification: submittable.justification || "",
           remarks: submittable.remarks || "",

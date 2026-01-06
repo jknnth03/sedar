@@ -55,13 +55,10 @@ export const getViewEditModeFormData = (selectedEntry) => {
 
   let competencyAnswers = [];
 
-  console.log("Processing competency assessment:", competencyAssessment);
-
   if (
     competencyAssessment.sections &&
     Array.isArray(competencyAssessment.sections)
   ) {
-    console.log("Found sections:", competencyAssessment.sections.length);
     competencyAssessment.sections.forEach((section) => {
       if (section.items && Array.isArray(section.items)) {
         section.items.forEach((item) => {
@@ -77,14 +74,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
                   rating_scale_name:
                     child.saved_answer?.rating_scale?.label || null,
                 };
-                console.log(
-                  "Creating answer with saved_answer_id:",
-                  answerData.saved_answer_id,
-                  "template_item_id:",
-                  answerData.template_item_id,
-                  "from child:",
-                  child
-                );
                 competencyAnswers.push(answerData);
               }
             });
@@ -92,14 +81,11 @@ export const getViewEditModeFormData = (selectedEntry) => {
         });
       }
     });
-    console.log("Processed competency answers:", competencyAnswers);
   } else if (
     competencyAssessment.answers &&
     Array.isArray(competencyAssessment.answers)
   ) {
-    console.log("Loading from answers array:", competencyAssessment.answers);
     competencyAnswers = competencyAssessment.answers.map((answer) => {
-      console.log("Processing answer:", answer);
       return {
         saved_answer_id: answer.saved_answer_id || answer.id || null,
         template_item_id: answer.template_item_id || null,
@@ -110,7 +96,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
           answer.rating_scale?.label || answer.rating_scale_name || "",
       };
     });
-    console.log("Processed answers with saved_answer_id:", competencyAnswers);
   }
 
   return {
@@ -194,7 +179,6 @@ export const formatFormDataForSubmission = (formData) => {
       template_id: formData.competency_assessment.template_id || null,
       answers:
         formData.competency_assessment.answers?.map((answer) => {
-          console.log("Processing answer:", answer);
           const payload = {
             template_item_id: answer.template_item_id,
             rating_scale_id: answer.rating_scale_id,
@@ -204,10 +188,7 @@ export const formatFormDataForSubmission = (formData) => {
             answer.saved_answer_id !== null &&
             answer.saved_answer_id !== undefined
           ) {
-            console.log("Adding id:", answer.saved_answer_id);
             payload.id = answer.saved_answer_id;
-          } else {
-            console.log("No saved_answer_id found");
           }
 
           return payload;
@@ -215,7 +196,6 @@ export const formatFormDataForSubmission = (formData) => {
     };
   }
 
-  console.log("Formatted submission data:", JSON.stringify(baseData, null, 2));
   return baseData;
 };
 

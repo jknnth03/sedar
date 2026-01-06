@@ -23,6 +23,7 @@ import { useGetAllApprovalFormsQuery } from "../../../../features/api/approvalse
 import { useGetAllPositionsQuery } from "../../../../features/api/employee/mainApi";
 import { useLazyGetAllDataChangeEmployeeQuery } from "../../../../features/api/forms/datachangeApi";
 import { useGetAllMovementTypesQuery } from "../../../../features/api/extras/movementTypesApi";
+import { useGetAllMrfSubmissionsQuery } from "../../../../features/api/forms/mrfApi";
 import DataChangeAttachmentFields from "./DataChangeAttachmentFields";
 import {
   UploadBox,
@@ -59,6 +60,7 @@ const DataChangeModalFields = ({
   } = useFormContext();
 
   const watchedEmployee = watch("employee_id");
+  const watchedMovementType = watch("movement_type_id");
 
   const shouldLoadDropdowns = mode === "create" || mode === "edit";
 
@@ -67,6 +69,7 @@ const DataChangeModalFields = ({
     employees: false,
     movementTypes: false,
     positions: false,
+    mrfSubmissions: false,
   });
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [editModeEmployees, setEditModeEmployees] = useState([]);
@@ -94,6 +97,15 @@ const DataChangeModalFields = ({
       { skip: !shouldLoadDropdowns || !dropdownsLoaded.positions }
     );
 
+  const { data: mrfSubmissionsData, isLoading: mrfSubmissionsLoading } =
+    useGetAllMrfSubmissionsQuery(
+      {
+        status: "active",
+        approval_status: "approved",
+      },
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.mrfSubmissions }
+    );
+
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -116,10 +128,31 @@ const DataChangeModalFields = ({
     () => normalizeApiData(movementTypesData),
     [movementTypesData, normalizeApiData]
   );
+
   const positions = useMemo(
     () => normalizeApiData(positionsData),
     [positionsData, normalizeApiData]
   );
+
+  const mrfSubmissions = useMemo(
+    () => normalizeApiData(mrfSubmissionsData),
+    [mrfSubmissionsData, normalizeApiData]
+  );
+
+  const excludedMovementTypes = [
+    "Position alignment",
+    "Merit increases",
+    "Re-evaluation of existing jobs",
+    "Upgrading",
+  ];
+
+  const showMrfField = useMemo(() => {
+    const movementTypeName =
+      watchedMovementType?.name || watchedMovementType?.type_name;
+    return (
+      movementTypeName && !excludedMovementTypes.includes(movementTypeName)
+    );
+  }, [watchedMovementType]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
@@ -198,6 +231,10 @@ const DataChangeModalFields = ({
       formData.append("to_position_id", values.to_position_id.id);
     }
 
+    if (values.approved_mrf_id?.id) {
+      formData.append("approved_mrf_id", values.approved_mrf_id.id);
+    }
+
     if (values.attachments && Array.isArray(values.attachments)) {
       values.attachments.forEach((attachment, index) => {
         if (attachment) {
@@ -254,7 +291,6 @@ const DataChangeModalFields = ({
 
   return (
     <Box>
-      {/* Employee Info Box - Shown when employee is selected */}
       {(watchedEmployee && watchedEmployee.employee_name) ||
       isLoadingEmployeeData ? (
         <Box sx={{ mb: 3, px: 2 }}>
@@ -270,16 +306,13 @@ const DataChangeModalFields = ({
                 gridTemplateColumns: "repeat(2, 1fr)",
               },
               gap: 2,
-            }}
-          >
-            {/* Left Column */}
+            }}>
             <Box
               sx={{
                 padding: 2,
                 border: "none",
                 borderRadius: "4px",
-              }}
-            >
+              }}>
               <Typography
                 variant="subtitle2"
                 sx={{
@@ -289,8 +322,7 @@ const DataChangeModalFields = ({
                   fontSize: "11px",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
-                }}
-              >
+                }}>
                 DEPARTMENT
               </Typography>
               {isLoadingEmployeeData ? (
@@ -309,8 +341,7 @@ const DataChangeModalFields = ({
                     lineHeight: 1.3,
                     color: "#1a1a1a",
                     marginBottom: 2.5,
-                  }}
-                >
+                  }}>
                   {displayDepartment}
                 </Typography>
               )}
@@ -323,8 +354,7 @@ const DataChangeModalFields = ({
                   fontSize: "11px",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
-                }}
-              >
+                }}>
                 SCHEDULE
               </Typography>
               {isLoadingEmployeeData ? (
@@ -337,21 +367,18 @@ const DataChangeModalFields = ({
                     fontWeight: 600,
                     lineHeight: 1.3,
                     color: "#1a1a1a",
-                  }}
-                >
+                  }}>
                   {displaySchedule}
                 </Typography>
               )}
             </Box>
 
-            {/* Right Column */}
             <Box
               sx={{
                 padding: 2,
                 border: "none",
                 borderRadius: "4px",
-              }}
-            >
+              }}>
               <Typography
                 variant="subtitle2"
                 sx={{
@@ -361,8 +388,7 @@ const DataChangeModalFields = ({
                   fontSize: "11px",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
-                }}
-              >
+                }}>
                 POSITION FROM
               </Typography>
               {isLoadingEmployeeData ? (
@@ -381,8 +407,7 @@ const DataChangeModalFields = ({
                     lineHeight: 1.3,
                     color: "#1a1a1a",
                     marginBottom: 2.5,
-                  }}
-                >
+                  }}>
                   {displayPositionFrom}
                 </Typography>
               )}
@@ -396,8 +421,7 @@ const DataChangeModalFields = ({
                   fontSize: "11px",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
-                }}
-              >
+                }}>
                 SUB UNIT
               </Typography>
               {isLoadingEmployeeData ? (
@@ -416,8 +440,7 @@ const DataChangeModalFields = ({
                     lineHeight: 1.3,
                     color: "#1a1a1a",
                     marginBottom: 2.5,
-                  }}
-                >
+                  }}>
                   {displaySubUnit}
                 </Typography>
               )}
@@ -426,7 +449,6 @@ const DataChangeModalFields = ({
         </Box>
       ) : null}
 
-      {/* Main Form Fields */}
       <Box sx={containerStyles.main}>
         <Controller
           name="form_id"
@@ -448,9 +470,7 @@ const DataChangeModalFields = ({
               gridTemplateColumns: "repeat(2, 1fr)",
             },
             gap: 2,
-          }}
-        >
-          {/* Employee Field */}
+          }}>
           <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
@@ -530,7 +550,6 @@ const DataChangeModalFields = ({
             )}
           </Box>
 
-          {/* Movement Type Field */}
           <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
@@ -605,7 +624,6 @@ const DataChangeModalFields = ({
             )}
           </Box>
 
-          {/* Effective Date Field */}
           <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
@@ -639,7 +657,6 @@ const DataChangeModalFields = ({
             )}
           </Box>
 
-          {/* Position To Field */}
           <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
@@ -736,7 +753,86 @@ const DataChangeModalFields = ({
             )}
           </Box>
 
-          {/* Attachment Fields - Full Width */}
+          {showMrfField && (
+            <Box sx={{ gridColumn: "1 / -1" }}>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="rounded" width="100%" height={56} />
+              ) : (
+                <Controller
+                  name="approved_mrf_id"
+                  control={control}
+                  rules={{ required: "MRF is required" }}
+                  render={({ field: { onChange, value } }) => (
+                    <FormControl fullWidth error={!!errors.approved_mrf_id}>
+                      {isReadOnly ? (
+                        <TextField
+                          label="MRF"
+                          value={value?.submission_title || ""}
+                          fullWidth
+                          disabled
+                          sx={textFieldStyles.outlinedInput}
+                        />
+                      ) : (
+                        <Autocomplete
+                          value={value || null}
+                          onChange={(event, item) => onChange(item)}
+                          options={mrfSubmissions}
+                          loading={mrfSubmissionsLoading}
+                          getOptionLabel={(item) => {
+                            return item?.submission_title || "";
+                          }}
+                          isOptionEqualToValue={(option, value) =>
+                            option?.id === value?.id
+                          }
+                          onOpen={() => handleDropdownFocus("mrfSubmissions")}
+                          disabled={isLoading}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={
+                                <span>
+                                  MRF <span style={labelWithRequired}>*</span>
+                                </span>
+                              }
+                              error={!!errors.approved_mrf_id}
+                              helperText={errors.approved_mrf_id?.message}
+                              fullWidth
+                              sx={textFieldStyles.outlinedInput}
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {mrfSubmissionsLoading && (
+                                      <CircularProgress
+                                        color="inherit"
+                                        size={20}
+                                      />
+                                    )}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
+                          )}
+                          noOptionsText={
+                            mrfSubmissionsLoading
+                              ? "Loading MRF submissions..."
+                              : "No MRF submissions found"
+                          }
+                          renderOption={(props, option) => (
+                            <li {...props} key={option.id}>
+                              {option?.submission_title || ""}
+                            </li>
+                          )}
+                        />
+                      )}
+                    </FormControl>
+                  )}
+                />
+              )}
+            </Box>
+          )}
+
           <Box sx={{ gridColumn: "1 / -1" }}>
             <DataChangeAttachmentFields
               isLoading={isLoading}
