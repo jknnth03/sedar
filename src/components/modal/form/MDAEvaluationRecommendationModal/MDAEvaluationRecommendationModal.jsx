@@ -17,6 +17,7 @@ import {
   Close as CloseIcon,
   Description as DescriptionIcon,
   Save as SaveIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { useSnackbar } from "notistack";
@@ -38,12 +39,15 @@ const MDAEvaluationRecommendationModal = ({
   open = false,
   onClose,
   evaluationSubmissionId = null,
+  selectedEntry = null,
   onSave,
   mode = "create",
+  onModeChange,
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [previousEvaluationSubmissionId, setPreviousEvaluationSubmissionId] =
     useState(null);
+  const [currentMode, setCurrentMode] = useState(mode);
 
   const methods = useForm({
     defaultValues: {
@@ -99,14 +103,23 @@ const MDAEvaluationRecommendationModal = ({
     if (!open) {
       reset();
       setPreviousEvaluationSubmissionId(null);
+      setCurrentMode(mode);
     }
-  }, [open, reset]);
+  }, [open, reset, mode]);
+
+  useEffect(() => {
+    if (open) {
+      setCurrentMode(mode);
+    }
+  }, [open, mode]);
 
   useEffect(() => {
     if (
       open &&
       evaluationSubmissionId &&
-      evaluationSubmissionId !== previousEvaluationSubmissionId
+      evaluationSubmissionId !== previousEvaluationSubmissionId &&
+      mode === "create" &&
+      !selectedEntry
     ) {
       setPreviousEvaluationSubmissionId(evaluationSubmissionId);
       fetchPrefillData(evaluationSubmissionId);
@@ -116,20 +129,68 @@ const MDAEvaluationRecommendationModal = ({
     evaluationSubmissionId,
     previousEvaluationSubmissionId,
     fetchPrefillData,
+    mode,
+    selectedEntry,
   ]);
 
   useEffect(() => {
-    if (prefillData?.result) {
-      const data = prefillData.result;
+    if (selectedEntry && open) {
+      const data = selectedEntry.submittable || selectedEntry;
+      const fromData = data.from_details || data.from;
+      const toData = data.to_details || data.to;
 
-      console.log("Prefill Data:", data);
-      console.log("Mode:", mode);
+      const formData = {
+        form_id: 5,
+        probationary_evaluation_id:
+          selectedEntry.submission_id || evaluationSubmissionId || null,
+        employee_id: data.employee_id || "",
+        employee_name: data.employee_name || "",
+        employee_number: data.employee_number || "",
+        effective_date: data.effective_date ? dayjs(data.effective_date) : null,
+        movement_type: data.movement_type || "",
+        birth_date: data.birth_date ? dayjs(data.birth_date) : null,
+        birth_place: data.birth_place || "",
+        gender: data.gender || "",
+        nationality: data.nationality || "",
+        civil_status: data.civil_status || "",
+        address: data.address || "",
+        tin_number: data.tin_number || "",
+        sss_number: data.sss_number || "",
+        pag_ibig_number: data.pag_ibig_number || "",
+        philhealth_number: data.philhealth_number || "",
+        from_position_id: fromData?.position_id || null,
+        from_position_title: fromData?.position_title || "",
+        from_department: fromData?.department || "",
+        from_sub_unit: fromData?.sub_unit || "",
+        from_job_level: fromData?.job_level || "",
+        from_job_level_id: fromData?.job_level_id || null,
+        from_job_rate: fromData?.job_rate || "",
+        from_allowance: fromData?.allowance || "",
+        from_additional_rate: fromData?.additional_rate || "",
+        from_schedule: fromData?.schedule || "",
+        to_position_id: toData?.position_id || null,
+        to_position_title: toData?.position_title || "",
+        to_department: toData?.department || "",
+        to_sub_unit: toData?.sub_unit || "",
+        to_job_level: toData?.job_level || "",
+        to_job_level_id: toData?.job_level_id || null,
+        to_job_rate: toData?.job_rate || "",
+        to_allowance: toData?.allowance || "",
+        to_additional_rate: toData?.additional_rate || "",
+        to_schedule: toData?.schedule || "",
+        reference_number: data.reference_number || "",
+      };
+
+      reset(formData);
+    }
+  }, [selectedEntry, open, reset, evaluationSubmissionId]);
+
+  useEffect(() => {
+    if (prefillData?.result && !selectedEntry) {
+      const data = prefillData.result;
 
       const fromData = data.from;
       const toData = data.to;
-
-      console.log("From Data:", fromData);
-      console.log("To Data:", toData);
 
       const formData = {
         form_id: 5,
@@ -173,11 +234,9 @@ const MDAEvaluationRecommendationModal = ({
         reference_number: data.reference_number || "",
       };
 
-      console.log("Form Data to Reset:", formData);
-
       reset(formData);
     }
-  }, [prefillData, reset, evaluationSubmissionId, mode]);
+  }, [prefillData, reset, evaluationSubmissionId]);
 
   useEffect(() => {
     if (prefillError) {
@@ -190,7 +249,15 @@ const MDAEvaluationRecommendationModal = ({
 
   const handleClose = () => {
     reset();
+    setCurrentMode(mode);
     onClose();
+  };
+
+  const handleEditClick = () => {
+    setCurrentMode("edit");
+    if (onModeChange) {
+      onModeChange("edit");
+    }
   };
 
   const onSubmit = async (data) => {
@@ -205,7 +272,10 @@ const MDAEvaluationRecommendationModal = ({
           : null,
       };
 
-      const result = await onSave(submitData, mode);
+      const result = await onSave(
+        submitData,
+        currentMode === "edit" ? "edit" : currentMode
+      );
 
       if (result?.error) {
         const errorData = result.error?.data || result.error;
@@ -264,10 +334,17 @@ const MDAEvaluationRecommendationModal = ({
     }
   };
 
-  const isReadOnly = mode === "view";
-  const isCreate = mode === "create";
+  const isReadOnly = currentMode === "view";
+  const isCreate = currentMode === "create";
+  const isEdit = currentMode === "edit";
   const isLoading = isPrefillLoading;
   const hasError = prefillError;
+
+  const getDialogTitle = () => {
+    if (isCreate) return "CREATE MDA (EVALUATION)";
+    if (isEdit) return "EDIT MDA (EVALUATION)";
+    return "VIEW MDA (EVALUATION)";
+  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -284,8 +361,26 @@ const MDAEvaluationRecommendationModal = ({
                 variant="h6"
                 component="div"
                 sx={titleTypographyStyles}>
-                {isCreate ? "CREATE MDA (EVALUATION)" : "VIEW MDA (EVALUATION)"}
+                {getDialogTitle()}
               </Typography>
+              {isReadOnly && (
+                <IconButton
+                  onClick={handleEditClick}
+                  disabled={isLoading}
+                  size="small"
+                  sx={{
+                    marginLeft: 1,
+                    color: "rgba(0, 136, 32, 1)",
+                    "&:hover": {
+                      backgroundColor: "rgba(0, 136, 32, 0.08)",
+                    },
+                    "&:disabled": {
+                      color: "#cccccc",
+                    },
+                  }}>
+                  <EditIcon sx={{ fontSize: "1.3rem" }} />
+                </IconButton>
+              )}
             </Box>
             <IconButton onClick={handleClose} sx={closeIconButtonStyles}>
               <CloseIcon sx={closeIconStyles} />
@@ -324,7 +419,7 @@ const MDAEvaluationRecommendationModal = ({
               <MDAEvaluationRecommendationModalFields
                 isCreate={isCreate}
                 isReadOnly={isReadOnly}
-                currentMode={mode}
+                currentMode={currentMode}
                 submissionId={evaluationSubmissionId}
               />
             )}

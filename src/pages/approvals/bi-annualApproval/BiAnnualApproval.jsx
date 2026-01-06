@@ -28,14 +28,15 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetMySubmissionApprovalsQuery,
-  useApproveSubmissionMutation,
-  useRejectSubmissionMutation,
-} from "../../../features/api/approvalsetting/submissionApprovalApi.js";
-import { CONSTANT } from "../../../config/index.jsx";
+  useGetMyBiAnnualApprovalsQuery,
+  useGetBiAnnualApprovalByIdQuery,
+  useApproveBiAnnualSubmissionMutation,
+  useRejectBiAnnualSubmissionMutation,
+} from "../../../features/api/approving/biAnnualApproval.js";
+import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "./SubmissionApprovalStyles.jsx";
-import SubmissionDetailsDialog from "./SubmissionDetailsDialog.jsx";
+import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
+import BiAnnualApprovalDialog from "./BiAnnualApprovalDialog.jsx";
 import NoDataFound from "../../NoDataFound";
 import {
   styles,
@@ -48,8 +49,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`submission-approval-tabpanel-${index}`}
-      aria-labelledby={`submission-approval-tab-${index}`}
+      id={`biannual-approval-tabpanel-${index}`}
+      aria-labelledby={`biannual-approval-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -95,7 +96,7 @@ const CustomSearchBar = ({
       }}>
       <TextField
         placeholder={
-          isVerySmall ? "Search..." : "Search Submission Approvals..."
+          isVerySmall ? "Search..." : "Search Performance Approvals..."
         }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
@@ -116,7 +117,7 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
+            width: isVerySmall ? "100%" : "380px",
             minWidth: isVerySmall ? "180px" : "280px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
@@ -153,12 +154,13 @@ const CustomSearchBar = ({
   );
 };
 
-const SubmissionApprovalTable = ({
-  status,
+const BiAnnualApprovalTable = ({
+  approvalStatus,
   searchQuery,
   isMobile,
   isVerySmall,
   onRowClick,
+  renderStatusChip,
 }) => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -170,8 +172,8 @@ const SubmissionApprovalTable = ({
       page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: status,
-      pagination: true,
+      approval_status: approvalStatus,
+      pagination: 1,
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -179,21 +181,21 @@ const SubmissionApprovalTable = ({
     }
 
     return params;
-  }, [debounceValue, page, rowsPerPage, status]);
+  }, [debounceValue, page, rowsPerPage, approvalStatus]);
 
   const {
-    data: submissionApprovalsData,
+    data: biAnnualApprovalsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetMySubmissionApprovalsQuery(queryParams, {
+  } = useGetMyBiAnnualApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const submissionApprovalsList = useMemo(
-    () => submissionApprovalsData?.result?.data || [],
-    [submissionApprovalsData]
+  const biAnnualApprovalsList = useMemo(
+    () => biAnnualApprovalsData?.result?.data || [],
+    [biAnnualApprovalsData]
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -251,7 +253,7 @@ const SubmissionApprovalTable = ({
         <Table
           stickyHeader
           sx={{
-            height: submissionApprovalsList.length === 0 ? "100%" : "auto",
+            height: biAnnualApprovalsList.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -268,14 +270,14 @@ const SubmissionApprovalTable = ({
               </TableCell>
               <TableCell
                 sx={{
-                  width: isVerySmall ? "180px" : isMobile ? "220px" : "280px",
+                  width: isVerySmall ? "150px" : isMobile ? "200px" : "250px",
                   minWidth: isVerySmall
-                    ? "180px"
+                    ? "150px"
                     : isMobile
-                    ? "220px"
-                    : "280px",
+                    ? "200px"
+                    : "250px",
                 }}>
-                POSITION
+                EMPLOYEE NAME
               </TableCell>
               <TableCell
                 sx={{
@@ -286,7 +288,7 @@ const SubmissionApprovalTable = ({
                     ? "180px"
                     : "220px",
                 }}>
-                {isVerySmall ? "REQ TYPE" : "REQUISITION TYPE"}
+                PERIOD
               </TableCell>
               <TableCell
                 sx={{
@@ -297,40 +299,29 @@ const SubmissionApprovalTable = ({
                     ? "180px"
                     : "220px",
                 }}>
-                {isVerySmall ? "REQ BY" : "REQUESTED BY"}
+                {isVerySmall ? "SUBMITTED BY" : "SUBMITTED BY"}
               </TableCell>
               <TableCell
                 sx={{
-                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
+                  width: isVerySmall ? "120px" : isMobile ? "160px" : "200px",
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                    ? "160px"
+                    : "200px",
                 }}>
-                {isVerySmall ? "DEPT" : "DEPARTMENT"}
-              </TableCell>
-              <TableCell
-                sx={{
-                  width: isVerySmall ? "120px" : isMobile ? "140px" : "170px",
-                  minWidth: isVerySmall
-                    ? "120px"
-                    : isMobile
-                    ? "140px"
-                    : "170px",
-                }}>
-                {isVerySmall ? "DATE" : "DATE CREATED"}
+                {isVerySmall ? "DATE" : "DATE SUBMITTED"}
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody
             sx={{
-              height: submissionApprovalsList.length === 0 ? "100%" : "auto",
+              height: biAnnualApprovalsList.length === 0 ? "100%" : "auto",
             }}>
             {isLoadingState ? (
               <TableRow sx={{ height: "100%" }}>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   align="center"
                   sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                   <CircularProgress
@@ -342,7 +333,7 @@ const SubmissionApprovalTable = ({
             ) : error ? (
               <TableRow sx={{ height: "100%" }}>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   align="center"
                   sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
                   <Typography
@@ -352,13 +343,12 @@ const SubmissionApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : submissionApprovalsList.length > 0 ? (
-              submissionApprovalsList.map((submission) => {
-                const submissionData = submission.submission || submission;
+            ) : biAnnualApprovalsList.length > 0 ? (
+              biAnnualApprovalsList.map((approval) => {
                 return (
                   <TableRow
-                    key={submission.id}
-                    onClick={() => onRowClick(submission)}
+                    key={approval.id}
+                    onClick={() => onRowClick(approval)}
                     sx={{
                       cursor: "pointer",
                       "&:hover": {
@@ -372,7 +362,7 @@ const SubmissionApprovalTable = ({
                         whiteSpace: "nowrap",
                         fontWeight: 600,
                       }}>
-                      {submissionData.form_details?.reference_number || "-"}
+                      {approval.reference_number || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -380,8 +370,7 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.form_details?.position?.title?.name ||
-                        "Unknown Position"}
+                      {approval.employee_name || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -389,8 +378,7 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.form_details?.requisition_type?.name ||
-                        "-"}
+                      {approval.period || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -398,21 +386,11 @@ const SubmissionApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {submissionData.requested_by?.full_name ||
-                        submissionData.requested_by?.first_name ||
-                        "Unknown"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {submissionData.charging?.department_name || "-"}
+                      {approval.submitted_by || "-"}
                     </TableCell>
                     <TableCell>
-                      {submissionData.created_at
-                        ? dayjs(submissionData.created_at).format(
+                      {approval.created_at
+                        ? dayjs(approval.created_at).format(
                             isVerySmall ? "M/D/YY" : "MMM D, YYYY"
                           )
                         : "-"}
@@ -492,7 +470,7 @@ const SubmissionApprovalTable = ({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={submissionApprovalsData?.result?.total || 0}
+          count={biAnnualApprovalsData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={Math.max(0, page - 1)}
           onPageChange={handlePageChange}
@@ -510,15 +488,22 @@ const SubmissionApprovalTable = ({
   );
 };
 
-const SubmissionApproval = () => {
+const BiAnnualApproval = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
+  const customStyles = useMemo(
+    () =>
+      createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
+    [theme, isMobile, isTablet, isVerySmall]
+  );
+
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedApprovalId, setSelectedApprovalId] = useState(null);
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
     submission: null,
@@ -530,10 +515,34 @@ const SubmissionApproval = () => {
     },
   });
 
-  const [approveSubmission, { isLoading: approveLoading }] =
-    useApproveSubmissionMutation();
-  const [rejectSubmission, { isLoading: rejectLoading }] =
-    useRejectSubmissionMutation();
+  const [approveBiAnnual, { isLoading: approveLoading }] =
+    useApproveBiAnnualSubmissionMutation();
+  const [rejectBiAnnual, { isLoading: rejectLoading }] =
+    useRejectBiAnnualSubmissionMutation();
+
+  const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
+    useGetBiAnnualApprovalByIdQuery(selectedApprovalId, {
+      skip: !selectedApprovalId,
+    });
+
+  // Get counts from the API response
+  const { data: countsData } = useGetMyBiAnnualApprovalsQuery(
+    {
+      page: 1,
+      per_page: 1,
+      status: "active",
+      pagination: 1,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+    }
+  );
+
+  const counts = useMemo(
+    () =>
+      countsData?.result?.counts || { pending: 0, approved: 0, rejected: 0 },
+    [countsData]
+  );
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -544,10 +553,12 @@ const SubmissionApproval = () => {
     setSearchQuery(newSearchQuery);
   }, []);
 
-  const handleRowClick = useCallback((submission) => {
+  const handleRowClick = useCallback((approval) => {
+    // Use the id field, not submission_id
+    setSelectedApprovalId(approval.id);
     setDetailsDialog({
       open: true,
-      submission,
+      submission: approval,
     });
   }, []);
 
@@ -556,26 +567,28 @@ const SubmissionApproval = () => {
       const { submission } = detailsDialog;
       try {
         const payload = {
+          // Use the approval id (which is the correct ID for the endpoint)
           id: submission.id,
           comments,
           reason,
         };
 
-        await approveSubmission(payload).unwrap();
-        enqueueSnackbar("Submission approved successfully!", {
+        await approveBiAnnual(payload).unwrap();
+        enqueueSnackbar("Performance evaluation approved successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
       } catch (error) {
         enqueueSnackbar(
-          error?.data?.message || "Failed to approve submission",
+          error?.data?.message || "Failed to approve performance evaluation",
           {
             variant: "error",
           }
         );
       }
     },
-    [detailsDialog, approveSubmission, enqueueSnackbar]
+    [detailsDialog, approveBiAnnual, enqueueSnackbar]
   );
 
   const handleReject = useCallback(
@@ -583,46 +596,66 @@ const SubmissionApproval = () => {
       const { submission } = detailsDialog;
       try {
         const payload = {
+          // Use the approval id (which is the correct ID for the endpoint)
           id: submission.id,
           comments,
           reason,
         };
 
-        await rejectSubmission(payload).unwrap();
-        enqueueSnackbar("Submission returned successfully!", {
+        await rejectBiAnnual(payload).unwrap();
+        enqueueSnackbar("Performance evaluation returned successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to return submission", {
-          variant: "error",
-        });
+        enqueueSnackbar(
+          error?.data?.message || "Failed to return performance evaluation",
+          {
+            variant: "error",
+          }
+        );
       }
     },
-    [detailsDialog, rejectSubmission, enqueueSnackbar]
+    [detailsDialog, rejectBiAnnual, enqueueSnackbar]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
     setDetailsDialog({ open: false, submission: null });
+    setSelectedApprovalId(null);
   }, []);
+
+  const renderStatusChip = useCallback(
+    (approvalStatus) => {
+      const status = approvalStatus === "approved" ? "approved" : "pending";
+      return (
+        <Chip
+          label={status.toUpperCase()}
+          size="small"
+          sx={customStyles.statusChip(status)}
+        />
+      );
+    },
+    [customStyles]
+  );
 
   const tabsData = [
     {
       label: "FOR APPROVAL",
-      status: "pending",
-      badgeCount: 0,
+      approvalStatus: "pending",
+      badgeCount: counts.pending,
     },
     {
       label: "APPROVED",
-      status: "approved",
-      badgeCount: 0,
+      approvalStatus: "approved",
+      badgeCount: counts.approved,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `submission-approval-tab-${index}`,
-      "aria-controls": `submission-approval-tabpanel-${index}`,
+      id: `biannual-approval-tab-${index}`,
+      "aria-controls": `biannual-approval-tabpanel-${index}`,
     };
   };
 
@@ -648,7 +681,9 @@ const SubmissionApproval = () => {
                 ...(isVerySmall && styles.headerTitleTextVerySmall),
                 paddingRight: "14px",
               }}>
-              {isVerySmall ? "MRF APPROVAL" : "MRF SUBMISSION APPROVAL"}
+              {isVerySmall
+                ? "PERFORMANCE EVAL"
+                : "PERFORMANCE EVALUATION APPROVAL"}
             </Typography>
           </Box>
 
@@ -663,7 +698,7 @@ const SubmissionApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="MRF Submission Approval tabs"
+            aria-label="Performance Evaluation Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile
@@ -698,28 +733,31 @@ const SubmissionApproval = () => {
         <Box sx={styles.tabsContainer}>
           {tabsData.map((tab, index) => (
             <TabPanel key={index} value={activeTab} index={index}>
-              <SubmissionApprovalTable
-                status={tab.status}
+              <BiAnnualApprovalTable
+                approvalStatus={tab.approvalStatus}
                 searchQuery={searchQuery}
                 isMobile={isMobile}
                 isVerySmall={isVerySmall}
                 onRowClick={handleRowClick}
+                renderStatusChip={renderStatusChip}
               />
             </TabPanel>
           ))}
         </Box>
 
-        <SubmissionDetailsDialog
+        <BiAnnualApprovalDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
-          submission={detailsDialog.submission}
+          approval={selectedApprovalData?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReject={handleReject}
           isLoading={approveLoading || rejectLoading}
+          isLoadingData={selectedApprovalLoading}
+          styles={customStyles}
         />
       </Box>
     </FormProvider>
   );
 };
 
-export default SubmissionApproval;
+export default BiAnnualApproval;

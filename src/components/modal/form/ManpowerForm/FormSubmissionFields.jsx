@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
-  Grid,
+  Box,
   TextField,
   Autocomplete,
   MenuItem,
@@ -271,520 +271,656 @@ const FormSubmissionFields = ({
 
   return (
     <>
-      <Grid container spacing={1.2} sx={formStyles?.container || {}}>
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="requisition_type_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <Autocomplete
-                onChange={(event, item) => {
-                  if (isReadOnly || isEditMode) return;
-                  onChange(item);
-                  if (item) {
-                    setValue("employee_to_be_replaced_id", null, {
-                      shouldValidate: false,
-                    });
-                    setValue("movement_employee_id", null, {
-                      shouldValidate: false,
-                    });
-                    setDropdownsLoaded((prev) => ({
-                      ...prev,
-                      employees: false,
-                    }));
-                  }
-                }}
-                onOpen={() => handleDropdownFocus("requisitions")}
-                value={value || null}
-                disabled={isReadOnly || isEditMode}
-                options={requisitions}
-                loading={requisitionsLoading}
-                getOptionLabel={(option) => safeStringRender(option?.name)}
-                isOptionEqualToValue={(option, value) => {
-                  if (!option || !value) return false;
-                  return option.id === value.id;
-                }}
-                disablePortal
-                renderInput={(params) => (
-                  <StyledTextField
-                    {...params}
-                    label="Requisition Type"
-                    required={true}
-                    error={!!errors.requisition_type_id}
-                    helperText={getErrorMessage(errors.requisition_type_id)}
-                    sx={
-                      formStyles?.autocompleteTextField?.(
-                        isReadOnly,
-                        isEditMode
-                      ) || {}
-                    }
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {requisitionsLoading && (
-                            <CircularProgress color="inherit" size={20} />
-                          )}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
+      <Box sx={{ width: "100%", ...(formStyles?.container || {}) }}>
+        {/* BOX 1: Requisition Type to Job Level */}
+        <Box sx={{ mb: 3 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+              gap: 2,
+            }}>
+            {/* Requisition Type */}
+            <Box>
+              <Controller
+                name="requisition_type_id"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (isReadOnly || isEditMode) return;
+                      onChange(item);
+                      if (item) {
+                        setValue("employee_to_be_replaced_id", null, {
+                          shouldValidate: false,
+                        });
+                        setValue("movement_employee_id", null, {
+                          shouldValidate: false,
+                        });
+                        setDropdownsLoaded((prev) => ({
+                          ...prev,
+                          employees: false,
+                        }));
+                      }
                     }}
+                    onOpen={() => handleDropdownFocus("requisitions")}
+                    value={value || null}
+                    disabled={isReadOnly || isEditMode}
+                    options={requisitions}
+                    loading={requisitionsLoading}
+                    getOptionLabel={(option) => safeStringRender(option?.name)}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    disablePortal
+                    renderInput={(params) => (
+                      <StyledTextField
+                        {...params}
+                        label="Requisition Type"
+                        required={true}
+                        fullWidth
+                        error={!!errors.requisition_type_id}
+                        helperText={getErrorMessage(errors.requisition_type_id)}
+                        sx={
+                          formStyles?.autocompleteTextField?.(
+                            isReadOnly,
+                            isEditMode
+                          ) || {}
+                        }
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {requisitionsLoading && (
+                                <CircularProgress color="inherit" size={20} />
+                              )}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                    noOptionsText={
+                      requisitionsLoading
+                        ? "Loading requisitions..."
+                        : "No requisitions found"
+                    }
                   />
                 )}
-                noOptionsText={
-                  requisitionsLoading
-                    ? "Loading requisitions..."
-                    : "No requisitions found"
-                }
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="position_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <Autocomplete
-                onChange={(event, item) => {
-                  if (isReadOnly || isEditMode) return;
-                  onChange(item);
-                  setValue("employee_to_be_replaced_id", null, {
-                    shouldValidate: false,
-                  });
-                  setValue("movement_employee_id", null, {
-                    shouldValidate: false,
-                  });
-                  setDropdownsLoaded((prev) => ({ ...prev, employees: false }));
-                }}
-                onOpen={() => handleDropdownFocus("positions")}
-                value={value || null}
-                disabled={isReadOnly || isEditMode || !watchedRequisitionType}
-                options={positions}
-                loading={positionsLoading}
-                getOptionLabel={(option) =>
-                  safeStringRender(option?.title_with_unit)
-                }
-                isOptionEqualToValue={(option, value) => {
-                  if (!option || !value) return false;
-                  return option.id === value.id;
-                }}
-                disablePortal
-                renderInput={(params) => (
-                  <StyledTextField
-                    {...params}
-                    label="Position"
-                    required={true}
-                    error={!!errors.position_id}
-                    helperText={getErrorMessage(errors.position_id)}
-                    sx={
-                      formStyles?.autocompleteTextField?.(
-                        isReadOnly,
-                        isEditMode
-                      ) || {}
-                    }
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {positionsLoading && (
-                            <CircularProgress color="inherit" size={20} />
-                          )}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
+            {/* Position */}
+            <Box>
+              <Controller
+                name="position_id"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (isReadOnly || isEditMode) return;
+                      onChange(item);
+                      setValue("employee_to_be_replaced_id", null, {
+                        shouldValidate: false,
+                      });
+                      setValue("movement_employee_id", null, {
+                        shouldValidate: false,
+                      });
+                      setDropdownsLoaded((prev) => ({
+                        ...prev,
+                        employees: false,
+                      }));
                     }}
+                    onOpen={() => handleDropdownFocus("positions")}
+                    value={value || null}
+                    disabled={
+                      isReadOnly || isEditMode || !watchedRequisitionType
+                    }
+                    options={positions}
+                    loading={positionsLoading}
+                    getOptionLabel={(option) =>
+                      safeStringRender(option?.title_with_unit)
+                    }
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    disablePortal
+                    renderInput={(params) => (
+                      <StyledTextField
+                        {...params}
+                        label="Position"
+                        required={true}
+                        fullWidth
+                        error={!!errors.position_id}
+                        helperText={getErrorMessage(errors.position_id)}
+                        sx={
+                          formStyles?.autocompleteTextField?.(
+                            isReadOnly,
+                            isEditMode
+                          ) || {}
+                        }
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {positionsLoading && (
+                                <CircularProgress color="inherit" size={20} />
+                              )}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                    noOptionsText={
+                      positionsLoading
+                        ? "Loading positions..."
+                        : "No positions found"
+                    }
                   />
                 )}
-                noOptionsText={
-                  positionsLoading
-                    ? "Loading positions..."
-                    : "No positions found"
-                }
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} md={6}>
-          {isReplacementDueToEmployeeMovement() ? (
-            <Controller
-              name="movement_employee_id"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (isReadOnly || isEditMode) return;
-                    onChange(item);
-                  }}
-                  onOpen={() => handleDropdownFocus("employees")}
-                  value={value || null}
-                  disabled={
-                    isReadOnly ||
-                    isEditMode ||
-                    !watchedPositionId ||
-                    !watchedRequisitionType
-                  }
-                  options={employees}
-                  loading={employeesLoading}
-                  getOptionLabel={(option) =>
-                    safeStringRender(
-                      option?.full_name || option?.name || option?.employee_name
-                    )
-                  }
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  disablePortal
-                  renderInput={(params) => (
-                    <StyledTextField
-                      {...params}
-                      label="Select Employee"
-                      required={true}
-                      error={!!errors.movement_employee_id}
-                      helperText={
-                        getErrorMessage(errors.movement_employee_id) ||
-                        (!watchedPositionId || !watchedRequisitionType
-                          ? "Please select Position and Requisition Type first"
-                          : "")
-                      }
-                      sx={
-                        formStyles?.autocompleteTextField?.(
-                          isReadOnly,
-                          isEditMode
-                        ) || {}
-                      }
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {employeesLoading && (
-                              <CircularProgress color="inherit" size={20} />
-                            )}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
+            {/* Employee Selection (conditional) */}
+            <Box>
+              {isReplacementDueToEmployeeMovement() ? (
+                <Controller
+                  name="movement_employee_id"
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <Autocomplete
+                      onChange={(event, item) => {
+                        if (isReadOnly || isEditMode) return;
+                        onChange(item);
                       }}
-                    />
-                  )}
-                  noOptionsText={
-                    employeesLoading
-                      ? "Loading employees..."
-                      : !watchedPositionId || !watchedRequisitionType
-                      ? "Select position and requisition type first"
-                      : "No employees found"
-                  }
-                />
-              )}
-            />
-          ) : (
-            <Controller
-              name="employee_to_be_replaced_id"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (isReadOnly || isEditMode || isAdditionalManpower())
-                      return;
-                    onChange(item);
-                  }}
-                  onOpen={() => handleDropdownFocus("employees")}
-                  value={value || null}
-                  disabled={
-                    isReadOnly ||
-                    isEditMode ||
-                    isAdditionalManpower() ||
-                    !watchedPositionId ||
-                    !watchedRequisitionType
-                  }
-                  options={employees}
-                  loading={employeesLoading}
-                  getOptionLabel={(option) =>
-                    safeStringRender(
-                      option?.full_name || option?.name || option?.employee_name
-                    )
-                  }
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  disablePortal
-                  renderInput={(params) => (
-                    <StyledTextField
-                      {...params}
-                      label="Employee to be Replaced"
-                      required={!isAdditionalManpower()}
-                      error={!!errors.employee_to_be_replaced_id}
-                      helperText={
-                        isAdditionalManpower()
-                          ? "Not required for Additional Manpower"
-                          : getErrorMessage(
-                              errors.employee_to_be_replaced_id
-                            ) ||
+                      onOpen={() => handleDropdownFocus("employees")}
+                      value={value || null}
+                      disabled={
+                        isReadOnly ||
+                        isEditMode ||
+                        !watchedPositionId ||
+                        !watchedRequisitionType
+                      }
+                      options={employees}
+                      loading={employeesLoading}
+                      getOptionLabel={(option) =>
+                        safeStringRender(
+                          option?.full_name ||
+                            option?.name ||
+                            option?.employee_name
+                        )
+                      }
+                      isOptionEqualToValue={(option, value) => {
+                        if (!option || !value) return false;
+                        return option.id === value.id;
+                      }}
+                      disablePortal
+                      renderInput={(params) => (
+                        <StyledTextField
+                          {...params}
+                          label="Select Employee"
+                          required={true}
+                          fullWidth
+                          error={!!errors.movement_employee_id}
+                          helperText={
+                            getErrorMessage(errors.movement_employee_id) ||
                             (!watchedPositionId || !watchedRequisitionType
                               ? "Please select Position and Requisition Type first"
                               : "")
-                      }
-                      sx={formStyles?.textField?.() || {}}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {employeesLoading && (
-                              <CircularProgress color="inherit" size={20} />
-                            )}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                  noOptionsText={
-                    employeesLoading
-                      ? "Loading employees..."
-                      : !watchedPositionId || !watchedRequisitionType
-                      ? "Select position and requisition type first"
-                      : "No employees found"
-                  }
-                />
-              )}
-            />
-          )}
-        </Grid>
-
-        {shouldShowMovementFields() && (
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="movement_new_position_id"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (isReadOnly) return;
-                    onChange(item);
-                  }}
-                  onOpen={() => handleDropdownFocus("movementPosition")}
-                  value={value || null}
-                  disabled={isReadOnly}
-                  options={positions}
-                  loading={positionsLoading}
-                  getOptionLabel={(option) =>
-                    safeStringRender(option?.title_with_unit)
-                  }
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  disablePortal
-                  renderInput={(params) => (
-                    <StyledTextField
-                      {...params}
-                      label="New Position"
-                      required={true}
-                      error={!!errors.movement_new_position_id}
-                      helperText={getErrorMessage(
-                        errors.movement_new_position_id
+                          }
+                          sx={
+                            formStyles?.autocompleteTextField?.(
+                              isReadOnly,
+                              isEditMode
+                            ) || {}
+                          }
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {employeesLoading && (
+                                  <CircularProgress color="inherit" size={20} />
+                                )}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
                       )}
-                      sx={formStyles?.textField?.(isReadOnly) || {}}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {positionsLoading && (
-                              <CircularProgress color="inherit" size={20} />
-                            )}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
+                      noOptionsText={
+                        employeesLoading
+                          ? "Loading employees..."
+                          : !watchedPositionId || !watchedRequisitionType
+                          ? "Select position and requisition type first"
+                          : "No employees found"
+                      }
                     />
                   )}
-                  noOptionsText={
-                    positionsLoading
-                      ? "Loading positions..."
-                      : "No positions found"
-                  }
+                />
+              ) : (
+                <Controller
+                  name="employee_to_be_replaced_id"
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <Autocomplete
+                      onChange={(event, item) => {
+                        if (isReadOnly || isEditMode || isAdditionalManpower())
+                          return;
+                        onChange(item);
+                      }}
+                      onOpen={() => handleDropdownFocus("employees")}
+                      value={value || null}
+                      disabled={
+                        isReadOnly ||
+                        isEditMode ||
+                        isAdditionalManpower() ||
+                        !watchedPositionId ||
+                        !watchedRequisitionType
+                      }
+                      options={employees}
+                      loading={employeesLoading}
+                      getOptionLabel={(option) =>
+                        safeStringRender(
+                          option?.full_name ||
+                            option?.name ||
+                            option?.employee_name
+                        )
+                      }
+                      isOptionEqualToValue={(option, value) => {
+                        if (!option || !value) return false;
+                        return option.id === value.id;
+                      }}
+                      disablePortal
+                      renderInput={(params) => (
+                        <StyledTextField
+                          {...params}
+                          label="Employee to be Replaced"
+                          required={!isAdditionalManpower()}
+                          fullWidth
+                          error={!!errors.employee_to_be_replaced_id}
+                          helperText={
+                            isAdditionalManpower()
+                              ? "Not required for Additional Manpower"
+                              : getErrorMessage(
+                                  errors.employee_to_be_replaced_id
+                                ) ||
+                                (!watchedPositionId || !watchedRequisitionType
+                                  ? "Please select Position and Requisition Type first"
+                                  : "")
+                          }
+                          sx={formStyles?.textField?.() || {}}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {employeesLoading && (
+                                  <CircularProgress color="inherit" size={20} />
+                                )}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                      noOptionsText={
+                        employeesLoading
+                          ? "Loading employees..."
+                          : !watchedPositionId || !watchedRequisitionType
+                          ? "Select position and requisition type first"
+                          : "No employees found"
+                      }
+                    />
+                  )}
                 />
               )}
-            />
-          </Grid>
-        )}
+            </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="job_level_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <Autocomplete
-                onChange={(event, item) => {
-                  if (isReadOnly) return;
-                  onChange(item);
-                }}
-                onOpen={() => handleDropdownFocus("jobLevels")}
-                value={value || null}
-                disabled={isReadOnly}
-                options={jobLevels}
-                loading={jobLevelsLoading}
-                getOptionLabel={(option) => safeStringRender(option?.label)}
-                isOptionEqualToValue={(option, value) => {
-                  if (!option || !value) return false;
-                  return option.id === value.id;
-                }}
-                disablePortal
-                renderInput={(params) => (
-                  <StyledTextField
-                    {...params}
-                    label="Job Level"
-                    required={true}
-                    error={!!errors.job_level_id}
-                    helperText={getErrorMessage(errors.job_level_id)}
-                    sx={formStyles?.textField?.(isReadOnly) || {}}
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {jobLevelsLoading && (
-                            <CircularProgress color="inherit" size={20} />
+            {/* New Position (conditional) */}
+            {shouldShowMovementFields() && (
+              <Box>
+                <Controller
+                  name="movement_new_position_id"
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <Autocomplete
+                      onChange={(event, item) => {
+                        if (isReadOnly) return;
+                        onChange(item);
+                      }}
+                      onOpen={() => handleDropdownFocus("movementPosition")}
+                      value={value || null}
+                      disabled={isReadOnly}
+                      options={positions}
+                      loading={positionsLoading}
+                      getOptionLabel={(option) =>
+                        safeStringRender(option?.title_with_unit)
+                      }
+                      isOptionEqualToValue={(option, value) => {
+                        if (!option || !value) return false;
+                        return option.id === value.id;
+                      }}
+                      disablePortal
+                      renderInput={(params) => (
+                        <StyledTextField
+                          {...params}
+                          label="New Position"
+                          required={true}
+                          fullWidth
+                          error={!!errors.movement_new_position_id}
+                          helperText={getErrorMessage(
+                            errors.movement_new_position_id
                           )}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
+                          sx={formStyles?.textField?.(isReadOnly) || {}}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {positionsLoading && (
+                                  <CircularProgress color="inherit" size={20} />
+                                )}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                      noOptionsText={
+                        positionsLoading
+                          ? "Loading positions..."
+                          : "No positions found"
+                      }
+                    />
+                  )}
+                />
+              </Box>
+            )}
+
+            {/* Job Level */}
+            <Box>
+              <Controller
+                name="job_level_id"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (isReadOnly) return;
+                      onChange(item);
                     }}
+                    onOpen={() => handleDropdownFocus("jobLevels")}
+                    value={value || null}
+                    disabled={isReadOnly}
+                    options={jobLevels}
+                    loading={jobLevelsLoading}
+                    getOptionLabel={(option) => safeStringRender(option?.label)}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    disablePortal
+                    renderInput={(params) => (
+                      <StyledTextField
+                        {...params}
+                        label="Job Level"
+                        required={true}
+                        fullWidth
+                        error={!!errors.job_level_id}
+                        helperText={getErrorMessage(errors.job_level_id)}
+                        sx={formStyles?.textField?.(isReadOnly) || {}}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {jobLevelsLoading && (
+                                <CircularProgress color="inherit" size={20} />
+                              )}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                    noOptionsText={
+                      jobLevelsLoading
+                        ? "Loading job levels..."
+                        : "No job levels found"
+                    }
                   />
                 )}
-                noOptionsText={
-                  jobLevelsLoading
-                    ? "Loading job levels..."
-                    : "No job levels found"
-                }
               />
-            )}
-          />
-        </Grid>
+            </Box>
+          </Box>
+        </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="expected_salary"
-            control={control}
-            render={({ field }) => (
-              <StyledTextField
-                {...field}
-                label="Expected Salary"
-                required={true}
-                fullWidth
-                type="number"
-                inputProps={expectedSalaryInputProps}
-                error={!!errors.expected_salary}
-                helperText={getErrorMessage(errors.expected_salary)}
-                disabled={isReadOnly}
-                sx={formStyles?.textField?.(isReadOnly) || {}}
+        {/* BOX 2: Expected Salary to Remarks */}
+        <Box sx={{ mb: 3 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+              gap: 2,
+            }}>
+            {/* Expected Salary */}
+            <Box>
+              <Controller
+                name="expected_salary"
+                control={control}
+                render={({ field }) => (
+                  <StyledTextField
+                    {...field}
+                    label="Expected Salary"
+                    required={true}
+                    fullWidth
+                    type="number"
+                    inputProps={expectedSalaryInputProps}
+                    error={!!errors.expected_salary}
+                    helperText={getErrorMessage(errors.expected_salary)}
+                    disabled={isReadOnly}
+                    sx={formStyles?.textField?.(isReadOnly) || {}}
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="employment_type"
-            control={control}
-            render={({ field }) => (
-              <StyledTextField
-                select
-                {...field}
-                label="Employment Type"
-                value={safeStringRender(field.value)}
-                fullWidth
-                required={true}
-                error={!!errors.employment_type}
-                helperText={getErrorMessage(errors.employment_type)}
-                disabled={isReadOnly}
-                sx={formStyles?.textField?.(isReadOnly) || {}}
-                onChange={handleEmploymentTypeChange}>
-                {employmentTypeOptions.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {safeStringRender(option)}
-                  </MenuItem>
-                ))}
-              </StyledTextField>
-            )}
-          />
-        </Grid>
+            {/* Employment Type */}
+            <Box>
+              <Controller
+                name="employment_type"
+                control={control}
+                render={({ field }) => (
+                  <StyledTextField
+                    select
+                    {...field}
+                    label="Employment Type"
+                    value={safeStringRender(field.value)}
+                    fullWidth
+                    required={true}
+                    error={!!errors.employment_type}
+                    helperText={getErrorMessage(errors.employment_type)}
+                    disabled={isReadOnly}
+                    sx={formStyles?.textField?.(isReadOnly) || {}}
+                    onChange={handleEmploymentTypeChange}>
+                    {employmentTypeOptions.map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {safeStringRender(option)}
+                      </MenuItem>
+                    ))}
+                  </StyledTextField>
+                )}
+              />
+            </Box>
 
-        {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="movement_reason_for_change"
-              control={control}
-              render={({ field }) => (
-                <StyledTextField
-                  select
-                  {...field}
-                  label="Reason for Change"
-                  value={safeStringRender(field.value)}
-                  fullWidth
-                  required={true}
-                  error={!!errors.movement_reason_for_change}
-                  helperText={getErrorMessage(
-                    errors.movement_reason_for_change
+            {/* Reason for Change (conditional) */}
+            {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
+              <Box>
+                <Controller
+                  name="movement_reason_for_change"
+                  control={control}
+                  render={({ field }) => (
+                    <StyledTextField
+                      select
+                      {...field}
+                      label="Reason for Change"
+                      value={safeStringRender(field.value)}
+                      fullWidth
+                      required={true}
+                      error={!!errors.movement_reason_for_change}
+                      helperText={getErrorMessage(
+                        errors.movement_reason_for_change
+                      )}
+                      disabled={isReadOnly}
+                      sx={formStyles?.textField?.(isReadOnly) || {}}
+                      onChange={handleReasonForChangeChange}>
+                      {reasonForChangeOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {safeStringRender(option)}
+                        </MenuItem>
+                      ))}
+                    </StyledTextField>
                   )}
-                  disabled={isReadOnly}
-                  sx={formStyles?.textField?.(isReadOnly) || {}}
-                  onChange={handleReasonForChangeChange}>
-                  {reasonForChangeOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {safeStringRender(option)}
-                    </MenuItem>
-                  ))}
-                </StyledTextField>
-              )}
-            />
-          </Grid>
-        )}
-
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="justification"
-            control={control}
-            render={({ field }) => (
-              <StyledTextField
-                {...field}
-                label="Justification"
-                required={true}
-                fullWidth
-                multiline
-                rows={3}
-                error={!!errors.justification}
-                helperText={getErrorMessage(errors.justification)}
-                disabled={isReadOnly}
-                sx={formStyles?.textField?.(isReadOnly) || {}}
-              />
+                />
+              </Box>
             )}
-          />
-        </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="remarks"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Remarks"
-                fullWidth
-                multiline
-                rows={3}
-                error={!!errors.remarks}
-                helperText={getErrorMessage(errors.remarks)}
-                disabled={isReadOnly}
-                sx={formStyles?.textField?.(isReadOnly) || {}}
+            {/* Justification */}
+            <Box>
+              <Controller
+                name="justification"
+                control={control}
+                render={({ field }) => (
+                  <StyledTextField
+                    {...field}
+                    label="Justification"
+                    required={true}
+                    fullWidth
+                    multiline
+                    rows={3}
+                    error={!!errors.justification}
+                    helperText={getErrorMessage(errors.justification)}
+                    disabled={isReadOnly}
+                    sx={formStyles?.textField?.(isReadOnly) || {}}
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} sx={formStyles?.attachmentContainer || {}}>
+            {/* Remarks */}
+            <Box>
+              <Controller
+                name="remarks"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Remarks"
+                    fullWidth
+                    multiline
+                    rows={3}
+                    error={!!errors.remarks}
+                    helperText={getErrorMessage(errors.remarks)}
+                    disabled={isReadOnly}
+                    sx={formStyles?.textField?.(isReadOnly) || {}}
+                  />
+                )}
+              />
+            </Box>
+
+            {/* Developmental Assignment Checkbox (conditional) - Full Width */}
+            {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
+              <Box
+                sx={{
+                  gridColumn: "1 / -1",
+                  ...(formStyles?.checkboxContainer || {}),
+                }}>
+                <Controller
+                  name="movement_is_da"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          {...field}
+                          checked={Boolean(field.value)}
+                          disabled={isReadOnly}
+                        />
+                      }
+                      label="FOR DEVELOPMENTAL ASSIGNMENT"
+                      sx={formStyles?.checkboxLabel?.(isReadOnly) || {}}
+                    />
+                  )}
+                />
+              </Box>
+            )}
+
+            {/* Start Date (conditional) */}
+            {shouldShowDateFields() && (
+              <Box sx={{ pl: { sm: 4.4 } }}>
+                <Controller
+                  name="movement_da_start_date"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      {...field}
+                      label="Start Date"
+                      disabled={isReadOnly}
+                      renderInput={(params) => (
+                        <StyledTextField
+                          {...params}
+                          required={true}
+                          fullWidth
+                          error={!!errors.movement_da_start_date}
+                          helperText={getErrorMessage(
+                            errors.movement_da_start_date
+                          )}
+                          sx={formStyles?.textField?.(isReadOnly) || {}}
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </Box>
+            )}
+
+            {/* End Date (conditional) */}
+            {shouldShowDateFields() && (
+              <Box>
+                <Controller
+                  name="movement_da_end_date"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      {...field}
+                      label="End Date"
+                      disabled={isReadOnly}
+                      minDate={
+                        watch("movement_da_start_date")
+                          ? watch("movement_da_start_date").add(1, "day")
+                          : undefined
+                      }
+                      renderInput={(params) => (
+                        <StyledTextField
+                          {...params}
+                          required={true}
+                          fullWidth
+                          error={!!errors.movement_da_end_date}
+                          helperText={getErrorMessage(
+                            errors.movement_da_end_date
+                          )}
+                          sx={formStyles?.textField?.(isReadOnly) || {}}
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* BOX 3: Attachment */}
+        <Box sx={{ mb: 3, ...(formStyles?.attachmentContainer || {}) }}>
           <AttachmentField
             selectedEntry={selectedEntry}
             onFileChange={onFileChange}
@@ -792,91 +928,8 @@ const FormSubmissionFields = ({
             disabled={isViewMode}
             onFileViewerOpen={handleFileViewerOpen}
           />
-        </Grid>
-
-        {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
-          <Grid item xs={12} md={6} sx={formStyles?.checkboxContainer || {}}>
-            <Controller
-              name="movement_is_da"
-              control={control}
-              render={({ field }) => (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      {...field}
-                      checked={Boolean(field.value)}
-                      disabled={isReadOnly}
-                    />
-                  }
-                  label="FOR DEVELOPMENTAL ASSIGNMENT"
-                  sx={formStyles?.checkboxLabel?.(isReadOnly) || {}}
-                />
-              )}
-            />
-          </Grid>
-        )}
-
-        {shouldShowDateFields() && (
-          <>
-            <Grid item xs={12} md={6} sx={{ pl: 4.4 }}>
-              <Controller
-                name="movement_da_start_date"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    label="Start Date"
-                    disabled={isReadOnly}
-                    renderInput={(params) => (
-                      <StyledTextField
-                        {...params}
-                        required={true}
-                        fullWidth
-                        error={!!errors.movement_da_start_date}
-                        helperText={getErrorMessage(
-                          errors.movement_da_start_date
-                        )}
-                        sx={formStyles?.textField?.(isReadOnly) || {}}
-                      />
-                    )}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="movement_da_end_date"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    label="End Date"
-                    disabled={isReadOnly}
-                    minDate={
-                      watch("movement_da_start_date")
-                        ? watch("movement_da_start_date").add(1, "day")
-                        : undefined
-                    }
-                    renderInput={(params) => (
-                      <StyledTextField
-                        {...params}
-                        required={true}
-                        fullWidth
-                        error={!!errors.movement_da_end_date}
-                        helperText={getErrorMessage(
-                          errors.movement_da_end_date
-                        )}
-                        sx={formStyles?.textField?.(isReadOnly) || {}}
-                      />
-                    )}
-                  />
-                )}
-              />
-            </Grid>
-          </>
-        )}
-      </Grid>
+        </Box>
+      </Box>
 
       <FileViewerDialog
         open={fileViewerOpen}

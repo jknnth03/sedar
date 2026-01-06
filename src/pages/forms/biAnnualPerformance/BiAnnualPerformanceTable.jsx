@@ -27,10 +27,10 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import EvaluationFormHistoryDialog from "./EvaluationFormHistoryDialog";
+import BiAnnualPerformanceHistoryDialog from "./BiAnnualPerformanceHistoryDialog";
 import NoDataFound from "../../NoDataFound";
 
-const EvaluationFormTable = ({
+const BiAnnualPerformanceTable = ({
   submissionsList,
   isLoadingState,
   error,
@@ -486,11 +486,10 @@ const EvaluationFormTable = ({
               </TableRow>
             )}
           </TableBody>
-          z
         </Table>
       </TableContainer>
 
-      <EvaluationFormHistoryDialog
+      <BiAnnualPerformanceHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedEvaluationHistory={selectedEvaluationHistory}
@@ -555,7 +554,7 @@ const EvaluationFormTable = ({
               color: "#333",
               fontWeight: 400,
             }}>
-            Are you sure you want to <strong>Cancel</strong> this Probationary
+            Are you sure you want to <strong>Cancel</strong> this Performance
             Evaluation Request?
           </Typography>
           {selectedSubmissionToCancel && (
@@ -625,4 +624,4 @@ const EvaluationFormTable = ({
   );
 };
 
-export default EvaluationFormTable;
+export default BiAnnualPerformanceTable;

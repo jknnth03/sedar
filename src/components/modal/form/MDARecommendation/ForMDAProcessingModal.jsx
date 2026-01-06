@@ -204,19 +204,30 @@ const ForMDAProcessingModal = ({
                       p: 3.5,
                       borderRadius: 2,
                     }}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <TextField
-                          label="EMPLOYEE NAME"
-                          value={
-                            submissionData.submittable?.employee?.full_name ||
-                            ""
-                          }
-                          disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
+                    <TextField
+                      label="EMPLOYEE NAME"
+                      value={
+                        submissionData.submittable?.employee?.full_name || ""
+                      }
+                      disabled
+                      fullWidth
+                      sx={{ bgcolor: "white", mb: 2 }}
+                    />
+
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: {
+                          xs: "1fr",
+                          sm: "1fr",
+                          md: "repeat(2, 1fr)",
+                        },
+                        "@media (min-width: 750px)": {
+                          gridTemplateColumns: "repeat(2, 1fr)",
+                        },
+                        gap: 2,
+                      }}>
+                      <Box>
                         <TextField
                           label="POSITION - FROM"
                           value={
@@ -224,23 +235,10 @@ const ForMDAProcessingModal = ({
                               ?.name || ""
                           }
                           disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
+                          fullWidth
+                          sx={{ bgcolor: "white" }}
                         />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          label="POSITION - TO"
-                          value={
-                            submissionData.submittable?.to_position?.code &&
-                            submissionData.submittable?.to_position?.title?.name
-                              ? `${submissionData.submittable.to_position.code} - ${submissionData.submittable.to_position.title.name}`
-                              : ""
-                          }
-                          disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
+
                         <TextField
                           label="DEPARTMENT - FROM"
                           value={
@@ -248,21 +246,10 @@ const ForMDAProcessingModal = ({
                               ?.department_name || "-"
                           }
                           disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
+                          fullWidth
+                          sx={{ bgcolor: "white", mt: 2 }}
                         />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          label="DEPARTMENT - TO"
-                          value={
-                            submissionData.submittable?.to_position?.charging
-                              ?.department_name || "-"
-                          }
-                          disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
+
                         <TextField
                           label="INCLUSIVE DATES - FROM"
                           value={
@@ -273,10 +260,36 @@ const ForMDAProcessingModal = ({
                               : ""
                           }
                           disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
+                          fullWidth
+                          sx={{ bgcolor: "white", mt: 2 }}
                         />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
+                      </Box>
+
+                      <Box>
+                        <TextField
+                          label="POSITION - TO"
+                          value={
+                            submissionData.submittable?.to_position?.code &&
+                            submissionData.submittable?.to_position?.title?.name
+                              ? `${submissionData.submittable.to_position.code} - ${submissionData.submittable.to_position.title.name}`
+                              : ""
+                          }
+                          disabled
+                          fullWidth
+                          sx={{ bgcolor: "white" }}
+                        />
+
+                        <TextField
+                          label="DEPARTMENT - TO"
+                          value={
+                            submissionData.submittable?.to_position?.charging
+                              ?.department_name || "-"
+                          }
+                          disabled
+                          fullWidth
+                          sx={{ bgcolor: "white", mt: 2 }}
+                        />
+
                         <TextField
                           label="INCLUSIVE DATES - TO"
                           value={
@@ -287,10 +300,11 @@ const ForMDAProcessingModal = ({
                               : ""
                           }
                           disabled
-                          sx={{ bgcolor: "white", width: "348px" }}
+                          fullWidth
+                          sx={{ bgcolor: "white", mt: 2 }}
                         />
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </Box>
                 </Grid>
 
@@ -304,7 +318,8 @@ const ForMDAProcessingModal = ({
                     <TableContainer
                       component={Paper}
                       sx={{
-                        width: 1140,
+                        width: "100%",
+                        overflowX: "auto",
                       }}>
                       <Table>
                         <TableHead>
@@ -463,7 +478,7 @@ const ForMDAProcessingModal = ({
                         flexDirection: "column",
                         justifyContent: "center",
                         alignItems: "center",
-                        width: 1140,
+                        width: "100%",
                         minHeight: "50px",
                       }}>
                       <Typography

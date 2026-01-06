@@ -225,6 +225,14 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
         },
+        BIANNUALTEMPLATE: {
+          name: "Bi-Annual Template",
+          permissionId: "ASSESSMENTTEMPLATES.BIANNUALTEMPLATE",
+          displayName: "Bi-Annual Template",
+          path: "bi-annual-template",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
+          icon_on: null,
+        },
       },
     },
 
@@ -336,6 +344,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: counts.daFormApprovals,
+        },
+        BIANNUALAPPROVAL: {
+          name: "Bi-Annual Approval",
+          permissionId: "APPROVING.BIANNUALAPPROVAL",
+          displayName: "Bi-Annual Approval",
+          path: "biannualapproval",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
         },
 
         CATONEAPPROVAL: {
@@ -476,6 +493,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Recommendation",
           path: "evaluationrecommendation",
           icon: <RecommendIcon sx={iconStyles.child} />,
+          icon_on: null,
+          notificationCount: 0,
+        },
+        BIANNUALPERFORMANCE: {
+          name: "Bi-Annual Performance",
+          permissionId: "REQUEST.BIANNUALPERFORMANCE",
+          displayName: "Bi-Annual Performance",
+          path: "biannualperformance",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount: 0,
         },

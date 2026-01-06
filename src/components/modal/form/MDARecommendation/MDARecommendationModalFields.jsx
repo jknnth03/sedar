@@ -174,8 +174,20 @@ const MDARecommendationModalFields = ({
           sx={{ ...sectionTitleStyles, ...sectionHeaderStyles.fromPosition }}>
           FROM POSITION
         </Typography>
-        <Grid container spacing={1.6}>
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}>
+          <Box>
             <TextField
               label="Position Title From"
               value={formValues.from_position_title || ""}
@@ -183,19 +195,16 @@ const MDARecommendationModalFields = ({
               disabled={true}
               InputLabelProps={{ shrink: true }}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Job Level From"
               value={formValues.from_job_level || ""}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Job Rate From"
               value={formValues.from_job_rate || ""}
@@ -207,45 +216,9 @@ const MDARecommendationModalFields = ({
                 min: "0",
               }}
               InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
-            <TextField
-              label="Department From"
-              value={formValues.from_department || ""}
-              fullWidth
-              disabled={true}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
-            <TextField
-              label="Sub Unit From"
-              value={formValues.from_sub_unit || ""}
-              fullWidth
-              disabled={true}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
-            <TextField
-              label="Allowance From"
-              value={formValues.from_allowance || ""}
-              fullWidth
-              type="number"
-              disabled={true}
-              inputProps={{
-                step: "0.01",
-                min: "0",
-              }}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Additional Rate From"
               value={formValues.from_additional_rate || ""}
@@ -257,9 +230,43 @@ const MDARecommendationModalFields = ({
                 min: "0",
               }}
               InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
-          </Grid>
-        </Grid>
+          </Box>
+
+          <Box>
+            <TextField
+              label="Department From"
+              value={formValues.from_department || ""}
+              fullWidth
+              disabled={true}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              label="Sub Unit From"
+              value={formValues.from_sub_unit || ""}
+              fullWidth
+              disabled={true}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
+            />
+
+            <TextField
+              label="Allowance From"
+              value={formValues.from_allowance || ""}
+              fullWidth
+              type="number"
+              disabled={true}
+              inputProps={{
+                step: "0.01",
+                min: "0",
+              }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
+            />
+          </Box>
+        </Box>
       </Grid>
 
       <Grid item xs={12} sx={{ mb: 3 }}>
@@ -268,8 +275,20 @@ const MDARecommendationModalFields = ({
           sx={{ ...sectionTitleStyles, ...sectionHeaderStyles.toPosition }}>
           TO POSITION
         </Typography>
-        <Grid container spacing={1.6}>
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}>
+          <Box>
             <TextField
               label="Position"
               value={formValues.to_position_title || ""}
@@ -277,19 +296,16 @@ const MDARecommendationModalFields = ({
               disabled={true}
               InputLabelProps={{ shrink: true }}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Job Level To"
               value={formValues.to_job_level || ""}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <Controller
               name="to_job_rate"
               control={control}
@@ -314,61 +330,11 @@ const MDARecommendationModalFields = ({
                     step: "0.01",
                     min: "0",
                   }}
+                  sx={{ mt: 2 }}
                 />
               )}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
-            <TextField
-              label="Department To"
-              value={formValues.to_department || ""}
-              fullWidth
-              disabled={true}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
-            <TextField
-              label="Sub Unit To"
-              value={formValues.to_sub_unit || ""}
-              fullWidth
-              disabled={true}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
-            <Controller
-              name="to_allowance"
-              control={control}
-              rules={{
-                pattern: {
-                  value: /^\d+(\.\d{1,2})?$/,
-                  message: "Please enter a valid amount",
-                },
-              }}
-              render={({ field: { value, ...field } }) => (
-                <TextField
-                  {...field}
-                  value={value || ""}
-                  label="Allowance To *"
-                  type="number"
-                  fullWidth
-                  error={!!errors.to_allowance}
-                  helperText={errors.to_allowance?.message}
-                  disabled={isReadOnly}
-                  inputProps={{
-                    step: "0.01",
-                    min: "0",
-                  }}
-                />
-              )}
-            />
-          </Grid>
-
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <Controller
               name="to_additional_rate"
               control={control}
@@ -392,11 +358,59 @@ const MDARecommendationModalFields = ({
                     step: "0.01",
                     min: "0",
                   }}
+                  sx={{ mt: 2 }}
                 />
               )}
             />
-          </Grid>
-        </Grid>
+          </Box>
+
+          <Box>
+            <TextField
+              label="Department To"
+              value={formValues.to_department || ""}
+              fullWidth
+              disabled={true}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              label="Sub Unit To"
+              value={formValues.to_sub_unit || ""}
+              fullWidth
+              disabled={true}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
+            />
+
+            <Controller
+              name="to_allowance"
+              control={control}
+              rules={{
+                pattern: {
+                  value: /^\d+(\.\d{1,2})?$/,
+                  message: "Please enter a valid amount",
+                },
+              }}
+              render={({ field: { value, ...field } }) => (
+                <TextField
+                  {...field}
+                  value={value || ""}
+                  label="Allowance To *"
+                  type="number"
+                  fullWidth
+                  error={!!errors.to_allowance}
+                  helperText={errors.to_allowance?.message}
+                  disabled={isReadOnly}
+                  inputProps={{
+                    step: "0.01",
+                    min: "0",
+                  }}
+                  sx={{ mt: 2 }}
+                />
+              )}
+            />
+          </Box>
+        </Box>
       </Grid>
     </Grid>
   );

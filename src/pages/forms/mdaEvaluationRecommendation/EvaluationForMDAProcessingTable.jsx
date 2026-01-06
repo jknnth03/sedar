@@ -15,17 +15,19 @@ import {
   Tooltip,
   Skeleton,
   useTheme,
+  Button,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
+import AddIcon from "@mui/icons-material/Add";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
 import NoDataFound from "../../NoDataFound";
 
-const MDAEvaluationRecommendationTable = ({
+const EvaluationForMDAProcessingTable = ({
   submissionsList,
   isLoadingState,
   error,
@@ -38,6 +40,8 @@ const MDAEvaluationRecommendationTable = ({
   selectedFilters,
   showArchived,
   hideStatusColumn,
+  forMDAProcessing,
+  onCreateMDA,
   onCancel,
 }) => {
   const theme = useTheme();
@@ -63,20 +67,12 @@ const MDAEvaluationRecommendationTable = ({
   };
 
   const renderPosition = (submission) => {
-    if (!submission?.to_position_title) return "-";
+    if (!submission?.position_title) return "-";
     return (
       <Box>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "14px" }}>
-          {submission.to_position_title}
+        <Typography variant="body2" sx={{ fontSize: "14px" }}>
+          {submission.position_title}
         </Typography>
-        {submission.to_job_level && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontSize: "12px" }}>
-            {submission.to_job_level}
-          </Typography>
-        )}
       </Box>
     );
   };
@@ -87,6 +83,11 @@ const MDAEvaluationRecommendationTable = ({
         color: "#1976d2",
         bgColor: "#e3f2fd",
         label: "FOR APPROVAL",
+      },
+      "pending mda creation": {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "PENDING MDA CREATION",
       },
       pending: {
         color: "#f57c00",
@@ -133,17 +134,17 @@ const MDAEvaluationRecommendationTable = ({
     );
   };
 
-  const renderActionType = (submission) => {
-    const actionType = submission.action_type || "-";
+  const renderRecommendation = (submission) => {
+    if (!submission.recommendation) return "-";
+
     return (
       <Typography
         variant="body2"
         sx={{
-          fontWeight: 600,
           fontSize: "14px",
-          textTransform: "capitalize",
+          fontWeight: 600,
         }}>
-        {actionType}
+        {submission.recommendation}
       </Typography>
     );
   };
@@ -175,6 +176,13 @@ const MDAEvaluationRecommendationTable = ({
     }
   };
 
+  const handleCreateMDAClick = (e, submission) => {
+    e.stopPropagation();
+    if (onCreateMDA) {
+      onCreateMDA(submission);
+    }
+  };
+
   const canEditSubmission = (submission) => {
     return submission?.actions?.can_edit === true;
   };
@@ -198,14 +206,14 @@ const MDAEvaluationRecommendationTable = ({
 
   const getNoDataMessage = () => {
     if (searchQuery) {
-      return `No MDA evaluations found for "${searchQuery}"`;
+      return `No evaluations found for "${searchQuery}"`;
     }
     return showArchived
-      ? "No archived MDA evaluations found"
-      : "No MDA evaluations found";
+      ? "No archived evaluations found"
+      : "No evaluations pending MDA creation found";
   };
 
-  const shouldShowActionsColumn = !showArchived;
+  const shouldShowActionsColumn = !showArchived || forMDAProcessing;
 
   const totalColumns = shouldShowActionsColumn
     ? hideStatusColumn
@@ -236,7 +244,7 @@ const MDAEvaluationRecommendationTable = ({
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
               <TableCell sx={styles.columnStyles.position}>POSITION</TableCell>
               <TableCell sx={styles.columnStyles.formName}>
-                ACTION TYPE
+                RECOMMENDATION
               </TableCell>
               {!hideStatusColumn && (
                 <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
@@ -357,7 +365,7 @@ const MDAEvaluationRecommendationTable = ({
                         ...styles.columnStyles.formName,
                         ...styles.cellContentStyles,
                       }}>
-                      {renderActionType(submission)}
+                      {renderRecommendation(submission)}
                     </TableCell>
                     {!hideStatusColumn && (
                       <TableCell sx={styles.columnStyles.status}>
@@ -380,55 +388,74 @@ const MDAEvaluationRecommendationTable = ({
                       <TableCell
                         align="center"
                         sx={styles.columnStyles.actions}>
-                        <Tooltip title="Actions">
-                          <IconButton
-                            onClick={(e) => handleMenuOpen(e, submission)}
+                        {forMDAProcessing ? (
+                          <Button
+                            variant="contained"
                             size="small"
-                            sx={styles.actionIconButton(theme)}>
-                            <MoreVertIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Menu
-                          anchorEl={menuAnchor[submission.id]}
-                          open={Boolean(menuAnchor[submission.id])}
-                          onClose={() => handleMenuClose(submission.id)}
-                          transformOrigin={{
-                            horizontal: "right",
-                            vertical: "top",
-                          }}
-                          anchorOrigin={{
-                            horizontal: "right",
-                            vertical: "bottom",
-                          }}
-                          PaperProps={{
-                            sx: styles.actionMenu(theme),
-                          }}
-                          sx={{
-                            zIndex: 10000,
-                          }}>
-                          <MenuItem
-                            onClick={(e) => handleEditClick(e, submission)}
-                            disabled={!canEditSubmission(submission)}
-                            sx={
-                              canEditSubmission(submission)
-                                ? styles.editMenuItem
-                                : styles.editMenuItemDisabled
-                            }>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                            Edit
-                          </MenuItem>
-                          <MenuItem
-                            onClick={(e) => handleCancelClick(e, submission)}
-                            disabled={!canCancelSubmission(submission)}
-                            sx={
-                              canCancelSubmission(submission)
-                                ? styles.cancelMenuItem
-                                : styles.cancelMenuItemDisabled
-                            }>
-                            <CancelIcon fontSize="small" sx={{ mr: 1 }} />
-                            Cancel Request
-                          </MenuItem>
-                        </Menu>
+                            startIcon={<AddIcon />}
+                            onClick={(e) => handleCreateMDAClick(e, submission)}
+                            sx={{
+                              textTransform: "none",
+                              fontSize: "12px",
+                              padding: "4px 12px",
+                            }}>
+                            Create MDA
+                          </Button>
+                        ) : (
+                          <>
+                            <Tooltip title="Actions">
+                              <IconButton
+                                onClick={(e) => handleMenuOpen(e, submission)}
+                                size="small"
+                                sx={styles.actionIconButton(theme)}>
+                                <MoreVertIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Menu
+                              anchorEl={menuAnchor[submission.id]}
+                              open={Boolean(menuAnchor[submission.id])}
+                              onClose={() => handleMenuClose(submission.id)}
+                              transformOrigin={{
+                                horizontal: "right",
+                                vertical: "top",
+                              }}
+                              anchorOrigin={{
+                                horizontal: "right",
+                                vertical: "bottom",
+                              }}
+                              PaperProps={{
+                                sx: styles.actionMenu(theme),
+                              }}
+                              sx={{
+                                zIndex: 10000,
+                              }}>
+                              <MenuItem
+                                onClick={(e) => handleEditClick(e, submission)}
+                                disabled={!canEditSubmission(submission)}
+                                sx={
+                                  canEditSubmission(submission)
+                                    ? styles.editMenuItem
+                                    : styles.editMenuItemDisabled
+                                }>
+                                <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                                Edit
+                              </MenuItem>
+                              <MenuItem
+                                onClick={(e) =>
+                                  handleCancelClick(e, submission)
+                                }
+                                disabled={!canCancelSubmission(submission)}
+                                sx={
+                                  canCancelSubmission(submission)
+                                    ? styles.cancelMenuItem
+                                    : styles.cancelMenuItemDisabled
+                                }>
+                                <CancelIcon fontSize="small" sx={{ mr: 1 }} />
+                                Cancel Request
+                              </MenuItem>
+                            </Menu>
+                          </>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -486,4 +513,4 @@ const MDAEvaluationRecommendationTable = ({
   );
 };
 
-export default MDAEvaluationRecommendationTable;
+export default EvaluationForMDAProcessingTable;

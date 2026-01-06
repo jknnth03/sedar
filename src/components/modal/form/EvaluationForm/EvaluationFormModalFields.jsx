@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
-  Grid,
   TextField,
   Typography,
   Box,
@@ -45,6 +44,7 @@ const EvaluationFormModalFields = ({
 
   const isInitialMount = useRef(true);
   const prevModeRef = useRef(currentMode);
+  const updateTimeoutRef = useRef(null);
 
   const { data: employeesData, isLoading: isEmployeesLoading } =
     useGetEmployeesProbationaryQuery(undefined, {
@@ -83,9 +83,6 @@ const EvaluationFormModalFields = ({
   useEffect(() => {
     const loadEmployeeKpis = async () => {
       if (selectedEmployee) {
-        console.log("=== EMPLOYEE SELECTED ===");
-        console.log("Full selectedEmployee object:", selectedEmployee);
-
         setValue("employee_id", selectedEmployee.id);
         setValue(
           "employee_name",
@@ -110,69 +107,43 @@ const EvaluationFormModalFields = ({
           selectedEmployee.position?.position?.id ||
           selectedEmployee.position_id;
 
-        console.log("Initial position_id:", positionId);
-        console.log("Employee code:", selectedEmployee.code);
-
         if (!positionId) {
-          console.log(
-            "No position_id found, fetching full employee details..."
-          );
           try {
             const employeeDetails = await fetchSingleEmployee(
               selectedEmployee.id
             ).unwrap();
-
-            console.log("=== FULL EMPLOYEE DETAILS ===");
-            console.log("Raw response:", employeeDetails);
 
             const positionDetailsObj =
               employeeDetails?.result?.position_details;
             const positionObj = positionDetailsObj?.position;
             const extractedId = positionObj?.id;
 
-            console.log("Step 1 - position_details:", positionDetailsObj);
-            console.log("Step 2 - position:", positionObj);
-            console.log("Step 3 - position.id:", extractedId);
-
             if (extractedId) {
               positionId = extractedId;
-              console.log("✅ Successfully extracted position_id:", positionId);
             } else {
-              console.error("❌ Could not find position.id in the response");
-              console.log("Trying alternative paths...");
-
               positionId =
                 employeeDetails?.result?.position?.id ||
                 employeeDetails?.result?.position_id ||
                 employeeDetails?.position_details?.position?.id ||
                 employeeDetails?.position?.id ||
                 employeeDetails?.position_id;
-
-              console.log("Alternative extraction result:", positionId);
             }
           } catch (error) {
             console.error("Error fetching employee details:", error);
           }
         }
 
-        console.log("Final position_id:", positionId);
-
         const positionTitle =
           selectedEmployee.position?.position?.title?.name ||
           selectedEmployee.position_title ||
           "";
 
-        console.log("Position title:", positionTitle);
         setValue("position_title", positionTitle);
 
         if (positionId) {
           try {
             setIsKpisLoading(true);
-            console.log("Fetching KPIs for position_id:", positionId);
-
             const kpisResponse = await fetchPositionKpis(positionId).unwrap();
-
-            console.log("KPIs API Response:", kpisResponse);
 
             if (kpisResponse?.result && kpisResponse.result.length > 0) {
               const autoFilledKpis = kpisResponse.result.map((kpi) => ({
@@ -182,31 +153,22 @@ const EvaluationFormModalFields = ({
                 distribution_percentage: kpi.distribution_percentage,
                 deliverable: kpi.deliverable,
                 target_percentage: kpi.target_percentage,
-                actual_performance: null,
-                rating: null,
-                remarks: null,
+                actual_performance: kpi.actual_performance || null,
+                rating: kpi.rating || null,
+                remarks: kpi.remarks || "",
               }));
-
-              console.log("Auto-filled KPIs:", autoFilledKpis);
               setKpisList(autoFilledKpis);
               setValue("objectives", autoFilledKpis);
             } else {
-              console.log("No KPIs found in response");
               setKpisList([]);
               setValue("objectives", []);
             }
           } catch (error) {
-            console.error("Error fetching KPIs:", error);
             setKpisList([]);
             setValue("objectives", []);
           } finally {
             setIsKpisLoading(false);
           }
-        } else {
-          console.error("❌ NO POSITION_ID FOUND - KPIs cannot be fetched!");
-          console.error(
-            "This means both the employee list and employee details are missing position_id"
-          );
         }
       }
     };
@@ -214,19 +176,80 @@ const EvaluationFormModalFields = ({
     loadEmployeeKpis();
   }, [selectedEmployee, setValue, fetchPositionKpis, fetchSingleEmployee]);
 
+  const handleKpiFieldChange = useCallback(
+    (index, field, value) => {
+      setKpisList((prevKpisList) => {
+        const updatedKpis = [...prevKpisList];
+
+        if (field === "actual_performance") {
+          let numValue = value === "" || value === null ? null : Number(value);
+
+          if (numValue !== null) {
+            if (numValue < 0) numValue = 0;
+            if (numValue > 100) numValue = 100;
+          }
+
+          updatedKpis[index] = {
+            ...updatedKpis[index],
+            [field]: numValue,
+          };
+        } else if (field === "rating") {
+          let numValue = value === "" || value === null ? null : Number(value);
+
+          if (numValue !== null) {
+            if (numValue < 0) numValue = 0;
+            if (numValue > 5) numValue = 5;
+          }
+
+          updatedKpis[index] = {
+            ...updatedKpis[index],
+            [field]: numValue,
+          };
+        } else {
+          updatedKpis[index] = {
+            ...updatedKpis[index],
+            [field]: value,
+          };
+        }
+
+        setValue("objectives", updatedKpis, { shouldValidate: false });
+
+        return updatedKpis;
+      });
+    },
+    [setValue]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <Grid container spacing={3} sx={{ height: "100%" }}>
-      <Grid item xs={12}>
+    <Box sx={{ height: "100%" }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           EMPLOYEE INFORMATION
         </Typography>
-        <Box
-          sx={{
-            p: 3.5,
-            borderRadius: 2,
-          }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+        <Box sx={{ p: 0, pb: 0, borderRadius: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(3, 1fr)",
+              },
+              "@media (min-width: 900px)": {
+                gridTemplateColumns: "repeat(3, 1fr)",
+              },
+              gap: 2,
+              mb: 2,
+            }}>
+            <Box>
               {isCreate ? (
                 <Autocomplete
                   options={employees}
@@ -236,7 +259,6 @@ const EvaluationFormModalFields = ({
                   loading={isEmployeesLoading}
                   value={selectedEmployee}
                   onChange={(event, newValue) => {
-                    console.log("Employee selection changed:", newValue);
                     setSelectedEmployee(newValue);
                   }}
                   onOpen={() => setShouldFetchEmployees(true)}
@@ -244,6 +266,7 @@ const EvaluationFormModalFields = ({
                     <TextField
                       {...params}
                       label="EMPLOYEE NAME"
+                      fullWidth
                       error={!!errors.employee_id}
                       helperText={errors.employee_id?.message}
                       InputProps={{
@@ -257,90 +280,120 @@ const EvaluationFormModalFields = ({
                           </>
                         ),
                       }}
-                      sx={{ bgcolor: "white", width: "348px" }}
+                      sx={{ bgcolor: "white" }}
                     />
                   )}
                   disabled={isReadOnly}
-                  sx={{ width: "348px" }}
                 />
               ) : (
                 <TextField
                   label="EMPLOYEE NAME"
                   value={formValues.employee_name || ""}
                   disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
+                  fullWidth
+                  sx={{ bgcolor: "white" }}
                 />
               )}
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="ID NUMBER"
                 value={formValues.employee_code || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="POSITION"
                 value={formValues.position_title || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
+          </Box>
 
-            <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}>
+            <Box>
               <Controller
                 name="probation_start_date"
                 control={control}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
+                    value={
+                      field.value && dayjs.isDayjs(field.value)
+                        ? field.value
+                        : field.value
+                        ? dayjs(field.value)
+                        : null
+                    }
+                    onChange={(date) => field.onChange(date)}
                     label="PROBATION START DATE"
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.probation_start_date,
                         helperText: errors.probation_start_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <Controller
                 name="probation_end_date"
                 control={control}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
+                    value={
+                      field.value && dayjs.isDayjs(field.value)
+                        ? field.value
+                        : field.value
+                        ? dayjs(field.value)
+                        : null
+                    }
+                    onChange={(date) => field.onChange(date)}
                     label="PROBATION END DATE"
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.probation_end_date,
                         helperText: errors.probation_end_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
-      </Grid>
+      </Box>
 
-      <Grid item xs={12}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PERFORMANCE OBJECTIVES
         </Typography>
@@ -354,7 +407,6 @@ const EvaluationFormModalFields = ({
               border: "2px dashed",
               borderColor: "divider",
               minHeight: "200px",
-              width: 1140,
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
@@ -368,101 +420,236 @@ const EvaluationFormModalFields = ({
             </Typography>
           </Box>
         ) : kpisList.length > 0 ? (
-          <TableContainer
-            component={Paper}
-            sx={{
-              width: 1140,
-            }}>
-            <Table>
+          <TableContainer component={Paper} sx={{ width: "100%" }}>
+            <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+              <colgroup>
+                <col style={{ width: "420px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "420px" }} />
+              </colgroup>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
                   <TableCell
+                    colSpan={2}
                     sx={{
                       fontWeight: 700,
-                      width: "50%",
+                      textAlign: "center",
+                      borderRight: "1px solid #e0e0e0",
                     }}>
                     PERFORMANCE METRICS
                   </TableCell>
                   <TableCell
+                    colSpan={2}
                     align="center"
                     sx={{
                       fontWeight: 700,
-                      width: "50%",
                     }}>
                     ASSESSMENT
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Box sx={{ flex: 1, fontWeight: 600 }}>
-                        Key Performance Indicators
-                      </Box>
-                      <Box
-                        sx={{ flex: 1, textAlign: "center", fontWeight: 600 }}>
-                        Target
-                      </Box>
-                    </Box>
+                  <TableCell
+                    sx={{
+                      fontWeight: 600,
+                      p: 2,
+                      borderRight: "1px solid #e0e0e0",
+                    }}>
+                    Key Performance Indicators
                   </TableCell>
-                  <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Box
-                        sx={{ flex: 1, textAlign: "center", fontWeight: 600 }}>
-                        Actual
-                      </Box>
-                      <Box
-                        sx={{ flex: 1, textAlign: "center", fontWeight: 600 }}>
-                        Remarks
-                      </Box>
-                    </Box>
+                  <TableCell
+                    sx={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      p: 2,
+                      borderRight: "1px solid #e0e0e0",
+                    }}>
+                    Target
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      p: 2,
+                      borderRight: "1px solid #e0e0e0",
+                    }}>
+                    Actual
+                    {!isReadOnly && (
+                      <span style={{ color: "#d32f2f", marginLeft: "4px" }}>
+                        *
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      p: 2,
+                    }}>
+                    Remarks
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontStyle: "italic",
+                        fontWeight: 400,
+                      }}>
+                      {" "}
+                      (Optional)
+                    </span>
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {kpisList.map((kpi, index) => (
                   <TableRow key={index}>
-                    <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, mb: 1 }}>
-                            {kpi.objective_name}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary", display: "block" }}>
-                            {kpi.deliverable}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={kpi.target_percentage}
-                            inputProps={{
-                              min: 0,
-                              max: 100,
-                              step: "any",
-                            }}
-                            sx={{ width: "80px" }}
-                            disabled
-                          />
-                        </Box>
-                      </Box>
+                    <TableCell
+                      sx={{
+                        p: 2,
+                        verticalAlign: "top",
+                        borderRight: "1px solid #e0e0e0",
+                      }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, mb: 1 }}>
+                        {kpi.objective_name}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary", display: "block" }}>
+                        {kpi.deliverable}
+                      </Typography>
                     </TableCell>
-                    <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          {kpi.actual_performance !== null &&
-                          kpi.actual_performance !== undefined
-                            ? `${kpi.actual_performance}%`
-                            : "-"}
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          {kpi.remarks || "-"}
-                        </Box>
-                      </Box>
+                    <TableCell
+                      sx={{
+                        p: 2,
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        borderRight: "1px solid #e0e0e0",
+                      }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={kpi.target_percentage}
+                        inputProps={{
+                          min: 0,
+                          max: 100,
+                          step: "any",
+                        }}
+                        sx={{ width: "100px" }}
+                        disabled
+                      />
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        p: 2,
+                        verticalAlign: "top",
+                        textAlign: "center",
+                        borderRight: "1px solid #e0e0e0",
+                      }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={kpi.actual_performance ?? ""}
+                        onChange={(e) =>
+                          handleKpiFieldChange(
+                            index,
+                            "actual_performance",
+                            e.target.value
+                          )
+                        }
+                        inputProps={{
+                          min: 0,
+                          max: 100,
+                          step: "any",
+                        }}
+                        placeholder={isReadOnly ? "-" : "Enter %"}
+                        error={
+                          !isReadOnly &&
+                          (kpi.actual_performance === null ||
+                            kpi.actual_performance === undefined ||
+                            kpi.actual_performance === "")
+                        }
+                        helperText={
+                          !isReadOnly &&
+                          (kpi.actual_performance === null ||
+                            kpi.actual_performance === undefined ||
+                            kpi.actual_performance === "")
+                            ? "Required"
+                            : ""
+                        }
+                        sx={{
+                          width: "100px",
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: isReadOnly
+                              ? "transparent"
+                              : kpi.actual_performance !== null &&
+                                kpi.actual_performance !== undefined &&
+                                kpi.actual_performance !== ""
+                              ? "#f1f8f4"
+                              : "#fffef7",
+                            "& fieldset": {
+                              borderColor: isReadOnly
+                                ? "#e0e0e0"
+                                : kpi.actual_performance !== null &&
+                                  kpi.actual_performance !== undefined &&
+                                  kpi.actual_performance !== ""
+                                ? "#4caf50"
+                                : "#ffa726",
+                              borderWidth: isReadOnly ? "1px" : "2px",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: isReadOnly
+                                ? "#e0e0e0"
+                                : kpi.actual_performance !== null &&
+                                  kpi.actual_performance !== undefined &&
+                                  kpi.actual_performance !== ""
+                                ? "#45a049"
+                                : "#ff9800",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: isReadOnly
+                                ? "#e0e0e0"
+                                : kpi.actual_performance !== null &&
+                                  kpi.actual_performance !== undefined &&
+                                  kpi.actual_performance !== ""
+                                ? "#45a049"
+                                : "#ff9800",
+                            },
+                            "&.Mui-error fieldset": {
+                              borderColor: "#d32f2f",
+                            },
+                          },
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ p: 2, verticalAlign: "top" }}>
+                      <TextField
+                        size="small"
+                        value={kpi.remarks || ""}
+                        onChange={(e) =>
+                          handleKpiFieldChange(index, "remarks", e.target.value)
+                        }
+                        placeholder={isReadOnly ? "-" : "Optional remarks"}
+                        multiline
+                        maxRows={2}
+                        sx={{
+                          width: "100%",
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "white",
+                            "& fieldset": {
+                              borderColor: "#e0e0e0",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: isReadOnly ? "#e0e0e0" : "#bdbdbd",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: isReadOnly ? "#e0e0e0" : "#1976d2",
+                            },
+                          },
+                        }}
+                        disabled={isReadOnly}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -481,7 +668,6 @@ const EvaluationFormModalFields = ({
               flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
-              width: 1140,
               minHeight: "50px",
             }}>
             <Typography
@@ -493,8 +679,8 @@ const EvaluationFormModalFields = ({
             </Typography>
           </Box>
         )}
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 };
 

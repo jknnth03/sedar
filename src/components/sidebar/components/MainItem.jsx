@@ -1,4 +1,3 @@
-// MainItem.jsx - Updated version
 import { Box, Collapse, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -24,19 +23,31 @@ const MenuItem = ({
         style={{
           cursor: "pointer",
           paddingLeft: isChild ? "32px" : "16px",
+          paddingRight: "16px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-start",
           width: "100%",
         }}>
-        <Box style={{ display: "flex", alignItems: "center" }}>
-          <Box className={`icon ${active ? "active-icon" : ""}`}>
-            {icon || <span className="sidebar__placeholder-icon">📄</span>}
-          </Box>
-          <Typography className="text">{name}</Typography>
+        <Box
+          className={`icon ${active ? "active-icon" : ""}`}
+          style={{ flexShrink: 0, marginRight: "8px" }}>
+          {icon || <span className="sidebar__placeholder-icon">📄</span>}
         </Box>
+        <Typography
+          className="text"
+          sx={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: 0,
+            marginRight: "8px",
+          }}>
+          {name}
+        </Typography>
         {notificationCount > 0 && (
-          <Box sx={{ marginRight: "8px" }}>
+          <Box sx={{ flexShrink: 0 }}>
             {showDotOnly ? (
               <Box
                 sx={{
@@ -78,15 +89,20 @@ const MenuItem = ({
         cursor: "pointer",
         paddingLeft: isChild ? "32px" : "16px",
         position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}>
-      <Box className={`icon ${active ? "active-icon" : ""}`}>
+      <Box
+        className={`icon ${active ? "active-icon" : ""}`}
+        sx={{ position: "relative", display: "inline-flex" }}>
         {icon || <span className="sidebar__placeholder-icon">📄</span>}
         {notificationCount > 0 && (
           <Box
             sx={{
               position: "absolute",
-              top: "8px",
-              right: "8px",
+              top: "2px",
+              right: "2px",
               backgroundColor: "#ff5252",
               width: isChild ? "6px" : "8px",
               height: isChild ? "6px" : "8px",
@@ -119,7 +135,7 @@ export const MainItem = ({
   icon = null,
   sidebarOpen = false,
   notificationCount = 0,
-  onParentClick = () => {}, // Add this prop
+  onParentClick = () => {},
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -171,13 +187,10 @@ export const MainItem = ({
 
   const handleChildren = () => {
     if (subItem) {
-      // Call the parent callback to expand sidebar if closed
       onParentClick();
-      // Toggle children only if sidebar is already open
       if (sidebarOpen) {
         setOpenChildren((prev) => !prev);
       } else {
-        // If sidebar is closed and will open, show children
         setOpenChildren(true);
       }
     } else {

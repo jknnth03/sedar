@@ -72,9 +72,9 @@
   }
 
   &.closed {
-    width: 90px;
-    padding-left: 10px;
-    padding-right: 10px;
+    width: 100px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   @media (min-width: 769px) {
@@ -197,7 +197,7 @@
 }
 
 .mainbox.closed .icon {
-  margin-left: -8px;
+  margin-left: 0px;
   margin-right: 0px;
 }
 
@@ -303,13 +303,7 @@
 }
 
 .mobile-close-button {
-  @include mx.sm {
-    display: block;
-  }
-
-  @media (min-width: 769px) {
-    display: none !important;
-  }
+  display: none !important;
 
   .MuiIconButton-root {
     width: 32px;

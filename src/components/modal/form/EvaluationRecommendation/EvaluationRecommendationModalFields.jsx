@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
-  Grid,
   TextField,
   Typography,
   Box,
-  Autocomplete,
   CircularProgress,
   Table,
   TableBody,
@@ -123,94 +121,134 @@ const EvaluationRecommendationModalFields = ({
   }, []);
 
   return (
-    <Grid container spacing={3} sx={{ height: "100%" }}>
-      <Grid item xs={12}>
+    <Box sx={{ height: "100%" }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           EMPLOYEE INFORMATION
         </Typography>
-        <Box
-          sx={{
-            p: 3.5,
-            borderRadius: 2,
-          }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+        <Box sx={{ p: 0, pb: 0, borderRadius: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(3, 1fr)",
+              },
+              "@media (min-width: 900px)": {
+                gridTemplateColumns: "repeat(3, 1fr)",
+              },
+              gap: 2,
+              mb: 2,
+            }}>
+            <Box>
               <TextField
                 label="EMPLOYEE NAME"
                 value={formValues.employee_name || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="ID NUMBER"
                 value={formValues.employee_code || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="POSITION"
                 value={formValues.position_title || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
+          </Box>
 
-            <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}>
+            <Box>
               <Controller
                 name="probation_start_date"
                 control={control}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
+                    value={
+                      field.value && dayjs.isDayjs(field.value)
+                        ? field.value
+                        : field.value
+                        ? dayjs(field.value)
+                        : null
+                    }
+                    onChange={(date) => field.onChange(date)}
                     label="PROBATION START DATE"
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.probation_start_date,
                         helperText: errors.probation_start_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <Controller
                 name="probation_end_date"
                 control={control}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
+                    value={
+                      field.value && dayjs.isDayjs(field.value)
+                        ? field.value
+                        : field.value
+                        ? dayjs(field.value)
+                        : null
+                    }
+                    onChange={(date) => field.onChange(date)}
                     label="PROBATION END DATE"
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.probation_end_date,
                         helperText: errors.probation_end_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
-      </Grid>
+      </Box>
 
-      <Grid item xs={12}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PART I - PERFORMANCE OBJECTIVES
         </Typography>
@@ -224,7 +262,6 @@ const EvaluationRecommendationModalFields = ({
               border: "2px dashed",
               borderColor: "divider",
               minHeight: "200px",
-              width: 1140,
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
@@ -238,7 +275,7 @@ const EvaluationRecommendationModalFields = ({
             </Typography>
           </Box>
         ) : kpisList.length > 0 ? (
-          <TableContainer component={Paper} sx={{ width: 1140 }}>
+          <TableContainer component={Paper} sx={{ width: "100%" }}>
             <Table sx={{ tableLayout: "fixed", width: "100%" }}>
               <colgroup>
                 <col style={{ width: "420px" }} />
@@ -490,7 +527,6 @@ const EvaluationRecommendationModalFields = ({
               flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
-              width: 1140,
               minHeight: "50px",
             }}>
             <Typography
@@ -500,9 +536,9 @@ const EvaluationRecommendationModalFields = ({
             </Typography>
           </Box>
         )}
-      </Grid>
+      </Box>
 
-      <Grid item xs={12}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PART II - RECOMMENDATION
         </Typography>
@@ -516,11 +552,7 @@ const EvaluationRecommendationModalFields = ({
           }}>
           (To be accomplished 30 days before the end of probation)
         </Typography>
-        <Box
-          sx={{
-            p: 3.5,
-            borderRadius: 2,
-          }}>
+        <Box sx={{ p: 3.5, borderRadius: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <Typography variant="body2">Please tick:</Typography>
             {!isReadOnly && (
@@ -542,121 +574,115 @@ const EvaluationRecommendationModalFields = ({
                 Please select a recommendation option
               </Typography>
             )}
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Controller
-                name="for_permanent_appointment"
-                control={control}
-                defaultValue={false}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        {...field}
-                        checked={field.value || false}
-                        onChange={(e) => {
-                          field.onChange(e.target.checked);
-                          handleCheckboxChange(
-                            "for_permanent_appointment",
-                            e.target.checked
-                          );
-                        }}
-                        disabled={isReadOnly}
-                      />
-                    }
-                    label="For Permanent Appointment"
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name="not_for_permanent_appointment"
-                control={control}
-                defaultValue={false}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        {...field}
-                        checked={field.value || false}
-                        onChange={(e) => {
-                          field.onChange(e.target.checked);
-                          handleCheckboxChange(
-                            "not_for_permanent_appointment",
-                            e.target.checked
-                          );
-                        }}
-                        disabled={isReadOnly}
-                      />
-                    }
-                    label="NOT for permanent appointment at this time"
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name="for_extension"
-                control={control}
-                defaultValue={false}
-                render={({ field }) => (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          {...field}
-                          checked={field.value || false}
-                          onChange={(e) => {
-                            field.onChange(e.target.checked);
-                            handleCheckboxChange(
-                              "for_extension",
-                              e.target.checked
-                            );
-                          }}
-                          disabled={isReadOnly}
-                        />
-                      }
-                      label="For extension until"
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Controller
+              name="for_permanent_appointment"
+              control={control}
+              defaultValue={false}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      {...field}
+                      checked={field.value || false}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        handleCheckboxChange(
+                          "for_permanent_appointment",
+                          e.target.checked
+                        );
+                      }}
+                      disabled={isReadOnly}
                     />
-                    {forExtension && (
-                      <Controller
-                        name="extension_end_date"
-                        control={control}
-                        render={({ field: dateField }) => (
-                          <DatePicker
-                            {...dateField}
-                            value={
-                              dateField.value && dayjs.isDayjs(dateField.value)
-                                ? dateField.value
-                                : dateField.value
-                                ? dayjs(dateField.value)
-                                : null
-                            }
-                            onChange={(date) => dateField.onChange(date)}
-                            disabled={isReadOnly}
-                            slotProps={{
-                              textField: {
-                                size: "small",
-                                error: !!errors.extension_end_date,
-                                helperText: errors.extension_end_date?.message,
-                                sx: { bgcolor: "white", width: "200px" },
-                              },
-                            }}
-                          />
-                        )}
+                  }
+                  label="For Permanent Appointment"
+                />
+              )}
+            />
+
+            <Controller
+              name="not_for_permanent_appointment"
+              control={control}
+              defaultValue={false}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      {...field}
+                      checked={field.value || false}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        handleCheckboxChange(
+                          "not_for_permanent_appointment",
+                          e.target.checked
+                        );
+                      }}
+                      disabled={isReadOnly}
+                    />
+                  }
+                  label="NOT for permanent appointment at this time"
+                />
+              )}
+            />
+
+            <Controller
+              name="for_extension"
+              control={control}
+              defaultValue={false}
+              render={({ field }) => (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        {...field}
+                        checked={field.value || false}
+                        onChange={(e) => {
+                          field.onChange(e.target.checked);
+                          handleCheckboxChange(
+                            "for_extension",
+                            e.target.checked
+                          );
+                        }}
+                        disabled={isReadOnly}
                       />
-                    )}
-                  </Box>
-                )}
-              />
-            </Grid>
-          </Grid>
+                    }
+                    label="For extension until"
+                  />
+                  {forExtension && (
+                    <Controller
+                      name="extension_end_date"
+                      control={control}
+                      render={({ field: dateField }) => (
+                        <DatePicker
+                          {...dateField}
+                          value={
+                            dateField.value && dayjs.isDayjs(dateField.value)
+                              ? dateField.value
+                              : dateField.value
+                              ? dayjs(dateField.value)
+                              : null
+                          }
+                          onChange={(date) => dateField.onChange(date)}
+                          disabled={isReadOnly}
+                          slotProps={{
+                            textField: {
+                              size: "small",
+                              error: !!errors.extension_end_date,
+                              helperText: errors.extension_end_date?.message,
+                              sx: { bgcolor: "white", width: "200px" },
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  )}
+                </Box>
+              )}
+            />
+          </Box>
         </Box>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 };
 

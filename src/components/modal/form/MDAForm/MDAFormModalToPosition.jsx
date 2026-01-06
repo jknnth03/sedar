@@ -1,61 +1,7 @@
 import React, { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
-import { Grid, TextField, Typography, Autocomplete, Box } from "@mui/material";
+import { TextField, Typography, Autocomplete, Box } from "@mui/material";
 import { sectionTitleStyles } from "./MDAFornModal.styles";
-import {
-  infoSectionContainerStyles,
-  infoSectionTitleStyles,
-  infoFieldContainerStyles,
-  infoFieldLabelStyles,
-  infoFieldValueStyles,
-  infoBoxStyles,
-  sectionHeaderStyles,
-} from "./MDAFormModalFields.styles";
-
-const InfoSection = ({ title, children }) => (
-  <Box sx={infoSectionContainerStyles}>
-    {title && (
-      <Typography variant="subtitle2" sx={infoSectionTitleStyles}>
-        {title}
-      </Typography>
-    )}
-    {children}
-  </Box>
-);
-
-const safeStringValue = (val) => {
-  if (!val) return "-";
-  if (typeof val === "object" && val !== null) {
-    if (val.name) return String(val.name);
-    if (val.title) return String(val.title);
-    if (val.code) return String(val.code);
-    return "-";
-  }
-  return String(val);
-};
-
-const InfoField = ({ label, value }) => {
-  let displayValue = "-";
-
-  if (value) {
-    if (typeof value === "object" && value !== null) {
-      displayValue = value.name || value.title || value.code || "-";
-    } else {
-      displayValue = String(value);
-    }
-  }
-
-  return (
-    <Box sx={infoFieldContainerStyles}>
-      <Typography variant="subtitle2" sx={infoFieldLabelStyles}>
-        {label}
-      </Typography>
-      <Typography variant="body2" sx={infoFieldValueStyles}>
-        {displayValue}
-      </Typography>
-    </Box>
-  );
-};
 
 export const ToPositionFields = ({
   control,
@@ -156,230 +102,26 @@ export const ToPositionFields = ({
     setValue,
   ]);
 
-  if (showSummary) {
-    return (
-      <Grid item xs={12}>
-        <Typography
-          variant="h6"
-          sx={{
-            ...sectionTitleStyles,
-            ...sectionHeaderStyles.toPosition,
-          }}>
-          TO POSITION
-        </Typography>
-        <Grid container spacing={0}>
-          <Grid item xs={12} md={4}>
-            <Box sx={infoBoxStyles.toPosition1}>
-              <InfoSection>
-                <Controller
-                  name="to_position_id"
-                  control={control}
-                  rules={{ required: "Position is required" }}
-                  render={({ field: { onChange, value } }) => {
-                    const selectedPosition =
-                      positions.find((p) => p.id === value) || null;
-
-                    return (
-                      <Autocomplete
-                        options={positions}
-                        getOptionLabel={getPositionLabel}
-                        isOptionEqualToValue={(option, val) => {
-                          if (!option || !val) return false;
-                          return option.id === val.id;
-                        }}
-                        filterOptions={(options, state) => {
-                          const inputValue = state.inputValue
-                            .toLowerCase()
-                            .trim();
-
-                          if (!inputValue) return options;
-
-                          return options.filter((option) => {
-                            const label =
-                              getPositionLabel(option).toLowerCase();
-                            return label.includes(inputValue);
-                          });
-                        }}
-                        value={selectedPosition}
-                        onChange={(_, newValue) => {
-                          onChange(newValue?.id || null);
-                        }}
-                        disabled={isReadOnly}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Position Title To *"
-                            error={!!errors.to_position_id}
-                            helperText={errors.to_position_id?.message}
-                            sx={{ mb: 1.5 }}
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <li {...props} key={option.id}>
-                            {getPositionLabel(option)}
-                          </li>
-                        )}
-                      />
-                    );
-                  }}
-                />
-                <InfoField
-                  label="Department"
-                  value={safeStringValue(formValues.to_department)}
-                />
-                <InfoField
-                  label="Sub Unit"
-                  value={safeStringValue(formValues.to_sub_unit)}
-                />
-              </InfoSection>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Box sx={infoBoxStyles.toPosition2}>
-              <InfoSection>
-                <Controller
-                  name="to_job_level_id"
-                  control={control}
-                  rules={{ required: "Job level is required" }}
-                  render={({ field: { onChange, value } }) => {
-                    const selectedJobLevel =
-                      jobLevels.find((jl) => jl.id === value) || null;
-
-                    return (
-                      <Autocomplete
-                        options={jobLevels}
-                        getOptionLabel={getJobLevelLabel}
-                        isOptionEqualToValue={(option, val) => {
-                          if (!option || !val) return false;
-                          return option.id === val.id;
-                        }}
-                        filterOptions={(options, state) => {
-                          const inputValue = state.inputValue
-                            .toLowerCase()
-                            .trim();
-
-                          if (!inputValue) return options;
-
-                          return options.filter((option) => {
-                            const label =
-                              getJobLevelLabel(option).toLowerCase();
-                            return label.includes(inputValue);
-                          });
-                        }}
-                        value={selectedJobLevel}
-                        onChange={(_, newValue) => {
-                          onChange(newValue?.id || null);
-                        }}
-                        disabled={isReadOnly}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Job Level *"
-                            error={!!errors.to_job_level_id}
-                            helperText={errors.to_job_level_id?.message}
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <li {...props} key={option.id}>
-                            {getJobLevelLabel(option)}
-                          </li>
-                        )}
-                      />
-                    );
-                  }}
-                />
-                <Controller
-                  name="to_job_rate"
-                  control={control}
-                  rules={{
-                    required: "Job rate is required",
-                    pattern: {
-                      value: /^\d+(\.\d{1,2})?$/,
-                      message: "Please enter a valid amount",
-                    },
-                  }}
-                  render={({ field: { value, ...field } }) => (
-                    <TextField
-                      {...field}
-                      value={value || ""}
-                      label="Job Rate To *"
-                      type="number"
-                      fullWidth
-                      error={!!errors.to_job_rate}
-                      helperText={errors.to_job_rate?.message}
-                      disabled={isReadOnly}
-                      inputProps={{
-                        step: "0.01",
-                        min: "0",
-                      }}
-                      sx={{ mt: 1.5 }}
-                    />
-                  )}
-                />
-              </InfoSection>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Box sx={infoBoxStyles.toPosition3}>
-              <InfoSection>
-                <Controller
-                  name="to_allowance"
-                  control={control}
-                  rules={{
-                    pattern: {
-                      value: /^\d+(\.\d{1,2})?$/,
-                      message: "Please enter a valid amount",
-                    },
-                  }}
-                  render={({ field: { value, ...field } }) => (
-                    <TextField
-                      {...field}
-                      value={value || ""}
-                      label="Allowance To *"
-                      type="number"
-                      fullWidth
-                      error={!!errors.to_allowance}
-                      helperText={errors.to_allowance?.message}
-                      disabled={isReadOnly}
-                      inputProps={{
-                        step: "0.01",
-                        min: "0",
-                      }}
-                    />
-                  )}
-                />
-                <Controller
-                  name="to_department"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      key={`summary_to_department_${field.value}`}
-                      value={field.value || ""}
-                      label="Department"
-                      fullWidth
-                      disabled={true}
-                      sx={{ mt: 1.5 }}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  )}
-                />
-              </InfoSection>
-            </Box>
-          </Grid>
-        </Grid>
-      </Grid>
-    );
-  }
-
   if (currentMode === "view") {
     return (
-      <Grid item xs={12} key="to-position-view">
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           TO POSITION
         </Typography>
-        <Grid container spacing={1.6}>
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}>
+          <Box>
             <Controller
               name="to_position_title"
               control={control}
@@ -394,9 +136,7 @@ export const ToPositionFields = ({
                 />
               )}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <Controller
               name="to_job_level"
               control={control}
@@ -408,12 +148,11 @@ export const ToPositionFields = ({
                   fullWidth
                   disabled={true}
                   InputLabelProps={{ shrink: true }}
+                  sx={{ mt: 2 }}
                 />
               )}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <Controller
               name="to_job_rate"
               control={control}
@@ -430,12 +169,13 @@ export const ToPositionFields = ({
                     min: "0",
                   }}
                   InputLabelProps={{ shrink: true }}
+                  sx={{ mt: 2 }}
                 />
               )}
             />
-          </Grid>
+          </Box>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+          <Box>
             <Controller
               name="to_department"
               control={control}
@@ -450,9 +190,7 @@ export const ToPositionFields = ({
                 />
               )}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <Controller
               name="to_sub_unit"
               control={control}
@@ -464,12 +202,11 @@ export const ToPositionFields = ({
                   fullWidth
                   disabled={true}
                   InputLabelProps={{ shrink: true }}
+                  sx={{ mt: 2 }}
                 />
               )}
             />
-          </Grid>
 
-          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <Controller
               name="to_allowance"
               control={control}
@@ -486,22 +223,35 @@ export const ToPositionFields = ({
                     min: "0",
                   }}
                   InputLabelProps={{ shrink: true }}
+                  sx={{ mt: 2 }}
                 />
               )}
             />
-          </Grid>
-        </Grid>
-      </Grid>
+          </Box>
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <Grid item xs={12} key="to-position-edit">
+    <Box sx={{ mb: 3 }}>
       <Typography variant="h6" sx={sectionTitleStyles}>
         TO POSITION
       </Typography>
-      <Grid container spacing={1.6}>
-        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "1fr",
+            md: "repeat(2, 1fr)",
+          },
+          "@media (min-width: 750px)": {
+            gridTemplateColumns: "repeat(2, 1fr)",
+          },
+          gap: 2,
+        }}>
+        <Box>
           <Controller
             name="to_position_id"
             control={control}
@@ -532,7 +282,7 @@ export const ToPositionFields = ({
                   onChange={(_, newValue) => {
                     onChange(newValue?.id || null);
                   }}
-                  disabled={false}
+                  disabled={isReadOnly}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -550,9 +300,7 @@ export const ToPositionFields = ({
               );
             }}
           />
-        </Grid>
 
-        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
           <Controller
             name="to_job_level_id"
             control={control}
@@ -583,7 +331,8 @@ export const ToPositionFields = ({
                   onChange={(_, newValue) => {
                     onChange(newValue?.id || null);
                   }}
-                  disabled={false}
+                  disabled={isReadOnly}
+                  sx={{ mt: 2 }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -601,9 +350,7 @@ export const ToPositionFields = ({
               );
             }}
           />
-        </Grid>
 
-        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
           <Controller
             name="to_job_rate"
             control={control}
@@ -623,24 +370,24 @@ export const ToPositionFields = ({
                 type="number"
                 error={!!errors.to_job_rate}
                 helperText={errors.to_job_rate?.message}
-                disabled={false}
+                disabled={isReadOnly}
                 inputProps={{
                   step: "0.01",
                   min: "0",
                 }}
+                sx={{ mt: 2 }}
               />
             )}
           />
-        </Grid>
+        </Box>
 
-        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+        <Box>
           <Controller
             name="to_department"
             control={control}
             render={({ field }) => (
               <TextField
                 {...field}
-                key={`to_department_${field.value}`}
                 value={field.value || ""}
                 label="Department To"
                 fullWidth
@@ -649,27 +396,23 @@ export const ToPositionFields = ({
               />
             )}
           />
-        </Grid>
 
-        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
           <Controller
             name="to_sub_unit"
             control={control}
             render={({ field }) => (
               <TextField
                 {...field}
-                key={`to_sub_unit_${field.value}`}
                 value={field.value || ""}
                 label="Sub Unit To"
                 fullWidth
                 disabled={true}
                 InputLabelProps={{ shrink: true }}
+                sx={{ mt: 2 }}
               />
             )}
           />
-        </Grid>
 
-        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
           <Controller
             name="to_allowance"
             control={control}
@@ -688,16 +431,17 @@ export const ToPositionFields = ({
                 type="number"
                 error={!!errors.to_allowance}
                 helperText={errors.to_allowance?.message}
-                disabled={false}
+                disabled={isReadOnly}
                 inputProps={{
                   step: "0.01",
                   min: "0",
                 }}
+                sx={{ mt: 2 }}
               />
             )}
           />
-        </Grid>
-      </Grid>
-    </Grid>
+        </Box>
+      </Box>
+    </Box>
   );
 };

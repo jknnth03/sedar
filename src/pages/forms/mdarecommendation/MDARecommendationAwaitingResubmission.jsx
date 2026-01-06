@@ -283,6 +283,7 @@ const MDARecommendationAwaitingResubmission = ({
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         onRefreshDetails={handleRefreshDetails}
+        onRefetch={refetch}
       />
     </FormProvider>
   );

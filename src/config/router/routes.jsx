@@ -80,6 +80,9 @@ import EvaluationRecommendation from "../../pages/forms/evaluationRecommendation
 import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
 import MDAEvaluationRecommendation from "../../pages/forms/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
 import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
+import BiAnnualPerformance from "../../pages/forms/biAnnualPerformance/BiAnnualPerformance.jsx";
+import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.jsx";
+import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualApproval.jsx";
 
 export const ROUTES = [
   {
@@ -175,6 +178,15 @@ export const ROUTES = [
         },
       },
       {
+        id: "ASSESSMENTTEMPLATES.BIANNUALTEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.BIANNUALTEMPLATE.path}`,
+        element: <BiAnnualTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.BIANNUALTEMPLATE.permissionId,
+        },
+      },
+      {
         id: "REQUEST.MRFMAINCONTAINER",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MRFMAINCONTAINER.path}`,
         element: <MrfMainContainer />,
@@ -263,6 +275,14 @@ export const ROUTES = [
         handle: {
           permission:
             MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.BIANNUALPERFORMANCE",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.BIANNUALPERFORMANCE.path}`,
+        element: <BiAnnualPerformance />,
+        handle: {
+          permission: MODULES.REQUEST.children.BIANNUALPERFORMANCE.permissionId,
         },
       },
       {
@@ -404,6 +424,14 @@ export const ROUTES = [
         handle: {
           permission:
             MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.BIANNUALAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.BIANNUALAPPROVAL.path}`,
+        element: <BiAnnualApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.BIANNUALAPPROVAL.permissionId,
         },
       },
       {

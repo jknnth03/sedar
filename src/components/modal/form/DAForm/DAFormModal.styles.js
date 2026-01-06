@@ -167,6 +167,7 @@ export const sectionTitleStyles = {
   fontSize: "1rem",
   letterSpacing: "0.5px",
   textTransform: "uppercase",
+  paddingBottom: 1,
 };
 
 export const infoSectionContainerStyles = {

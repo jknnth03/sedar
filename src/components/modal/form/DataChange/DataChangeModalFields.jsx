@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   TextField,
-  Grid,
   Typography,
   IconButton,
   FormControl,
@@ -183,7 +182,7 @@ const DataChangeModalFields = ({
     formData.append("form_id", 4);
 
     if (values.employee_id?.id) {
-      formData.append("employee_id", values.employee_id.id); 
+      formData.append("employee_id", values.employee_id.id);
     }
 
     if (values.movement_type_id?.id) {
@@ -255,169 +254,204 @@ const DataChangeModalFields = ({
 
   return (
     <Box>
+      {/* Employee Info Box - Shown when employee is selected */}
       {(watchedEmployee && watchedEmployee.employee_name) ||
       isLoadingEmployeeData ? (
-        <Box sx={{ marginLeft: 2.1 }}>
-          <Grid container spacing={0}>
-            <Grid item xs={12} md={6}>
-              <Box
+        <Box sx={{ mb: 3, px: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}
+          >
+            {/* Left Column */}
+            <Box
+              sx={{
+                padding: 2,
+                border: "none",
+                borderRadius: "4px",
+              }}
+            >
+              <Typography
+                variant="subtitle2"
                 sx={{
-                  padding: 2,
-                  border: "none",
-                  borderRadius: "4px",
-                  width: "403px",
-                }}>
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                DEPARTMENT
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton
+                  variant="text"
+                  width="70%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  DEPARTMENT
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                    marginBottom: 2.5,
+                  }}
+                >
+                  {displayDepartment}
                 </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="70%"
-                    height={24}
-                    sx={{ marginBottom: 2.5 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2.5,
-                    }}>
-                    {displayDepartment}
-                  </Typography>
-                )}
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  SCHEDULE
-                </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton variant="text" width="60%" height={24} />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                    }}>
-                    {displaySchedule}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box
+              )}
+              <Typography
+                variant="subtitle2"
                 sx={{
-                  padding: 2,
-                  border: "none",
-                  borderRadius: "4px",
-                  width: "403px",
-                }}>
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                SCHEDULE
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="text" width="60%" height={24} />
+              ) : (
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  POSITION FROM
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                  }}
+                >
+                  {displaySchedule}
                 </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="85%"
-                    height={24}
-                    sx={{ marginBottom: 2.5 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2.5,
-                    }}>
-                    {displayPositionFrom}
-                  </Typography>
-                )}
+              )}
+            </Box>
 
+            {/* Right Column */}
+            <Box
+              sx={{
+                padding: 2,
+                border: "none",
+                borderRadius: "4px",
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                POSITION FROM
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton
+                  variant="text"
+                  width="85%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  SUB UNIT
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                    marginBottom: 2.5,
+                  }}
+                >
+                  {displayPositionFrom}
                 </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="65%"
-                    height={24}
-                    sx={{ marginBottom: 2.5 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2.5,
-                    }}>
-                    {displaySubUnit}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
+              )}
+
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                SUB UNIT
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton
+                  variant="text"
+                  width="65%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                    marginBottom: 2.5,
+                  }}
+                >
+                  {displaySubUnit}
+                </Typography>
+              )}
+            </Box>
+          </Box>
         </Box>
       ) : null}
 
+      {/* Main Form Fields */}
       <Box sx={containerStyles.main}>
-        <Grid container spacing={2}>
-          <Controller
-            name="form_id"
-            control={control}
-            render={({ field }) => (
-              <input type="hidden" {...field} value={field.value?.id || 4} />
-            )}
-          />
+        <Controller
+          name="form_id"
+          control={control}
+          render={({ field }) => (
+            <input type="hidden" {...field} value={field.value?.id || 4} />
+          )}
+        />
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}
+        >
+          {/* Employee Field */}
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -494,9 +528,10 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+          {/* Movement Type Field */}
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -568,9 +603,10 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+          {/* Effective Date Field */}
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -601,9 +637,10 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+          {/* Position To Field */}
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -697,16 +734,17 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sx={gridItemStyles.attachmentFullWidth}>
+          {/* Attachment Fields - Full Width */}
+          <Box sx={{ gridColumn: "1 / -1" }}>
             <DataChangeAttachmentFields
               isLoading={isLoading}
               mode={mode}
               selectedEntry={selectedEntry}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

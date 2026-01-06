@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
-  Grid,
   TextField,
   Typography,
   Box,
@@ -137,18 +136,26 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   }, [selectedToPosition, setValue, fetchPositionKpis]);
 
   return (
-    <Grid container spacing={3} sx={{ height: "100%" }}>
-      <Grid item xs={12}>
+    <Box sx={{ height: "100%" }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           EMPLOYEE INFORMATION
         </Typography>
-        <Box
-          sx={{
-            p: 3.5,
-            borderRadius: 2,
-          }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+        <Box sx={{ p: 0, pb: 0, borderRadius: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}>
+            <Box sx={{ gridColumn: "1 / -1" }}>
               {isCreate ? (
                 <Autocomplete
                   options={employees}
@@ -163,6 +170,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     <TextField
                       {...params}
                       label="EMPLOYEE NAME"
+                      fullWidth
                       error={!!errors.employee_id}
                       helperText={errors.employee_id?.message}
                       InputProps={{
@@ -176,32 +184,33 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                           </>
                         ),
                       }}
-                      sx={{ bgcolor: "white", width: "348px" }}
+                      sx={{ bgcolor: "white" }}
                     />
                   )}
                   disabled={isReadOnly}
-                  sx={{ width: "348px" }}
                 />
               ) : (
                 <TextField
                   label="EMPLOYEE NAME"
                   value={formValues.employee_name || ""}
                   disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
+                  fullWidth
+                  sx={{ bgcolor: "white" }}
                 />
               )}
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="POSITION - FROM"
                 value={formValues.from_position_title || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               {isCreate ? (
                 <Autocomplete
                   options={positions}
@@ -218,6 +227,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     <TextField
                       {...params}
                       label="POSITION - TO"
+                      fullWidth
                       error={!!errors.to_position_id}
                       helperText={errors.to_position_id?.message}
                       InputProps={{
@@ -231,11 +241,10 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                           </>
                         ),
                       }}
-                      sx={{ bgcolor: "white", width: "348px" }}
+                      sx={{ bgcolor: "white" }}
                     />
                   )}
                   disabled={isReadOnly || !selectedEmployee}
-                  sx={{ width: "348px" }}
                 />
               ) : (
                 <TextField
@@ -246,30 +255,33 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                       : ""
                   }
                   disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
+                  fullWidth
+                  sx={{ bgcolor: "white" }}
                 />
               )}
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="DEPARTMENT - FROM"
                 value={formValues.from_department || "-"}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="DEPARTMENT - TO"
                 value={formValues.to_department || "-"}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <Controller
                 name="start_date"
                 control={control}
@@ -297,17 +309,18 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.start_date,
                         helperText: errors.start_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <Controller
                 name="end_date"
                 control={control}
@@ -339,20 +352,21 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.end_date,
                         helperText: errors.end_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
-      </Grid>
+      </Box>
 
-      <Grid item xs={12}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PART I - SETTING OF OBJECTIVES
         </Typography>
@@ -366,7 +380,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               border: "2px dashed",
               borderColor: "divider",
               minHeight: "200px",
-              width: 1140,
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
@@ -380,11 +393,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             </Typography>
           </Box>
         ) : kpisList.length > 0 ? (
-          <TableContainer
-            component={Paper}
-            sx={{
-              width: 1140,
-            }}>
+          <TableContainer component={Paper} sx={{ width: "100%" }}>
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
@@ -497,7 +506,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
-              width: 1140,
               minHeight: "50px",
             }}>
             <Typography
@@ -509,8 +517,8 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             </Typography>
           </Box>
         )}
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 };
 

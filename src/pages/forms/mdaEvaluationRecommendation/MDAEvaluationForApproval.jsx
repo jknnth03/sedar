@@ -83,22 +83,14 @@ const MDAEvaluationForApproval = ({
     { data: submissionsData, isLoading: queryLoading, isFetching, error },
   ] = useLazyGetMdaEvaluationSubmissionsQuery();
 
-  const [
-    triggerGetSubmission,
-    { data: submissionDetails, isLoading: detailsLoading },
-  ] = useLazyGetSingleMdaEvaluationSubmissionQuery();
+  const [triggerGetSubmission, { isLoading: detailsLoading }] =
+    useLazyGetSingleMdaEvaluationSubmissionQuery();
 
   const [updateMdaEvaluation] = useUpdateMdaEvaluationMutation();
 
   useEffect(() => {
     triggerGetSubmissions(apiQueryParams);
   }, [apiQueryParams, triggerGetSubmissions]);
-
-  useEffect(() => {
-    if (submissionDetails?.result) {
-      setSelectedSubmission(submissionDetails.result);
-    }
-  }, [submissionDetails]);
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
@@ -134,9 +126,12 @@ const MDAEvaluationForApproval = ({
     async (submission) => {
       setSelectedSubmissionId(submission.id);
       setMdaModalMode("view");
-      setMdaModalOpen(true);
       setMenuAnchor({});
-      triggerGetSubmission(submission.id);
+      const result = await triggerGetSubmission(submission.id);
+      if (result.data?.result) {
+        setSelectedSubmission(result.data.result);
+        setMdaModalOpen(true);
+      }
     },
     [triggerGetSubmission]
   );
@@ -145,9 +140,12 @@ const MDAEvaluationForApproval = ({
     async (submission) => {
       setSelectedSubmissionId(submission.id);
       setMdaModalMode("edit");
-      setMdaModalOpen(true);
       setMenuAnchor({});
-      triggerGetSubmission(submission.id);
+      const result = await triggerGetSubmission(submission.id);
+      if (result.data?.result) {
+        setSelectedSubmission(result.data.result);
+        setMdaModalOpen(true);
+      }
     },
     [triggerGetSubmission]
   );

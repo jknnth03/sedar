@@ -7,6 +7,7 @@ import {
   useGetEvaluationSubmissionsQuery,
   useLazyGetSingleEvaluationSubmissionQuery,
   useSubmitEvaluationRecommendationMutation,
+  useUpdateEvaluationSubmissionMutation,
   useResubmitEvaluationSubmissionMutation,
   useCancelEvaluationSubmissionMutation,
 } from "../../../features/api/forms/evaluationRecommendationApi";
@@ -48,6 +49,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
 
   const [submitEvaluationRecommendation] =
     useSubmitEvaluationRecommendationMutation();
+  const [updateEvaluationSubmission] = useUpdateEvaluationSubmissionMutation();
   const [resubmitEvaluationSubmission] =
     useResubmitEvaluationSubmissionMutation();
   const [cancelEvaluationSubmission] = useCancelEvaluationSubmissionMutation();
@@ -125,10 +127,13 @@ const EvaluationRecommendationAwaitingResubmission = ({
       try {
         await triggerGetSubmission(submission.id);
       } catch (error) {
-        console.error("Error fetching submission details:", error);
+        enqueueSnackbar("Failed to fetch submission details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission, enqueueSnackbar]
   );
 
   const handleModalClose = useCallback(() => {
@@ -149,7 +154,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
     async (formattedData, entryId) => {
       setModalLoading(true);
       try {
-        const response = await submitEvaluationRecommendation({
+        await submitEvaluationRecommendation({
           id: entryId,
           body: formattedData,
         }).unwrap();
@@ -161,7 +166,6 @@ const EvaluationRecommendationAwaitingResubmission = ({
         handleModalClose();
         await refetch();
       } catch (error) {
-        console.error("Submit error:", error);
         const errorMessage =
           error?.data?.message ||
           "Failed to submit recommendation. Please try again.";
@@ -180,7 +184,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
     async (formattedData, mode, entryId) => {
       setModalLoading(true);
       try {
-        const response = await submitEvaluationRecommendation({
+        await updateEvaluationSubmission({
           id: entryId,
           body: formattedData,
         }).unwrap();
@@ -192,7 +196,6 @@ const EvaluationRecommendationAwaitingResubmission = ({
         handleModalClose();
         await refetch();
       } catch (error) {
-        console.error("Update error:", error);
         const errorMessage =
           error?.data?.message ||
           "Failed to update evaluation. Please try again.";
@@ -204,7 +207,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
         setModalLoading(false);
       }
     },
-    [submitEvaluationRecommendation, enqueueSnackbar, handleModalClose, refetch]
+    [updateEvaluationSubmission, enqueueSnackbar, handleModalClose, refetch]
   );
 
   const handleResubmit = useCallback(

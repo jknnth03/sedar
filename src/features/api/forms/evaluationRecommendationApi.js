@@ -62,6 +62,18 @@ const evaluationRecommendationApi = sedarApi
         ],
       }),
 
+      updateEvaluationSubmission: build.mutation({
+        query: ({ id, body }) => ({
+          url: `form-submissions/${id}`,
+          method: "PATCH",
+          body,
+        }),
+        invalidatesTags: (result, error, { id }) => [
+          { type: "evaluationSubmissions", id },
+          "evaluationSubmissions",
+        ],
+      }),
+
       resubmitEvaluationSubmission: build.mutation({
         query: (id) => ({
           url: `form-submissions/${id}/resubmit`,
@@ -92,6 +104,7 @@ export const {
   useGetSingleEvaluationSubmissionQuery,
   useLazyGetSingleEvaluationSubmissionQuery,
   useSubmitEvaluationRecommendationMutation,
+  useUpdateEvaluationSubmissionMutation,
   useResubmitEvaluationSubmissionMutation,
   useCancelEvaluationSubmissionMutation,
 } = evaluationRecommendationApi;

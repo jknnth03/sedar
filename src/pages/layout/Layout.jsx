@@ -5,12 +5,15 @@ import { Box } from "@mui/material";
 import "../layout/Layout.scss";
 
 const Layout = ({ children }) => {
-  const [open, setOpen] = useState(true); // Desktop sidebar state
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false); // Mobile sidebar state
+  const [open, setOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Handle closing mobile sidebar when clicking backdrop
   const handleCloseMobileSidebar = () => {
     setMobileSidebarOpen(false);
+  };
+
+  const handleToggleSidebar = () => {
+    setOpen(!open);
   };
 
   return (
@@ -20,6 +23,7 @@ const Layout = ({ children }) => {
           open={open}
           mobileSidebarOpen={mobileSidebarOpen}
           onCloseMobile={handleCloseMobileSidebar}
+          onToggleSidebar={handleToggleSidebar}
         />
       </Box>
 
