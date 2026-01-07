@@ -1,7 +1,6 @@
 import React from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { Grid, TextField, Typography, Box } from "@mui/material";
-import dayjs from "dayjs";
 import { sectionTitleStyles } from "../MDAForm/MDAFornModal.styles";
 
 const infoSectionContainerStyles = {
@@ -93,12 +92,22 @@ const MDARecommendationModalFields = ({
 
   const formatDate = (date) => {
     if (!date) return "-";
-    const d = new Date(date);
-    return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    if (typeof date === "string") {
+      const d = new Date(date);
+      return d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    if (date && date.$d) {
+      return date.$d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    return "-";
   };
 
   return (
@@ -330,6 +339,7 @@ const MDARecommendationModalFields = ({
                     step: "0.01",
                     min: "0",
                   }}
+                  InputLabelProps={{ shrink: true }}
                   sx={{ mt: 2 }}
                 />
               )}
@@ -358,6 +368,7 @@ const MDARecommendationModalFields = ({
                     step: "0.01",
                     min: "0",
                   }}
+                  InputLabelProps={{ shrink: true }}
                   sx={{ mt: 2 }}
                 />
               )}
@@ -405,6 +416,7 @@ const MDARecommendationModalFields = ({
                     step: "0.01",
                     min: "0",
                   }}
+                  InputLabelProps={{ shrink: true }}
                   sx={{ mt: 2 }}
                 />
               )}

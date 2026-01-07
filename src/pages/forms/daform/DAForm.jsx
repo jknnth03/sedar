@@ -49,6 +49,7 @@ import {
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormForMDAProcessing from "./DAFormForMDAProcessing";
+import ExportButton from "./ExportButton";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -250,6 +251,8 @@ const CustomSearchBar = ({
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
+
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}

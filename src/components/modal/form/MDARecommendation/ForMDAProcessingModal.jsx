@@ -32,7 +32,10 @@ import {
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { useSnackbar } from "notistack";
-import { useGetSingleRecommendationSubmissionQuery } from "../../../../features/api/forms/mdaRecommendationApi";
+import {
+  useGetSingleRecommendationSubmissionQuery,
+  useLazyGetMdaRecommendationPrefillQuery,
+} from "../../../../features/api/forms/mdaRecommendationApi";
 import {
   dialogPaperStyles,
   dialogTitleStyles,
@@ -58,6 +61,8 @@ const ForMDAProcessingModal = ({
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [previousSubmissionId, setPreviousSubmissionId] = useState(null);
+  const [getMdaRecommendationPrefill] =
+    useLazyGetMdaRecommendationPrefillQuery();
 
   const methods = useForm({
     defaultValues: {},
@@ -105,14 +110,29 @@ const ForMDAProcessingModal = ({
     onClose();
   };
 
-  const handleCreateMDA = () => {
-    if (onCreateMDA && fetchedSubmissionData?.result?.submittable) {
-      onCreateMDA({
-        id: fetchedSubmissionData.result.submittable.id,
-        reference_number:
-          fetchedSubmissionData.result.submittable.reference_number,
-      });
-      handleClose();
+  const handleCreateMDA = async () => {
+    if (fetchedSubmissionData?.result?.submittable) {
+      const submittableId = fetchedSubmissionData.result.submittable.id;
+
+      try {
+        const prefillResponse = await getMdaRecommendationPrefill(
+          submittableId
+        ).unwrap();
+
+        if (onCreateMDA) {
+          onCreateMDA({
+            id: submittableId,
+            reference_number:
+              fetchedSubmissionData.result.submittable.reference_number,
+            prefillData: prefillResponse?.result || null,
+          });
+        }
+
+        handleClose();
+      } catch (error) {
+        console.error("Error fetching prefill data:", error);
+        enqueueSnackbar("Failed to load prefill data", { variant: "error" });
+      }
     }
   };
 

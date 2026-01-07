@@ -1,9 +1,7 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
-  Paper,
-  useTheme,
   Typography,
   Button,
   TextField,
@@ -19,6 +17,7 @@ import {
   IconButton,
   useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -27,9 +26,17 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles, StyledTabs, StyledTab } from "./FormSubmissionStyles";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
 import { useCreateFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+import { format, parseISO, isWithinInterval } from "date-fns";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import useDebounce from "../../../hooks/useDebounce";
+
 import MrfForApproval from "./MrfForApproval";
 import MrfRejected from "./MrfRejected";
 import MrfAwaitingResubmission from "./MrfAwaitingResubmission";
@@ -38,8 +45,7 @@ import MrfReturned from "./MrfReturned";
 import MrfReceived from "./MrfReceived";
 import MrfCancelled from "./MrfCancelled";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
-import { format } from "date-fns";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import ExportButton from "./ExportButton";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -61,20 +67,42 @@ const TabPanel = ({ children, value, index, ...other }) => {
   );
 };
 
-const useDebounce = (value, delay) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
+const filterDataByDate = (data, startDate, endDate) => {
+  if (!startDate && !endDate) return data;
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
+  return data.filter((item) => {
+    const createdAt = parseISO(item.created_at);
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
+    if (startDate && endDate) {
+      return isWithinInterval(createdAt, {
+        start: startDate,
+        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
+      });
+    }
 
-  return debouncedValue;
+    if (startDate) {
+      return createdAt >= startDate;
+    }
+
+    if (endDate) {
+      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
+    }
+
+    return true;
+  });
+};
+
+const filterDataBySearch = (data, searchQuery) => {
+  if (!searchQuery.trim()) return data;
+
+  const query = searchQuery.toLowerCase();
+  return data.filter(
+    (item) =>
+      item.reference_number?.toLowerCase().includes(query) ||
+      item.employee_name?.toLowerCase().includes(query) ||
+      item.employee_code?.toLowerCase().includes(query) ||
+      item.position?.toLowerCase().includes(query)
+  );
 };
 
 const DateFilterDialog = ({
@@ -136,7 +164,7 @@ const DateFilterDialog = ({
 
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={styles.datePickerContainer}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <DatePicker
               label="Start Date"
               value={tempStartDate}
@@ -218,18 +246,57 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box sx={styles.searchBarContainer}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
+
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
           disabled={isLoading}
           size="small"
           sx={{
-            ...styles.filterIconButton,
-            ...(hasActiveFilters && styles.filterIconButtonActive),
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
           }}>
           <CalendarTodayIcon sx={{ fontSize: "18px" }} />
-          {hasActiveFilters && <Box sx={styles.filterBadge}>1</Box>}
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
+            </Box>
+          )}
         </IconButton>
       ) : (
         <Tooltip title="Click here to filter by date range" arrow>
@@ -250,8 +317,28 @@ const CustomSearchBar = ({
               </Box>
             }
             sx={{
-              ...styles.filterFormControlLabel,
-              ...(hasActiveFilters && styles.filterFormControlLabelActive),
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
             }}
           />
         </Tooltip>
@@ -267,17 +354,47 @@ const CustomSearchBar = ({
           startAdornment: (
             <SearchIcon
               sx={{
-                ...styles.searchIcon,
-                ...(isLoading && styles.searchIconLoading),
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
             <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
-          sx: styles.searchInputPropsStyle,
+          sx: {
+            height: "36px",
+            width: "320px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={styles.searchTextField}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -329,28 +446,25 @@ const MrfMainContainer = () => {
   const [modalMode, setModalMode] = useState("create");
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [formIsLoading, setFormIsLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null);
 
   const [createSubmission] = useCreateFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const mrfCounts = {
-    forApproval: dashboardData?.result?.approval?.manpower_form || 0,
-    awaitingResubmission:
-      dashboardData?.result?.requisition
-        ?.manpower_form_awaiting_for_resubmission || 0,
-    rejected: dashboardData?.result?.requisition?.manpower_form_rejected || 0,
-    forReceiving: dashboardData?.result?.receiving?.pending_mrfs || 0,
-    returned: dashboardData?.result?.requisition?.manpower_form_returned || 0,
-    received: 0,
-    cancelled: 0,
-  };
-
-  const formatDateForAPI = (date) => {
-    return date ? format(date, "yyyy-MM-dd") : null;
-  };
+  const mrfCounts = useMemo(
+    () => ({
+      forApproval: dashboardData?.result?.approval?.manpower_form || 0,
+      awaitingResubmission:
+        dashboardData?.result?.requisition
+          ?.manpower_form_awaiting_for_resubmission || 0,
+      rejected: dashboardData?.result?.requisition?.manpower_form_rejected || 0,
+      forReceiving: dashboardData?.result?.receiving?.pending_mrfs || 0,
+      returned: dashboardData?.result?.requisition?.manpower_form_returned || 0,
+      received: 0,
+      cancelled: 0,
+    }),
+    [dashboardData]
+  );
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -401,156 +515,177 @@ const MrfMainContainer = () => {
     setModalMode("create");
     setFormIsLoading(false);
     methods.reset();
-    setPendingFormData(null);
   }, [methods]);
 
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
 
-  const handleSave = useCallback(async (formData, mode) => {
-    setPendingFormData(formData);
-    setConfirmOpen(true);
+  const handleRowClick = useCallback((entry) => {
+    setSelectedEntry({ result: entry });
+    setModalMode("view");
+    setFormModalOpen(true);
   }, []);
 
-  const handleConfirmSave = useCallback(async () => {
-    if (!pendingFormData) return;
-
-    setFormIsLoading(true);
-    setConfirmOpen(false);
-
-    try {
-      const result = await createSubmission(pendingFormData).unwrap();
-
-      enqueueSnackbar("Manpower form created successfully!", {
-        variant: "success",
-        autoHideDuration: 2000,
-      });
-
-      handleCloseModal();
-    } catch (error) {
-      let errorMessage = "Failed to create manpower form. Please try again.";
-
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 3000,
-      });
-    } finally {
-      setFormIsLoading(false);
-      setPendingFormData(null);
-    }
-  }, [pendingFormData, createSubmission, enqueueSnackbar, handleCloseModal]);
-
-  const handleResubmit = useCallback(
-    async (submissionId) => {
+  const handleSave = useCallback(
+    async (formData, mode, entryId) => {
       setFormIsLoading(true);
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const result = await createSubmission(formData).unwrap();
 
-        enqueueSnackbar("Form resubmitted successfully!", {
+        enqueueSnackbar("Manpower form created successfully!", {
           variant: "success",
+          autoHideDuration: 2000,
         });
 
-        setFormModalOpen(false);
-        setSelectedEntry(null);
-        setModalMode("create");
+        handleCloseModal();
       } catch (error) {
-        enqueueSnackbar("Failed to resubmit form. Please try again.", {
+        console.error("Error in handleSave:", error);
+
+        let errorMessage = "Failed to create manpower form. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
           variant: "error",
+          autoHideDuration: 3000,
         });
       } finally {
         setFormIsLoading(false);
       }
     },
-    [enqueueSnackbar]
+    [createSubmission, enqueueSnackbar, handleCloseModal]
   );
 
-  const tabsData = [
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <MrfForApproval
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.forApproval,
-    },
-    {
-      label: "AWAITING RESUBMISSION",
-      component: (
-        <MrfAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.awaitingResubmission,
-    },
-    {
-      label: "REJECTED",
-      component: (
-        <MrfRejected
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.rejected,
-    },
-    {
-      label: "FOR RECEIVING",
-      component: (
-        <MrfForreceiving
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.forReceiving,
-    },
-    {
-      label: "RETURNED",
-      component: (
-        <MrfReturned
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.returned,
-    },
-    {
-      label: "RECEIVED",
-      component: (
-        <MrfReceived
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.received,
-    },
-    {
-      label: "CANCELLED",
-      component: (
-        <MrfCancelled
-          searchQuery={debouncedSearchQuery}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.cancelled,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <MrfForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <MrfAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <MrfRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.rejected,
+      },
+      {
+        label: "FOR RECEIVING",
+        component: (
+          <MrfForreceiving
+            key="for-receiving"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.forReceiving,
+      },
+      {
+        label: "RETURNED",
+        component: (
+          <MrfReturned
+            key="returned"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.returned,
+      },
+      {
+        label: "RECEIVED",
+        component: (
+          <MrfReceived
+            key="received"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.received,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <MrfCancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.cancelled,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      dateFilters,
+      setQueryParams,
+      currentParams,
+      handleRowClick,
+      mrfCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -593,7 +728,24 @@ const MrfMainContainer = () => {
                     <IconButton
                       onClick={handleAddNew}
                       disabled={isLoading}
-                      sx={styles.createIconButton}>
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        color: "white",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
                       <AddIcon sx={{ fontSize: "18px" }} />
                     </IconButton>
                   ) : (
@@ -603,10 +755,31 @@ const MrfMainContainer = () => {
                       startIcon={<AddIcon />}
                       disabled={isLoading}
                       sx={{
-                        ...styles.createButton,
-                        ...(isMobile && styles.createButtonMobile),
+                        backgroundColor: "rgb(33, 61, 112)",
+                        height: isMobile ? "36px" : "38px",
+                        width: isMobile ? "auto" : "140px",
+                        minWidth: isMobile ? "100px" : "140px",
+                        padding: isMobile ? "0 16px" : "0 20px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "12px" : "14px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          marginRight: isMobile ? "4px" : "8px",
+                        },
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
                       }}>
-                      CREATE
+                      {isMobile ? "CREATE" : "CREATE"}
                     </Button>
                   )}
                 </Box>
@@ -685,58 +858,11 @@ const MrfMainContainer = () => {
             onDateFiltersChange={handleDateFiltersChange}
           />
 
-          <Dialog
-            open={confirmOpen}
-            onClose={() => setConfirmOpen(false)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{
-              sx: styles.confirmDialog,
-            }}>
-            <DialogTitle sx={styles.confirmDialogTitle}>
-              <Box sx={styles.confirmIconContainer}>
-                <Box sx={styles.confirmIcon}>
-                  <Typography sx={styles.confirmIconText}>?</Typography>
-                </Box>
-              </Box>
-              <Typography variant="h5" sx={styles.confirmTitle}>
-                Confirmation
-              </Typography>
-            </DialogTitle>
-            <DialogContent sx={styles.confirmDialogContent}>
-              <Typography variant="body1" sx={styles.confirmMessage}>
-                Are you sure you want to create this manpower form?
-              </Typography>
-              <Typography variant="body2" sx={styles.confirmSubMessage}>
-                New Manpower Form
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={styles.confirmDialogActions}>
-              <Button
-                onClick={() => setConfirmOpen(false)}
-                variant="outlined"
-                sx={styles.confirmCancelButton}
-                disabled={formIsLoading}>
-                CANCEL
-              </Button>
-              <Button
-                onClick={handleConfirmSave}
-                variant="contained"
-                sx={styles.confirmSubmitButton}
-                disabled={formIsLoading}>
-                {formIsLoading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  "CONFIRM"
-                )}
-              </Button>
-            </DialogActions>
-          </Dialog>
           <FormSubmissionModal
+            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
             open={formModalOpen}
             onClose={handleCloseModal}
             onSave={handleSave}
-            onResubmit={handleResubmit}
             selectedEntry={selectedEntry}
             isLoading={formIsLoading}
             mode={modalMode}

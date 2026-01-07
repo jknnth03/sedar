@@ -140,19 +140,31 @@ const DataChangeModalFields = ({
   );
 
   const excludedMovementTypes = [
-    "Position alignment",
-    "Merit increases",
-    "Re-evaluation of existing jobs",
+    "Position Alignment",
+    "Merit Increase",
+    "Re-evaluation of Existing Job",
     "Upgrading",
   ];
 
   const showMrfField = useMemo(() => {
     const movementTypeName =
       watchedMovementType?.name || watchedMovementType?.type_name;
-    return (
-      movementTypeName && !excludedMovementTypes.includes(movementTypeName)
+
+    if (!movementTypeName) return false;
+
+    const isExcluded = excludedMovementTypes.some(
+      (excludedType) =>
+        excludedType.toLowerCase() === movementTypeName.toLowerCase()
     );
+
+    return !isExcluded;
   }, [watchedMovementType]);
+
+  useEffect(() => {
+    if (!showMrfField) {
+      setValue("approved_mrf_id", null, { shouldValidate: false });
+    }
+  }, [showMrfField, setValue]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
@@ -231,7 +243,7 @@ const DataChangeModalFields = ({
       formData.append("to_position_id", values.to_position_id.id);
     }
 
-    if (values.approved_mrf_id?.id) {
+    if (values.approved_mrf_id?.id && showMrfField) {
       formData.append("approved_mrf_id", values.approved_mrf_id.id);
     }
 
@@ -251,7 +263,7 @@ const DataChangeModalFields = ({
     }
 
     return formData;
-  }, [getValues]);
+  }, [getValues, showMrfField]);
 
   useEffect(() => {
     if (onFormDataCreate) {
@@ -761,7 +773,7 @@ const DataChangeModalFields = ({
                 <Controller
                   name="approved_mrf_id"
                   control={control}
-                  rules={{ required: "MRF is required" }}
+                  rules={{ required: showMrfField ? "MRF is required" : false }}
                   render={({ field: { onChange, value } }) => (
                     <FormControl fullWidth error={!!errors.approved_mrf_id}>
                       {isReadOnly ? (

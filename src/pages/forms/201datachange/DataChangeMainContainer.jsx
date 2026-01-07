@@ -50,6 +50,7 @@ import DataChangeCancelled from "./DataChangeCancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import DataChangeForMDAProcessing from "./DataChangeForMDAProcessing";
 import DataChangeMDAInProgress from "./DataChangeMDAInProgress";
+import ExportButton from "./ExportButton";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -251,6 +252,8 @@ const CustomSearchBar = ({
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
+
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}

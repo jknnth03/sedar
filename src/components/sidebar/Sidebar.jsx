@@ -18,7 +18,7 @@ const Sidebar = ({
   open,
   mobileSidebarOpen = false,
   onCloseMobile = () => {},
-  onToggleSidebar, // Add this prop to control sidebar open/close from parent
+  onToggleSidebar,
 }) => {
   const userData = JSON.parse(localStorage.getItem("user")) || [];
   const accessUserPermission = userData?.role?.access_permissions;
@@ -57,9 +57,7 @@ const Sidebar = ({
     onCloseMobile();
   };
 
-  // Handler for when a parent item with children is clicked
   const handleParentItemClick = (hasChildren) => {
-    // If sidebar is closed and the item has children, open the sidebar
     if (!open && hasChildren && onToggleSidebar) {
       onToggleSidebar();
     }
@@ -126,7 +124,6 @@ const Sidebar = ({
   }
 
   if (error) {
-    console.error("Error loading dashboard data for notifications:", error);
   }
 
   return (

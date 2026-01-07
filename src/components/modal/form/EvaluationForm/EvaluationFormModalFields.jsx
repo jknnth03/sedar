@@ -128,9 +128,7 @@ const EvaluationFormModalFields = ({
                 employeeDetails?.position?.id ||
                 employeeDetails?.position_id;
             }
-          } catch (error) {
-            console.error("Error fetching employee details:", error);
-          }
+          } catch (error) {}
         }
 
         const positionTitle =
@@ -346,7 +344,7 @@ const EvaluationFormModalFields = ({
                     }
                     onChange={(date) => field.onChange(date)}
                     label="PROBATION START DATE"
-                    disabled={isReadOnly}
+                    disabled
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -376,7 +374,7 @@ const EvaluationFormModalFields = ({
                     }
                     onChange={(date) => field.onChange(date)}
                     label="PROBATION END DATE"
-                    disabled={isReadOnly}
+                    disabled
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -474,11 +472,6 @@ const EvaluationFormModalFields = ({
                       borderRight: "1px solid #e0e0e0",
                     }}>
                     Actual
-                    {!isReadOnly && (
-                      <span style={{ color: "#d32f2f", marginLeft: "4px" }}>
-                        *
-                      </span>
-                    )}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -561,66 +554,25 @@ const EvaluationFormModalFields = ({
                           min: 0,
                           max: 100,
                           step: "any",
+                          readOnly: true,
                         }}
-                        placeholder={isReadOnly ? "-" : "Enter %"}
-                        error={
-                          !isReadOnly &&
-                          (kpi.actual_performance === null ||
-                            kpi.actual_performance === undefined ||
-                            kpi.actual_performance === "")
-                        }
-                        helperText={
-                          !isReadOnly &&
-                          (kpi.actual_performance === null ||
-                            kpi.actual_performance === undefined ||
-                            kpi.actual_performance === "")
-                            ? "Required"
-                            : ""
-                        }
+                        placeholder="-"
                         sx={{
                           width: "100px",
                           "& .MuiOutlinedInput-root": {
-                            backgroundColor: isReadOnly
-                              ? "transparent"
-                              : kpi.actual_performance !== null &&
-                                kpi.actual_performance !== undefined &&
-                                kpi.actual_performance !== ""
-                              ? "#f1f8f4"
-                              : "#fffef7",
+                            backgroundColor: "white",
                             "& fieldset": {
-                              borderColor: isReadOnly
-                                ? "#e0e0e0"
-                                : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#4caf50"
-                                : "#ffa726",
-                              borderWidth: isReadOnly ? "1px" : "2px",
+                              borderColor: "#e0e0e0",
                             },
                             "&:hover fieldset": {
-                              borderColor: isReadOnly
-                                ? "#e0e0e0"
-                                : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#45a049"
-                                : "#ff9800",
+                              borderColor: "#e0e0e0",
                             },
                             "&.Mui-focused fieldset": {
-                              borderColor: isReadOnly
-                                ? "#e0e0e0"
-                                : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#45a049"
-                                : "#ff9800",
-                            },
-                            "&.Mui-error fieldset": {
-                              borderColor: "#d32f2f",
+                              borderColor: "#e0e0e0",
                             },
                           },
                         }}
-                        disabled={isReadOnly}
+                        disabled
                       />
                     </TableCell>
                     <TableCell sx={{ p: 2, verticalAlign: "top" }}>
@@ -630,9 +582,12 @@ const EvaluationFormModalFields = ({
                         onChange={(e) =>
                           handleKpiFieldChange(index, "remarks", e.target.value)
                         }
-                        placeholder={isReadOnly ? "-" : "Optional remarks"}
+                        placeholder="-"
                         multiline
                         maxRows={2}
+                        inputProps={{
+                          readOnly: true,
+                        }}
                         sx={{
                           width: "100%",
                           "& .MuiOutlinedInput-root": {
@@ -641,14 +596,14 @@ const EvaluationFormModalFields = ({
                               borderColor: "#e0e0e0",
                             },
                             "&:hover fieldset": {
-                              borderColor: isReadOnly ? "#e0e0e0" : "#bdbdbd",
+                              borderColor: "#e0e0e0",
                             },
                             "&.Mui-focused fieldset": {
-                              borderColor: isReadOnly ? "#e0e0e0" : "#1976d2",
+                              borderColor: "#e0e0e0",
                             },
                           },
                         }}
-                        disabled={isReadOnly}
+                        disabled
                       />
                     </TableCell>
                   </TableRow>

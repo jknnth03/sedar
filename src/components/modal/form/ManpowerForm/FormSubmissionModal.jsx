@@ -40,7 +40,6 @@ import {
   buildResubmitPayload,
   safeRenderText,
 } from "./formSubmissionUtils";
-import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 
 const FormContent = ({
   onSave,

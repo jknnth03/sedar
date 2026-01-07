@@ -20,6 +20,7 @@ import {
   Save as SaveIcon,
   Edit as EditIcon,
   Send as SendIcon,
+  CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { useSnackbar } from "notistack";
@@ -27,6 +28,7 @@ import MDARecommendationModalFields from "./MDARecommendationModalFields";
 import {
   useUpdateMdaRecommendationMutation,
   useResubmitFormSubmissionMutation,
+  useCreateMdaRecommendationMutation,
 } from "../../../../features/api/forms/mdaRecommendationApi";
 import {
   dialogPaperStyles,
@@ -51,8 +53,12 @@ const MDARecommendationModal = ({
   isLoading = false,
   onRefreshDetails,
   onRefetch,
+  prefillData = null,
+  daSubmissionId = null,
 }) => {
   const { enqueueSnackbar } = useSnackbar();
+  const [createMdaRecommendation, { isLoading: isCreating }] =
+    useCreateMdaRecommendationMutation();
   const [updateMdaRecommendation, { isLoading: isUpdating }] =
     useUpdateMdaRecommendationMutation();
   const [resubmitFormSubmission, { isLoading: isResubmitting }] =
@@ -103,7 +109,62 @@ const MDARecommendationModal = ({
   }, [open, reset]);
 
   useEffect(() => {
-    if (open && selectedEntry?.result?.submittable) {
+    console.log("Prefill Data Effect:", { open, prefillData, mode });
+
+    if (open && prefillData) {
+      console.log("Setting prefill data:", prefillData);
+
+      setValue("employee_name", prefillData.employee_name || "");
+      setValue("employee_number", prefillData.employee_number || "");
+      setValue(
+        "birth_date",
+        prefillData.birth_date ? dayjs(prefillData.birth_date) : null
+      );
+      setValue("birth_place", prefillData.birth_place || "");
+      setValue("gender", prefillData.gender || "");
+      setValue("civil_status", prefillData.civil_status || "");
+      setValue("nationality", prefillData.nationality || "");
+      setValue("address", prefillData.address || "");
+      setValue("tin_number", prefillData.tin_number || "");
+      setValue("sss_number", prefillData.sss_number || "");
+      setValue("pag_ibig_number", prefillData.pag_ibig_number || "");
+      setValue("philhealth_number", prefillData.philhealth_number || "");
+      setValue(
+        "effective_date",
+        prefillData.effective_date ? dayjs(prefillData.effective_date) : null
+      );
+
+      if (prefillData.from) {
+        console.log("Setting FROM data:", prefillData.from);
+        setValue("from_position_title", prefillData.from.position_title || "");
+        setValue("from_job_level", prefillData.from.job_level || "");
+        setValue("from_department", prefillData.from.department || "");
+        setValue("from_sub_unit", prefillData.from.sub_unit || "");
+        setValue("from_job_rate", prefillData.from.job_rate || "");
+        setValue("from_allowance", prefillData.from.allowance || "");
+        setValue(
+          "from_additional_rate",
+          prefillData.from.additional_rate || ""
+        );
+      }
+
+      if (prefillData.to) {
+        console.log("Setting TO data:", prefillData.to);
+        setValue("to_position_title", prefillData.to.position_title || "");
+        setValue("to_job_level", prefillData.to.job_level || "");
+        setValue("to_department", prefillData.to.department || "");
+        setValue("to_sub_unit", prefillData.to.sub_unit || "");
+        setValue("to_job_rate", prefillData.to.job_rate || "");
+        setValue("to_allowance", prefillData.to.allowance || "");
+        setValue("to_additional_rate", prefillData.to.additional_rate || "");
+      }
+
+      console.log("All values set, current form state:", methods.getValues());
+    }
+  }, [open, prefillData, setValue, methods]);
+
+  useEffect(() => {
+    if (open && selectedEntry?.result?.submittable && !prefillData) {
       const data = selectedEntry.result.submittable;
 
       setValue("employee_name", data.employee_name || "");
@@ -146,9 +207,11 @@ const MDARecommendationModal = ({
         setValue("to_additional_rate", data.to_details.additional_rate || "");
       }
     }
-  }, [open, selectedEntry, setValue]);
+  }, [open, selectedEntry, setValue, prefillData]);
 
   const shouldEnableEditButton = () => {
+    if (prefillData) return false;
+
     const status = selectedEntry?.result?.status || selectedEntry?.status;
 
     if (status === "APPROVED" || status === "CANCELLED") {
@@ -195,6 +258,91 @@ const MDARecommendationModal = ({
 
   const handleClose = () => {
     onClose();
+  };
+
+  const handleCreate = async () => {
+    const isValid = await methods.trigger([
+      "to_job_rate",
+      "to_allowance",
+      "to_additional_rate",
+    ]);
+
+    if (!isValid) {
+      enqueueSnackbar("Please fill in all required fields correctly", {
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      const formData = methods.getValues();
+
+      const payload = {
+        form_id: 5,
+        da_submission_id: daSubmissionId || prefillData?.da_submission_id,
+        employee_id: prefillData?.employee_id,
+        employee_name: formData.employee_name,
+        employee_number: formData.employee_number,
+        birth_date: formData.birth_date
+          ? dayjs(formData.birth_date).format("YYYY-MM-DD")
+          : null,
+        birth_place: formData.birth_place,
+        gender: formData.gender,
+        civil_status: formData.civil_status,
+        nationality: formData.nationality,
+        address: formData.address,
+        tin_number: formData.tin_number,
+        sss_number: formData.sss_number,
+        pag_ibig_number: formData.pag_ibig_number,
+        philhealth_number: formData.philhealth_number,
+        effective_date: formData.effective_date
+          ? dayjs(formData.effective_date).format("YYYY-MM-DD")
+          : null,
+        movement_type: prefillData?.movement_type || "Developmental Assignment",
+        from_position_id: prefillData?.from?.position_id,
+        from_position_title: formData.from_position_title,
+        from_department: formData.from_department,
+        from_sub_unit: formData.from_sub_unit,
+        from_job_level_id: prefillData?.from?.job_level_id,
+        from_job_level: formData.from_job_level,
+        from_schedule: prefillData?.from?.schedule,
+        from_job_rate: formData.from_job_rate,
+        from_allowance: formData.from_allowance,
+        from_additional_rate: formData.from_additional_rate,
+        to_position_id: prefillData?.to?.position_id,
+        to_position_title: formData.to_position_title,
+        to_department: formData.to_department,
+        to_sub_unit: formData.to_sub_unit,
+        to_job_level_id: prefillData?.to?.job_level_id,
+        to_job_level: formData.to_job_level,
+        to_schedule: prefillData?.to?.schedule,
+        to_job_rate: formData.to_job_rate,
+        to_allowance: formData.to_allowance,
+        to_additional_rate: formData.to_additional_rate,
+      };
+
+      await createMdaRecommendation(payload).unwrap();
+
+      enqueueSnackbar("MDA Recommendation created successfully", {
+        variant: "success",
+      });
+
+      if (onRefreshDetails) {
+        await onRefreshDetails();
+      }
+
+      if (onRefetch) {
+        await onRefetch();
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Error creating MDA Recommendation:", error);
+      enqueueSnackbar(
+        error?.data?.message || "Failed to create MDA Recommendation",
+        { variant: "error" }
+      );
+    }
   };
 
   const handleSave = async () => {
@@ -286,9 +434,15 @@ const MDARecommendationModal = ({
     setShowResubmitConfirmation(false);
   };
 
-  const isReadOnly = mode === "view" || isUpdating;
-  const isProcessing = isLoading || isUpdating || isResubmitting;
+  const isReadOnly = mode === "view" || isUpdating || isCreating;
+  const isProcessing = isLoading || isUpdating || isResubmitting || isCreating;
   const shouldShowResubmit = showResubmitButton();
+
+  const displayMode = prefillData
+    ? "CREATE"
+    : mode === "view"
+    ? "VIEW"
+    : "EDIT";
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -305,9 +459,9 @@ const MDARecommendationModal = ({
                 variant="h6"
                 component="div"
                 sx={titleTypographyStyles}>
-                {mode === "view" ? "VIEW" : "EDIT"} MDA (RECOMMENDATION)
+                {displayMode} MDA (RECOMMENDATION)
               </Typography>
-              {mode === "view" && (
+              {mode === "view" && !prefillData && (
                 <Tooltip title="EDIT MDA RECOMMENDATION" arrow placement="top">
                   <span>
                     <IconButton
@@ -334,7 +488,7 @@ const MDARecommendationModal = ({
           </DialogTitle>
 
           <DialogContent sx={dialogContentStyles}>
-            {isLoading || isUpdating ? (
+            {isLoading || isUpdating || isCreating ? (
               <Box
                 sx={{
                   display: "flex",
@@ -346,22 +500,24 @@ const MDARecommendationModal = ({
                 }}>
                 <CircularProgress size={48} />
                 <Typography variant="body1" color="text.secondary">
-                  {isUpdating
+                  {isCreating
+                    ? "Creating MDA..."
+                    : isUpdating
                     ? "Saving changes..."
                     : "Loading submission details..."}
                 </Typography>
               </Box>
             ) : (
               <MDARecommendationModalFields
-                isReadOnly={isReadOnly}
-                currentMode={mode}
+                isReadOnly={prefillData ? false : isReadOnly}
+                currentMode={prefillData ? "create" : mode}
                 submissionId={submissionId}
               />
             )}
           </DialogContent>
 
           <DialogActions sx={dialogActionsStyles}>
-            {shouldShowResubmit && (
+            {shouldShowResubmit && !prefillData && (
               <Button
                 onClick={handleResubmitClick}
                 variant="contained"
@@ -388,7 +544,32 @@ const MDARecommendationModal = ({
               </Button>
             )}
 
-            {mode === "edit" && (
+            {prefillData && (
+              <Button
+                onClick={handleCreate}
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                disabled={isCreating}
+                sx={{
+                  backgroundColor: "#4caf50",
+                  color: "white",
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  paddingX: 3,
+                  paddingY: 1,
+                  borderRadius: 2,
+                  "&:hover": {
+                    backgroundColor: "#388e3c",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "#cccccc",
+                  },
+                }}>
+                {isCreating ? "Creating..." : "Create MDA"}
+              </Button>
+            )}
+
+            {mode === "edit" && !prefillData && (
               <Button
                 onClick={handleSave}
                 variant="contained"

@@ -87,7 +87,8 @@ const MenuItem = ({
       onClick={onClick}
       style={{
         cursor: "pointer",
-        paddingLeft: isChild ? "32px" : "16px",
+        paddingLeft: 0,
+        paddingRight: 0,
         position: "relative",
         display: "flex",
         alignItems: "center",
@@ -95,17 +96,22 @@ const MenuItem = ({
       }}>
       <Box
         className={`icon ${active ? "active-icon" : ""}`}
-        sx={{ position: "relative", display: "inline-flex" }}>
+        sx={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
         {icon || <span className="sidebar__placeholder-icon">📄</span>}
         {notificationCount > 0 && (
           <Box
             sx={{
               position: "absolute",
-              top: "2px",
-              right: "2px",
+              top: "-2px",
+              right: "-2px",
               backgroundColor: "#ff5252",
-              width: isChild ? "6px" : "8px",
-              height: isChild ? "6px" : "8px",
+              width: "8px",
+              height: "8px",
               borderRadius: "50%",
             }}
           />

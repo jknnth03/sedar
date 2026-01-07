@@ -141,14 +141,19 @@ const MrfForApproval = ({
   }, []);
 
   const handleCancelSubmission = useCallback(
-    async (submissionId) => {
+    (submissionId) => {
+      setMenuAnchor({});
+
       const submission = filteredSubmissions.find(
         (sub) => sub.id === submissionId
       );
+
       if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
+        setTimeout(() => {
+          setSelectedSubmissionForAction(submission);
+          setConfirmAction("cancel");
+          setConfirmOpen(true);
+        }, 50);
       } else {
         enqueueSnackbar("Submission not found. Please try again.", {
           variant: "error",
@@ -369,10 +374,10 @@ const MrfForApproval = ({
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    return (
       selectedSubmissionForAction?.reference_number ||
-      "Manpower Requisition Form";
-    return submissionForAction;
+      "Manpower Requisition Form"
+    );
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;

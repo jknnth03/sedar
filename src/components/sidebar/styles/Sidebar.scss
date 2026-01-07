@@ -60,7 +60,7 @@
   transition: width 0.5s ease;
   overflow-x: hidden;
   position: relative;
-  background-color: rgb(255, 0, 0);
+  background-color: rgb(255, 255, 255);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -72,7 +72,7 @@
   }
 
   &.closed {
-    width: 100px;
+    width: 80px;
     padding-left: 8px;
     padding-right: 8px;
   }
@@ -105,11 +105,22 @@
 
 .sidebar__logo-container {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   padding: 40px 17px;
-  padding-left: 14px;
   flex-shrink: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+.mainbox.open .sidebar__logo-container {
+  justify-content: flex-start;
+  padding-left: 14px;
+}
+
+.mainbox.closed .sidebar__logo-container {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .sidebar__logo {
@@ -124,9 +135,22 @@
   }
 }
 
+.mainbox.closed .sidebar__logo {
+  display: none;
+}
+
 .sidebar__logo2 {
   width: 40px;
   transition: all 0.3s ease-in-out;
+}
+
+.mainbox.open .sidebar__logo2 {
+  margin-left: 0;
+}
+
+.mainbox.closed .sidebar__logo2 {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .liststyle {
@@ -165,6 +189,11 @@
   }
 }
 
+.mainbox.closed .main-item {
+  padding-left: 0 !important;
+  justify-content: center;
+}
+
 .sub-item {
   color: rgb(55, 75, 115);
   background-color: white;
@@ -189,6 +218,9 @@
   color: rgb(33, 61, 112) !important;
   margin-right: 8px;
   margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mainbox.open .icon {
@@ -271,11 +303,6 @@
   margin-left: auto;
   margin-right: auto;
   display: block;
-}
-
-.mainbox.closed .liststyle {
-  justify-content: center;
-  padding-left: 0;
 }
 
 .mainbox.closed .sidebar_footer span {

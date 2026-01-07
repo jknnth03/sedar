@@ -19,6 +19,7 @@ const BiAnnualPerformanceModalFields = ({
     control,
     watch,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useFormContext();
 
@@ -219,15 +220,29 @@ const BiAnnualPerformanceModalFields = ({
     (index, field, value) => {
       if (field === "actual_performance") {
         const isValid = validateNumericInput(value);
-        setKpiErrors((prev) => ({
-          ...prev,
-          [index]: {
-            ...prev[index],
-            actual_performance:
-              value !== "" && !isValid ? "Only numbers are allowed" : null,
-          },
-        }));
+
+        // Update error state
+        setKpiErrors((prev) => {
+          const newErrors = { ...prev };
+          if (!newErrors[index]) {
+            newErrors[index] = {};
+          }
+
+          // Set error only if value is not empty and not valid
+          // Clear error if value is empty or valid
+          newErrors[index].actual_performance =
+            value !== "" && !isValid ? "Only numbers are allowed" : null;
+
+          return newErrors;
+        });
+
+        // Prevent updating the field if invalid (but allow empty)
         if (value !== "" && !isValid) return;
+
+        // Clear react-hook-form error for this field if it exists
+        if (isValid || value === "") {
+          clearErrors(`kpis.${index}.actual_performance`);
+        }
       }
 
       const updatedKpis = [...kpisList];
@@ -235,7 +250,7 @@ const BiAnnualPerformanceModalFields = ({
       setKpisList(updatedKpis);
       setValue("kpis", updatedKpis, { shouldValidate: false });
     },
-    [kpisList, setValue]
+    [kpisList, setValue, clearErrors]
   );
 
   const handleCompetencyRatingChange = useCallback(

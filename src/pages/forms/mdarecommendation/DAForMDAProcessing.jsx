@@ -48,6 +48,7 @@ const DAForMDAProcessing = ({
   const [mdaModalOpen, setMdaModalOpen] = useState(false);
   const [mdaSubmissionId, setMdaSubmissionId] = useState(null);
   const [selectedMdaSubmission, setSelectedMdaSubmission] = useState(null);
+  const [mdaPrefillData, setMdaPrefillData] = useState(null);
 
   const [menuAnchor, setMenuAnchor] = useState({});
 
@@ -185,9 +186,11 @@ const DAForMDAProcessing = ({
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
-  const handleCreateMDA = useCallback((submission) => {
-    setMdaSubmissionId(submission.id);
-    setSelectedMdaSubmission(submission);
+  const handleCreateMDA = useCallback((data) => {
+    console.log("handleCreateMDA called with:", data);
+    setViewModalOpen(false);
+    setMdaSubmissionId(data.id);
+    setMdaPrefillData(data.prefillData || null);
     setMdaModalOpen(true);
   }, []);
 
@@ -195,6 +198,7 @@ const DAForMDAProcessing = ({
     setMdaModalOpen(false);
     setMdaSubmissionId(null);
     setSelectedMdaSubmission(null);
+    setMdaPrefillData(null);
     mdaFormMethods.reset({
       form_id: 5,
       employee_movement_id: null,
@@ -377,8 +381,9 @@ const DAForMDAProcessing = ({
           open={mdaModalOpen}
           onClose={handleMdaModalClose}
           daSubmissionId={mdaSubmissionId}
+          prefillData={mdaPrefillData}
           onSave={handleSaveMDA}
-          mode="create"
+          mode="edit"
         />
       </FormProvider>
     </>

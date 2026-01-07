@@ -42,6 +42,7 @@ import MDAApproved from "./MDAApproved";
 import MDACancelled from "./MDACancelled";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+import ExportButton from "./ExportButton";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -243,6 +244,8 @@ const CustomSearchBar = ({
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
+
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
@@ -659,7 +662,6 @@ const MDA = () => {
               isLoading={isLoadingState}
             />
           </Box>
-
           <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
@@ -705,7 +707,6 @@ const MDA = () => {
               ))}
             </StyledTabs>
           </Box>
-
           <Box sx={styles.tabsContainer}>
             {tabsData.map((tab, index) => (
               <TabPanel key={index} value={activeTab} index={index}>
@@ -713,7 +714,7 @@ const MDA = () => {
               </TabPanel>
             ))}
           </Box>
-
+          2
           <DateFilterDialog
             open={filterDialogOpen}
             onClose={() => setFilterDialogOpen(false)}

@@ -181,6 +181,46 @@ const daformApi = sedarApi
         },
         providesTags: ["employeesDa"],
       }),
+
+      exportSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            form_code = "da",
+            start_date,
+            end_date,
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("form_code", form_code);
+
+          if (start_date) {
+            queryParams.append("start_date", start_date);
+          }
+
+          if (end_date) {
+            queryParams.append("end_date", end_date);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = queryString
+            ? `reports/submissions/export?${queryString}`
+            : "reports/submissions/export";
+
+          return {
+            url,
+            method: "GET",
+            responseHandler: (response) => response.blob(),
+          };
+        },
+      }),
     }),
   });
 
@@ -195,6 +235,8 @@ export const {
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,
   useLazyGetAllEmployeesDaQuery,
+  useExportSubmissionsQuery,
+  useLazyExportSubmissionsQuery,
 } = daformApi;
 
 export default daformApi;

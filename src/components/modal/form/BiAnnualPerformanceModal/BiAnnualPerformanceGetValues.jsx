@@ -145,6 +145,8 @@ export const getViewEditModeFormData = (selectedEntry) => {
 
 export const formatFormDataForSubmission = (formData) => {
   const baseData = {
+    form_id: formData.form_id || 9,
+    employee_id: formData.employee_id,
     evaluation_period_start_date: formData.evaluation_period_start_date
       ? dayjs(formData.evaluation_period_start_date).format("YYYY-MM-DD")
       : null,
