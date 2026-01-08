@@ -486,7 +486,6 @@ const EvaluationFormTable = ({
               </TableRow>
             )}
           </TableBody>
-          z
         </Table>
       </TableContainer>
 
