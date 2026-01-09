@@ -461,15 +461,16 @@ const DataChangeMainContainer = () => {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const dataChangeCounts = {
-    forApproval: dashboardData?.result?.requisition?.data_change_approval || 0,
+    forApproval: dashboardData?.result?.approval?.data_change?.form || 0,
     awaitingResubmission:
-      dashboardData?.result?.requisition?.data_change_awaiting_resubmission ||
+      dashboardData?.result?.requisition?.data_change?.awaiting_resubmission ||
       0,
-    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0,
+    rejected: dashboardData?.result?.requisition?.data_change?.rejected || 0,
     cancelled: 0,
     forMDAProcessing:
-      dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
-    mdaInProgress: dashboardData?.result?.approval?.mda_approval || 0,
+      dashboardData?.result?.requisition?.mda?.data_change
+        ?.pending_mda_creation || 0,
+    mdaInProgress: dashboardData?.result?.approval?.data_change?.mda || 0,
     completed: 0,
   };
 
@@ -542,7 +543,7 @@ const DataChangeMainContainer = () => {
           cancellation_reason: cancellationReason,
         }).unwrap();
 
-        enqueueSnackbar("201 data change cancelled successfully!", {
+        enqueueSnackbar("Data change cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -551,8 +552,7 @@ const DataChangeMainContainer = () => {
       } catch (error) {
         console.error("Error in handleCancel:", error);
 
-        let errorMessage =
-          "Failed to cancel 201 data change. Please try again.";
+        let errorMessage = "Failed to cancel data change. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -576,7 +576,7 @@ const DataChangeMainContainer = () => {
       try {
         await resubmitDataChangeSubmission(entryId).unwrap();
 
-        enqueueSnackbar("201 data change resubmitted successfully!", {
+        enqueueSnackbar("Data change resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -584,8 +584,7 @@ const DataChangeMainContainer = () => {
         handleCloseModal();
         return true;
       } catch (error) {
-        let errorMessage =
-          "Failed to resubmit 201 data change. Please try again.";
+        let errorMessage = "Failed to resubmit data change. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -621,14 +620,14 @@ const DataChangeMainContainer = () => {
             data: formData,
           }).unwrap();
 
-          enqueueSnackbar("201 data change updated successfully!", {
+          enqueueSnackbar("Data change updated successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
           result = await createDataChangeSubmission(formData).unwrap();
 
-          enqueueSnackbar("201 data change created successfully!", {
+          enqueueSnackbar("Data change created successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
@@ -640,8 +639,8 @@ const DataChangeMainContainer = () => {
 
         let errorMessage =
           mode === "edit"
-            ? "Failed to update 201 data change. Please try again."
-            : "Failed to create 201 data change. Please try again.";
+            ? "Failed to update data change. Please try again."
+            : "Failed to create data change. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -743,7 +742,6 @@ const DataChangeMainContainer = () => {
           onRowClick={handleRowClick}
         />
       ),
-      badgeCount: dataChangeCounts.forMDAProcessing,
     },
     {
       label: "MDA IN PROGRESS",
@@ -820,24 +818,7 @@ const DataChangeMainContainer = () => {
                     <IconButton
                       onClick={handleAddNew}
                       disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
+                      sx={styles.createIconButton}>
                       <AddIcon sx={{ fontSize: "18px" }} />
                     </IconButton>
                   ) : (
@@ -846,31 +827,7 @@ const DataChangeMainContainer = () => {
                       onClick={handleAddNew}
                       startIcon={<AddIcon />}
                       disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "140px",
-                        minWidth: isMobile ? "100px" : "140px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
+                      sx={styles.createButtonFull(isMobile)}>
                       {isMobile ? "CREATE" : "CREATE"}
                     </Button>
                   )}

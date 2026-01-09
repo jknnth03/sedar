@@ -391,17 +391,6 @@ const MrfTable = ({
                             sx={{
                               zIndex: 10000,
                             }}>
-                            {canResubmitSubmission(submission) && (
-                              <MenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleResubmitClick(submission);
-                                }}
-                                sx={styles.editMenuItem}>
-                                <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
-                                Resubmit Request
-                              </MenuItem>
-                            )}
                             {canCancelSubmission(submission) && (
                               <MenuItem
                                 onClick={(e) =>

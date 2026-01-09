@@ -270,7 +270,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "datachangeapproval",
           icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.dataChangeApprovals,
+          notificationCount: counts.dataChangeFormApprovals,
         },
 
         DAFORMAPPROVAL: {
@@ -289,7 +289,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "darecommendationapproval",
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.daFormApprovals,
+          notificationCount: counts.daRecommendationApprovals,
         },
         EVALUATIONAPPROVAL: {
           name: "Evaluation Form",
@@ -298,7 +298,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "evaluationapproval",
           icon: <RateReviewIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.evaluationApprovals,
         },
         EVALUATIONRECOMMENDATIONAPPROVAL: {
           name: "Evaluation Recommendation",
@@ -307,7 +307,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "evaluationrecommendationapproval",
           icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.evaluationRecommendationApprovals,
         },
         MDAEVALUATIONAPPROVAL: {
           name: "MDA (For Evaluation)",
@@ -316,7 +316,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "mdaevaluationapproval",
           icon: <RateReviewIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.mdaEvaluationApprovals,
         },
         MDAAPPROVAL: {
           name: "MDA (For Data Change)",
@@ -343,7 +343,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "mdarecommendationapproval",
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.daFormApprovals,
+          notificationCount: 0,
         },
         BIANNUALAPPROVAL: {
           name: "Bi-Annual Approval",
@@ -352,7 +352,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "biannualapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.biAnnualApprovals,
         },
 
         CATONEAPPROVAL: {
@@ -413,7 +413,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "datachangemaincontainer",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.dataChangeRejected,
+          notificationCount:
+            counts.dataChangeRejected +
+            counts.dataChangeReturned +
+            counts.dataChangeAwaiting,
         },
         DAFORM: {
           name: "DA Form",
@@ -422,7 +425,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "daform",
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.daFormRejected + counts.daFormAwaiting,
         },
         DARECOMMENDATION: {
           name: "DA Recommendation",
@@ -431,7 +434,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "darecommendation",
           icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount:
+            counts.daRecommendationRejected + counts.daRecommendationAwaiting,
         },
         MASTERDATAAUTHORITY: {
           name: "MDA (For Data Change)",
@@ -440,7 +444,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "masterdataauthority",
           icon: <CreateNewFolderIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.dataChangeForMdaProcessing,
+          notificationCount:
+            counts.dataChangeForMdaProcessing +
+            counts.mdaDataChangeRejected +
+            counts.mdaDataChangeAwaiting,
         },
         MDADA: {
           name: "MDA (For DA)",
@@ -449,7 +456,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "mdada",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount:
+            counts.mdaDaPendingCreation +
+            counts.mdaDaRejected +
+            counts.mdaDaAwaiting,
         },
         MDARECOMMENDATION: {
           name: "MDA (For Recommendation)",
@@ -467,7 +477,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "mdaevaluationrecommendation",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount:
+            counts.mdaProbationaryPendingCreation +
+            counts.mdaProbationaryRejected +
+            counts.mdaProbationaryAwaiting,
         },
         PENDINGREGISTRATION: {
           name: "Registration",
@@ -485,7 +498,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "evaluationform",
           icon: <RateReviewIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount:
+            counts.probationaryRejected +
+            counts.probationaryReturned +
+            counts.probationaryAwaiting,
         },
         EVALUATIONRECOMMENDATION: {
           name: "Evaluation Recommendation",
@@ -494,7 +510,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "evaluationrecommendation",
           icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount:
+            counts.probationaryRecommendationRejected +
+            counts.probationaryRecommendationAwaiting,
         },
         BIANNUALPERFORMANCE: {
           name: "Bi-Annual Performance",
@@ -503,7 +521,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "biannualperformance",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount:
+            counts.performanceRejected +
+            counts.performanceReturned +
+            counts.performanceAwaiting,
         },
       },
     },
@@ -514,7 +535,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
       path: "/requestmonitoring",
       icon: <MonitorIcon sx={iconStyles.mainExtraLarge} />,
       icon_on: null,
-      notificationCount: 0,
+      notificationCount: counts.totalHrProcessing,
       children: {
         MRFMONITORING: {
           name: "MRF (HR)",
@@ -532,7 +553,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "datachangemonitoring",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.hrDataChangeMda,
         },
         MDAMONITORING: {
           name: "MDA (HR)",
@@ -541,7 +562,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "mdamonitoring",
           icon: <VerifiedIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.hrDaMda + counts.hrEvaluationMda,
         },
       },
     },
@@ -626,6 +647,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
+
     ADMINISTRATIVEDIVISION: {
       name: "Administrative Divisions",
       permissionId: "ADMINISTRATIVEDIVISION",

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
@@ -22,6 +23,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
@@ -399,6 +401,7 @@ const DARecommendation = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
   const { data: dashboardData } = useShowDashboardQuery();
@@ -440,16 +443,22 @@ const DARecommendation = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const daCounts = {
-    forRecommendation: dashboardData?.result?.approval?.da_recommendation || 0,
-    forApproval: 0,
-    awaitingResubmission: 0,
-    rejected: 0,
-    forMDAProcessing: 0,
-    mdaInProgress: 0,
-    completed: 0,
-    cancelled: 0,
-  };
+  const daCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.da_recommendation || 0;
+    const requisition =
+      dashboardData?.result?.requisition?.da_recommendation || {};
+
+    return {
+      forRecommendation: approval,
+      forApproval: requisition.for_approval || 0,
+      awaitingResubmission: requisition.awaiting_resubmission || 0,
+      rejected: requisition.rejected || 0,
+      forMDAProcessing: requisition.for_mda_processing || 0,
+      mdaInProgress: requisition.mda_in_progress || 0,
+      completed: 0,
+      cancelled: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -462,7 +471,7 @@ const DARecommendation = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -476,7 +485,7 @@ const DARecommendation = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -487,120 +496,131 @@ const DARecommendation = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const tabsData = [
-    {
-      label: "FOR RECOMMENDATION",
-      component: (
-        <DAForRecommendation
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.forRecommendation,
-    },
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <DARecommendationForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.forApproval,
-    },
-    {
-      label: "AWAITING RESUBMISSION",
-      component: (
-        <DARecommendationAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.awaitingResubmission,
-    },
-    {
-      label: "REJECTED",
-      component: (
-        <DARecommendationRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.rejected,
-    },
-    {
-      label: "FOR MDA PROCESSING",
-      component: (
-        <DARecommendationForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.forMDAProcessing,
-    },
-    {
-      label: "MDA IN PROGRESS",
-      component: (
-        <DARecommendationMDAInProgress
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.mdaInProgress,
-    },
-    {
-      label: "COMPLETED",
-      component: (
-        <DARecommendationCompleted
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.completed,
-    },
-    {
-      label: "CANCELLED",
-      component: (
-        <DARecommendationCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.cancelled,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR RECOMMENDATION",
+        component: (
+          <DAForRecommendation
+            key="for-recommendation"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.forRecommendation,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <DARecommendationForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <DARecommendationAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <DARecommendationRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.rejected,
+      },
+      {
+        label: "FOR MDA PROCESSING",
+        component: (
+          <DARecommendationForMDAProcessing
+            key="for-mda-processing"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.forMDAProcessing,
+      },
+      {
+        label: "MDA IN PROGRESS",
+        component: (
+          <DARecommendationMDAInProgress
+            key="mda-in-progress"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.mdaInProgress,
+      },
+      {
+        label: "COMPLETED",
+        component: (
+          <DARecommendationCompleted
+            key="completed"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.completed,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <DARecommendationCancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.cancelled,
+      },
+    ],
+    [debouncedSearchQuery, dateFilters, setQueryParams, currentParams, daCounts]
+  );
 
   const a11yProps = (index) => {
     return {

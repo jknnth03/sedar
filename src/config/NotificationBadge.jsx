@@ -81,56 +81,106 @@ const NotificationBadge = ({
     </Badge>
   );
 };
+
 import moduleApi from "../features/api/usermanagement/dashboardApi";
 import formSubmissionApi from "../features/api/approvalsetting/formSubmissionApi";
 
 export const calculateCounts = (dashboardData = {}) => {
   const apiResult = dashboardData?.result || {};
+  const employees = apiResult.employees || {};
+  const requisition = apiResult.requisition || {};
+  const manpower = requisition.manpower || {};
+  const dataChange = requisition.data_change || {};
+  const da = requisition.da || {};
+  const daRecommendation = requisition.da_recommendation || {};
+  const probationary = requisition.probationary || {};
+  const probationaryRecommendation =
+    requisition.probationary_recommendation || {};
+  const performance = requisition.performance || {};
+  const mda = requisition.mda || {};
+  const mdaDataChange = mda.data_change || {};
+  const mdaDa = mda.da || {};
+  const mdaProbationary = mda.probationary || {};
+  const approval = apiResult.approval || {};
+  const approvalDataChange = approval.data_change || {};
+  const approvalDa = approval.da || {};
+  const approvalProbationary = approval.probationary || {};
+  const receiving = apiResult.receiving || {};
+  const hrProcessing = apiResult.hr_processing || {};
 
   return {
-    pendingRegistrations: apiResult.employees?.pending_registrations || 0,
+    pendingRegistrations: requisition.pending_registrations || 0,
 
-    pendingApprovals:
-      (apiResult.approval?.manpower_form || 0) +
-      (apiResult.approval?.registration_approval || 0) +
-      (apiResult.approval?.data_change_approval || 0) +
-      (apiResult.approval?.mda_approval || 0) +
-      (apiResult.approval?.da_mda_approval || 0) +
-      (apiResult.approval?.da_form_approval || 0) +
-      (apiResult.approval?.cat_one_approval || 0) +
-      (apiResult.approval?.cat_two_approval || 0) +
-      (apiResult.approval?.pdp_approval || 0),
-    manpowerFormApprovals: apiResult.approval?.manpower_form || 0,
-    registrationApprovals: apiResult.approval?.registration_approval || 0,
-    dataChangeApprovals: apiResult.approval?.data_change_approval || 0,
-    mdaApprovals: apiResult.approval?.mda_approval || 0,
-    daMdaApprovals: apiResult.approval?.da_mda_approval || 0,
-    daFormApprovals: apiResult.approval?.da_form_approval || 0,
-    catOneApprovals: apiResult.approval?.cat_one_approval || 0,
-    catTwoApprovals: apiResult.approval?.cat_two_approval || 0,
-    pdpApprovals: apiResult.approval?.pdp_approval || 0,
+    manpowerFormRejected: manpower.rejected || 0,
+    manpowerFormReturned: manpower.returned || 0,
+    manpowerFormAwaiting: manpower.awaiting_resubmission || 0,
 
-    pendingReceiving:
-      (apiResult.receiving?.pending_mrfs || 0) +
-      (apiResult.receiving?.pending_data_changes || 0),
-    pendingMrfReceiving: apiResult.receiving?.pending_mrfs || 0,
-    pendingDataChangeReceiving: apiResult.receiving?.pending_data_changes || 0,
+    dataChangeRejected: dataChange.rejected || 0,
+    dataChangeReturned: dataChange.returned || 0,
+    dataChangeAwaiting: dataChange.awaiting_resubmission || 0,
 
-    manpowerFormRejected: apiResult.requisition?.manpower_form_rejected || 0,
-    manpowerFormReturned: apiResult.requisition?.manpower_form_returned || 0,
-    manpowerFormAwaiting:
-      apiResult.requisition?.manpower_form_awaiting_for_resubmission || 0,
-    dataChangeRejected: apiResult.requisition?.data_change_rejected || 0,
-    dataChangeForMdaProcessing:
-      apiResult.requisition?.data_change_for_mda_processing || 0,
+    daFormRejected: da.rejected || 0,
+    daFormAwaiting: da.awaiting_resubmission || 0,
 
-    totalRequisitionCount:
-      (apiResult.requisition?.manpower_form_rejected || 0) +
-      (apiResult.requisition?.manpower_form_returned || 0) +
-      (apiResult.requisition?.manpower_form_awaiting_for_resubmission || 0) +
-      (apiResult.requisition?.data_change_rejected || 0) +
-      (apiResult.requisition?.data_change_for_mda_processing || 0) +
-      (apiResult.employees?.pending_registrations || 0),
+    daRecommendationRejected: daRecommendation.rejected || 0,
+    daRecommendationAwaiting: daRecommendation.awaiting_resubmission || 0,
+
+    probationaryRejected: probationary.rejected || 0,
+    probationaryReturned: probationary.returned || 0,
+    probationaryAwaiting: probationary.awaiting_resubmission || 0,
+
+    probationaryRecommendationRejected:
+      probationaryRecommendation.rejected || 0,
+    probationaryRecommendationAwaiting:
+      probationaryRecommendation.awaiting_resubmission || 0,
+
+    performanceRejected: performance.rejected || 0,
+    performanceReturned: performance.returned || 0,
+    performanceAwaiting: performance.awaiting_resubmission || 0,
+
+    dataChangeForMdaProcessing: mdaDataChange.pending_mda_creation || 0,
+    mdaDataChangeRejected: mdaDataChange.rejected || 0,
+    mdaDataChangeAwaiting: mdaDataChange.awaiting_resubmission || 0,
+
+    mdaDaPendingCreation: mdaDa.pending_mda_creation || 0,
+    mdaDaRejected: mdaDa.rejected || 0,
+    mdaDaAwaiting: mdaDa.awaiting_resubmission || 0,
+
+    mdaProbationaryPendingCreation: mdaProbationary.pending_mda_creation || 0,
+    mdaProbationaryRejected: mdaProbationary.rejected || 0,
+    mdaProbationaryAwaiting: mdaProbationary.awaiting_resubmission || 0,
+
+    totalRequisitionCount: requisition.total || 0,
+
+    manpowerFormApprovals: approval.manpower || 0,
+    registrationApprovals: approval.registration || 0,
+    dataChangeFormApprovals: approvalDataChange.form || 0,
+    mdaApprovals: approvalDataChange.mda || 0,
+    daFormApprovals: approvalDa.form || 0,
+    daRecommendationApprovals: approvalDa.recommendation || 0,
+    daMdaApprovals: approvalDa.mda || 0,
+    probationaryEvaluationApprovals: approvalProbationary.evaluation || 0,
+    probationaryRecommendationApprovals:
+      approvalProbationary.recommendation || 0,
+    probationaryMdaApprovals: approvalProbationary.mda || 0,
+    performanceApprovals: approval.performance || 0,
+
+    pendingApprovals: approval.total || 0,
+
+    pendingMrfReceiving: receiving.manpower || 0,
+    dataChangeReceiving: receiving.data_change || 0,
+    probationaryReceiving: receiving.probationary || 0,
+    performanceReceiving: receiving.performance || 0,
+    pendingReceiving: receiving.total || 0,
+
+    hrDataChangeMda: hrProcessing.data_change_mda || 0,
+    hrDaMda: hrProcessing.da_mda || 0,
+    hrProbationaryMda: hrProcessing.probationary_mda || 0,
+    totalHrProcessing: hrProcessing.total || 0,
+
+    catOneApprovals: 0,
+    catTwoApprovals: 0,
+    pdpApprovals: 0,
   };
 };
 

@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const dataChangeApi = sedarApi
   .enhanceEndpoints({
@@ -279,6 +280,14 @@ const dataChangeApi = sedarApi
           body,
         }),
         invalidatesTags: ["dataChangeSubmissions"],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {}
+        },
       }),
 
       updateDataChangeSubmission: build.mutation({
@@ -303,6 +312,14 @@ const dataChangeApi = sedarApi
           };
         },
         invalidatesTags: ["dataChangeSubmissions"],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {}
+        },
       }),
 
       resubmitDataChangeSubmission: build.mutation({
@@ -311,6 +328,14 @@ const dataChangeApi = sedarApi
           method: "POST",
         }),
         invalidatesTags: ["dataChangeSubmissions"],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {}
+        },
       }),
     }),
   });

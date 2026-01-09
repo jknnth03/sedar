@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const formSubmissionApi = sedarApi
   .enhanceEndpoints({
@@ -221,6 +222,16 @@ const formSubmissionApi = sedarApi
           body,
         }),
         invalidatesTags: ["formSubmissions", "mrfSubmissions"],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to create form submission:", err);
+          }
+        },
       }),
 
       updateFormSubmission: build.mutation({
@@ -281,6 +292,16 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to update form submission:", err);
+          }
+        },
       }),
 
       resubmitFormSubmission: build.mutation({
@@ -293,6 +314,16 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to resubmit form submission:", err);
+          }
+        },
       }),
 
       cancelFormSubmission: build.mutation({
@@ -305,6 +336,16 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to cancel form submission:", err);
+          }
+        },
       }),
 
       deleteFormSubmission: build.mutation({
@@ -317,6 +358,16 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to delete form submission:", err);
+          }
+        },
       }),
     }),
   });

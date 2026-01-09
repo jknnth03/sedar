@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const daformApi = sedarApi
   .enhanceEndpoints({
@@ -73,6 +74,14 @@ const daformApi = sedarApi
           body,
         }),
         invalidatesTags: ["daSubmissions"],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {}
+        },
       }),
 
       updateDa: build.mutation({
@@ -122,6 +131,33 @@ const daformApi = sedarApi
           { type: "daSubmissions", id },
           "daSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {}
+        },
+      }),
+
+      resubmitDa: build.mutation({
+        query: (submissionId) => ({
+          url: `form-submissions/${submissionId}/resubmit`,
+          method: "POST",
+        }),
+        invalidatesTags: (result, error, submissionId) => [
+          { type: "daSubmissions", id: submissionId },
+          "daSubmissions",
+        ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {}
+        },
       }),
 
       getPositionKpis: build.query({
@@ -231,6 +267,7 @@ export const {
   useLazyGetSingleDaSubmissionQuery,
   useCreateDaMutation,
   useUpdateDaMutation,
+  useResubmitDaMutation,
   useGetPositionKpisQuery,
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,

@@ -11,6 +11,7 @@ import {
   useResubmitMrfSubmissionMutation,
   useCancelMrfSubmissionMutation,
 } from "../../../features/api/forms/mrfApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
@@ -86,6 +87,8 @@ const MrfRejected = ({
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const {
     data: submissionDetails,
@@ -226,6 +229,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } catch (error) {
         const errorMessage =
@@ -239,6 +243,7 @@ const MrfRejected = ({
     },
     [
       refetch,
+      refetchDashboard,
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
@@ -315,6 +320,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
       } else if (confirmAction === "create" && pendingFormData) {
         await createMrfSubmission(pendingFormData).unwrap();
         enqueueSnackbar("MRF submission created successfully!", {
@@ -322,6 +328,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } else if (
         confirmAction === "update" &&
@@ -338,6 +345,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } else if (
         confirmAction === "resubmit" &&
@@ -353,6 +361,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
         if (modalSuccessHandler) {
           modalSuccessHandler();

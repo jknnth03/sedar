@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import { dashboardApi } from "../usermanagement/dashboardApi"; // ← IMPORT DASHBOARD API
 
 const daRecommendationApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -70,6 +71,16 @@ const daRecommendationApprovalApi = sedarApi
           { type: "daRecommendationApprovals", id },
           "daRecommendationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve DA recommendation:", err);
+          }
+        },
       }),
       rejectDaRecommendationSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -84,6 +95,16 @@ const daRecommendationApprovalApi = sedarApi
           { type: "daRecommendationApprovals", id },
           "daRecommendationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject DA recommendation:", err);
+          }
+        },
       }),
     }),
   });

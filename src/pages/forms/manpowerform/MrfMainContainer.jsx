@@ -451,20 +451,21 @@ const MrfMainContainer = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const mrfCounts = useMemo(
-    () => ({
-      forApproval: dashboardData?.result?.approval?.manpower_form || 0,
-      awaitingResubmission:
-        dashboardData?.result?.requisition
-          ?.manpower_form_awaiting_for_resubmission || 0,
-      rejected: dashboardData?.result?.requisition?.manpower_form_rejected || 0,
-      forReceiving: dashboardData?.result?.receiving?.pending_mrfs || 0,
-      returned: dashboardData?.result?.requisition?.manpower_form_returned || 0,
+  const mrfCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.manpower || 0;
+    const requisition = dashboardData?.result?.requisition?.manpower || {};
+    const receiving = dashboardData?.result?.receiving?.manpower || 0;
+
+    return {
+      forApproval: approval,
+      awaitingResubmission: requisition.awaiting_resubmission || 0,
+      rejected: requisition.rejected || 0,
+      forReceiving: receiving,
+      returned: requisition.returned || 0,
       received: 0,
       cancelled: 0,
-    }),
-    [dashboardData]
-  );
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -728,24 +729,7 @@ const MrfMainContainer = () => {
                     <IconButton
                       onClick={handleAddNew}
                       disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
+                      sx={styles.createIconButton}>
                       <AddIcon sx={{ fontSize: "18px" }} />
                     </IconButton>
                   ) : (
@@ -754,31 +738,7 @@ const MrfMainContainer = () => {
                       onClick={handleAddNew}
                       startIcon={<AddIcon />}
                       disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "140px",
-                        minWidth: isMobile ? "100px" : "140px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
+                      sx={styles.createButtonFull(isMobile)}>
                       {isMobile ? "CREATE" : "CREATE"}
                     </Button>
                   )}

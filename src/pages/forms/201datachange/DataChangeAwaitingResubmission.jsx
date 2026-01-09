@@ -1,15 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-  Typography,
-} from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -20,9 +10,11 @@ import {
   useUpdateDataChangeSubmissionMutation,
   useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const DataChangeAwaitingResubmission = ({
@@ -32,7 +24,6 @@ const DataChangeAwaitingResubmission = ({
   filterDataBySearch,
   onCancel,
 }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -69,14 +60,14 @@ const DataChangeAwaitingResubmission = ({
 
   const apiQueryParams = useMemo(() => {
     return {
-      page: 1,
-      per_page: 10,
+      page: page,
+      per_page: rowsPerPage,
       status: "active",
       approval_status: "awaiting resubmission",
       pagination: 1,
       search: searchQuery || "",
     };
-  }, [searchQuery]);
+  }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
     setPage(1);
@@ -92,6 +83,8 @@ const DataChangeAwaitingResubmission = ({
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const [
     triggerGetSubmission,
@@ -149,9 +142,7 @@ const DataChangeAwaitingResubmission = ({
 
       try {
         await triggerGetSubmission(submission.id);
-      } catch (error) {
-        console.error("Error fetching submission details:", error);
-      }
+      } catch (error) {}
     },
     [triggerGetSubmission]
   );
@@ -165,9 +156,21 @@ const DataChangeAwaitingResubmission = ({
 
       try {
         await triggerGetSubmission(submission.id);
-      } catch (error) {
-        console.error("Error fetching submission details:", error);
-      }
+      } catch (error) {}
+    },
+    [triggerGetSubmission]
+  );
+
+  const handleResubmitSubmission = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setMenuAnchor({});
+      setModalMode("resubmit");
+      setModalOpen(true);
+
+      try {
+        await triggerGetSubmission(submission.id);
+      } catch (error) {}
     },
     [triggerGetSubmission]
   );
@@ -198,6 +201,7 @@ const DataChangeAwaitingResubmission = ({
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
+
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
         setConfirmAction("update");
@@ -209,6 +213,7 @@ const DataChangeAwaitingResubmission = ({
         const submission =
           submissionDetails?.result ||
           filteredSubmissions.find((sub) => sub.id === submissionId);
+
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
         setConfirmAction("resubmit");
@@ -223,6 +228,7 @@ const DataChangeAwaitingResubmission = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } catch (error) {
         const errorMessage =
@@ -236,12 +242,36 @@ const DataChangeAwaitingResubmission = ({
     },
     [
       refetch,
+      refetchDashboard,
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
       filteredSubmissions,
       resubmitDataChangeSubmission,
     ]
+  );
+
+  const handleResubmitDirect = useCallback(
+    async (entryId) => {
+      try {
+        const submission =
+          submissionDetails?.result ||
+          filteredSubmissions.find((sub) => sub.id === entryId);
+        setSelectedSubmissionForAction(submission);
+        setConfirmAction("resubmit");
+        setConfirmOpen(true);
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to resubmit. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return false;
+      }
+    },
+    [submissionDetails, filteredSubmissions, enqueueSnackbar]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -312,6 +342,7 @@ const DataChangeAwaitingResubmission = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } else if (
         confirmAction === "update" &&
@@ -322,19 +353,25 @@ const DataChangeAwaitingResubmission = ({
           id: selectedSubmissionForAction.id,
           data: pendingFormData,
         }).unwrap();
+
         enqueueSnackbar("Data change submission updated successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
-      } else if (confirmAction === "resubmit" && pendingFormData) {
-        await resubmitDataChangeSubmission(pendingFormData).unwrap();
+      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
+        await resubmitDataChangeSubmission(
+          selectedSubmissionForAction.id
+        ).unwrap();
         enqueueSnackbar("Data change submission resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
+        handleModalClose();
         if (modalSuccessHandler) {
           modalSuccessHandler();
         }
@@ -363,56 +400,11 @@ const DataChangeAwaitingResubmission = ({
     setPendingFormData(null);
   }, []);
 
-  const getConfirmationMessage = useCallback(() => {
-    if (confirmAction === "create") {
-      return (
-        <>
-          Are you sure you want to <strong>Create</strong> this Data Change
-          Request?
-        </>
-      );
-    } else if (confirmAction === "update") {
-      return (
-        <>
-          Are you sure you want to <strong>Update</strong> this Data Change
-          Request?
-        </>
-      );
-    } else if (confirmAction === "resubmit") {
-      return (
-        <>
-          Are you sure you want to <strong>Resubmit</strong> this Data Change
-          Request?
-        </>
-      );
-    }
-    return "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    return "Confirmation";
-  }, []);
-
-  const getConfirmButtonText = useCallback(() => {
-    return "CONFIRM";
-  }, []);
-
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
       selectedSubmissionForAction?.reference_number || "Data Change Request";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
-
-  const getConfirmationIcon = useCallback(() => {
-    const iconConfig = {
-      create: { color: "#4caf50", icon: "+" },
-      update: { color: "#2196f3", icon: "✎" },
-      resubmit: { color: "#ff9800", icon: "↻" },
-    };
-
-    const config = iconConfig[confirmAction] || iconConfig.create;
-    return config;
-  }, [confirmAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
@@ -441,6 +433,8 @@ const DataChangeAwaitingResubmission = ({
           hideStatusColumn={true}
           forApproval={true}
           onCancel={onCancel}
+          onUpdate={handleEditSubmission}
+          onResubmit={handleResubmitSubmission}
         />
 
         <CustomTablePagination
@@ -460,153 +454,19 @@ const DataChangeAwaitingResubmission = ({
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         onSave={handleModalSave}
-        onResubmit={async (entryId) => {
-          console.log("onResubmit called with ID:", entryId);
-          try {
-            const result = await resubmitDataChangeSubmission(entryId).unwrap();
-            console.log("Resubmit result:", result);
-            enqueueSnackbar("Data change resubmitted successfully!", {
-              variant: "success",
-              autoHideDuration: 2000,
-            });
-            refetch();
-            handleModalClose();
-            return true;
-          } catch (error) {
-            console.error("Resubmit error:", error);
-            const errorMessage =
-              error?.data?.message || "Failed to resubmit. Please try again.";
-            enqueueSnackbar(errorMessage, {
-              variant: "error",
-              autoHideDuration: 2000,
-            });
-            return false;
-          }
-        }}
+        onResubmit={handleResubmitDirect}
+        onRefreshDetails={handleRefreshDetails}
+        onSuccessfulSave={handleModalSuccessCallback}
       />
 
-      <Dialog
+      <ConfirmationDialog
         open={confirmOpen}
         onClose={handleConfirmationCancel}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            padding: 2,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            textAlign: "center",
-          },
-        }}>
-        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 2,
-            }}>
-            <Box
-              sx={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                backgroundColor: getConfirmationIcon().color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-              <Typography
-                sx={{
-                  color: "white",
-                  fontSize: "30px",
-                  fontWeight: "normal",
-                }}>
-                {getConfirmationIcon().icon}
-              </Typography>
-            </Box>
-          </Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 600,
-              color: "rgb(25, 45, 84)",
-              marginBottom: 0,
-            }}>
-            {getConfirmationTitle()}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              marginBottom: 2,
-              fontSize: "16px",
-              color: "#333",
-              fontWeight: 400,
-            }}>
-            {getConfirmationMessage()}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: "14px",
-              color: "#666",
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}>
-            {getSubmissionDisplayName()}
-          </Typography>
-        </DialogContent>
-        <DialogActions
-          sx={{
-            justifyContent: "center",
-            padding: 0,
-            marginTop: 3,
-            gap: 2,
-          }}>
-          <Button
-            onClick={handleConfirmationCancel}
-            variant="outlined"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              borderColor: "#f44336",
-              color: "#f44336",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                borderColor: "#d32f2f",
-                backgroundColor: "rgba(244, 67, 54, 0.04)",
-              },
-            }}
-            disabled={isLoading}>
-            CANCEL
-          </Button>
-          <Button
-            onClick={handleActionConfirm}
-            variant="contained"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              backgroundColor: "#4caf50",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                backgroundColor: "#388e3c",
-              },
-            }}
-            disabled={isLoading}>
-            {isLoading ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              getConfirmButtonText()
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+      />
     </FormProvider>
   );
 };

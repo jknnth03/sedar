@@ -39,6 +39,9 @@ const DAFormModal = ({
   isLoading = false,
   mode = "create",
   submissionId = null,
+  onModeChange,
+  onRefreshDetails,
+  onSuccessfulSave,
 }) => {
   const { reset, handleSubmit, watch } = useFormContext();
   const [currentMode, setCurrentMode] = useState(mode);
@@ -102,7 +105,10 @@ const DAFormModal = ({
         return;
       }
 
-      if ((mode === "view" || mode === "edit") && selectedEntry) {
+      if (
+        (mode === "view" || mode === "edit" || mode === "resubmit") &&
+        selectedEntry
+      ) {
         setCurrentMode(mode);
         setOriginalMode(mode);
         const formData = getViewEditModeFormData(selectedEntry);
@@ -123,7 +129,7 @@ const DAFormModal = ({
   useEffect(() => {
     if (
       open &&
-      currentMode === "edit" &&
+      (currentMode === "edit" || currentMode === "resubmit") &&
       originalMode === "view" &&
       selectedEntry &&
       prevModeRef.current !== currentMode
@@ -193,7 +199,7 @@ const DAFormModal = ({
 
     if (onSave) {
       const entryId =
-        currentMode === "edit"
+        currentMode === "edit" || currentMode === "resubmit"
           ? editingEntryId ||
             selectedEntry?.id ||
             selectedEntry?.result?.id ||
@@ -202,24 +208,39 @@ const DAFormModal = ({
       await onSave(formattedData, currentMode, entryId);
     }
   };
+
   const handleResubmitClick = async () => {
-    if (!editingEntryId) {
-      const fallbackId = selectedEntry?.id || selectedEntry?.result?.id;
-      if (!fallbackId) {
-        alert("No submission ID found. Please close and reopen the modal.");
-        return;
-      }
-      setEditingEntryId(fallbackId);
-    }
+    const formData = watch();
 
-    if (!onResubmit || typeof onResubmit !== "function") {
-      alert("Resubmit function not available. Please refresh the page.");
-      return;
-    }
+    const formattedData = {
+      form_id: 7,
+      employee_id: formData.employee_id,
+      from_position_id: formData.from_position_id,
+      to_position_id: formData.to_position_id,
+      approved_mrf_id: formData.approved_mrf_id,
+      start_date: formData.start_date
+        ? dayjs(formData.start_date).format("YYYY-MM-DD")
+        : null,
+      end_date: formData.end_date
+        ? dayjs(formData.end_date).format("YYYY-MM-DD")
+        : null,
+      objective: formData.objective,
+      kpis: formData.kpis.map((kpi) => ({
+        source_kpi_id: kpi.source_kpi_id,
+        objective_id: kpi.objective_id,
+        objective_name: kpi.objective_name,
+        distribution_percentage: Number(kpi.distribution_percentage),
+        deliverable: kpi.deliverable,
+        target_percentage: Number(kpi.target_percentage),
+      })),
+    };
 
-    const idToUse =
+    const entryId =
       editingEntryId || selectedEntry?.id || selectedEntry?.result?.id;
-    await onResubmit(idToUse);
+
+    if (onSave && entryId) {
+      await onSave(formattedData, "resubmit", entryId);
+    }
   };
 
   const handleClose = () => {
@@ -239,6 +260,7 @@ const DAFormModal = ({
       create: "CREATE DA FORM",
       view: "VIEW DA FORM",
       edit: "EDIT DA FORM",
+      resubmit: "RESUBMIT DA FORM",
     };
     return titles[currentMode] || "DA Form";
   };
@@ -254,6 +276,7 @@ const DAFormModal = ({
   const isCreate = currentMode === "create";
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
+  const isResubmitMode = currentMode === "resubmit";
   const isProcessing = isLoading || isUpdating;
 
   const formKey = `da-form-${
@@ -293,7 +316,7 @@ const DAFormModal = ({
                 </span>
               </Tooltip>
             )}
-            {isEditMode && originalMode === "view" && (
+            {(isEditMode || isResubmitMode) && originalMode === "view" && (
               <Tooltip title="CANCEL EDIT">
                 <span>
                   <IconButton
@@ -348,7 +371,7 @@ const DAFormModal = ({
                   shouldEnableResubmitButton(),
                   isProcessing
                 )}>
-                {isProcessing ? "Resubmitting..." : "Resubmit"}
+                Resubmit
               </Button>
             )}
             {!isReadOnly && (
@@ -361,6 +384,8 @@ const DAFormModal = ({
                     <CircularProgress size={16} />
                   ) : currentMode === "create" ? (
                     <AddIcon />
+                  ) : currentMode === "resubmit" ? (
+                    <SendIcon />
                   ) : (
                     <EditIcon />
                   )
@@ -370,6 +395,8 @@ const DAFormModal = ({
                   ? "Saving..."
                   : currentMode === "create"
                   ? "Create"
+                  : currentMode === "resubmit"
+                  ? "Resubmit"
                   : "Update"}
               </Button>
             )}

@@ -119,6 +119,51 @@ export const styles = {
     gap: 1,
   },
 
+  createIconButton: {
+    backgroundColor: "rgb(33, 61, 112)",
+    color: "white",
+    width: "36px",
+    height: "36px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+      transform: "translateY(-1px)",
+    },
+    "&:disabled": {
+      backgroundColor: "#ccc",
+      boxShadow: "none",
+    },
+  },
+
+  createButtonFull: (isMobile) => ({
+    backgroundColor: "rgb(33, 61, 112)",
+    height: isMobile ? "36px" : "38px",
+    width: isMobile ? "auto" : "140px",
+    minWidth: isMobile ? "100px" : "140px",
+    padding: isMobile ? "0 16px" : "0 20px",
+    textTransform: "none",
+    fontWeight: 600,
+    fontSize: isMobile ? "12px" : "14px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+    transition: "all 0.2s ease-in-out",
+    "& .MuiButton-startIcon": {
+      marginRight: isMobile ? "4px" : "8px",
+    },
+    "&:hover": {
+      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+      transform: "translateY(-1px)",
+    },
+    "&:disabled": {
+      backgroundColor: "#ccc",
+      boxShadow: "none",
+    },
+  }),
+
   createButton: {
     backgroundColor: "rgb(33, 61, 112)",
     height: "38px",
