@@ -1,5 +1,5 @@
 import { sedarApi } from "..";
-import dashboardApi from "../usermanagement/dashboardApi"; // ← ADD THIS
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const dataChangeApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -71,7 +71,6 @@ const dataChangeApprovalApi = sedarApi
           { type: "dataChangeApprovals", id },
           "dataChangeApprovals",
         ],
-        // ← ADD THIS: Auto-refresh dashboard after approval
         async onQueryStarted(arg, { dispatch, queryFulfilled }) {
           try {
             await queryFulfilled;
@@ -96,7 +95,7 @@ const dataChangeApprovalApi = sedarApi
           { type: "dataChangeApprovals", id },
           "dataChangeApprovals",
         ],
-        // ← ADD THIS: Auto-refresh dashboard after rejection
+
         async onQueryStarted(arg, { dispatch, queryFulfilled }) {
           try {
             await queryFulfilled;

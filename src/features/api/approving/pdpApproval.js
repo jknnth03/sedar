@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const pdpApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -52,7 +53,10 @@ const pdpApprovalApi = sedarApi
           url: `da-tasks/pdp/${id}`,
           method: "GET",
         }),
-        providesTags: (result, error, id) => [{ type: "pdpApprovals", id }],
+        providesTags: (result, error, id) => [
+          { type: "pdpApprovals", id },
+          "pdpApprovals",
+        ],
       }),
 
       approvePdp: build.mutation({
@@ -71,6 +75,16 @@ const pdpApprovalApi = sedarApi
           { type: "pdpApprovals", id },
           "pdpApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve PDP:", err);
+          }
+        },
       }),
 
       returnPdp: build.mutation({
@@ -85,6 +99,16 @@ const pdpApprovalApi = sedarApi
           { type: "pdpApprovals", id },
           "pdpApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to return PDP:", err);
+          }
+        },
       }),
     }),
   });

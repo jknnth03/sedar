@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const daFormReceivingApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["daFormReceiving"] })
@@ -55,6 +56,16 @@ const daFormReceivingApi = sedarApi
           { type: "daFormReceiving", id: submissionId },
           "daFormReceiving",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to start DA submission:", err);
+          }
+        },
       }),
     }),
   });

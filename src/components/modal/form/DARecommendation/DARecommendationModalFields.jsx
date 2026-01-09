@@ -203,7 +203,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
   return (
     <Box sx={{ height: "100%" }}>
-      {/* EMPLOYEE INFORMATION */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           EMPLOYEE INFORMATION
@@ -222,7 +221,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               },
               gap: 2,
             }}>
-            {/* Employee Name - Full Width */}
             <Box sx={{ gridColumn: "1 / -1" }}>
               {isCreate ? (
                 <Autocomplete
@@ -268,7 +266,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               )}
             </Box>
 
-            {/* Position From */}
             <Box>
               <TextField
                 label="POSITION - FROM"
@@ -279,7 +276,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               />
             </Box>
 
-            {/* Position To */}
             <Box>
               {isCreate ? (
                 <Autocomplete
@@ -331,7 +327,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               )}
             </Box>
 
-            {/* Department From */}
             <Box>
               <TextField
                 label="DEPARTMENT - FROM"
@@ -342,7 +337,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               />
             </Box>
 
-            {/* Department To */}
             <Box>
               <TextField
                 label="DEPARTMENT - TO"
@@ -352,9 +346,23 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                 sx={{ bgcolor: "white" }}
               />
             </Box>
+          </Box>
 
-            {/* Start Date */}
-            <Box sx={{ mb: -2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 3,
+              mt: 2,
+            }}>
+            <Box>
               <Controller
                 name="start_date"
                 control={control}
@@ -395,8 +403,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               />
             </Box>
 
-            {/* End Date */}
-            <Box sx={{ mb: -2 }}>
+            <Box>
               <Controller
                 name="end_date"
                 control={control}
@@ -447,7 +454,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
         </Box>
       </Box>
 
-      {/* PART I - SETTING OF OBJECTIVES */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PART I - SETTING OF OBJECTIVES
@@ -740,7 +746,6 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
         )}
       </Box>
 
-      {/* PART II - RECOMMENDATION */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PART II - RECOMMENDATION

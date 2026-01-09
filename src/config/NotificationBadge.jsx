@@ -89,6 +89,7 @@ export const calculateCounts = (dashboardData = {}) => {
   const apiResult = dashboardData?.result || {};
   const employees = apiResult.employees || {};
   const requisition = apiResult.requisition || {};
+  const pendingRegistrations = requisition.pending_registrations || {};
   const manpower = requisition.manpower || {};
   const dataChange = requisition.data_change || {};
   const da = requisition.da || {};
@@ -109,33 +110,39 @@ export const calculateCounts = (dashboardData = {}) => {
   const hrProcessing = apiResult.hr_processing || {};
 
   return {
-    pendingRegistrations: requisition.pending_registrations || 0,
+    openMrfs: employees.open_mrfs || 0,
+    totalEmployees: employees.total || 0,
+
+    pendingRegistrationsRejected: pendingRegistrations.rejected || 0,
+    pendingRegistrationsReturned: pendingRegistrations.returned || 0,
+    pendingRegistrationsAwaiting:
+      pendingRegistrations.awaiting_resubmission || 0,
 
     manpowerFormRejected: manpower.rejected || 0,
     manpowerFormReturned: manpower.returned || 0,
     manpowerFormAwaiting: manpower.awaiting_resubmission || 0,
 
     dataChangeRejected: dataChange.rejected || 0,
-    dataChangeReturned: dataChange.returned || 0,
     dataChangeAwaiting: dataChange.awaiting_resubmission || 0,
 
     daFormRejected: da.rejected || 0,
     daFormAwaiting: da.awaiting_resubmission || 0,
 
+    daRecommendationForRecommendation: daRecommendation.for_recommendation || 0,
     daRecommendationRejected: daRecommendation.rejected || 0,
     daRecommendationAwaiting: daRecommendation.awaiting_resubmission || 0,
 
     probationaryRejected: probationary.rejected || 0,
-    probationaryReturned: probationary.returned || 0,
     probationaryAwaiting: probationary.awaiting_resubmission || 0,
 
+    probationaryRecommendationForRecommendation:
+      probationaryRecommendation.for_recommendation || 0,
     probationaryRecommendationRejected:
       probationaryRecommendation.rejected || 0,
     probationaryRecommendationAwaiting:
       probationaryRecommendation.awaiting_resubmission || 0,
 
     performanceRejected: performance.rejected || 0,
-    performanceReturned: performance.returned || 0,
     performanceAwaiting: performance.awaiting_resubmission || 0,
 
     dataChangeForMdaProcessing: mdaDataChange.pending_mda_creation || 0,
@@ -159,7 +166,7 @@ export const calculateCounts = (dashboardData = {}) => {
     daFormApprovals: approvalDa.form || 0,
     daRecommendationApprovals: approvalDa.recommendation || 0,
     daMdaApprovals: approvalDa.mda || 0,
-    probationaryEvaluationApprovals: approvalProbationary.evaluation || 0,
+    probationaryFormApprovals: approvalProbationary.form || 0,
     probationaryRecommendationApprovals:
       approvalProbationary.recommendation || 0,
     probationaryMdaApprovals: approvalProbationary.mda || 0,
@@ -169,6 +176,7 @@ export const calculateCounts = (dashboardData = {}) => {
 
     pendingMrfReceiving: receiving.manpower || 0,
     dataChangeReceiving: receiving.data_change || 0,
+    daReceiving: receiving.da || 0,
     probationaryReceiving: receiving.probationary || 0,
     performanceReceiving: receiving.performance || 0,
     pendingReceiving: receiving.total || 0,

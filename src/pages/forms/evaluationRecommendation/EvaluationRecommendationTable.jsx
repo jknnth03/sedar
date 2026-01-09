@@ -9,16 +9,12 @@ import {
   Typography,
   Box,
   IconButton,
-  Menu,
-  MenuItem,
   Chip,
   Tooltip,
   Skeleton,
   useTheme,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
-import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
@@ -29,12 +25,8 @@ const EvaluationRecommendationTable = ({
   isLoadingState,
   error,
   handleRowClick,
-  handleMenuOpen,
-  handleMenuClose,
-  menuAnchor,
   searchQuery,
   statusFilter,
-  onCancel,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
@@ -150,18 +142,6 @@ const EvaluationRecommendationTable = ({
     setSelectedEvaluationHistory(null);
   };
 
-  const handleCancelClick = (e, submission) => {
-    e.stopPropagation();
-    handleMenuClose(submission.id);
-    if (onCancel) {
-      onCancel(submission.id);
-    }
-  };
-
-  const canCancelSubmission = (submission) => {
-    return submission?.actions?.can_cancel === true;
-  };
-
   const renderActivityLog = (submission) => {
     return (
       <Tooltip title="View History" arrow>
@@ -205,20 +185,10 @@ const EvaluationRecommendationTable = ({
     }
   };
 
-  const shouldHideActions =
-    statusFilter === "CANCELLED" || statusFilter === "COMPLETED";
-  const shouldShowActionsColumn = !shouldHideActions;
-
   // Hide recommendation column if status is "FOR RECOMMENDATION"
   const shouldShowRecommendationColumn = statusFilter !== "FOR RECOMMENDATION";
 
-  const totalColumns = shouldShowActionsColumn
-    ? shouldShowRecommendationColumn
-      ? 8
-      : 7
-    : shouldShowRecommendationColumn
-    ? 7
-    : 6;
+  const totalColumns = shouldShowRecommendationColumn ? 7 : 6;
 
   return (
     <>
@@ -250,11 +220,6 @@ const EvaluationRecommendationTable = ({
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
-              {shouldShowActionsColumn && (
-                <TableCell align="center" sx={styles.columnStyles.actions}>
-                  ACTIONS
-                </TableCell>
-              )}
             </TableRow>
           </TableHead>
           <TableBody
@@ -300,17 +265,6 @@ const EvaluationRecommendationTable = ({
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
-                    {shouldShowActionsColumn && (
-                      <TableCell align="center">
-                        <Skeleton
-                          animation="wave"
-                          variant="circular"
-                          width={32}
-                          height={32}
-                          sx={{ margin: "0 auto" }}
-                        />
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))}
               </>
@@ -378,50 +332,6 @@ const EvaluationRecommendationTable = ({
                         ? dayjs(submission.created_at).format("MMM D, YYYY")
                         : "-"}
                     </TableCell>
-                    {shouldShowActionsColumn && (
-                      <TableCell
-                        align="center"
-                        sx={styles.columnStyles.actions}>
-                        <Tooltip title="Actions">
-                          <IconButton
-                            onClick={(e) => handleMenuOpen(e, submission)}
-                            size="small"
-                            sx={styles.actionIconButton(theme)}>
-                            <MoreVertIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Menu
-                          anchorEl={menuAnchor[submission.id]}
-                          open={Boolean(menuAnchor[submission.id])}
-                          onClose={() => handleMenuClose(submission.id)}
-                          transformOrigin={{
-                            horizontal: "right",
-                            vertical: "top",
-                          }}
-                          anchorOrigin={{
-                            horizontal: "right",
-                            vertical: "bottom",
-                          }}
-                          PaperProps={{
-                            sx: styles.actionMenu(theme),
-                          }}
-                          sx={{
-                            zIndex: 10000,
-                          }}>
-                          <MenuItem
-                            onClick={(e) => handleCancelClick(e, submission)}
-                            disabled={!canCancelSubmission(submission)}
-                            sx={
-                              canCancelSubmission(submission)
-                                ? styles.cancelMenuItem
-                                : styles.cancelMenuItemDisabled
-                            }>
-                            <CancelIcon fontSize="small" sx={{ mr: 1 }} />
-                            Cancel Request
-                          </MenuItem>
-                        </Menu>
-                      </TableCell>
-                    )}
                   </TableRow>
                 );
               })

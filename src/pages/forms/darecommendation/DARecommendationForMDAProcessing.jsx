@@ -9,6 +9,7 @@ import {
   useCancelDaSubmissionMutation,
   useResubmitDaSubmissionMutation,
 } from "../../../features/api/forms/daRecommentdationApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
@@ -49,6 +50,8 @@ const DARecommendationForMDAProcessing = ({
   const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
+
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
@@ -80,37 +83,13 @@ const DARecommendationForMDAProcessing = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleDaSubmissionQuery();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissions = useMemo(() => {
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = useMemo(() => {
+    return submissionsData?.result?.total || 0;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -144,21 +123,17 @@ const DARecommendationForMDAProcessing = ({
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissions.find((sub) => sub.id === submissionId);
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [filteredSubmissions]
+    [submissions]
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissions.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -170,7 +145,7 @@ const DARecommendationForMDAProcessing = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissions, enqueueSnackbar]
   );
 
   const handleActionConfirm = async () => {
@@ -186,6 +161,7 @@ const DARecommendationForMDAProcessing = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
@@ -194,6 +170,7 @@ const DARecommendationForMDAProcessing = ({
         });
         await handleRefreshDetails();
         await refetch();
+        await refetchDashboard();
       }
     } catch (error) {
       const errorMessage =
@@ -287,7 +264,7 @@ const DARecommendationForMDAProcessing = ({
           backgroundColor: "white",
         }}>
         <DARecommendationTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -295,12 +272,12 @@ const DARecommendationForMDAProcessing = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="PENDING_MDA_CREATION"
+          statusFilter="PENDING FINAL MDA"
           onCancel={handleCancel}
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

@@ -87,17 +87,6 @@ const DARecommendationModal = ({
     return true;
   };
 
-  const shouldEnableSubmitButton = () => {
-    const status = selectedEntry?.status || selectedEntry?.result?.status;
-    const normalizedStatus = normalizeStatus(status);
-
-    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
-
-    if (disabledStatuses.includes(normalizedStatus)) return false;
-
-    return true;
-  };
-
   useEffect(() => {
     if (!open) {
       setHasInitialized(false);
@@ -205,9 +194,21 @@ const DARecommendationModal = ({
         return;
       }
 
+      const hasAllActualPerformance = data.kpis.every(
+        (kpi) =>
+          kpi.actual_performance !== null &&
+          kpi.actual_performance !== undefined &&
+          kpi.actual_performance !== ""
+      );
+
+      if (!hasAllActualPerformance) {
+        alert("Please fill in all Actual Performance fields");
+        return;
+      }
+
       const objectives = data.kpis.map((kpi) => ({
         id: kpi.id,
-        actual_performance: kpi.actual_performance || null,
+        actual_performance: kpi.actual_performance,
         remarks: kpi.remarks || "",
       }));
 
@@ -216,15 +217,63 @@ const DARecommendationModal = ({
         objectives: objectives,
       };
 
-      console.log("Submitting:", formattedData);
-
       if (onSubmit) {
-        const entryId =
-          editingEntryId ||
-          selectedEntry?.id ||
-          selectedEntry?.result?.id ||
-          null;
-        await onSubmit(formattedData, entryId);
+        try {
+          setIsUpdating(true);
+          const entryId =
+            editingEntryId ||
+            selectedEntry?.id ||
+            selectedEntry?.result?.id ||
+            null;
+          await onSubmit(formattedData, entryId);
+        } catch (error) {
+          alert("Failed to submit. Please try again.");
+        } finally {
+          setIsUpdating(false);
+        }
+      } else {
+        alert("Submit function not available. Please refresh the page.");
+      }
+      return;
+    }
+
+    if (
+      currentMode === "edit" &&
+      normalizedStatus === "RECOMMENDATION REJECTED"
+    ) {
+      if (!finalRecommendation) {
+        alert("Please select a recommendation option");
+        return;
+      }
+
+      const hasAllActualPerformance = data.kpis.every(
+        (kpi) =>
+          kpi.actual_performance !== null &&
+          kpi.actual_performance !== undefined &&
+          kpi.actual_performance !== ""
+      );
+
+      if (!hasAllActualPerformance) {
+        alert("Please fill in all Actual Performance fields");
+        return;
+      }
+
+      if (onSave) {
+        try {
+          setIsUpdating(true);
+          const entryId =
+            editingEntryId ||
+            selectedEntry?.id ||
+            selectedEntry?.result?.id ||
+            null;
+          await onSave(data, currentMode, entryId);
+        } catch (error) {
+          alert("Failed to save. Please try again.");
+        } finally {
+          setIsUpdating(false);
+        }
+      } else {
+        alert("Save function not available. Please refresh the page.");
       }
       return;
     }
@@ -259,14 +308,23 @@ const DARecommendationModal = ({
     };
 
     if (onSave) {
-      const entryId =
-        currentMode === "edit"
-          ? editingEntryId ||
-            selectedEntry?.id ||
-            selectedEntry?.result?.id ||
-            null
-          : null;
-      await onSave(formattedData, currentMode, entryId);
+      try {
+        setIsUpdating(true);
+        const entryId =
+          currentMode === "edit"
+            ? editingEntryId ||
+              selectedEntry?.id ||
+              selectedEntry?.result?.id ||
+              null
+            : null;
+        await onSave(formattedData, currentMode, entryId);
+      } catch (error) {
+        alert("Failed to save. Please try again.");
+      } finally {
+        setIsUpdating(false);
+      }
+    } else {
+      alert("Save function not available. Please refresh the page.");
     }
   };
 
@@ -285,9 +343,16 @@ const DARecommendationModal = ({
       return;
     }
 
-    const idToUse =
-      editingEntryId || selectedEntry?.id || selectedEntry?.result?.id;
-    await onResubmit(idToUse);
+    try {
+      setIsUpdating(true);
+      const idToUse =
+        editingEntryId || selectedEntry?.id || selectedEntry?.result?.id;
+      await onResubmit(idToUse);
+    } catch (error) {
+      alert("Failed to resubmit. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleClose = () => {
@@ -320,6 +385,8 @@ const DARecommendationModal = ({
       "APPROVED",
       "CANCELLED",
       "FOR RECOMMENDATION",
+      "PENDING RECOMMENDATION APPROVAL",
+      "RECOMMENDATION REJECTED",
     ];
 
     return (
@@ -343,6 +410,13 @@ const DARecommendationModal = ({
 
     if (currentMode === "edit" && normalizedStatus === "FOR RECOMMENDATION") {
       return isProcessing ? "Submitting..." : "Submit";
+    }
+
+    if (
+      currentMode === "edit" &&
+      normalizedStatus === "RECOMMENDATION REJECTED"
+    ) {
+      return isProcessing ? "Updating..." : "Update";
     }
 
     return isProcessing ? "Updating..." : "Update";

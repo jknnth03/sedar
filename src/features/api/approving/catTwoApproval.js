@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const catTwoApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -51,7 +52,10 @@ const catTwoApprovalApi = sedarApi
           url: `da-tasks/cat2/${id}`,
           method: "GET",
         }),
-        providesTags: (result, error, id) => [{ type: "catTwoApprovals", id }],
+        providesTags: (result, error, id) => [
+          { type: "catTwoApprovals", id },
+          "catTwoApprovals",
+        ],
       }),
 
       approveCatTwo: build.mutation({
@@ -70,6 +74,16 @@ const catTwoApprovalApi = sedarApi
           { type: "catTwoApprovals", id },
           "catTwoApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve Cat 2:", err);
+          }
+        },
       }),
 
       returnCatTwo: build.mutation({
@@ -84,6 +98,16 @@ const catTwoApprovalApi = sedarApi
           { type: "catTwoApprovals", id },
           "catTwoApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to return Cat 2:", err);
+          }
+        },
       }),
     }),
   });

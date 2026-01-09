@@ -28,6 +28,7 @@ const EvaluationFormModalFields = ({
   isReadOnly,
   currentMode,
   submissionId,
+  selectedEntry,
 }) => {
   const {
     control,
@@ -59,6 +60,10 @@ const EvaluationFormModalFields = ({
     : Array.isArray(employeesData?.result)
     ? employeesData.result
     : [];
+
+  const status =
+    selectedEntry?.status || selectedEntry?.result?.status || formValues.status;
+  const isCancelled = status === "CANCELLED";
 
   useEffect(() => {
     if (!isCreate && currentMode !== prevModeRef.current) {
@@ -344,7 +349,7 @@ const EvaluationFormModalFields = ({
                     }
                     onChange={(date) => field.onChange(date)}
                     label="PROBATION START DATE"
-                    disabled
+                    disabled={isCancelled || isReadOnly}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -374,7 +379,7 @@ const EvaluationFormModalFields = ({
                     }
                     onChange={(date) => field.onChange(date)}
                     label="PROBATION END DATE"
-                    disabled
+                    disabled={isCancelled || isReadOnly}
                     slotProps={{
                       textField: {
                         fullWidth: true,

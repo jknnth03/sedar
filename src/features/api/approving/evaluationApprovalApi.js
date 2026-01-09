@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const evaluationApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -53,6 +54,7 @@ const evaluationApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [
           { type: "evaluationApprovals", id },
+          "evaluationApprovals",
         ],
       }),
       approveEvaluation: build.mutation({
@@ -68,6 +70,16 @@ const evaluationApprovalApi = sedarApi
           { type: "evaluationApprovals", id },
           "evaluationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve evaluation:", err);
+          }
+        },
       }),
       rejectEvaluation: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -82,6 +94,16 @@ const evaluationApprovalApi = sedarApi
           { type: "evaluationApprovals", id },
           "evaluationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject evaluation:", err);
+          }
+        },
       }),
     }),
   });

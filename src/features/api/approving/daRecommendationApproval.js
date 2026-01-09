@@ -1,5 +1,5 @@
 import { sedarApi } from "..";
-import { dashboardApi } from "../usermanagement/dashboardApi"; // ← IMPORT DASHBOARD API
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const daRecommendationApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -56,6 +56,7 @@ const daRecommendationApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [
           { type: "daRecommendationApprovals", id },
+          "daRecommendationApprovals",
         ],
       }),
       approveDaRecommendationSubmission: build.mutation({

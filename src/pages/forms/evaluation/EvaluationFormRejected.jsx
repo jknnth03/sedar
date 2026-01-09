@@ -5,7 +5,7 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetProbationaryEvaluationsQuery,
-  useGetSingleProbationaryEvaluationQuery,
+  useLazyGetSingleProbationaryEvaluationQuery,
   useUpdateProbationaryEvaluationMutation,
   useResubmitProbationaryEvaluationMutation,
   useCancelProbationaryEvaluationMutation,
@@ -32,7 +32,6 @@ const EvaluationFormRejected = ({
     parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
@@ -40,8 +39,8 @@ const EvaluationFormRejected = ({
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
@@ -60,7 +59,7 @@ const EvaluationFormRejected = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: "REJECTED",
-      pagination: true,
+      pagination: 1,
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);
@@ -80,90 +79,104 @@ const EvaluationFormRejected = ({
     skip: false,
   });
 
-  const {
-    data: submissionDetails,
-    isLoading: detailsLoading,
-    refetch: refetchDetails,
-  } = useGetSingleProbationaryEvaluationQuery(selectedSubmissionId, {
-    skip: !selectedSubmissionId,
-    refetchOnMountOrArgChange: true,
-  });
+  const [
+    triggerGetSubmission,
+    { data: submissionDetails, isLoading: detailsLoading },
+  ] = useLazyGetSingleProbationaryEvaluationQuery();
 
-  const submissionsList = useMemo(() => {
-    const data = submissionsData?.result?.data || [];
-    return data;
+  const submissions = useMemo(() => {
+    return submissionsData?.result?.data || [];
   }, [submissionsData]);
 
-  const handleRowClick = useCallback((submission) => {
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setModalMode("view");
-    setModalOpen(true);
-  }, []);
+  const totalCount = useMemo(() => {
+    return submissionsData?.result?.total || 0;
+  }, [submissionsData]);
 
-  useEffect(() => {
-    if (submissionDetails?.result && modalOpen) {
-      setSelectedEntry(submissionDetails.result);
-    }
-  }, [submissionDetails, modalOpen]);
+  const handleRowClick = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setModalMode("view");
+      setModalOpen(true);
+      setMenuAnchor({});
+
+      try {
+        await triggerGetSubmission(submission.id);
+      } catch (error) {
+        console.error("Error fetching submission details:", error);
+      }
+    },
+    [triggerGetSubmission]
+  );
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
-    setSelectedEntry(null);
     setSelectedSubmissionId(null);
+    setModalLoading(false);
     setModalMode("view");
-  }, []);
+    methods.reset();
+  }, [methods]);
+
+  const handleRefreshDetails = useCallback(() => {
+    if (selectedSubmissionId) {
+      triggerGetSubmission(selectedSubmissionId);
+    }
+  }, [selectedSubmissionId, triggerGetSubmission]);
 
   const handleSave = useCallback(
-    async (formData, mode) => {
-      if (mode === "edit" && selectedSubmissionId) {
-        const submission =
-          submissionDetails?.result ||
-          submissionsList.find((sub) => sub.id === selectedSubmissionId);
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(formData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
-      }
-    },
-    [selectedSubmissionId, submissionDetails, submissionsList]
-  );
-
-  const handleResubmit = useCallback(
-    async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      setSelectedSubmissionForAction(submission);
-      setConfirmAction("resubmit");
-      setConfirmOpen(true);
-    },
-    [submissionsList]
-  );
-
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      setIsLoading(true);
+    async (formData, mode, entryId) => {
+      setModalLoading(true);
       try {
-        await cancelProbationaryEvaluation(submissionId).unwrap();
-        enqueueSnackbar("Probationary Evaluation cancelled successfully", {
+        await updateProbationaryEvaluation({
+          id: entryId,
+          data: formData,
+        }).unwrap();
+
+        enqueueSnackbar("Probationary Evaluation updated successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        refetch();
-        return true;
+        handleModalClose();
+        await refetch();
       } catch (error) {
         const errorMessage =
           error?.data?.message ||
-          "Failed to cancel submission. Please try again.";
+          "Failed to update evaluation. Please try again.";
         enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
         });
-        return false;
       } finally {
-        setIsLoading(false);
+        setModalLoading(false);
       }
     },
-    [cancelProbationaryEvaluation, enqueueSnackbar, refetch]
+    [updateProbationaryEvaluation, enqueueSnackbar, handleModalClose, refetch]
+  );
+
+  const handleResubmit = useCallback(
+    async (submissionId) => {
+      const submission = submissions.find((sub) => sub.id === submissionId);
+      setSelectedSubmissionForAction(submission);
+      setConfirmAction("resubmit");
+      setConfirmOpen(true);
+    },
+    [submissions]
+  );
+
+  const handleCancel = useCallback(
+    async (submissionId) => {
+      const submission = submissions.find((sub) => sub.id === submissionId);
+      if (submission) {
+        setSelectedSubmissionForAction(submission);
+        setConfirmAction("cancel");
+        setConfirmOpen(true);
+      } else {
+        enqueueSnackbar("Submission not found. Please try again.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [submissions, enqueueSnackbar]
   );
 
   const handleActionConfirm = async () => {
@@ -172,22 +185,15 @@ const EvaluationFormRejected = ({
     setIsLoading(true);
 
     try {
-      if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionId
-      ) {
-        await updateProbationaryEvaluation({
-          id: selectedSubmissionId,
-          data: pendingFormData,
-        }).unwrap();
-        enqueueSnackbar("Probationary Evaluation updated successfully", {
+      if (confirmAction === "cancel" && selectedSubmissionForAction) {
+        await cancelProbationaryEvaluation(
+          selectedSubmissionForAction.id
+        ).unwrap();
+        enqueueSnackbar("Probationary Evaluation cancelled successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        await refetchDetails();
-        await refetch();
-        handleModalClose();
+        refetch();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitProbationaryEvaluation(
           selectedSubmissionForAction.id
@@ -196,13 +202,13 @@ const EvaluationFormRejected = ({
           variant: "success",
           autoHideDuration: 2000,
         });
-        await refetchDetails();
+        await handleRefreshDetails();
         await refetch();
       }
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
+        `Failed to ${confirmAction} evaluation. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -211,7 +217,6 @@ const EvaluationFormRejected = ({
       setConfirmOpen(false);
       setSelectedSubmissionForAction(null);
       setConfirmAction(null);
-      setPendingFormData(null);
       setIsLoading(false);
     }
   };
@@ -220,7 +225,6 @@ const EvaluationFormRejected = ({
     setConfirmOpen(false);
     setSelectedSubmissionForAction(null);
     setConfirmAction(null);
-    setPendingFormData(null);
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
@@ -283,8 +287,6 @@ const EvaluationFormRejected = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
-  const totalCount = submissionsData?.result?.total || 0;
-
   return (
     <FormProvider {...methods}>
       <Box
@@ -296,7 +298,7 @@ const EvaluationFormRejected = ({
           backgroundColor: "white",
         }}>
         <EvaluationFormTable
-          submissionsList={submissionsList}
+          submissionsList={submissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -322,8 +324,8 @@ const EvaluationFormRejected = ({
         onClose={handleModalClose}
         onSave={handleSave}
         onResubmit={handleResubmit}
-        selectedEntry={selectedEntry}
-        isLoading={detailsLoading}
+        selectedEntry={submissionDetails}
+        isLoading={modalLoading || detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />

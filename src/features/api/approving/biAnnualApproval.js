@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const biAnnualApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -58,6 +59,7 @@ const biAnnualApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [
           { type: "biAnnualApprovals", id },
+          "biAnnualApprovals",
         ],
       }),
 
@@ -77,6 +79,16 @@ const biAnnualApprovalApi = sedarApi
           { type: "biAnnualApprovals", id },
           "biAnnualApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve bi-annual submission:", err);
+          }
+        },
       }),
 
       rejectBiAnnualSubmission: build.mutation({
@@ -97,6 +109,16 @@ const biAnnualApprovalApi = sedarApi
           { type: "biAnnualApprovals", id },
           "biAnnualApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject bi-annual submission:", err);
+          }
+        },
       }),
     }),
   });

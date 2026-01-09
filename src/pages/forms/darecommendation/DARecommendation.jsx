@@ -43,7 +43,6 @@ import DARecommendationRejected from "./DARecommendationRejected";
 import DARecommendationForMDAProcessing from "./DARecommendationForMDAProcessing";
 import DARecommendationMDAInProgress from "./DARecommendationMDAInProgress";
 import DARecommendationCompleted from "./DARecommendationCompleted";
-import DARecommendationCancelled from "./DARecommendationCancelled";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -416,7 +415,6 @@ const DARecommendation = () => {
     4: "ForMDAProcessing",
     5: "MDAInProgress",
     6: "Completed",
-    7: "Cancelled",
   };
 
   const reverseTabMap = {
@@ -427,7 +425,6 @@ const DARecommendation = () => {
     ForMDAProcessing: 4,
     MDAInProgress: 5,
     Completed: 6,
-    Cancelled: 7,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -444,19 +441,18 @@ const DARecommendation = () => {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const daCounts = useMemo(() => {
-    const approval = dashboardData?.result?.approval?.da_recommendation || 0;
+    const approval = dashboardData?.result?.approval?.da || {};
     const requisition =
       dashboardData?.result?.requisition?.da_recommendation || {};
 
     return {
-      forRecommendation: approval,
-      forApproval: requisition.for_approval || 0,
+      forRecommendation: requisition.for_recommendation || 0,
+      forApproval: approval.recommendation || 0,
       awaitingResubmission: requisition.awaiting_resubmission || 0,
       rejected: requisition.rejected || 0,
       forMDAProcessing: requisition.for_mda_processing || 0,
       mdaInProgress: requisition.mda_in_progress || 0,
       completed: 0,
-      cancelled: 0,
     };
   }, [dashboardData]);
 
@@ -602,21 +598,6 @@ const DARecommendation = () => {
           />
         ),
         badgeCount: daCounts.completed,
-      },
-      {
-        label: "CANCELLED",
-        component: (
-          <DARecommendationCancelled
-            key="cancelled"
-            searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
-            setQueryParams={setQueryParams}
-            currentParams={currentParams}
-          />
-        ),
-        badgeCount: daCounts.cancelled,
       },
     ],
     [debouncedSearchQuery, dateFilters, setQueryParams, currentParams, daCounts]

@@ -41,7 +41,6 @@ import EvaluationRecommendationRejected from "./EvaluationRecommendationRejected
 import EvaluationRecommendationForMDAProcessing from "./EvaluationRecommendationForMDAProcessing";
 import EvaluationRecommendationMDAInProgress from "./EvaluationRecommendationMDAInProgress";
 import EvaluationRecommendationCompleted from "./EvaluationRecommendationCompleted";
-import EvaluationRecommendationCancelled from "./EvaluationRecommendationCancelled";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -415,7 +414,6 @@ const EvaluationRecommendation = () => {
     4: "ForMDAProcessing",
     5: "MDAInProgress",
     6: "Completed",
-    7: "Cancelled",
   };
 
   const reverseTabMap = {
@@ -426,7 +424,6 @@ const EvaluationRecommendation = () => {
     ForMDAProcessing: 4,
     MDAInProgress: 5,
     Completed: 6,
-    Cancelled: 7,
   };
 
   const [activeTab, setActiveTab] = useState(
@@ -451,7 +448,6 @@ const EvaluationRecommendation = () => {
     forMDAProcessing: 0,
     mdaInProgress: 0,
     completed: 0,
-    cancelled: 0,
   };
 
   const handleTabChange = useCallback(
@@ -588,20 +584,6 @@ const EvaluationRecommendation = () => {
         />
       ),
       badgeCount: evaluationCounts.completed,
-    },
-    {
-      label: "CANCELLED",
-      component: (
-        <EvaluationRecommendationCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.cancelled,
     },
   ];
 

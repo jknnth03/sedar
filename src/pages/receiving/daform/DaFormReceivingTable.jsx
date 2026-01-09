@@ -8,16 +8,12 @@ import {
   TableRow,
   Typography,
   Box,
-  IconButton,
   Chip,
-  Tooltip,
   Skeleton,
   useTheme,
 } from "@mui/material";
-import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../../forms/mdaform/MDAHistoryDialog";
 import NoDataFound from "../../NoDataFound";
 
 const DaFormReceivingTable = ({
@@ -29,8 +25,6 @@ const DaFormReceivingTable = ({
   isAssessmentMode = false,
 }) => {
   const theme = useTheme();
-  const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
-  const [selectedDaHistory, setSelectedDaHistory] = React.useState(null);
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -39,12 +33,12 @@ const DaFormReceivingTable = ({
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
           {submission.employee_name}
         </Typography>
-        {submission.employee_number && (
+        {submission.employee_code && (
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ fontSize: "14px" }}>
-            {submission.employee_number}
+            {submission.employee_code}
           </Typography>
         )}
       </Box>
@@ -84,30 +78,6 @@ const DaFormReceivingTable = ({
     );
   };
 
-  const handleViewActivityClick = (e, submission) => {
-    e.stopPropagation();
-    setSelectedDaHistory(submission);
-    setHistoryDialogOpen(true);
-  };
-
-  const handleHistoryDialogClose = () => {
-    setHistoryDialogOpen(false);
-    setSelectedDaHistory(null);
-  };
-
-  const renderActivityLog = (submission) => {
-    return (
-      <Tooltip title="View History" arrow>
-        <IconButton
-          onClick={(e) => handleViewActivityClick(e, submission)}
-          size="small"
-          sx={styles.historyIconButton(theme)}>
-          <RestoreIcon sx={{ fontSize: "20px" }} />
-        </IconButton>
-      </Tooltip>
-    );
-  };
-
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
@@ -123,10 +93,8 @@ const DaFormReceivingTable = ({
                 REFERENCE NO.
               </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
+              <TableCell sx={styles.columnStyles.position}>CHARGING</TableCell>
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
-              <TableCell align="center" sx={styles.columnStyles.history}>
-                HISTORY
-              </TableCell>
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
@@ -146,20 +114,14 @@ const DaFormReceivingTable = ({
                       <Skeleton animation="wave" height={20} width="60%" />
                     </TableCell>
                     <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
                       <Skeleton
                         animation="wave"
                         height={24}
                         width={120}
                         sx={{ borderRadius: "12px" }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Skeleton
-                        animation="wave"
-                        variant="circular"
-                        width={32}
-                        height={32}
-                        sx={{ margin: "0 auto" }}
                       />
                     </TableCell>
                     <TableCell>
@@ -206,11 +168,15 @@ const DaFormReceivingTable = ({
                       }}>
                       {renderEmployee(submission)}
                     </TableCell>
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.position,
+                        ...styles.cellContentStyles,
+                      }}>
+                      {submission.charging_name || "-"}
+                    </TableCell>
                     <TableCell sx={styles.columnStyles.status}>
                       {renderStatusChip(submission)}
-                    </TableCell>
-                    <TableCell align="center" sx={styles.columnStyles.history}>
-                      {renderActivityLog(submission)}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -252,12 +218,6 @@ const DaFormReceivingTable = ({
           </TableBody>
         </Table>
       </TableContainer>
-
-      <MDAHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedDaHistory}
-      />
     </>
   );
 };

@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const evaluationRecommendationApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -53,6 +54,7 @@ const evaluationRecommendationApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [
           { type: "evaluationRecommendationApprovals", id },
+          "evaluationRecommendationApprovals",
         ],
       }),
       approveRecommendation: build.mutation({
@@ -68,6 +70,16 @@ const evaluationRecommendationApprovalApi = sedarApi
           { type: "evaluationRecommendationApprovals", id },
           "evaluationRecommendationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve recommendation:", err);
+          }
+        },
       }),
       rejectRecommendation: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -82,6 +94,16 @@ const evaluationRecommendationApprovalApi = sedarApi
           { type: "evaluationRecommendationApprovals", id },
           "evaluationRecommendationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject recommendation:", err);
+          }
+        },
       }),
     }),
   });

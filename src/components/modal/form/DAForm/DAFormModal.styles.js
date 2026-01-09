@@ -250,3 +250,14 @@ export const loadingContainerStyles = {
   minHeight: "400px",
   gap: 2,
 };
+
+export const dateGridContainerStyles = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: 3,
+  mb: 2,
+  "@media (max-width: 900px)": {
+    gridTemplateColumns: "1fr",
+    gap: 2,
+  },
+};

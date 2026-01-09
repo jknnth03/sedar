@@ -355,7 +355,22 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                 sx={{ bgcolor: "white" }}
               />
             </Box>
+          </Box>
 
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 3,
+              mt: 2,
+            }}>
             <Box>
               <Controller
                 name="start_date"

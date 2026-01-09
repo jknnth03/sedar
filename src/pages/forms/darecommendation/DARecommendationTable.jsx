@@ -9,16 +9,12 @@ import {
   Typography,
   Box,
   IconButton,
-  Menu,
-  MenuItem,
   Chip,
   Tooltip,
   Skeleton,
   useTheme,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
-import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
@@ -29,12 +25,8 @@ const DARecommendationTable = ({
   isLoadingState,
   error,
   handleRowClick,
-  handleMenuOpen,
-  handleMenuClose,
-  menuAnchor,
   searchQuery,
   statusFilter,
-  onCancel,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
@@ -154,18 +146,6 @@ const DARecommendationTable = ({
     setSelectedDaHistory(null);
   };
 
-  const handleCancelClick = (e, submission) => {
-    e.stopPropagation();
-    handleMenuClose(submission.id);
-    if (onCancel) {
-      onCancel(submission.id);
-    }
-  };
-
-  const canCancelSubmission = (submission) => {
-    return submission?.actions?.can_cancel === true;
-  };
-
   const renderActivityLog = (submission) => {
     return (
       <Tooltip title="View History" arrow>
@@ -181,10 +161,15 @@ const DARecommendationTable = ({
 
   const filteredSubmissions = React.useMemo(() => {
     if (!statusFilter) return submissionsList;
-    return submissionsList.filter(
-      (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
-    );
+
+    const normalizedFilter = statusFilter.replace(/_/g, " ").toUpperCase();
+
+    return submissionsList.filter((submission) => {
+      const submissionStatus = submission.status
+        ?.replace(/_/g, " ")
+        .toUpperCase();
+      return submissionStatus === normalizedFilter;
+    });
   }, [submissionsList, statusFilter]);
 
   const getNoDataMessage = () => {
@@ -202,18 +187,16 @@ const DARecommendationTable = ({
         COMPLETED: "completed",
         CANCELLED: "cancelled",
       };
+      const normalizedFilter = statusFilter.replace(/_/g, " ").toUpperCase();
       const statusLabel =
-        statusLabels[statusFilter] || statusFilter.toLowerCase();
+        statusLabels[normalizedFilter] || normalizedFilter.toLowerCase();
       return searchQuery
         ? `No ${statusLabel} recommendations found for "${searchQuery}"`
         : `No ${statusLabel} recommendations found`;
     }
   };
 
-  const shouldHideActions =
-    statusFilter === "CANCELLED" || statusFilter === "COMPLETED";
-  const shouldShowActionsColumn = !shouldHideActions;
-  const totalColumns = shouldShowActionsColumn ? 8 : 7;
+  const totalColumns = 7;
 
   return (
     <>
@@ -243,11 +226,6 @@ const DARecommendationTable = ({
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
-              {shouldShowActionsColumn && (
-                <TableCell align="center" sx={styles.columnStyles.actions}>
-                  ACTIONS
-                </TableCell>
-              )}
             </TableRow>
           </TableHead>
           <TableBody
@@ -291,17 +269,6 @@ const DARecommendationTable = ({
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
-                    {shouldShowActionsColumn && (
-                      <TableCell align="center">
-                        <Skeleton
-                          animation="wave"
-                          variant="circular"
-                          width={32}
-                          height={32}
-                          sx={{ margin: "0 auto" }}
-                        />
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))}
               </>
@@ -367,50 +334,6 @@ const DARecommendationTable = ({
                         ? dayjs(submission.created_at).format("MMM D, YYYY")
                         : "-"}
                     </TableCell>
-                    {shouldShowActionsColumn && (
-                      <TableCell
-                        align="center"
-                        sx={styles.columnStyles.actions}>
-                        <Tooltip title="Actions">
-                          <IconButton
-                            onClick={(e) => handleMenuOpen(e, submission)}
-                            size="small"
-                            sx={styles.actionIconButton(theme)}>
-                            <MoreVertIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Menu
-                          anchorEl={menuAnchor[submission.id]}
-                          open={Boolean(menuAnchor[submission.id])}
-                          onClose={() => handleMenuClose(submission.id)}
-                          transformOrigin={{
-                            horizontal: "right",
-                            vertical: "top",
-                          }}
-                          anchorOrigin={{
-                            horizontal: "right",
-                            vertical: "bottom",
-                          }}
-                          PaperProps={{
-                            sx: styles.actionMenu(theme),
-                          }}
-                          sx={{
-                            zIndex: 10000,
-                          }}>
-                          <MenuItem
-                            onClick={(e) => handleCancelClick(e, submission)}
-                            disabled={!canCancelSubmission(submission)}
-                            sx={
-                              canCancelSubmission(submission)
-                                ? styles.cancelMenuItem
-                                : styles.cancelMenuItemDisabled
-                            }>
-                            <CancelIcon fontSize="small" sx={{ mr: 1 }} />
-                            Cancel Request
-                          </MenuItem>
-                        </Menu>
-                      </TableCell>
-                    )}
                   </TableRow>
                 );
               })

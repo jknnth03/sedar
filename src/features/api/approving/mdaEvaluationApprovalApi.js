@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const mdaEvaluationApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -57,6 +58,7 @@ const mdaEvaluationApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [
           { type: "mdaEvaluationApprovals", id },
+          "mdaEvaluationApprovals",
         ],
       }),
       approveMDAEvaluationApproval: build.mutation({
@@ -68,6 +70,16 @@ const mdaEvaluationApprovalApi = sedarApi
           { type: "mdaEvaluationApprovals", id },
           "mdaEvaluationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve MDA evaluation:", err);
+          }
+        },
       }),
       rejectMDAEvaluationApproval: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -82,6 +94,16 @@ const mdaEvaluationApprovalApi = sedarApi
           { type: "mdaEvaluationApprovals", id },
           "mdaEvaluationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject MDA evaluation:", err);
+          }
+        },
       }),
     }),
   });

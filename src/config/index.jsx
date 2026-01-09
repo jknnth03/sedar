@@ -161,7 +161,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "daformreceiving",
           icon: <DescriptionIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: 0,
+          notificationCount: counts.daReceiving,
         },
       },
     },
@@ -272,7 +272,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon_on: null,
           notificationCount: counts.dataChangeFormApprovals,
         },
-
         DAFORMAPPROVAL: {
           name: "DA Form",
           permissionId: "APPROVING.DAFORMAPPROVAL",
@@ -298,7 +297,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "evaluationapproval",
           icon: <RateReviewIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.evaluationApprovals,
+          notificationCount: counts.probationaryFormApprovals,
         },
         EVALUATIONRECOMMENDATIONAPPROVAL: {
           name: "Evaluation Recommendation",
@@ -307,7 +306,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "evaluationrecommendationapproval",
           icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.evaluationRecommendationApprovals,
+          notificationCount: counts.probationaryRecommendationApprovals,
         },
         MDAEVALUATIONAPPROVAL: {
           name: "MDA (For Evaluation)",
@@ -316,7 +315,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "mdaevaluationapproval",
           icon: <RateReviewIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.mdaEvaluationApprovals,
+          notificationCount: counts.probationaryMdaApprovals,
         },
         MDAAPPROVAL: {
           name: "MDA (For Data Change)",
@@ -352,9 +351,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "biannualapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           icon_on: null,
-          notificationCount: counts.biAnnualApprovals,
+          notificationCount: counts.performanceApprovals,
         },
-
         CATONEAPPROVAL: {
           name: "CAT I",
           permissionId: "APPROVING.CATONEAPPROVAL",
@@ -435,7 +433,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount:
-            counts.daRecommendationRejected + counts.daRecommendationAwaiting,
+            counts.daRecommendationForRecommendation +
+            counts.daRecommendationRejected +
+            counts.daRecommendationAwaiting,
         },
         MASTERDATAAUTHORITY: {
           name: "MDA (For Data Change)",
@@ -511,6 +511,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <RecommendIcon sx={iconStyles.child} />,
           icon_on: null,
           notificationCount:
+            counts.probationaryRecommendationForRecommendation +
             counts.probationaryRecommendationRejected +
             counts.probationaryRecommendationAwaiting,
         },

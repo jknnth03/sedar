@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const mdaRecommendationApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -59,6 +60,7 @@ const mdaRecommendationApprovalApi = sedarApi
         }),
         providesTags: (result, error, id) => [
           { type: "mdaRecommendationApprovals", id },
+          "mdaRecommendationApprovals",
         ],
       }),
       approveMdaRecommendationSubmission: build.mutation({
@@ -73,6 +75,16 @@ const mdaRecommendationApprovalApi = sedarApi
           { type: "mdaRecommendationApprovals", id },
           "mdaRecommendationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve MDA recommendation:", err);
+          }
+        },
       }),
       rejectMdaRecommendationSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -87,6 +99,16 @@ const mdaRecommendationApprovalApi = sedarApi
           { type: "mdaRecommendationApprovals", id },
           "mdaRecommendationApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject MDA recommendation:", err);
+          }
+        },
       }),
     }),
   });

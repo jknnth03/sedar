@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
@@ -447,13 +447,17 @@ const EvaluationForm = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const evaluationCounts = {
-    forApproval:
-      dashboardData?.result?.approval?.probationary_evaluation_approval || 0,
-    awaitingResubmission: 0,
-    rejected: 0,
-    cancelled: 0,
-  };
+  const evaluationCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.probationary || {};
+    const requisition = dashboardData?.result?.requisition?.probationary || {};
+
+    return {
+      forApproval: approval.evaluation || 0,
+      awaitingResubmission: requisition.awaiting_resubmission || 0,
+      rejected: requisition.rejected || 0,
+      cancelled: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -604,67 +608,77 @@ const EvaluationForm = () => {
     ]
   );
 
-  const tabsData = [
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <EvaluationFormForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: evaluationCounts.forApproval,
-    },
-    {
-      label: "AWAITING RESUBMISSION",
-      component: (
-        <EvaluationFormAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: evaluationCounts.awaitingResubmission,
-    },
-    {
-      label: "REJECTED",
-      component: (
-        <EvaluationFormRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: evaluationCounts.rejected,
-    },
-    {
-      label: "CANCELLED",
-      component: (
-        <EvaluationFormCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.cancelled,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <EvaluationFormForApproval
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: evaluationCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <EvaluationFormAwaitingResubmission
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: evaluationCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <EvaluationFormRejected
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: evaluationCounts.rejected,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <EvaluationFormCancelled
+            searchQuery={debouncedSearchQuery}
+            dateFilters={dateFilters}
+            filterDataByDate={filterDataByDate}
+            filterDataBySearch={filterDataBySearch}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.cancelled,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      dateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      evaluationCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
