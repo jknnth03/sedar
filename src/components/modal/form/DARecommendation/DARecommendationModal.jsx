@@ -375,22 +375,13 @@ const DARecommendationModal = ({
     };
     return titles[currentMode] || "DA Recommendation";
   };
-
   const showResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
     const normalizedStatus = normalizeStatus(status);
 
-    const disabledStatuses = [
-      "COMPLETED",
-      "APPROVED",
-      "CANCELLED",
-      "FOR RECOMMENDATION",
-      "PENDING RECOMMENDATION APPROVAL",
-      "RECOMMENDATION REJECTED",
-    ];
-
     return (
-      currentMode === "view" && !disabledStatuses.includes(normalizedStatus)
+      currentMode === "view" &&
+      normalizedStatus === "AWAITING RECOMMENDATION RESUBMISSION"
     );
   };
 

@@ -267,9 +267,7 @@ const DAFormModal = ({
 
   const showResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
-    return (
-      currentMode === "view" && status !== "APPROVED" && status !== "CANCELLED"
-    );
+    return currentMode === "view" && status === "AWAITING RESUBMISSION";
   };
 
   const isReadOnly = currentMode === "view";

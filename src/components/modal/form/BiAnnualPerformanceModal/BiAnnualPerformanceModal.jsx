@@ -325,9 +325,8 @@ const BiAnnualPerformanceModal = ({
   const showResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
     const normalizedStatus = normalizeStatus(status);
-    const disabledStatuses = ["COMPLETED", "APPROVED", "CANCELLED"];
     return (
-      currentMode === "view" && !disabledStatuses.includes(normalizedStatus)
+      currentMode === "view" && normalizedStatus === "AWAITING RESUBMISSION"
     );
   };
 

@@ -171,12 +171,7 @@ const DataChangeModal = ({
 
   const shouldShowResubmitButton = () => {
     const status = selectedEntry?.result?.status;
-    return (
-      status !== "COMPLETED" &&
-      status !== "CANCELLED" &&
-      status !== "APPROVED" &&
-      status !== "PENDING MDA CREATION"
-    );
+    return currentMode === "view" && status === "AWAITING RESUBMISSION";
   };
 
   const shouldShowCreateMDAButton = () => {

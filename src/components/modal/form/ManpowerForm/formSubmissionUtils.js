@@ -37,12 +37,7 @@ export const shouldEnableResubmitButton = (selectedEntry) => {
 export const shouldShowResubmitButton = (selectedEntry) => {
   if (!selectedEntry) return false;
   const status = selectedEntry.status?.toUpperCase() || "";
-  return (
-    status !== "COMPLETED" &&
-    status !== "CANCELLED" &&
-    status !== "APPROVED" &&
-    status !== "RECEIVED"
-  );
+  return status === "AWAITING RESUBMISSION";
 };
 
 export const isAdditionalManpower = (requisitionType) => {
