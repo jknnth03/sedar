@@ -17,13 +17,7 @@ import {
 } from "../../../features/api/approvalsetting/formSubmissionApi";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDAForApproval = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const MDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -49,15 +43,24 @@ const MDAForApproval = ({
   const [cancelMdaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
       approval_status: "PENDING",
-      pagination: 1,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -84,36 +87,20 @@ const MDAForApproval = ({
   });
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
@@ -295,6 +282,8 @@ const MDAForApproval = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -315,7 +304,7 @@ const MDAForApproval = ({
             backgroundColor: "white",
           }}>
           <MDAForApprovalTable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -328,7 +317,7 @@ const MDAForApproval = ({
           />
 
           <CustomTablePagination
-            count={filteredSubmissions.length}
+            count={totalCount}
             page={Math.max(0, page - 1)}
             rowsPerPage={rowsPerPage}
             onPageChange={handlePageChange}

@@ -19,14 +19,7 @@ import PdpTable from "./PdpTable";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 
-const PdpReturned = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onRowClick,
-  onCancel,
-}) => {
+const PdpReturned = ({ searchQuery, dateFilters, onRowClick, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -54,13 +47,23 @@ const PdpReturned = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      pagination: 1,
       status: "RETURNED",
+      search: searchQuery || "",
     };
-  }, [page, rowsPerPage]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -79,37 +82,21 @@ const PdpReturned = ({
 
   const [cancelPdpSubmission] = useCancelFormSubmissionMutation();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = taskData?.result?.data || [];
+  const submissionsData = useMemo(() => {
+    if (!taskData?.result) return [];
 
-    let filtered = rawData;
+    const result = taskData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    taskData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [taskData]);
 
   const handleRowClick = useCallback(
     (submission) => {
@@ -132,9 +119,7 @@ const PdpReturned = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -146,7 +131,7 @@ const PdpReturned = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -279,6 +264,8 @@ const PdpReturned = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -290,7 +277,7 @@ const PdpReturned = ({
           backgroundColor: "white",
         }}>
         <PdpTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -307,7 +294,7 @@ const PdpReturned = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

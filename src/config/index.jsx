@@ -79,7 +79,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Dashboard",
       path: "/",
       icon: <DashboardIcon sx={iconStyles.main} />,
-      icon_on: null,
       children: null,
     },
 
@@ -89,7 +88,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "User Management",
       path: "/usermanagement",
       icon: <ManageAccountsIcon sx={iconStyles.main} />,
-      icon_on: null,
       children: {
         USER: {
           name: "User",
@@ -97,7 +95,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "User",
           path: "user",
           icon: <PersonAddIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         ROLES: {
           name: "Roles",
@@ -105,7 +102,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Roles",
           path: "roles",
           icon: <FolderSharedIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -115,7 +111,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Employees",
       path: "/employees",
       icon: <FolderSharedIcon sx={iconStyles.main} />,
-      icon_on: null,
       notificationCount: 0,
       children: {
         EMPLOYEEINFORMATION: {
@@ -124,7 +119,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Employee Information",
           path: "employeeinformation",
           icon: <InfoIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         ENABLEEDIT: {
           name: "Enable Edit",
@@ -132,7 +126,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Enable Edit",
           path: "enableedit",
           icon: <BorderColorIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -142,7 +135,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Receiving",
       path: "/receiving",
       icon: <ArchiveIcon sx={iconStyles.mainLarge} />,
-      icon_on: null,
       notificationCount: counts.pendingReceiving,
       children: {
         PENDINGFORMS: {
@@ -151,7 +143,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MRF Receiving",
           path: "pendingforms",
           icon: <MarkAsUnreadIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.pendingMrfReceiving,
         },
         DAFORMRECEIVING: {
@@ -160,7 +152,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Form Receiving",
           path: "daformreceiving",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.daReceiving,
         },
       },
@@ -172,7 +164,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Approval Settings",
       path: "/approvalsetting",
       icon: <ApprovalIcon sx={iconStyles.mainLarge} />,
-      icon_on: null,
       children: {
         APPROVALFORM: {
           name: "Approval Form",
@@ -180,7 +171,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Approval Form",
           path: "approvalform",
           icon: <AssignmentTurnedInIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         APPROVALFLOW: {
           name: "Approval Flow",
@@ -188,7 +178,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Approval Flow",
           path: "approvalflow",
           icon: <DragIndicatorIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -199,7 +188,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Assessment Templates",
       path: "/assessment-templates",
       icon: <FactCheckIcon sx={iconStyles.mainLarge} />,
-      icon_on: null,
       children: {
         CATONETEMPLATE: {
           name: "Cat I Template",
@@ -207,7 +195,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Cat I Template",
           path: "cat-one-template",
           icon: <LooksOneIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         CATTWOTEMPLATE: {
           name: "Cat II Template",
@@ -215,7 +202,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Cat II Template",
           path: "cat-two-template",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         PDPTEMPLATE: {
           name: "PDP",
@@ -223,7 +209,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "PDP",
           path: "pdp-template",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         BIANNUALTEMPLATE: {
           name: "Bi-Annual Template",
@@ -231,7 +216,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Bi-Annual Template",
           path: "bi-annual-template",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -242,7 +226,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Approval",
       path: "/approving",
       icon: <GavelIcon sx={iconStyles.mainMedium} />,
-      icon_on: null,
       notificationCount: counts.pendingApprovals,
       children: {
         SUBMISSIONAPPROVAL: {
@@ -251,7 +234,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MRF",
           path: "submissionapproval",
           icon: <TaskIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.manpowerFormApprovals,
         },
         REGISTRATIONAPPROVAL: {
@@ -260,7 +243,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Registration",
           path: "registrationapproval",
           icon: <HowToRegIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.registrationApprovals,
         },
         DATACHANGEAPPROVAL: {
@@ -269,7 +252,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Data Change",
           path: "datachangeapproval",
           icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.dataChangeFormApprovals,
         },
         DAFORMAPPROVAL: {
@@ -278,7 +261,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Form",
           path: "daformapproval",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.daFormApprovals,
         },
         DARECOMMENDATIONAPPROVAL: {
@@ -287,7 +270,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Recommendation",
           path: "darecommendationapproval",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.daRecommendationApprovals,
         },
         EVALUATIONAPPROVAL: {
@@ -296,7 +279,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Form",
           path: "evaluationapproval",
           icon: <RateReviewIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.probationaryFormApprovals,
         },
         EVALUATIONRECOMMENDATIONAPPROVAL: {
@@ -305,7 +288,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Recommendation",
           path: "evaluationrecommendationapproval",
           icon: <RecommendIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.probationaryRecommendationApprovals,
         },
         MDAEVALUATIONAPPROVAL: {
@@ -314,7 +297,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For Evaluation)",
           path: "mdaevaluationapproval",
           icon: <RateReviewIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.probationaryMdaApprovals,
         },
         MDAAPPROVAL: {
@@ -323,7 +306,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For Data Change)",
           path: "mdaapproval",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.mdaApprovals,
         },
         DAMDAAPPROVAL: {
@@ -332,7 +315,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For DA)",
           path: "damdaapproval",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.daMdaApprovals,
         },
         MDARECOMMENDATIONAPPROVAL: {
@@ -341,7 +324,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (Recommendation)",
           path: "mdarecommendationapproval",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: 0,
         },
         BIANNUALAPPROVAL: {
@@ -350,7 +333,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Bi-Annual Approval",
           path: "biannualapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.performanceApprovals,
         },
         CATONEAPPROVAL: {
@@ -359,7 +342,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT I",
           path: "catoneapproval",
           icon: <LooksOneIcon sx={iconStyles.child} />,
-          icon_on: null,
           notificationCount: counts.catOneApprovals,
         },
         CATTWOAPPROVAL: {
@@ -368,7 +350,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT II",
           path: "cattwoapproval",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
-          icon_on: null,
           notificationCount: counts.catTwoApprovals,
         },
         PDPAPPROVAL: {
@@ -377,7 +358,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "PDP",
           path: "pdpapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          icon_on: null,
           notificationCount: counts.pdpApprovals,
         },
       },
@@ -389,7 +369,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Requisition",
       path: "/request",
       icon: <PendingActionsIcon sx={iconStyles.mainExtraLarge} />,
-      icon_on: null,
       notificationCount: counts.totalRequisitionCount,
       children: {
         MRFMAINCONTAINER: {
@@ -398,11 +377,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Manpower Form",
           path: "mrfmaincontainer",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.manpowerFormRejected +
-            counts.manpowerFormReturned +
-            counts.manpowerFormAwaiting,
+          notificationCount: counts.manpowerTotal,
         },
         DATACHANGEMAINCONTAINER: {
           name: "201 Datachange",
@@ -410,11 +385,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "201 Datachange",
           path: "datachangemaincontainer",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.dataChangeRejected +
-            counts.dataChangeReturned +
-            counts.dataChangeAwaiting,
+          notificationCount: counts.dataChangeTotal,
         },
         DAFORM: {
           name: "DA Form",
@@ -422,8 +393,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Form",
           path: "daform",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount: counts.daFormRejected + counts.daFormAwaiting,
+          notificationCount: counts.daTotal,
         },
         DARECOMMENDATION: {
           name: "DA Recommendation",
@@ -431,11 +401,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Recommendation",
           path: "darecommendation",
           icon: <RecommendIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.daRecommendationForRecommendation +
-            counts.daRecommendationRejected +
-            counts.daRecommendationAwaiting,
+          notificationCount: counts.daRecommendationTotal,
         },
         MASTERDATAAUTHORITY: {
           name: "MDA (For Data Change)",
@@ -443,11 +409,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For Data Change)",
           path: "masterdataauthority",
           icon: <CreateNewFolderIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.dataChangeForMdaProcessing +
-            counts.mdaDataChangeRejected +
-            counts.mdaDataChangeAwaiting,
+          notificationCount: counts.mdaDataChangeTotal,
         },
         MDADA: {
           name: "MDA (For DA)",
@@ -455,11 +417,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For DA)",
           path: "mdada",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.mdaDaPendingCreation +
-            counts.mdaDaRejected +
-            counts.mdaDaAwaiting,
+          notificationCount: counts.mdaDaTotal,
         },
         MDARECOMMENDATION: {
           name: "MDA (For Recommendation)",
@@ -467,7 +425,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For Recommendation)",
           path: "mdarecommendation",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: 0,
         },
         MDAEVALUATIONRECOMMENDATION: {
@@ -476,11 +434,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For Evaluation)",
           path: "mdaevaluationrecommendation",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.mdaProbationaryPendingCreation +
-            counts.mdaProbationaryRejected +
-            counts.mdaProbationaryAwaiting,
+          notificationCount: counts.mdaProbationaryTotal,
         },
         PENDINGREGISTRATION: {
           name: "Registration",
@@ -488,7 +442,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Registration",
           path: "pendingregistration",
           icon: <PendingActionsIcon sx={iconStyles.child} />,
-          icon_on: null,
           notificationCount: counts.pendingRegistrations,
         },
         EVALUATIONFORM: {
@@ -497,11 +450,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Form",
           path: "evaluationform",
           icon: <RateReviewIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.probationaryRejected +
-            counts.probationaryReturned +
-            counts.probationaryAwaiting,
+          notificationCount: counts.probationaryTotal,
         },
         EVALUATIONRECOMMENDATION: {
           name: "Evaluation Recommendation",
@@ -509,11 +458,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Recommendation",
           path: "evaluationrecommendation",
           icon: <RecommendIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.probationaryRecommendationForRecommendation +
-            counts.probationaryRecommendationRejected +
-            counts.probationaryRecommendationAwaiting,
+          notificationCount: counts.probationaryRecommendationTotal,
         },
         BIANNUALPERFORMANCE: {
           name: "Bi-Annual Performance",
@@ -521,11 +466,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Bi-Annual Performance",
           path: "biannualperformance",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          icon_on: null,
-          notificationCount:
-            counts.performanceRejected +
-            counts.performanceReturned +
-            counts.performanceAwaiting,
+          notificationCount: counts.performanceTotal,
         },
       },
     },
@@ -535,7 +476,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Request Monitoring",
       path: "/requestmonitoring",
       icon: <MonitorIcon sx={iconStyles.mainExtraLarge} />,
-      icon_on: null,
       notificationCount: counts.totalHrProcessing,
       children: {
         MRFMONITORING: {
@@ -544,7 +484,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MRF (HR)",
           path: "mrfmonitoring",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: 0,
         },
         DATACHANGEMONITORING: {
@@ -553,7 +493,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Data Change (HR)",
           path: "datachangemonitoring",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.hrDataChangeMda,
         },
         MDAMONITORING: {
@@ -562,7 +502,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (HR)",
           path: "mdamonitoring",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: counts.hrDaMda + counts.hrEvaluationMda,
         },
       },
@@ -573,7 +513,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Evaluation",
       path: "/evaluation",
       icon: <TrendingUpIcon sx={iconStyles.mainExtraLarge} />,
-      icon_on: null,
       notificationCount: 0,
       children: {
         KPI: {
@@ -582,7 +521,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "KPI",
           path: "kpi",
           icon: <VpnKeyIcon sx={iconStyles.child} />,
-          icon_on: null,
+
           notificationCount: 0,
         },
       },
@@ -593,7 +532,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Masterlist",
       path: "/masterlist",
       icon: <SummarizeIcon sx={iconStyles.mainExtraLarge} />,
-      icon_on: null,
       children: {
         ONERDF: {
           name: "Charging",
@@ -601,7 +539,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Charging",
           path: "onerdf",
           icon: <LocationOnIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         POSITIONS: {
           name: "Position",
@@ -609,7 +546,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Position",
           path: "positions",
           icon: <BadgeIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -620,7 +556,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "DA Tasks",
       path: "/developmental-assignment",
       icon: <AssignmentIcon sx={iconStyles.mainExtraLarge} />,
-      icon_on: null,
       children: {
         CATONE: {
           name: "CAT I",
@@ -628,7 +563,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT I",
           path: "catone",
           icon: <LooksOneIcon sx={iconStyles.child} />,
-          icon_on: null,
+          notificationCount: counts.catOneTotal,
         },
         CATTWO: {
           name: "CAT II",
@@ -636,7 +571,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT II",
           path: "cattwo",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
-          icon_on: null,
+          notificationCount: counts.catTwoTotal,
         },
         PDP: {
           name: "PDP",
@@ -644,7 +579,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "PDP",
           path: "pdp",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          icon_on: null,
+          notificationCount: counts.pdpTotal,
         },
       },
     },
@@ -655,7 +590,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Administrative Divisions",
       path: "/administrative-divisions",
       icon: <ExploreIcon sx={iconStyles.main} />,
-      icon_on: null,
       children: {
         REGIONS: {
           name: "Regions",
@@ -663,7 +597,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Regions",
           path: "regions",
           icon: <ExploreIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         PROVINCES: {
           name: "Provinces",
@@ -671,7 +604,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Provinces",
           path: "provinces",
           icon: <LocationOnIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         MUNICIPALITIES: {
           name: "Municipalities",
@@ -679,7 +611,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Municipalities",
           path: "municipalities",
           icon: <GavelIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         SUBMUNICIPALITIES: {
           name: "Sub Municipalities",
@@ -687,7 +618,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Sub Municipalities",
           path: "submunicipalities",
           icon: <CategoryIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         BARANGAYS: {
           name: "Barangays",
@@ -695,7 +625,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Barangays",
           path: "barangays",
           icon: <AccountBalanceIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -706,7 +635,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
       displayName: "Extras",
       path: "/extras",
       icon: <SettingsSuggestIcon sx={iconStyles.main} />,
-      icon_on: null,
       children: {
         TITLES: {
           name: "Titles",
@@ -714,7 +642,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Titles",
           path: "titles",
           icon: <TitleIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         SCHEDULES: {
           name: "Schedules",
@@ -722,7 +649,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Schedules",
           path: "schedules",
           icon: <CalendarMonthIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         TEAMS: {
           name: "Teams",
@@ -730,7 +656,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Teams",
           path: "teams",
           icon: <GroupsIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         RELIGIONS: {
           name: "Religions",
@@ -738,7 +663,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Religions",
           path: "religions",
           icon: <ChurchIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         PREFIXES: {
           name: "Prefixes",
@@ -746,7 +670,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Prefixes",
           path: "prefixes",
           icon: <ExtensionIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         PROGRAMS: {
           name: "Programs",
@@ -754,7 +677,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Programs",
           path: "programs",
           icon: <FeaturedPlayListIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         ATTAINMENTS: {
           name: "Attainments",
@@ -762,7 +684,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Attainments",
           path: "attainments",
           icon: <WorkIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         DEGREES: {
           name: "Degrees",
@@ -770,7 +691,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Degrees",
           path: "degrees",
           icon: <SchoolIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         HONORTITLES: {
           name: "Honor Titles",
@@ -778,7 +698,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Honor Titles",
           path: "honortitles",
           icon: <MilitaryTechIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         BANKS: {
           name: "Banks",
@@ -786,7 +705,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Banks",
           path: "banks",
           icon: <GroupsIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         TOOLS: {
           name: "Tools",
@@ -794,7 +712,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Tools",
           path: "tools",
           icon: <ConstructionIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         CABINETS: {
           name: "Cabinets",
@@ -802,7 +719,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Cabinets",
           path: "cabinets",
           icon: <KitchenIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         FILETYPES: {
           name: "File Types",
@@ -810,7 +726,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "File Types",
           path: "filetypes",
           icon: <FileOpenIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         OBJECTIVES: {
           name: "Objectives",
@@ -818,7 +733,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Objectives",
           path: "objectives",
           icon: <EmojiObjectsIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         REQUISITION: {
           name: "Requisition Types",
@@ -826,7 +740,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Requisition Types",
           path: "requisition",
           icon: <TextSnippetIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         MOVEMENTTYPES: {
           name: "Movement Types",
@@ -834,7 +747,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Movement Types",
           path: "movementtypes",
           icon: <LowPriorityIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         WORKWEEKS: {
           name: "Work Weeks",
@@ -842,7 +754,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Work Weeks",
           path: "workweeks",
           icon: <EventAvailableIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         WORKHOURS: {
           name: "Work Hours",
@@ -850,7 +761,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Work Hours",
           path: "workhours",
           icon: <AccessTimeIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         RESTDAYS: {
           name: "Rest Days",
@@ -858,7 +768,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Rest Days",
           path: "restdays",
           icon: <WeekendIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         SEPARATIONTYPES: {
           name: "Separation Types",
@@ -866,7 +775,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Separation Types",
           path: "separationtypes",
           icon: <ExitToAppIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         SEPARATIONREASONS: {
           name: "Separation Reasons",
@@ -874,7 +782,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Separation Reasons",
           path: "separationreasons",
           icon: <HelpOutlineIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         JOBBANDS: {
           name: "Job Bands",
@@ -882,7 +789,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Job Bands",
           path: "jobbands",
           icon: <WorkHistoryIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         JOBLEVELS: {
           name: "Job Levels",
@@ -890,7 +796,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Job Levels",
           path: "joblevels",
           icon: <MilitaryTechIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
         JOBRATES: {
           name: "Job Rates",
@@ -898,7 +803,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Job Rates",
           path: "jobrates",
           icon: <StarIcon sx={iconStyles.child} />,
-          icon_on: null,
         },
       },
     },
@@ -936,7 +840,6 @@ export const CONSTANT = {
       displayName: "Unauthorized",
       path: "/unauthorized",
       icon: null,
-      icon_on: null,
       children: null,
     },
     CHANGEPASS: {
@@ -945,7 +848,6 @@ export const CONSTANT = {
       displayName: "Changepass",
       path: "/changepass",
       icon: null,
-      icon_on: null,
       children: null,
     },
   },
@@ -973,17 +875,14 @@ export const CONSTANT = {
       label2: "Update",
       icon1: <SaveIcon sx={iconStyles.button} />,
       icon2: <EditIcon sx={iconStyles.button} />,
-      icon_on: null,
     },
     CANCEL: {
       label: "Cancel",
       icon: <CancelIcon sx={iconStyles.button} />,
-      icon_on: null,
     },
     SYNC: {
       label: "Sync",
       icon: <SyncIcon sx={iconStyles.sync} />,
-      icon_on: null,
     },
   },
 };

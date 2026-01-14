@@ -57,7 +57,6 @@
 
 .mainbox {
   height: 100vh;
-  transition: width 0.5s ease;
   overflow-x: hidden;
   position: relative;
   background-color: rgb(255, 255, 255);
@@ -109,7 +108,6 @@
   align-items: center;
   padding: 40px 17px;
   flex-shrink: 0;
-  transition: all 0.3s ease-in-out;
 }
 
 .mainbox.open .sidebar__logo-container {
@@ -126,7 +124,6 @@
 .sidebar__logo {
   width: 120px;
   position: relative;
-  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   margin-left: 12px;
 
   @include mx.sm {
@@ -141,7 +138,6 @@
 
 .sidebar__logo2 {
   width: 40px;
-  transition: all 0.3s ease-in-out;
 }
 
 .mainbox.open .sidebar__logo2 {
@@ -162,6 +158,7 @@
   align-items: center;
   justify-content: flex-start;
   padding-left: 0px;
+  overflow: hidden;
 }
 
 .mainbox.closed .liststyle {
@@ -247,7 +244,6 @@
 .text {
   margin-top: 10px;
   margin-bottom: 10px;
-  transition: visibility 0.3s ease-in-out;
 
   @include mx.sm {
     visibility: visible !important;
@@ -258,11 +254,13 @@
   margin-bottom: 4px;
   padding-left: 0px;
   padding-right: 0px;
+  overflow: hidden;
 }
 
 .sidebar-content {
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 110px);
   padding-bottom: 10px;
 }
@@ -294,7 +292,6 @@
 .footer__logo {
   width: 40px;
   height: auto;
-  transition: all 0.3s ease-in-out;
   margin-bottom: 6px;
 }
 

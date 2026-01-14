@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
@@ -7,10 +7,6 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Fade,
   Tooltip,
   CircularProgress,
@@ -18,7 +14,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -31,15 +26,18 @@ import {
   StyledTabs,
   StyledTab,
 } from "../manpowerform/FormSubmissionStyles";
-import { format, parseISO, isWithinInterval } from "date-fns";
+
+import { format } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
+
 import BiAnnualPerformanceForApproval from "./BiAnnualPerformanceForApproval";
 import BiAnnualPerformanceAwaitingResubmission from "./BiAnnualPerformanceAwaitingResubmission";
 import BiAnnualPerformanceRejected from "./BiAnnualPerformanceRejected";
 import BiAnnualPerformanceApproved from "./BiAnnualPerformanceApproved";
 import BiAnnualPerformanceCancelled from "./BiAnnualPerformanceCancelled";
 import BiAnnualPerformanceModal from "../../../components/modal/form/BiAnnualPerformanceModal/BiAnnualPerformanceModal";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 import {
   useCreatePerformanceEvaluationMutation,
   useUpdatePerformanceEvaluationMutation,
@@ -64,148 +62,6 @@ const TabPanel = ({ children, value, index, ...other }) => {
       {...other}>
       {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number.toLowerCase().includes(query) ||
-      item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -450,14 +306,27 @@ const BiAnnualPerformance = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const evaluationCounts = {
-    forApproval:
-      dashboardData?.result?.approval?.biannual_performance_approval || 0,
-    awaitingResubmission: 0,
-    rejected: 0,
-    approved: 0,
-    cancelled: 0,
-  };
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
+  const evaluationCounts = useMemo(() => {
+    return {
+      forApproval:
+        dashboardData?.result?.approval?.biannual_performance_approval || 0,
+      awaitingResubmission: 0,
+      rejected: 0,
+      approved: 0,
+      cancelled: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -608,81 +477,86 @@ const BiAnnualPerformance = () => {
     ]
   );
 
-  const tabsData = [
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <BiAnnualPerformanceForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: evaluationCounts.forApproval,
-    },
-    {
-      label: "AWAITING RESUBMISSION",
-      component: (
-        <BiAnnualPerformanceAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: evaluationCounts.awaitingResubmission,
-    },
-    {
-      label: "REJECTED",
-      component: (
-        <BiAnnualPerformanceRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: evaluationCounts.rejected,
-    },
-    {
-      label: "APPROVED",
-      component: (
-        <BiAnnualPerformanceApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.approved,
-    },
-    {
-      label: "CANCELLED",
-      component: (
-        <BiAnnualPerformanceCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.cancelled,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <BiAnnualPerformanceForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: evaluationCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <BiAnnualPerformanceAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: evaluationCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <BiAnnualPerformanceRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: evaluationCounts.rejected,
+      },
+      {
+        label: "APPROVED",
+        component: (
+          <BiAnnualPerformanceApproved
+            key="approved"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.approved,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <BiAnnualPerformanceCancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.cancelled,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      evaluationCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -849,6 +723,7 @@ const BiAnnualPerformance = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <BiAnnualPerformanceModal

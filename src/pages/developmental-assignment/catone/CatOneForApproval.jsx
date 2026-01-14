@@ -19,8 +19,6 @@ import {
 const CatOneForApproval = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
 }) => {
@@ -47,6 +45,25 @@ const CatOneForApproval = ({
     },
   });
 
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_APPROVAL",
+      search: searchQuery || "",
+    };
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
+
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
@@ -57,18 +74,10 @@ const CatOneForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FOR_APPROVAL",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatOneTaskQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catOneDetails,
@@ -94,58 +103,11 @@ const CatOneForApproval = ({
     const result = taskData.result;
 
     if (result.data && Array.isArray(result.data)) {
-      return result.data.filter(
-        (item) =>
-          item.status === "FOR_APPROVAL" ||
-          item.status === "PENDING_VALIDATION" ||
-          item.status === "PENDING_APPROVAL" ||
-          item.status === "PENDING_SUPERIOR_INPUT" ||
-          item.status === "DRAFT"
-      );
-    }
-
-    if (
-      result.status === "FOR_APPROVAL" ||
-      result.status === "PENDING_VALIDATION" ||
-      result.status === "PENDING_APPROVAL" ||
-      result.status === "PENDING_SUPERIOR_INPUT" ||
-      result.status === "DRAFT"
-    ) {
-      return [result];
+      return result.data;
     }
 
     return [];
   }, [taskData]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -165,9 +127,7 @@ const CatOneForApproval = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         try {
           await cancelCatOneSubmission(submissionId).unwrap();
@@ -192,7 +152,7 @@ const CatOneForApproval = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar, cancelCatOneSubmission, refetch]
+    [submissionsData, enqueueSnackbar, cancelCatOneSubmission, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -328,6 +288,8 @@ const CatOneForApproval = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -339,7 +301,7 @@ const CatOneForApproval = ({
           backgroundColor: "white",
         }}>
         <CatOneTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -356,7 +318,7 @@ const CatOneForApproval = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

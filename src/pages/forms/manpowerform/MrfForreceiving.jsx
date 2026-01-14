@@ -17,12 +17,7 @@ import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/For
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MrfForReceiving = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const MrfForReceiving = ({ searchQuery, dateFilters }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -62,7 +57,7 @@ const MrfForReceiving = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -70,7 +65,17 @@ const MrfForReceiving = ({
       approval_status: "FOR RECEIVING",
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -102,36 +107,10 @@ const MrfForReceiving = ({
   const [cancelMrfSubmission] = useCancelMrfSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -402,7 +381,7 @@ const MrfForReceiving = ({
           backgroundColor: "white",
         }}>
         <MrfTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -417,7 +396,7 @@ const MrfForReceiving = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

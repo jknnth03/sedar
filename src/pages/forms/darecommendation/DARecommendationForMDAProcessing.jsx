@@ -19,8 +19,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const DARecommendationForMDAProcessing = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onCancel,
 }) => {
   const theme = useTheme();
@@ -53,7 +51,7 @@ const DARecommendationForMDAProcessing = ({
   const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -61,7 +59,16 @@ const DARecommendationForMDAProcessing = ({
       pagination: 1,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

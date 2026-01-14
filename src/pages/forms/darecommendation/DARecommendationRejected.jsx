@@ -17,13 +17,7 @@ import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DARecommendationRejected = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -55,7 +49,7 @@ const DARecommendationRejected = ({
   const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -63,7 +57,16 @@ const DARecommendationRejected = ({
       pagination: 1,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

@@ -14,13 +14,7 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 
-const DataChangeMDAInProgress = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const DataChangeMDAInProgress = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -44,7 +38,7 @@ const DataChangeMDAInProgress = ({
     useResubmitDataChangeSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       pagination: 1,
       page: page,
       per_page: rowsPerPage,
@@ -52,7 +46,17 @@ const DataChangeMDAInProgress = ({
       approval_status: "MDA IN PROGRESS",
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -79,9 +83,10 @@ const DataChangeMDAInProgress = ({
   });
 
   const submissionsList = useMemo(() => {
-    const data = submissionsData?.result?.data || [];
-    return data;
+    return submissionsData?.result?.data || [];
   }, [submissionsData]);
+
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
@@ -216,8 +221,6 @@ const DataChangeMDAInProgress = ({
   );
 
   const isLoadingState = queryLoading || isFetching;
-
-  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>

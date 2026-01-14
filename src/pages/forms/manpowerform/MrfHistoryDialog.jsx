@@ -245,14 +245,6 @@ const MrfHistoryDialog = ({
                 </Typography>
               )}
 
-              {activity?.context && (
-                <Typography
-                  variant="body2"
-                  sx={{ color: "#888", fontSize: "12px", mb: 1 }}>
-                  Step {activity.context.step}, Round {activity.context.round}
-                </Typography>
-              )}
-
               <Typography
                 variant="body2"
                 sx={{ color: "#999", fontSize: "13px" }}>

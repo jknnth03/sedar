@@ -17,26 +17,16 @@ import { useCancelFormSubmissionMutation } from "../../../features/api/approvals
 const CatTwoForAssessment = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
-  data,
-  isLoading: externalIsLoading,
-  page: externalPage,
-  rowsPerPage: externalRowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
   onConfirmationRequest,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(
-    externalPage || parseInt(currentParams?.page) || 1
-  );
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -59,24 +49,30 @@ const CatTwoForAssessment = ({
     },
   });
 
-  useEffect(() => {
-    if (externalPage !== undefined) {
-      setPage(externalPage);
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_ASSESSMENT",
+      search: searchQuery || "",
+    };
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
     }
-  }, [externalPage]);
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    if (externalRowsPerPage !== undefined) {
-      setRowsPerPage(externalRowsPerPage);
-    }
-  }, [externalRowsPerPage]);
-
-  useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
-    if (onPageChange) {
-      onPageChange(newPage);
-    }
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -85,18 +81,10 @@ const CatTwoForAssessment = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatTwoTasksQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FOR_ASSESSMENT",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatTwoTasksQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catTwoDetails,
@@ -117,55 +105,16 @@ const CatTwoForAssessment = ({
   const [cancelCatTwoSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return [];
+    if (!taskData?.result) return [];
 
-    const result = dataSource.result;
+    const result = taskData.result;
 
     if (result.data && Array.isArray(result.data)) {
-      return result.data.filter((item) => item.status === "FOR_ASSESSMENT");
-    }
-
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "FOR_ASSESSMENT");
-    }
-
-    if (result.status === "FOR_ASSESSMENT") {
-      return [result];
+      return result.data;
     }
 
     return [];
-  }, [data, taskData]);
-
-  const totalCount = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return 0;
-    return dataSource.result.total || submissionsData.length;
-  }, [data, taskData, submissionsData.length]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  }, [taskData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -185,9 +134,7 @@ const CatTwoForAssessment = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         const itemName =
           submission?.developmental_assignment?.reference_number ||
@@ -207,7 +154,7 @@ const CatTwoForAssessment = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar, onConfirmationRequest, refetch]
+    [submissionsData, enqueueSnackbar, onConfirmationRequest, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -270,7 +217,7 @@ const CatTwoForAssessment = ({
     async (submissionData, mode, submissionId) => {
       const submission =
         submissionDetails?.result ||
-        filteredSubmissions.find((sub) => sub.id === submissionId);
+        submissionsData.find((sub) => sub.id === submissionId);
 
       const itemName =
         submission?.developmental_assignment?.reference_number ||
@@ -333,7 +280,7 @@ const CatTwoForAssessment = ({
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
-      filteredSubmissions,
+      submissionsData,
       submitCatTwo,
       onConfirmationRequest,
       selectedSubmissionId,
@@ -359,9 +306,6 @@ const CatTwoForAssessment = ({
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
-      if (onPageChange) {
-        onPageChange(targetPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -373,7 +317,7 @@ const CatTwoForAssessment = ({
         );
       }
     },
-    [onPageChange, setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -382,12 +326,6 @@ const CatTwoForAssessment = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
-      if (onRowsPerPageChange) {
-        onRowsPerPageChange(newRowsPerPage);
-      }
-      if (onPageChange) {
-        onPageChange(newPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -399,17 +337,16 @@ const CatTwoForAssessment = ({
         );
       }
     },
-    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
 
-  const isLoadingState =
-    externalIsLoading !== undefined
-      ? externalIsLoading
-      : queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching || isLoading;
+
+  const totalCount = taskData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
@@ -422,7 +359,7 @@ const CatTwoForAssessment = ({
           backgroundColor: "white",
         }}>
         <CatTwoTable
-          submissionsList={filteredSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}

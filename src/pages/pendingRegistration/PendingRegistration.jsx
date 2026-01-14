@@ -36,7 +36,6 @@ import PendingRegistrationForapproval from "./PendingRegistrationForapproval";
 import PendingRegistrationAwaitingresubmission from "./PendingRegistrationAwaitingresubmission";
 import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
-import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/employeeWizardForm.jsx";
 import {
   DateFilterDialog,
@@ -329,9 +328,6 @@ const PendingRegistration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -447,16 +443,10 @@ const PendingRegistration = () => {
     setApiError(null);
   }, []);
 
-  const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEmployee(null);
-    setModalMode("view");
-    methods.reset();
-    setPendingEmployeeData(null);
-  }, [methods]);
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
+  const handleCloseCreateModal = useCallback(() => {
+    setCreateModalOpen(false);
+    setCreateModalMode("create");
+    setEditData(null);
   }, []);
 
   const handleRowClick = useCallback(
@@ -470,17 +460,17 @@ const PendingRegistration = () => {
         }
 
         const result = await getSingleEmployee(submittableId).unwrap();
-        setSelectedEmployee(result?.result || employee);
-        setModalMode("view");
-        setModalOpen(true);
+        setCreateModalMode("view");
+        setEditData(result?.result || employee);
+        setCreateModalOpen(true);
       } catch (error) {
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 3000,
         });
-        setSelectedEmployee(employee);
-        setModalMode("view");
-        setModalOpen(true);
+        setCreateModalMode("view");
+        setEditData(employee);
+        setCreateModalOpen(true);
       } finally {
         setModalLoading(false);
       }
@@ -505,7 +495,7 @@ const PendingRegistration = () => {
         autoHideDuration: 2000,
       });
 
-      handleCloseModal();
+      handleCloseCreateModal();
     } catch (error) {
       let errorMessage =
         "Failed to process employee registration. Please try again.";
@@ -524,7 +514,7 @@ const PendingRegistration = () => {
       setModalLoading(false);
       setPendingEmployeeData(null);
     }
-  }, [pendingEmployeeData, enqueueSnackbar, handleCloseModal]);
+  }, [pendingEmployeeData, enqueueSnackbar, handleCloseCreateModal]);
 
   const handleApiError = useCallback(
     (error) => {
@@ -536,7 +526,7 @@ const PendingRegistration = () => {
           autoHideDuration: 5000,
         });
       } else if (error?.status >= 500) {
-        enqueueSnackbar("Server error. Please try again later.", {
+        enqueueSnackbar("Server try again later.", {
           variant: "error",
           autoHideDuration: 5000,
         });
@@ -554,12 +544,6 @@ const PendingRegistration = () => {
     setCreateModalMode(mode);
     setEditData(data);
     setCreateModalOpen(true);
-  }, []);
-
-  const handleCloseCreateModal = useCallback(() => {
-    setCreateModalOpen(false);
-    setCreateModalMode("create");
-    setEditData(null);
   }, []);
 
   const handleCreateSubmit = useCallback(
@@ -878,16 +862,6 @@ const PendingRegistration = () => {
             confirmAction={confirmAction}
             selectedEmployeeForAction={selectedEmployeeForAction}
             modalLoading={modalLoading}
-          />
-
-          <PendingRegistrationModal
-            open={modalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEmployee={selectedEmployee}
-            isLoading={modalLoading}
-            mode={modalMode}
-            onModeChange={handleModeChange}
           />
 
           <EmployeeWizardForm

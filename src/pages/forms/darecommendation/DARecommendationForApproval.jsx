@@ -18,8 +18,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const DARecommendationForApproval = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onCancel,
 }) => {
   const theme = useTheme();
@@ -50,7 +48,7 @@ const DARecommendationForApproval = ({
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -58,7 +56,16 @@ const DARecommendationForApproval = ({
       pagination: 1,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -80,37 +87,10 @@ const DARecommendationForApproval = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleDaSubmissionQuery();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
-
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -144,21 +124,17 @@ const DARecommendationForApproval = ({
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [filteredSubmissions]
+    [submissionsList]
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -170,7 +146,7 @@ const DARecommendationForApproval = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissionsList, enqueueSnackbar]
   );
 
   const handleActionConfirm = async () => {
@@ -277,6 +253,8 @@ const DARecommendationForApproval = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   const normalizedSubmissionDetails = useMemo(() => {
     if (!submissionDetails) return null;
 
@@ -298,7 +276,7 @@ const DARecommendationForApproval = ({
           backgroundColor: "white",
         }}>
         <DARecommendationTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -311,7 +289,7 @@ const DARecommendationForApproval = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

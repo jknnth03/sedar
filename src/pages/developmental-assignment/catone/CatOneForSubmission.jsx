@@ -17,8 +17,6 @@ import { useCancelFormSubmissionMutation } from "../../../features/api/approvals
 const CatOneForSubmission = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
 }) => {
@@ -45,6 +43,25 @@ const CatOneForSubmission = ({
     },
   });
 
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_SUBMISSION",
+      search: searchQuery || "",
+    };
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
+
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
@@ -55,18 +72,10 @@ const CatOneForSubmission = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FOR_SUBMISSION",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatOneTaskQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catOneDetails,
@@ -92,61 +101,11 @@ const CatOneForSubmission = ({
     const result = taskData.result;
 
     if (result.data && Array.isArray(result.data)) {
-      return result.data.filter(
-        (item) =>
-          item.status === "FOR_SUBMISSION" ||
-          item.status === "AWAITING_RESUBMISSION"
-      );
-    }
-
-    if (Array.isArray(result)) {
-      return result.filter(
-        (item) =>
-          item.status === "FOR_SUBMISSION" ||
-          item.status === "AWAITING_RESUBMISSION"
-      );
-    }
-
-    if (
-      result.status === "FOR_SUBMISSION" ||
-      result.status === "AWAITING_RESUBMISSION"
-    ) {
-      return [result];
+      return result.data;
     }
 
     return [];
   }, [taskData]);
-
-  const totalCount = useMemo(() => {
-    if (taskData?.result?.total) {
-      return taskData.result.total;
-    }
-    return submissionsData.length;
-  }, [taskData, submissionsData.length]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -166,9 +125,7 @@ const CatOneForSubmission = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         try {
           await cancelCatOneSubmission(submissionId).unwrap();
@@ -193,7 +150,7 @@ const CatOneForSubmission = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar, cancelCatOneSubmission, refetch]
+    [submissionsData, enqueueSnackbar, cancelCatOneSubmission, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -329,6 +286,8 @@ const CatOneForSubmission = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -340,7 +299,7 @@ const CatOneForSubmission = ({
           backgroundColor: "white",
         }}>
         <CatOneTable
-          submissionsList={filteredSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}

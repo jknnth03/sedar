@@ -16,8 +16,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const MDAEvaluationAwaitingResubmission = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onCancel,
 }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -63,7 +61,7 @@ const MDAEvaluationAwaitingResubmission = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -72,7 +70,16 @@ const MDAEvaluationAwaitingResubmission = ({
       search: searchQuery || "",
       type: "probationary-evaluation",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -93,34 +100,20 @@ const MDAEvaluationAwaitingResubmission = ({
   }, [apiQueryParams, triggerGetSubmissions]);
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    return filteredSubmissions;
-  }, [filteredSubmissions]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -271,8 +264,7 @@ const MDAEvaluationAwaitingResubmission = ({
 
   const isLoadingState = queryLoading || isFetching;
 
-  const totalCount =
-    submissionsData?.result?.total || filteredSubmissions.length;
+  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <>
@@ -285,7 +277,7 @@ const MDAEvaluationAwaitingResubmission = ({
           backgroundColor: "white",
         }}>
         <MDAEvaluationRecommendationTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}

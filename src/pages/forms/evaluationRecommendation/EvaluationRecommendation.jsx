@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
@@ -7,17 +7,12 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -30,7 +25,7 @@ import {
   StyledTab,
 } from "../manpowerform/FormSubmissionStyles";
 
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
@@ -41,6 +36,7 @@ import EvaluationRecommendationRejected from "./EvaluationRecommendationRejected
 import EvaluationRecommendationForMDAProcessing from "./EvaluationRecommendationForMDAProcessing";
 import EvaluationRecommendationMDAInProgress from "./EvaluationRecommendationMDAInProgress";
 import EvaluationRecommendationCompleted from "./EvaluationRecommendationCompleted";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -60,148 +56,6 @@ const TabPanel = ({ children, value, index, ...other }) => {
       {...other}>
       {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number.toLowerCase().includes(query) ||
-      item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -439,16 +293,29 @@ const EvaluationRecommendation = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const evaluationCounts = {
-    forRecommendation:
-      dashboardData?.result?.approval?.evaluation_recommendation || 0,
-    forApproval: 0,
-    awaitingResubmission: 0,
-    rejected: 0,
-    forMDAProcessing: 0,
-    mdaInProgress: 0,
-    completed: 0,
-  };
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
+  const evaluationCounts = useMemo(() => {
+    return {
+      forRecommendation:
+        dashboardData?.result?.approval?.evaluation_recommendation || 0,
+      forApproval: 0,
+      awaitingResubmission: 0,
+      rejected: 0,
+      forMDAProcessing: 0,
+      mdaInProgress: 0,
+      completed: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -461,7 +328,7 @@ const EvaluationRecommendation = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -475,7 +342,7 @@ const EvaluationRecommendation = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -486,106 +353,108 @@ const EvaluationRecommendation = () => {
     setDateFilters(newDateFilters);
   }, []);
 
-  const tabsData = [
-    {
-      label: "FOR RECOMMENDATION",
-      component: (
-        <EvaluationForRecommendation
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.forRecommendation,
-    },
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <EvaluationRecommendationForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.forApproval,
-    },
-    {
-      label: "AWAITING RESUBMISSION",
-      component: (
-        <EvaluationRecommendationAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.awaitingResubmission,
-    },
-    {
-      label: "REJECTED",
-      component: (
-        <EvaluationRecommendationRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.rejected,
-    },
-    {
-      label: "FOR MDA PROCESSING",
-      component: (
-        <EvaluationRecommendationForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.forMDAProcessing,
-    },
-    {
-      label: "MDA IN PROGRESS",
-      component: (
-        <EvaluationRecommendationMDAInProgress
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.mdaInProgress,
-    },
-    {
-      label: "COMPLETED",
-      component: (
-        <EvaluationRecommendationCompleted
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: evaluationCounts.completed,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR RECOMMENDATION",
+        component: (
+          <EvaluationForRecommendation
+            key="for-recommendation"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.forRecommendation,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <EvaluationRecommendationForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <EvaluationRecommendationAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <EvaluationRecommendationRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.rejected,
+      },
+      {
+        label: "FOR MDA PROCESSING",
+        component: (
+          <EvaluationRecommendationForMDAProcessing
+            key="for-mda-processing"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.forMDAProcessing,
+      },
+      {
+        label: "MDA IN PROGRESS",
+        component: (
+          <EvaluationRecommendationMDAInProgress
+            key="mda-in-progress"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.mdaInProgress,
+      },
+      {
+        label: "COMPLETED",
+        component: (
+          <EvaluationRecommendationCompleted
+            key="completed"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: evaluationCounts.completed,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      evaluationCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -708,6 +577,7 @@ const EvaluationRecommendation = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
         </Box>
       </FormProvider>

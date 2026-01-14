@@ -13,12 +13,7 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDACancelled = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const MDACancelled = ({ searchQuery, dateFilters }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -32,6 +27,7 @@ const MDACancelled = ({
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
 
   const methods = useForm({
@@ -41,15 +37,24 @@ const MDACancelled = ({
   const [updateMdaSubmission] = useUpdateMdaMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
       approval_status: "CANCELLED",
-      pagination: 1,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -76,42 +81,25 @@ const MDACancelled = ({
   });
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData.filter(
-      (submission) => submission.status === "CANCELLED"
-    );
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
+    setSelectedRowForMenu(null);
     setModalMode("view");
     setModalOpen(true);
   }, []);
@@ -135,7 +123,7 @@ const MDACancelled = ({
         console.log("Saving MDA submission:", formData, mode);
 
         if (mode === "edit" && selectedSubmissionId) {
-          await updateMdaSubmission({
+          const response = await updateMdaSubmission({
             id: selectedSubmissionId,
             data: formData,
           }).unwrap();
@@ -176,10 +164,12 @@ const MDACancelled = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
+    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
+    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -222,47 +212,58 @@ const MDACancelled = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
         sx={{
-          flex: 1,
-          overflow: "hidden",
+          width: "100%",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "white",
+          overflow: "hidden",
+          backgroundColor: "#fafafa",
         }}>
-        <MDAForApprovalTable
-          submissionsList={paginatedSubmissions}
-          isLoadingState={isLoadingState}
-          error={error}
-          handleRowClick={handleRowClick}
-          handleMenuOpen={handleMenuOpen}
-          handleMenuClose={handleMenuClose}
-          menuAnchor={menuAnchor}
-          searchQuery={searchQuery}
-          statusFilter="CANCELLED"
-          forApproval={false}
-        />
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "white",
+          }}>
+          <MDAForApprovalTable
+            submissionsList={filteredSubmissions}
+            isLoadingState={isLoadingState}
+            error={error}
+            handleRowClick={handleRowClick}
+            handleMenuOpen={handleMenuOpen}
+            handleMenuClose={handleMenuClose}
+            menuAnchor={menuAnchor}
+            searchQuery={searchQuery}
+            statusFilter="CANCELLED"
+          />
 
-        <CustomTablePagination
-          count={filteredSubmissions.length}
-          page={Math.max(0, page - 1)}
-          rowsPerPage={rowsPerPage}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
+        </Box>
+
+        <MDAFormModal
+          open={modalOpen}
+          onClose={handleModalClose}
+          onSave={handleSave}
+          selectedEntry={selectedEntry}
+          isLoading={detailsLoading}
+          mode={modalMode}
+          submissionId={selectedSubmissionId}
         />
       </Box>
-
-      <MDAFormModal
-        open={modalOpen}
-        onClose={handleModalClose}
-        onSave={handleSave}
-        selectedEntry={selectedEntry}
-        isLoading={detailsLoading}
-        mode={modalMode}
-        submissionId={selectedSubmissionId}
-      />
     </FormProvider>
   );
 };

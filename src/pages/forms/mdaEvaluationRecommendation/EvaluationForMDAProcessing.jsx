@@ -23,13 +23,7 @@ import ForEvaluationProcessingModal from "../../../components/modal/form/MDAEval
 import MDAEvaluationRecommendationModal from "../../../components/modal/form/MDAEvaluationRecommendationModal/MDAEvaluationRecommendationModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const EvaluationForMDAProcessing = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const EvaluationForMDAProcessing = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -88,7 +82,7 @@ const EvaluationForMDAProcessing = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -97,7 +91,16 @@ const EvaluationForMDAProcessing = ({
       search: searchQuery || "",
       view_mode: "hr",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -125,36 +128,20 @@ const EvaluationForMDAProcessing = ({
     useUpdateMdaEvaluationMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -355,6 +342,8 @@ const EvaluationForMDAProcessing = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <>
       <Box
@@ -366,7 +355,7 @@ const EvaluationForMDAProcessing = ({
           backgroundColor: "white",
         }}>
         <EvaluationForMDAProcessingTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -384,7 +373,7 @@ const EvaluationForMDAProcessing = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

@@ -19,8 +19,6 @@ import {
 const CatOneReturned = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
 }) => {
@@ -47,6 +45,28 @@ const CatOneReturned = ({
     },
   });
 
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "RETURNED",
+      search: searchQuery || "",
+    };
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
+
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
@@ -57,18 +77,10 @@ const CatOneReturned = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "RETURNED",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatOneTaskQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catOneDetails,
@@ -94,59 +106,11 @@ const CatOneReturned = ({
     const result = taskData.result;
 
     if (result.data && Array.isArray(result.data)) {
-      return result.data.filter((item) => item.status === "RETURNED");
-    }
-
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "RETURNED");
-    }
-
-    if (result.status === "RETURNED") {
-      return [result];
+      return result.data;
     }
 
     return [];
   }, [taskData]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const totalCount = useMemo(() => {
-    if (!taskData?.result) return 0;
-
-    const result = taskData.result;
-
-    if (result.total !== undefined) {
-      return result.total;
-    }
-
-    return filteredSubmissions.length;
-  }, [taskData, filteredSubmissions]);
-
-  const paginatedSubmissions = useMemo(() => {
-    return filteredSubmissions;
-  }, [filteredSubmissions]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -166,9 +130,7 @@ const CatOneReturned = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         try {
           await cancelCatOneSubmission(submissionId).unwrap();
@@ -193,7 +155,7 @@ const CatOneReturned = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar, cancelCatOneSubmission, refetch]
+    [submissionsData, enqueueSnackbar, cancelCatOneSubmission, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -329,6 +291,8 @@ const CatOneReturned = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -340,7 +304,7 @@ const CatOneReturned = ({
           backgroundColor: "white",
         }}>
         <CatOneTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}

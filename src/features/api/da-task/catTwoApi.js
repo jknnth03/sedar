@@ -7,20 +7,10 @@ const catTwoApi = sedarApi
   .injectEndpoints({
     endpoints: (build) => ({
       getCatTwoTasks: build.query({
-        query: ({
-          pagination = 1,
-          page = 1,
-          per_page = 10,
-          status = "active",
-        } = {}) => ({
+        query: (params) => ({
           url: "da-tasks/cat2",
           method: "GET",
-          params: {
-            pagination,
-            page,
-            per_page,
-            status,
-          },
+          params: params,
         }),
         providesTags: ["catTwo"],
       }),

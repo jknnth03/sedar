@@ -15,95 +15,32 @@ const MenuItem = ({
   notificationCount = 0,
   showDotOnly = false,
 }) => {
-  if (sidebarOpen) {
-    return (
-      <Box
-        className={`liststyle ${className} ${active ? "active" : ""}`}
-        onClick={onClick}
-        style={{
-          cursor: "pointer",
-          paddingLeft: isChild ? "32px" : "16px",
-          paddingRight: "16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          width: "100%",
-        }}>
-        <Box
-          className={`icon ${active ? "active-icon" : ""}`}
-          style={{ flexShrink: 0, marginRight: "8px" }}>
-          {icon || <span className="sidebar__placeholder-icon">📄</span>}
-        </Box>
-        <Typography
-          className="text"
-          sx={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            flex: 1,
-            minWidth: 0,
-            marginRight: "8px",
-          }}>
-          {name}
-        </Typography>
-        {notificationCount > 0 && (
-          <Box sx={{ flexShrink: 0 }}>
-            {showDotOnly ? (
-              <Box
-                sx={{
-                  backgroundColor: "#ff5252",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
-              <Box
-                sx={{
-                  backgroundColor: "#ff5252",
-                  color: "white",
-                  fontSize: isChild ? "0.6rem" : "0.65rem",
-                  height: isChild ? "16px" : "18px",
-                  minWidth: isChild ? "16px" : "18px",
-                  borderRadius: isChild ? "8px" : "9px",
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0 4px",
-                }}>
-                {notificationCount > 99 ? "99+" : notificationCount}
-              </Box>
-            )}
-          </Box>
-        )}
-      </Box>
-    );
-  }
-
   return (
     <Box
       className={`liststyle ${className} ${active ? "active" : ""}`}
       onClick={onClick}
-      style={{
+      sx={{
         cursor: "pointer",
-        paddingLeft: 0,
-        paddingRight: 0,
-        position: "relative",
+        paddingLeft: isChild ? "32px" : "0px",
+        paddingRight: "0px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: sidebarOpen ? "flex-start" : "center",
+        width: "100%",
       }}>
       <Box
-        className={`icon ${active ? "active-icon" : ""}`}
+        className="icon-container"
         sx={{
-          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          flexShrink: 0,
+          position: "relative",
         }}>
-        {icon || <span className="sidebar__placeholder-icon">📄</span>}
-        {notificationCount > 0 && (
+        <Box className={`icon ${active ? "active-icon" : ""}`}>
+          {icon || <span className="sidebar__placeholder-icon">📄</span>}
+        </Box>
+        {!sidebarOpen && notificationCount > 0 && (
           <Box
             sx={{
               position: "absolute",
@@ -117,6 +54,63 @@ const MenuItem = ({
           />
         )}
       </Box>
+
+      {sidebarOpen && (
+        <Box
+          className="label-container"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flex: 1,
+            minWidth: 0,
+            overflow: "hidden",
+            paddingRight: "16px",
+          }}>
+          <Typography
+            className="text"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              minWidth: 0,
+              marginRight: "4px",
+            }}>
+            {name}
+          </Typography>
+          {notificationCount > 0 && (
+            <Box sx={{ flexShrink: 0, marginLeft: "auto", marginRight: "4px" }}>
+              {showDotOnly ? (
+                <Box
+                  sx={{
+                    backgroundColor: "#ff5252",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    backgroundColor: "#ff5252",
+                    color: "white",
+                    fontSize: isChild ? "0.6rem" : "0.65rem",
+                    height: isChild ? "16px" : "18px",
+                    minWidth: isChild ? "16px" : "18px",
+                    borderRadius: isChild ? "8px" : "9px",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "0 4px",
+                  }}>
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

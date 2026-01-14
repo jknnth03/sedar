@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
@@ -43,6 +43,7 @@ import MDADAApproved from "./MDADAApproved";
 import MDADACancelled from "./MDADACancelled";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -64,149 +65,6 @@ const TabPanel = ({ children, value, index, ...other }) => {
   );
 };
 
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number.toLowerCase().includes(query) ||
-      item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query) ||
-      item.action_type.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
 const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
@@ -215,20 +73,17 @@ const CustomSearchBar = ({
   isLoading = false,
 }) => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
+  const hasActiveFilters = dateFilters.start_date || dateFilters.end_date;
 
   const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
+    if (dateFilters.start_date && dateFilters.end_date) {
+      return `${dateFilters.start_date} - ${dateFilters.end_date}`;
     }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+    if (dateFilters.start_date) {
+      return `From ${dateFilters.start_date}`;
     }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+    if (dateFilters.end_date) {
+      return `Until ${dateFilters.end_date}`;
     }
     return "FILTER";
   };
@@ -440,6 +295,17 @@ const MDADA = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
   const mdaDaCounts = {
     forMDAProcessing: 0,
     forApproval: 0,
@@ -460,7 +326,7 @@ const MDADA = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap]
   );
 
   const handleSearchChange = useCallback(
@@ -474,7 +340,7 @@ const MDADA = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab, tabMap]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -520,97 +386,101 @@ const MDADA = () => {
     [cancelMDADASubmission, enqueueSnackbar]
   );
 
-  const tabsData = [
-    {
-      label: "FOR MDA PROCESSING",
-      component: (
-        <MDADAForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.forMDAProcessing,
-    },
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <MDADAForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.forApproval,
-    },
-    {
-      label: "AWAITING RESUBMISSION",
-      component: (
-        <MDADAAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.awaitingResubmission,
-    },
-    {
-      label: "REJECTED",
-      component: (
-        <MDARejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.rejected,
-    },
-    {
-      label: "APPROVED",
-      component: (
-        <MDADAApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.approved,
-    },
-    {
-      label: "CANCELLED",
-      component: (
-        <MDADACancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: mdaDaCounts.cancelled,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR MDA PROCESSING",
+        component: (
+          <MDADAForMDAProcessing
+            key="for-mda-processing"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.forMDAProcessing,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <MDADAForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <MDADAAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <MDARejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.rejected,
+      },
+      {
+        label: "APPROVED",
+        component: (
+          <MDADAApproved
+            key="approved"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.approved,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <MDADACancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: mdaDaCounts.cancelled,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      mdaDaCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -651,7 +521,7 @@ const MDADA = () => {
             <CustomSearchBar
               searchQuery={searchQuery}
               setSearchQuery={handleSearchChange}
-              dateFilters={dateFilters}
+              dateFilters={apiDateFilters}
               onFilterClick={handleFilterClick}
               isLoading={isLoadingState}
             />
@@ -716,6 +586,7 @@ const MDADA = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
         </Box>
       </FormProvider>

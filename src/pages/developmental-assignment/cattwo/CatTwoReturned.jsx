@@ -18,8 +18,6 @@ import { useCancelFormSubmissionMutation } from "../../../features/api/approvals
 const CatTwoReturned = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onConfirmationRequest,
 }) => {
   const theme = useTheme();
@@ -53,13 +51,26 @@ const CatTwoReturned = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      pagination: 1,
       status: "RETURNED",
+      search: searchQuery || "",
     };
-  }, [page, rowsPerPage]);
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -94,37 +105,17 @@ const CatTwoReturned = ({
   const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
   const [cancelCatTwoSubmission] = useCancelFormSubmissionMutation();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = taskData?.result?.data || [];
+  const submissionsData = useMemo(() => {
+    if (!taskData?.result) return [];
 
-    let filtered = rawData;
+    const result = taskData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    taskData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [taskData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -144,9 +135,7 @@ const CatTwoReturned = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         const itemName =
           submission?.developmental_assignment?.reference_number ||
@@ -166,7 +155,7 @@ const CatTwoReturned = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar, onConfirmationRequest, refetch]
+    [submissionsData, enqueueSnackbar, onConfirmationRequest, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -187,7 +176,7 @@ const CatTwoReturned = ({
     async (submissionData, submissionId) => {
       const submission =
         submissionDetails?.result ||
-        filteredSubmissions.find((sub) => sub.id === submissionId);
+        submissionsData.find((sub) => sub.id === submissionId);
 
       const itemName =
         submission?.developmental_assignment?.reference_number ||
@@ -211,7 +200,7 @@ const CatTwoReturned = ({
     },
     [
       submissionDetails,
-      filteredSubmissions,
+      submissionsData,
       onConfirmationRequest,
       refetch,
       selectedSubmissionId,
@@ -225,7 +214,7 @@ const CatTwoReturned = ({
     async (submissionData, mode, submissionId) => {
       const submission =
         submissionDetails?.result ||
-        filteredSubmissions.find((sub) => sub.id === submissionId);
+        submissionsData.find((sub) => sub.id === submissionId);
 
       const itemName =
         submission?.developmental_assignment?.reference_number ||
@@ -288,7 +277,7 @@ const CatTwoReturned = ({
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
-      filteredSubmissions,
+      submissionsData,
       submitCatTwo,
       onConfirmationRequest,
       selectedSubmissionId,
@@ -354,6 +343,8 @@ const CatTwoReturned = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -365,7 +356,7 @@ const CatTwoReturned = ({
           backgroundColor: "white",
         }}>
         <CatTwoTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -382,7 +373,7 @@ const CatTwoReturned = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

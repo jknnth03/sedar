@@ -1,23 +1,17 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Box,
   Badge,
   Typography,
-  Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -30,11 +24,10 @@ import {
   StyledTab,
 } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
-  useGetPdpListQuery,
   useSavePdpAsDraftMutation,
   useSubmitPdpMutation,
 } from "../../../features/api/da-task/pdpApi";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 
 import PdpForAssessment from "./PdpForAssessment";
 import PdpForSubmission from "./PdpForSubmission";
@@ -45,6 +38,7 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import PdpModal from "../../../components/modal/da-task/PdpModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -66,149 +60,6 @@ const TabPanel = ({ children, value, index, ...other }) => {
   );
 };
 
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number?.toLowerCase().includes(query) ||
-      item.employee_name?.toLowerCase().includes(query) ||
-      item.employee_code?.toLowerCase().includes(query) ||
-      item.status?.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  React.useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
 const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
@@ -217,20 +68,17 @@ const CustomSearchBar = ({
   isLoading = false,
 }) => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
+  const hasActiveFilters = dateFilters.start_date || dateFilters.end_date;
 
   const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
+    if (dateFilters.start_date && dateFilters.end_date) {
+      return `${dateFilters.start_date} - ${dateFilters.end_date}`;
     }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+    if (dateFilters.start_date) {
+      return `From ${dateFilters.start_date}`;
     }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+    if (dateFilters.end_date) {
+      return `Until ${dateFilters.end_date}`;
     }
     return "FILTER";
   };
@@ -439,11 +287,25 @@ const Pdp = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [pendingFormData, setPendingFormData] = useState(null);
+  const [confirmItemName, setConfirmItemName] = useState("");
 
   const [savePdpAsDraft] = useSavePdpAsDraftMutation();
   const [submitPdp] = useSubmitPdpMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const apiDateFilters = useMemo(() => {
+    const filters = {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+
+    return filters;
+  }, [dateFilters]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -456,7 +318,7 @@ const Pdp = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap]
   );
 
   const handleSearchChange = useCallback(
@@ -470,7 +332,7 @@ const Pdp = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab, tabMap]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -508,6 +370,16 @@ const Pdp = () => {
     return false;
   }, []);
 
+  const handleConfirmationRequest = useCallback(
+    (action, itemName, formData) => {
+      setConfirmAction(action);
+      setConfirmItemName(itemName);
+      setPendingFormData(formData);
+      setConfirmOpen(true);
+    },
+    []
+  );
+
   const handleActionConfirm = async () => {
     if (!confirmAction || !pendingFormData) return;
 
@@ -515,8 +387,8 @@ const Pdp = () => {
 
     try {
       const payload = {
-        id: selectedEntry?.id,
-        data: pendingFormData,
+        id: pendingFormData.taskId || selectedEntry?.id,
+        data: pendingFormData.data || pendingFormData,
       };
 
       if (confirmAction === "draft") {
@@ -531,17 +403,46 @@ const Pdp = () => {
           variant: "success",
           autoHideDuration: 2000,
         });
+      } else if (confirmAction === "submit") {
+        await submitPdp(payload).unwrap();
+        enqueueSnackbar("PDP submitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "approve") {
+        await submitPdp(payload).unwrap();
+        enqueueSnackbar("PDP approved successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "reject") {
+        await submitPdp(payload).unwrap();
+        enqueueSnackbar("PDP rejected successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "resubmit") {
+        await submitPdp(payload).unwrap();
+        enqueueSnackbar("PDP resubmitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "cancel") {
+        enqueueSnackbar("PDP cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
       }
 
       handleRefreshDetails();
       setModalOpen(false);
       setSelectedEntry(null);
+
+      if (pendingFormData.onSuccess) {
+        pendingFormData.onSuccess();
+      }
     } catch (error) {
-      console.error("Save error:", error);
-      let errorMessage =
-        confirmAction === "draft"
-          ? "Failed to save draft. Please try again."
-          : "Failed to update PDP. Please try again.";
+      let errorMessage = `Failed to ${confirmAction}. Please try again.`;
 
       if (error?.data?.message) {
         errorMessage = error.data.message;
@@ -557,6 +458,7 @@ const Pdp = () => {
       setConfirmOpen(false);
       setPendingFormData(null);
       setConfirmAction(null);
+      setConfirmItemName("");
       setIsLoading(false);
     }
   };
@@ -565,6 +467,7 @@ const Pdp = () => {
     setConfirmOpen(false);
     setPendingFormData(null);
     setConfirmAction(null);
+    setConfirmItemName("");
   }, []);
 
   const handleApprove = useCallback(
@@ -622,83 +525,89 @@ const Pdp = () => {
   );
 
   const getSubmissionDisplayName = useCallback(() => {
+    if (confirmItemName) return confirmItemName;
     return selectedEntry?.reference_number || "PDP Submission";
-  }, [selectedEntry]);
+  }, [selectedEntry, confirmItemName]);
 
-  const tabsData = [
-    {
-      label: "FOR ASSESSMENT",
-      component: (
-        <PdpForAssessment
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: 0,
-    },
-    {
-      label: "FOR SUBMISSION",
-      component: (
-        <PdpForSubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: 0,
-    },
-    {
-      label: "FOR APPROVAL",
-      component: (
-        <PdpForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      ),
-      badgeCount: 0,
-    },
-    {
-      label: "RETURNED",
-      component: (
-        <PdpReturned
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: 0,
-    },
-    {
-      label: "APPROVED",
-      component: (
-        <PdpApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: 0,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR ASSESSMENT",
+        component: (
+          <PdpForAssessment
+            key="for-assessment"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "FOR SUBMISSION",
+        component: (
+          <PdpForSubmission
+            key="for-submission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <PdpForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "RETURNED",
+        component: (
+          <PdpReturned
+            key="returned"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "APPROVED",
+        component: (
+          <PdpApproved
+            key="approved"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      handleCancel,
+      handleRowClick,
+      handleApprove,
+      handleReject,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -739,7 +648,7 @@ const Pdp = () => {
             <CustomSearchBar
               searchQuery={searchQuery}
               setSearchQuery={handleSearchChange}
-              dateFilters={dateFilters}
+              dateFilters={apiDateFilters}
               onFilterClick={handleFilterClick}
               isLoading={isLoadingState}
             />
@@ -794,6 +703,7 @@ const Pdp = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <PdpModal

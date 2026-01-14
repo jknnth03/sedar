@@ -11,7 +11,6 @@ import {
   InputAdornment,
   FormHelperText,
   Button,
-  IconButton,
   Typography,
 } from "@mui/material";
 import {
@@ -21,6 +20,7 @@ import {
 } from "@mui/icons-material";
 import { useFormContext, Controller, useFieldArray } from "react-hook-form";
 import { useSnackbar } from "notistack";
+import { styles } from "./PendingEmploymentTypesStyles";
 
 let idCounter = 0;
 const generateUniqueId = (prefix = "pending_employment") => {
@@ -32,20 +32,14 @@ const generateUniqueId = (prefix = "pending_employment") => {
 
 const formatDateForInput = (dateValue) => {
   if (!dateValue) return "";
-
-  // If it's already in YYYY-MM-DD format, return as is
   if (typeof dateValue === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
     return dateValue;
   }
-
-  // Try to parse the date - FIX: Handle timezone issues
   let date;
   if (typeof dateValue === "string") {
-    // Handle comma-separated dates from getPendingValues
     if (dateValue.includes(",")) {
       date = new Date(dateValue);
     } else if (!dateValue.includes("T") && !dateValue.includes(" ")) {
-      // For date-only strings, create date in local timezone
       const parts = dateValue.split("-");
       if (parts.length === 3) {
         date = new Date(
@@ -62,14 +56,10 @@ const formatDateForInput = (dateValue) => {
   } else {
     date = new Date(dateValue);
   }
-
   if (isNaN(date.getTime())) return "";
-
-  // Use local date methods to avoid timezone conversion
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 };
 
@@ -87,7 +77,6 @@ const PendingEmployeeTypeForm = ({
     setValue,
     getValues,
     clearErrors,
-    setError,
     trigger,
     formState: { errors },
   } = useFormContext();
@@ -105,7 +94,7 @@ const PendingEmployeeTypeForm = ({
   const lastEmployeeId = useRef(null);
   const watchedEmploymentTypes = watch("employment_types");
 
-  const getEmploymentTypeLabelOptions = (mode, isAddingLine = false) => {
+  const getEmploymentTypeLabelOptions = (mode) => {
     if (mode === "create") {
       return ["PROBATIONARY", "AGENCY HIRED", "PROJECT BASED"];
     }
@@ -120,7 +109,23 @@ const PendingEmployeeTypeForm = ({
 
   const getCurrentDate = () => {
     const today = new Date();
-    return today.toISOString().split("T")[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getMinDateWithOneMonthBackdate = () => {
+    const today = new Date();
+    const oneMonthAgo = new Date(
+      today.getFullYear(),
+      today.getMonth() - 1,
+      today.getDate()
+    );
+    const minYear = oneMonthAgo.getFullYear();
+    const minMonth = String(oneMonthAgo.getMonth() + 1).padStart(2, "0");
+    const minDay = String(oneMonthAgo.getDate()).padStart(2, "0");
+    return `${minYear}-${minMonth}-${minDay}`;
   };
 
   const getMaxDate = () => {
@@ -129,26 +134,10 @@ const PendingEmployeeTypeForm = ({
     return `${nextYear}-12-31`;
   };
 
-  const isDateBeyondNextYear = (dateString) => {
-    if (!dateString) return false;
-    const inputDate = new Date(dateString);
-    const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    return inputDate.getFullYear() > nextYear;
-  };
-
-  const isDateInPast = (dateString) => {
-    if (!dateString) return false;
-    const inputDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return inputDate < today;
-  };
-
   const isDateBeforeStartDate = (dateString, startDate) => {
     if (!dateString || !startDate) return false;
-    const inputDate = new Date(dateString);
-    const startDateObj = new Date(startDate);
+    const inputDate = new Date(dateString + "T00:00:00");
+    const startDateObj = new Date(startDate + "T00:00:00");
     return inputDate < startDateObj;
   };
 
@@ -163,12 +152,10 @@ const PendingEmployeeTypeForm = ({
   const getRegularizationDateConstraints = () => {
     const probationaryStartDate = getProbationaryStartDate();
     const today = getCurrentDate();
-
     let minDate = today;
     if (probationaryStartDate) {
       minDate = probationaryStartDate > today ? probationaryStartDate : today;
     }
-
     return {
       min: minDate,
       max: getMaxDate(),
@@ -185,25 +172,19 @@ const PendingEmployeeTypeForm = ({
 
   const canAddLine = () => {
     if (mode !== "edit") return false;
-
     if (hasRegularEmploymentType()) return false;
-
     if (fields.length >= 2) return false;
-
     return true;
   };
 
   const canRemoveLine = () => {
     if (mode !== "edit") return false;
-
     if (fields.length <= 1) return false;
-
     return true;
   };
 
-  const getAvailableEmploymentTypes = (currentIndex) => {
-    const baseOptions = getEmploymentTypeLabelOptions(mode);
-    return baseOptions;
+  const getAvailableEmploymentTypes = () => {
+    return getEmploymentTypeLabelOptions(mode);
   };
 
   const isLineDisabled = (index) => {
@@ -211,19 +192,15 @@ const PendingEmployeeTypeForm = ({
     if (mode === "create") return false;
     if (mode === "edit") {
       if (index === 0) return true;
-
       const currentEmploymentTypes = watchedEmploymentTypes || [];
       const currentLineType =
         currentEmploymentTypes[index]?.employment_type_label;
-
       if (currentLineType === "REGULAR") {
         return false;
       }
-
       const hasRegularInOtherLine = currentEmploymentTypes.some(
         (emp, idx) => idx !== index && emp.employment_type_label === "REGULAR"
       );
-
       return hasRegularInOtherLine;
     }
     return false;
@@ -231,23 +208,6 @@ const PendingEmployeeTypeForm = ({
 
   const handleDateValidation = (value, field, index) => {
     if (isReadOnly) return true;
-
-    if (value && isDateBeyondNextYear(value)) {
-      const currentYear = new Date().getFullYear();
-      const nextYear = currentYear + 1;
-      enqueueSnackbar(
-        `Cannot select dates beyond ${nextYear}. Current year is ${currentYear}.`,
-        { variant: "error" }
-      );
-      return false;
-    }
-
-    if (field === "employment_start_date" && value && isDateInPast(value)) {
-      enqueueSnackbar("Cannot select past dates for employment start date.", {
-        variant: "error",
-      });
-      return false;
-    }
 
     if (field === "employment_end_date" && value && index !== undefined) {
       const currentEmploymentTypes = watchedEmploymentTypes || [];
@@ -262,8 +222,11 @@ const PendingEmployeeTypeForm = ({
 
     if (field === "regularization_date" && value) {
       const probationaryStartDate = getProbationaryStartDate();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inputDate = new Date(value);
 
-      if (isDateInPast(value)) {
+      if (inputDate < today) {
         enqueueSnackbar("Cannot select past dates for regularization date.", {
           variant: "error",
         });
@@ -276,7 +239,9 @@ const PendingEmployeeTypeForm = ({
       ) {
         enqueueSnackbar(
           "Regularization date cannot be before probationary start date.",
-          { variant: "error" }
+          {
+            variant: "error",
+          }
         );
         return false;
       }
@@ -301,7 +266,6 @@ const PendingEmployeeTypeForm = ({
         emp.employment_end_date ||
         emp.regularization_date
     );
-
     if (!hasValidData) {
       const emptyLine = {
         id: generateUniqueId(),
@@ -313,7 +277,6 @@ const PendingEmployeeTypeForm = ({
       };
       replace([emptyLine]);
     }
-
     clearErrors("employment_types");
     setErrorMessage(null);
     setIsInitialized(true);
@@ -321,9 +284,7 @@ const PendingEmployeeTypeForm = ({
 
   const initializeWithEmployeeData = useCallback(
     (employeeData) => {
-      // Extract employment_types from the data structure returned by getPendingValues
       let employmentTypesData = [];
-
       if (
         employeeData?.employment_types &&
         Array.isArray(employeeData.employment_types)
@@ -335,7 +296,6 @@ const PendingEmployeeTypeForm = ({
       ) {
         employmentTypesData = employeeData.result.employment_types;
       }
-
       if (employmentTypesData.length > 0) {
         const newEmploymentLines = employmentTypesData.map(
           (employment, index) => ({
@@ -372,7 +332,6 @@ const PendingEmployeeTypeForm = ({
       lastEmployeeId.current = currentEmployeeId;
       return true;
     }
-
     if (isInitialized && lastInitializedMode.current === mode) {
       if (mode === "edit" || mode === "view") {
         const currentDataString = JSON.stringify(
@@ -396,7 +355,6 @@ const PendingEmployeeTypeForm = ({
         setIsInitialized(false);
         hasInitializedData.current = false;
       }
-
       if (mode === "create") {
         initializeEmptyForm();
       } else if (mode === "edit" || mode === "view") {
@@ -410,7 +368,6 @@ const PendingEmployeeTypeForm = ({
           initializeEmptyForm();
         }
       }
-
       hasInitializedData.current = true;
       lastInitializedMode.current = mode;
       lastInitializedData.current =
@@ -430,7 +387,6 @@ const PendingEmployeeTypeForm = ({
     if (!isReadOnly && watchedEmploymentTypes && isInitialized) {
       watchedEmploymentTypes.forEach((employment, index) => {
         const employmentTypeLabel = employment?.employment_type_label;
-
         if (employmentTypeLabel && employmentTypeLabel !== "REGULAR") {
           const currentRegularizationDate = employment?.regularization_date;
           if (currentRegularizationDate) {
@@ -439,7 +395,6 @@ const PendingEmployeeTypeForm = ({
             });
           }
         }
-
         if (employmentTypeLabel === "REGULAR") {
           const currentStartDate = employment?.employment_start_date;
           const currentEndDate = employment?.employment_end_date;
@@ -460,7 +415,6 @@ const PendingEmployeeTypeForm = ({
 
   const addEmploymentLine = useCallback(() => {
     if (!canAddLine()) return;
-
     const currentEmploymentTypes = watchedEmploymentTypes || [];
     const newIndex = currentEmploymentTypes.length;
     const newLine = {
@@ -472,7 +426,6 @@ const PendingEmployeeTypeForm = ({
       regularization_date: "",
     };
     append(newLine);
-
     setTimeout(() => {
       trigger("employment_types");
     }, 100);
@@ -491,23 +444,11 @@ const PendingEmployeeTypeForm = ({
     [remove, trigger, fields.length]
   );
 
-  const validateEmploymentLine = useCallback((line) => {
-    if (!line || !line.employment_type_label) return false;
-
-    if (line.employment_type_label === "REGULAR") {
-      return !!line.regularization_date;
-    } else {
-      return !!line.employment_start_date;
-    }
-  }, []);
-
   const isFormValid = React.useMemo(() => {
     const employmentTypes = watchedEmploymentTypes || [];
     if (employmentTypes.length === 0) return false;
-
     const allValid = employmentTypes.every((line) => {
       if (!line || !line.employment_type_label) return false;
-
       if (line.employment_type_label === "REGULAR") {
         return !!line.regularization_date;
       } else {
@@ -518,11 +459,9 @@ const PendingEmployeeTypeForm = ({
           "PROJECT BASED",
         ].includes(line.employment_type_label);
         const hasEndDate = !!line.employment_end_date;
-
         return hasStartDate && (!needsEndDate || hasEndDate);
       }
     });
-
     return allValid;
   }, [watchedEmploymentTypes]);
 
@@ -539,16 +478,16 @@ const PendingEmployeeTypeForm = ({
 
   if (!isInitialized && (mode === "edit" || mode === "view")) {
     return (
-      <Box sx={{ p: 2, textAlign: "center" }}>
+      <Box sx={styles.loadingContainer}>
         <Typography>Loading pending employment data...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={styles.container}>
       {errorMessage && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={styles.errorAlert}>
           {errorMessage}
         </Alert>
       )}
@@ -557,34 +496,19 @@ const PendingEmployeeTypeForm = ({
         const currentEmploymentType = watchedEmploymentTypes?.[index];
         const isRegular =
           currentEmploymentType?.employment_type_label === "REGULAR";
-        const isNonRegular =
-          currentEmploymentType?.employment_type_label && !isRegular;
         const isEndDateRequired =
           currentEmploymentType?.employment_type_label === "PROBATIONARY" ||
           currentEmploymentType?.employment_type_label === "AGENCY HIRED" ||
           currentEmploymentType?.employment_type_label === "PROJECT BASED";
 
         const regularizationConstraints = getRegularizationDateConstraints();
-        const availableEmploymentTypes = getAvailableEmploymentTypes(index);
+        const availableEmploymentTypes = getAvailableEmploymentTypes();
         const lineDisabled = isLineDisabled(index);
 
         return (
-          <Box
-            key={field.id}
-            sx={{
-              mb: 2,
-              border: "1px solid #e0e0e0",
-              borderRadius: 2,
-              p: 2,
-              paddingTop: 3,
-            }}>
-            <Grid container spacing={2} sx={{ alignItems: "flex-start" }}>
-              {/* Employment Type Label */}
-              <Grid
-                item
-                xs={12}
-                sm={3}
-                sx={{ minWidth: "346px", maxWidth: "346px" }}>
+          <Box key={field.id} sx={styles.employmentBox}>
+            <Grid container spacing={2} sx={styles.gridContainer}>
+              <Grid item xs={12} sm={3} sx={styles.employmentTypeGrid}>
                 <Controller
                   name={`employment_types.${index}.employment_type_label`}
                   control={control}
@@ -598,21 +522,13 @@ const PendingEmployeeTypeForm = ({
                       error={!!fieldState.error}>
                       <InputLabel>
                         Employment Type Label{" "}
-                        <span style={{ color: "red" }}>*</span>
+                        <span style={styles.requiredAsterisk}>*</span>
                       </InputLabel>
                       <Select
                         {...controllerField}
                         label="Employment Type Label *"
                         readOnly={isReadOnly || lineDisabled}
-                        sx={{
-                          borderRadius: 2,
-                          ...(lineDisabled && {
-                            backgroundColor: "#f5f5f5",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#e0e0e0",
-                            },
-                          }),
-                        }}
+                        sx={styles.selectField(lineDisabled)}
                         onChange={(e) => {
                           if (!lineDisabled) {
                             controllerField.onChange(e);
@@ -643,14 +559,8 @@ const PendingEmployeeTypeForm = ({
                 />
               </Grid>
 
-              {/* Employment Start Date - for non-regular types */}
               {!isRegular && (
                 <Grid item xs={12} sm={4}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={3}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}></Grid>
                   <Controller
                     name={`employment_types.${index}.employment_start_date`}
                     control={control}
@@ -664,22 +574,17 @@ const PendingEmployeeTypeForm = ({
                         label={
                           <>
                             Employment Start Date{" "}
-                            <span style={{ color: "red" }}>*</span>
+                            <span style={styles.requiredAsterisk}>*</span>
                           </>
                         }
                         type="date"
                         variant="outlined"
                         fullWidth
-                        disabled={isFieldDisabled || lineDisabled}
                         error={!!fieldState.error}
                         helperText={
                           fieldState.error?.message ||
-                          "Cannot select past dates"
+                          "Allowed from 1 month back to 1 year ahead"
                         }
-                        inputProps={{
-                          min: getCurrentDate(),
-                          max: getMaxDate(),
-                        }}
                         InputLabelProps={{
                           shrink: true,
                         }}
@@ -709,31 +614,15 @@ const PendingEmployeeTypeForm = ({
                             }, 100);
                           }
                         }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            ...(lineDisabled && {
-                              backgroundColor: "#f5f5f5",
-                              "& .MuiOutlinedInput-notchedOutline": {
-                                borderColor: "#e0e0e0",
-                              },
-                            }),
-                          },
-                        }}
+                        sx={styles.textField(lineDisabled)}
                       />
                     )}
                   />
                 </Grid>
               )}
 
-              {/* Employment End Date - for non-regular types */}
               {!isRegular && (
                 <Grid item xs={12} sm={4}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={3}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}></Grid>
                   <Controller
                     name={`employment_types.${index}.employment_end_date`}
                     control={control}
@@ -750,14 +639,13 @@ const PendingEmployeeTypeForm = ({
                           <>
                             Employment End Date{" "}
                             {isEndDateRequired && (
-                              <span style={{ color: "red" }}>*</span>
+                              <span style={styles.requiredAsterisk}>*</span>
                             )}
                           </>
                         }
                         type="date"
                         variant="outlined"
                         fullWidth
-                        disabled={isFieldDisabled || lineDisabled}
                         error={!!fieldState.error}
                         helperText={
                           fieldState.error?.message ||
@@ -765,12 +653,6 @@ const PendingEmployeeTypeForm = ({
                             ? "Required and cannot be before start date"
                             : "Cannot be before start date")
                         }
-                        inputProps={{
-                          min:
-                            currentEmploymentType?.employment_start_date ||
-                            getCurrentDate(),
-                          max: getMaxDate(),
-                        }}
                         InputLabelProps={{
                           shrink: true,
                         }}
@@ -800,30 +682,15 @@ const PendingEmployeeTypeForm = ({
                             }, 100);
                           }
                         }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            ...(lineDisabled && {
-                              backgroundColor: "#f5f5f5",
-                              "& .MuiOutlinedInput-notchedOutline": {
-                                borderColor: "#e0e0e0",
-                              },
-                            }),
-                          },
-                        }}
+                        sx={styles.textField(lineDisabled)}
                       />
                     )}
                   />
                 </Grid>
               )}
 
-              {/* Regularization Date - for regular type */}
               {isRegular && (
                 <Grid item xs={12} sm={8}>
-                  <Grid
-                    item
-                    xs={12}
-                    sx={{ minWidth: "706px", maxWidth: "706px" }}></Grid>
                   <Controller
                     name={`employment_types.${index}.regularization_date`}
                     control={control}
@@ -837,13 +704,12 @@ const PendingEmployeeTypeForm = ({
                         label={
                           <>
                             Regularization Date{" "}
-                            <span style={{ color: "red" }}>*</span>
+                            <span style={styles.requiredAsterisk}>*</span>
                           </>
                         }
                         type="date"
                         variant="outlined"
                         fullWidth
-                        disabled={isFieldDisabled || lineDisabled}
                         error={!!fieldState.error}
                         helperText={
                           fieldState.error?.message ||
@@ -851,10 +717,6 @@ const PendingEmployeeTypeForm = ({
                             ? "Required and cannot be before probationary start date or in the past"
                             : "Required for regular employees. Add probationary employment first for proper validation.")
                         }
-                        inputProps={{
-                          min: regularizationConstraints.min,
-                          max: regularizationConstraints.max,
-                        }}
                         InputLabelProps={{
                           shrink: true,
                         }}
@@ -884,34 +746,16 @@ const PendingEmployeeTypeForm = ({
                             }, 100);
                           }
                         }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            ...(lineDisabled && {
-                              backgroundColor: "#f5f5f5",
-                              "& .MuiOutlinedInput-notchedOutline": {
-                                borderColor: "#e0e0e0",
-                              },
-                            }),
-                          },
-                        }}
+                        sx={styles.textField(lineDisabled)}
                       />
                     )}
                   />
                 </Grid>
               )}
 
-              {/* Action Buttons */}
               {!isReadOnly && (
                 <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 1,
-                      mt: 2,
-                      width: "100%",
-                      justifyContent: "center !important",
-                    }}>
+                  <Box sx={styles.buttonContainer}>
                     {canRemoveLine() && index === fields.length - 1 && (
                       <Button
                         onClick={() => removeEmploymentLine(index)}
@@ -919,16 +763,7 @@ const PendingEmployeeTypeForm = ({
                         variant="contained"
                         size="small"
                         startIcon={<DeleteIcon />}
-                        sx={{
-                          backgroundColor: "rgb(220, 53, 69)",
-                          color: "#fff !important",
-                          width: "260px", // Set specific width
-                          height: "40px", // Set specific height
-                          "&:hover": {
-                            backgroundColor: "rgb(200, 35, 51)",
-                            color: "#fff !important",
-                          },
-                        }}
+                        sx={styles.removeButton}
                         title="Remove this employment line">
                         Remove Line
                       </Button>
@@ -940,16 +775,7 @@ const PendingEmployeeTypeForm = ({
                         variant="contained"
                         size="small"
                         startIcon={<AddIcon />}
-                        sx={{
-                          backgroundColor: "rgb(40, 167, 69)",
-                          color: "#fff !important",
-                          width: "180px", // Added matching width
-                          height: "40px", // Added matching height
-                          "&:hover": {
-                            backgroundColor: "rgb(34, 142, 58)",
-                            color: "#fff !important",
-                          },
-                        }}
+                        sx={styles.addButton}
                         title="Add new employment line">
                         Add Line
                       </Button>

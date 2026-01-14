@@ -29,8 +29,6 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 const DataChangeForApproval = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   employeeIdToInclude,
 }) => {
   const theme = useTheme();
@@ -70,8 +68,8 @@ const DataChangeForApproval = ({
 
   const apiQueryParams = useMemo(() => {
     const params = {
-      page: 1,
-      per_page: 10,
+      page: page,
+      per_page: rowsPerPage,
       status: "active",
       pagination: 1,
       approval_status: "pending",
@@ -82,8 +80,16 @@ const DataChangeForApproval = ({
       params.employee_id_to_include = employeeIdToInclude;
     }
 
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
     return params;
-  }, [employeeIdToInclude, searchQuery]);
+  }, [page, rowsPerPage, employeeIdToInclude, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -112,36 +118,10 @@ const DataChangeForApproval = ({
   const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -469,7 +449,7 @@ const DataChangeForApproval = ({
           backgroundColor: "white",
         }}>
         <DataChangeForapprovalTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -486,7 +466,7 @@ const DataChangeForApproval = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

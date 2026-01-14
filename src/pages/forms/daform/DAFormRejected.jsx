@@ -17,12 +17,7 @@ import { useCancelFormSubmissionMutation } from "../../../features/api/approvals
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormRejected = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const DAFormRejected = ({ searchQuery, dateFilters }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -53,7 +48,7 @@ const DAFormRejected = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -61,7 +56,16 @@ const DAFormRejected = ({
       approval_status: "REJECTED",
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -93,37 +97,10 @@ const DAFormRejected = ({
   const [resubmitDaSubmission] = useResubmitDaMutation();
   const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
-
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -148,9 +125,7 @@ const DAFormRejected = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -162,7 +137,7 @@ const DAFormRejected = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissionsList, enqueueSnackbar]
   );
 
   const handleModalClose = useCallback(() => {
@@ -183,7 +158,7 @@ const DAFormRejected = ({
       if (mode === "edit") {
         const submission =
           submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
+          submissionsList.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
@@ -195,7 +170,7 @@ const DAFormRejected = ({
       if (mode === "resubmit") {
         const submission =
           submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === submissionId);
+          submissionsList.find((sub) => sub.id === submissionId);
 
         setSelectedSubmissionForAction(submission);
         setPendingFormData(submissionData);
@@ -229,7 +204,7 @@ const DAFormRejected = ({
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
-      filteredSubmissions,
+      submissionsList,
       resubmitDaSubmission,
     ]
   );
@@ -372,6 +347,8 @@ const DAFormRejected = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -383,7 +360,7 @@ const DAFormRejected = ({
           backgroundColor: "white",
         }}>
         <DAFormTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -398,7 +375,7 @@ const DAFormRejected = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

@@ -12,13 +12,7 @@ import MDADATable from "./MDADATable";
 import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDADAForApproval = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const MDADAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -34,6 +28,7 @@ const MDADAForApproval = ({
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
 
   const viewFormMethods = useForm({
     defaultValues: {
@@ -74,16 +69,25 @@ const MDADAForApproval = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      pagination: 1,
       approval_status: "PENDING",
       search: searchQuery || "",
       type: "da",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -106,36 +110,20 @@ const MDADAForApproval = ({
   ] = useLazyGetSingleMdaDaSubmissionQuery();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -143,6 +131,7 @@ const MDADAForApproval = ({
       setViewModalMode("view");
       setViewModalOpen(true);
       setMenuAnchor({});
+      setSelectedRowForMenu(null);
 
       try {
         await triggerGetSubmission(submission.id);
@@ -159,6 +148,7 @@ const MDADAForApproval = ({
       setViewModalMode("edit");
       setViewModalOpen(true);
       setMenuAnchor({});
+      setSelectedRowForMenu(null);
 
       try {
         await triggerGetSubmission(submission.id);
@@ -190,10 +180,12 @@ const MDADAForApproval = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
+    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
+    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -240,37 +232,49 @@ const MDADAForApproval = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...viewFormMethods}>
       <Box
         sx={{
-          flex: 1,
-          overflow: "hidden",
+          width: "100%",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "white",
+          overflow: "hidden",
+          backgroundColor: "#fafafa",
         }}>
-        <MDADATable
-          submissionsList={paginatedSubmissions}
-          isLoadingState={isLoadingState}
-          error={error}
-          handleRowClick={handleRowClick}
-          handleMenuOpen={handleMenuOpen}
-          handleMenuClose={handleMenuClose}
-          handleEditSubmission={handleEditSubmission}
-          menuAnchor={menuAnchor}
-          searchQuery={searchQuery}
-          onCancel={onCancel}
-          onRefetch={refetch}
-        />
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "white",
+          }}>
+          <MDADATable
+            submissionsList={filteredSubmissions}
+            isLoadingState={isLoadingState}
+            error={error}
+            handleRowClick={handleRowClick}
+            handleMenuOpen={handleMenuOpen}
+            handleMenuClose={handleMenuClose}
+            handleEditSubmission={handleEditSubmission}
+            menuAnchor={menuAnchor}
+            searchQuery={searchQuery}
+            onCancel={onCancel}
+            onRefetch={refetch}
+          />
 
-        <CustomTablePagination
-          count={filteredSubmissions.length}
-          page={Math.max(0, page - 1)}
-          rowsPerPage={rowsPerPage}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
+        </Box>
       </Box>
 
       <MDADAModal

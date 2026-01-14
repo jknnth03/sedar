@@ -17,13 +17,7 @@ import {
 } from "../../../features/api/approvalsetting/formSubmissionApi";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormMDAForApproval = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -47,7 +41,7 @@ const DAFormMDAForApproval = ({
   const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -55,7 +49,16 @@ const DAFormMDAForApproval = ({
       pagination: true,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

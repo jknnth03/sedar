@@ -7,10 +7,6 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Fade,
   Tooltip,
   CircularProgress,
@@ -18,7 +14,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -33,7 +28,7 @@ import {
 } from "../manpowerform/FormSubmissionStyles";
 import { useCreateFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
@@ -46,6 +41,7 @@ import MrfReceived from "./MrfReceived";
 import MrfCancelled from "./MrfCancelled";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ExportButton from "./ExportButton";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -64,149 +60,6 @@ const TabPanel = ({ children, value, index, ...other }) => {
       {...other}>
       {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number?.toLowerCase().includes(query) ||
-      item.employee_name?.toLowerCase().includes(query) ||
-      item.employee_code?.toLowerCase().includes(query) ||
-      item.position?.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -451,6 +304,17 @@ const MrfMainContainer = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
   const mrfCounts = useMemo(() => {
     const approval = dashboardData?.result?.approval?.manpower || 0;
     const requisition = dashboardData?.result?.requisition?.manpower || {};
@@ -571,9 +435,7 @@ const MrfMainContainer = () => {
           <MrfForApproval
             key="for-approval"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -587,9 +449,7 @@ const MrfMainContainer = () => {
           <MrfAwaitingResubmission
             key="awaiting-resubmission"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -603,9 +463,7 @@ const MrfMainContainer = () => {
           <MrfRejected
             key="rejected"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -619,9 +477,7 @@ const MrfMainContainer = () => {
           <MrfForreceiving
             key="for-receiving"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -635,9 +491,7 @@ const MrfMainContainer = () => {
           <MrfReturned
             key="returned"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -651,9 +505,7 @@ const MrfMainContainer = () => {
           <MrfReceived
             key="received"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -667,9 +519,7 @@ const MrfMainContainer = () => {
           <MrfCancelled
             key="cancelled"
             searchQuery={debouncedSearchQuery}
-            dateFilters={dateFilters}
-            filterDataByDate={filterDataByDate}
-            filterDataBySearch={filterDataBySearch}
+            dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
             onRowClick={handleRowClick}
@@ -680,7 +530,7 @@ const MrfMainContainer = () => {
     ],
     [
       debouncedSearchQuery,
-      dateFilters,
+      apiDateFilters,
       setQueryParams,
       currentParams,
       handleRowClick,
@@ -816,6 +666,7 @@ const MrfMainContainer = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <FormSubmissionModal

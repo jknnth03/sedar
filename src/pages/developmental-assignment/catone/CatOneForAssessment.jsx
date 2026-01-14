@@ -17,25 +17,15 @@ import { useCancelFormSubmissionMutation } from "../../../features/api/approvals
 const CatOneForAssessment = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
-  data,
-  isLoading: externalIsLoading,
-  page: externalPage,
-  rowsPerPage: externalRowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(
-    externalPage || parseInt(currentParams?.page) || 1
-  );
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -53,24 +43,30 @@ const CatOneForAssessment = ({
     },
   });
 
-  useEffect(() => {
-    if (externalPage !== undefined) {
-      setPage(externalPage);
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_ASSESSMENT",
+      search: searchQuery || "",
+    };
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
     }
-  }, [externalPage]);
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+    console.log("Final params:", params); // ADD THIS
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    if (externalRowsPerPage !== undefined) {
-      setRowsPerPage(externalRowsPerPage);
-    }
-  }, [externalRowsPerPage]);
-
-  useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
-    if (onPageChange) {
-      onPageChange(newPage);
-    }
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -79,18 +75,10 @@ const CatOneForAssessment = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FOR_ASSESSMENT",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatOneTaskQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catOneDetails,
@@ -111,45 +99,16 @@ const CatOneForAssessment = ({
   const [cancelCatOneSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return [];
+    if (!taskData?.result) return [];
 
-    const result = dataSource.result;
+    const result = taskData.result;
 
     if (result.data && Array.isArray(result.data)) {
-      return result.data.filter((item) => item.status === "FOR_ASSESSMENT");
-    }
-
-    if (result.status === "FOR_ASSESSMENT") {
-      return [result];
+      return result.data;
     }
 
     return [];
-  }, [data, taskData]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  }, [taskData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -169,9 +128,7 @@ const CatOneForAssessment = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         try {
           await cancelCatOneSubmission(submissionId).unwrap();
@@ -196,7 +153,7 @@ const CatOneForAssessment = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar, cancelCatOneSubmission, refetch]
+    [submissionsData, enqueueSnackbar, cancelCatOneSubmission, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -293,9 +250,6 @@ const CatOneForAssessment = ({
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
-      if (onPageChange) {
-        onPageChange(targetPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -307,7 +261,7 @@ const CatOneForAssessment = ({
         );
       }
     },
-    [onPageChange, setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -316,12 +270,6 @@ const CatOneForAssessment = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
-      if (onRowsPerPageChange) {
-        onRowsPerPageChange(newRowsPerPage);
-      }
-      if (onPageChange) {
-        onPageChange(newPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
@@ -333,17 +281,16 @@ const CatOneForAssessment = ({
         );
       }
     },
-    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
 
-  const isLoadingState =
-    externalIsLoading !== undefined
-      ? externalIsLoading
-      : queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching || isLoading;
+
+  const totalCount = taskData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
@@ -356,7 +303,7 @@ const CatOneForAssessment = ({
           backgroundColor: "white",
         }}>
         <CatOneTable
-          submissionsList={filteredSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -373,7 +320,7 @@ const CatOneForAssessment = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

@@ -113,6 +113,13 @@ const EmploymentTypesForm = ({
   const isReadOnly = mode === "view";
   const isFieldDisabled = isLoading || isReadOnly;
 
+  const getMinDateWithOneMonthBack = () => {
+    const today = new Date();
+    const oneMonthBack = new Date(today);
+    oneMonthBack.setMonth(oneMonthBack.getMonth() - 1);
+    return oneMonthBack.toISOString().split("T")[0];
+  };
+
   const getCurrentDate = () => {
     const today = new Date();
     return today.toISOString().split("T")[0];
@@ -132,12 +139,13 @@ const EmploymentTypesForm = ({
     return inputDate.getFullYear() > nextYear;
   };
 
-  const isDateInPast = (dateString) => {
+  const isDateBeforeMinAllowed = (dateString) => {
     if (!dateString) return false;
     const inputDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return inputDate < today;
+    const minDate = new Date(getMinDateWithOneMonthBack());
+    minDate.setHours(0, 0, 0, 0);
+    inputDate.setHours(0, 0, 0, 0);
+    return inputDate < minDate;
   };
 
   const isDateBeforeStartDate = (dateString, startDate) => {
@@ -237,10 +245,17 @@ const EmploymentTypesForm = ({
       return false;
     }
 
-    if (field === "employment_start_date" && value && isDateInPast(value)) {
-      enqueueSnackbar("Cannot select past dates for employment start date.", {
-        variant: "error",
-      });
+    if (
+      field === "employment_start_date" &&
+      value &&
+      isDateBeforeMinAllowed(value)
+    ) {
+      enqueueSnackbar(
+        "Cannot select dates more than 1 month in the past for employment start date.",
+        {
+          variant: "error",
+        }
+      );
       return false;
     }
 
@@ -258,10 +273,13 @@ const EmploymentTypesForm = ({
     if (field === "regularization_date" && value) {
       const probationaryStartDate = getProbationaryStartDate();
 
-      if (isDateInPast(value)) {
-        enqueueSnackbar("Cannot select past dates for regularization date.", {
-          variant: "error",
-        });
+      if (isDateBeforeMinAllowed(value)) {
+        enqueueSnackbar(
+          "Cannot select dates more than 1 month in the past for regularization date.",
+          {
+            variant: "error",
+          }
+        );
         return false;
       }
 
@@ -642,10 +660,10 @@ const EmploymentTypesForm = ({
                         error={!!fieldState.error}
                         helperText={
                           fieldState.error?.message ||
-                          "Cannot select past dates"
+                          "Cannot select dates more than 1 month in the past"
                         }
                         inputProps={{
-                          min: getCurrentDate(),
+                          min: getMinDateWithOneMonthBack(),
                           max: getMaxDate(),
                         }}
                         InputLabelProps={{
@@ -735,7 +753,7 @@ const EmploymentTypesForm = ({
                         inputProps={{
                           min:
                             currentEmploymentType?.employment_start_date ||
-                            getCurrentDate(),
+                            getMinDateWithOneMonthBack(),
                           max: getMaxDate(),
                         }}
                         InputLabelProps={{
@@ -815,7 +833,7 @@ const EmploymentTypesForm = ({
                         helperText={
                           fieldState.error?.message ||
                           (regularizationConstraints.probationaryStartDate
-                            ? "Required and cannot be before probationary start date or in the past"
+                            ? "Required and cannot be before probationary start date or more than 1 month in the past"
                             : "Required for regular employees. Add probationary employment first for proper validation.")
                         }
                         inputProps={{

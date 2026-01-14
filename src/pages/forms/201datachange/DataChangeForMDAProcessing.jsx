@@ -26,12 +26,7 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
 import DataChangeForApprovalTable from "../201datachange/DataChangeForapprovalTable";
 
-const DataChangeForMDAProcessing = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const DataChangeForMDAProcessing = ({ searchQuery, dateFilters }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -86,7 +81,7 @@ const DataChangeForMDAProcessing = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       pagination: 1,
       page: page,
       per_page: rowsPerPage,
@@ -94,7 +89,17 @@ const DataChangeForMDAProcessing = ({
       approval_status: "PENDING MDA CREATION",
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -116,30 +121,10 @@ const DataChangeForMDAProcessing = ({
   const [getSubmissionDetails] = useLazyGetDataChangeSubmissionDetailsQuery();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -362,8 +347,6 @@ const DataChangeForMDAProcessing = ({
     { id: 12, title: "TEAM LEAD" },
     { id: 13, title: "PROJECT MANAGER" },
   ];
-
-  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>

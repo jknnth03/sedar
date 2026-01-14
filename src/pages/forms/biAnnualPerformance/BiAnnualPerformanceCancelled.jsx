@@ -20,8 +20,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const BiAnnualPerformanceCancelled = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onCancel,
 }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -61,12 +59,13 @@ const BiAnnualPerformanceCancelled = ({
     return {
       page: page,
       per_page: rowsPerPage,
-      status: "active",
-      approval_status: "CANCELLED",
+      status: "cancelled",
       pagination: true,
       search: searchQuery || "",
+      start_date: dateFilters?.start_date,
+      end_date: dateFilters?.end_date,
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

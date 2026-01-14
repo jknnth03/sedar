@@ -13,13 +13,7 @@ import MDAEvaluationRecommendationTable from "./MDAEvaluationRecommendationTable
 import MDAEvaluationRecommendationModal from "../../../components/modal/form/MDAEvaluationRecommendationModal/MDAEvaluationRecommendationModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDAEvaluationApproved = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const MDAEvaluationApproved = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -63,7 +57,7 @@ const MDAEvaluationApproved = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -72,7 +66,16 @@ const MDAEvaluationApproved = ({
       search: searchQuery || "",
       type: "probationary-evaluation",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -93,34 +96,20 @@ const MDAEvaluationApproved = ({
   }, [apiQueryParams, triggerGetSubmissions]);
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    return filteredSubmissions;
-  }, [filteredSubmissions]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -271,8 +260,7 @@ const MDAEvaluationApproved = ({
 
   const isLoadingState = queryLoading || isFetching;
 
-  const totalCount =
-    submissionsData?.result?.total || filteredSubmissions.length;
+  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <>
@@ -285,7 +273,7 @@ const MDAEvaluationApproved = ({
           backgroundColor: "white",
         }}>
         <MDAEvaluationRecommendationTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}

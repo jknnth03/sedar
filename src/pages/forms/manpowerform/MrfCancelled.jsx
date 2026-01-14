@@ -12,12 +12,7 @@ import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MrfCancelled = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const MrfCancelled = ({ searchQuery, dateFilters }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -46,14 +41,24 @@ const MrfCancelled = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "CANCELLED",
       pagination: 1,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -81,38 +86,13 @@ const MrfCancelled = ({
 
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
-
-    let filtered = rawData.filter((submission) => {
+    return rawData.filter((submission) => {
       const latestActivity = submission.activity_log?.[0];
       return latestActivity?.event_type === "CANCELLED";
     });
+  }, [submissionsData]);
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -202,7 +182,7 @@ const MrfCancelled = ({
           backgroundColor: "white",
         }}>
         <MrfTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -214,7 +194,7 @@ const MrfCancelled = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

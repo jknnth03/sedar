@@ -20,8 +20,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const BiAnnualPerformanceAwaitingResubmission = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onCancel,
 }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -65,8 +63,10 @@ const BiAnnualPerformanceAwaitingResubmission = ({
       approval_status: "AWAITING RESUBMISSION",
       pagination: true,
       search: searchQuery || "",
+      start_date: dateFilters?.start_date,
+      end_date: dateFilters?.end_date,
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

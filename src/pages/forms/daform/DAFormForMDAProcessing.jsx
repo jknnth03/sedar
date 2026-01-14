@@ -17,13 +17,7 @@ import {
 } from "../../../features/api/approvalsetting/formSubmissionApi";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormMDAProcessing = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const DAFormMDAProcessing = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -47,7 +41,7 @@ const DAFormMDAProcessing = ({
   const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -55,7 +49,16 @@ const DAFormMDAProcessing = ({
       pagination: "true",
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -82,24 +85,7 @@ const DAFormMDAProcessing = ({
   });
 
   const submissionsList = useMemo(() => {
-    if (!submissionsData) {
-      console.log("No submissions data");
-      return [];
-    }
-
-    if (!submissionsData.result) {
-      console.log("No result object in submissions data");
-      return [];
-    }
-
-    if (!submissionsData.result.data) {
-      console.log("No data array in result");
-      return [];
-    }
-
-    const data = submissionsData.result.data;
-    console.log("Final submissions list:", data);
-    console.log("List length:", data.length);
+    const data = submissionsData?.result?.data || [];
     return data;
   }, [submissionsData]);
 
@@ -126,10 +112,8 @@ const DAFormMDAProcessing = ({
   const handleSave = useCallback(
     async (formData, mode) => {
       try {
-        console.log("Saving DA Form submission:", formData, mode);
-
         if (mode === "edit" && selectedSubmissionId) {
-          const response = await updateDaSubmission({
+          await updateDaSubmission({
             id: selectedSubmissionId,
             data: formData,
           }).unwrap();
@@ -144,7 +128,6 @@ const DAFormMDAProcessing = ({
           handleModalClose();
         }
       } catch (error) {
-        console.error("Error saving DA Form submission:", error);
         enqueueSnackbar(
           error?.data?.message || "Failed to update DA Form submission",
           {
@@ -166,8 +149,6 @@ const DAFormMDAProcessing = ({
   const handleResubmit = useCallback(
     async (submissionId) => {
       try {
-        console.log("Resubmitting DA Form submission:", submissionId);
-
         await resubmitDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission resubmitted successfully", {
@@ -178,7 +159,6 @@ const DAFormMDAProcessing = ({
         await refetchDetails();
         await refetch();
       } catch (error) {
-        console.error("Error resubmitting DA Form submission:", error);
         enqueueSnackbar(
           error?.data?.message || "Failed to resubmit DA Form submission",
           {
@@ -194,8 +174,6 @@ const DAFormMDAProcessing = ({
   const handleCancel = useCallback(
     async (submissionId) => {
       try {
-        console.log("Cancelling DA Form submission:", submissionId);
-
         await cancelDaSubmission(submissionId).unwrap();
 
         enqueueSnackbar("DA Form submission cancelled successfully", {
@@ -207,8 +185,6 @@ const DAFormMDAProcessing = ({
 
         return true;
       } catch (error) {
-        console.error("Error cancelling DA Form submission:", error);
-
         let errorMessage = "Failed to cancel DA Form submission";
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -281,8 +257,6 @@ const DAFormMDAProcessing = ({
   const isLoadingState = queryLoading || isFetching;
 
   const totalCount = submissionsData?.result?.total || 0;
-
-  console.log("About to render - submissions:", submissionsList.length);
 
   return (
     <FormProvider {...methods}>

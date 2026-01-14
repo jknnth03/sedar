@@ -16,13 +16,7 @@ import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/E
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const EvaluationFormRejected = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -61,8 +55,10 @@ const EvaluationFormRejected = ({
       approval_status: "REJECTED",
       pagination: 1,
       search: searchQuery || "",
+      start_date: dateFilters?.start_date,
+      end_date: dateFilters?.end_date,
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

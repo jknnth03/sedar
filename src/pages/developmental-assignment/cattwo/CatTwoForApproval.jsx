@@ -15,8 +15,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const CatTwoForApproval = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onConfirmationRequest,
 }) => {
   const theme = useTheme();
@@ -50,13 +48,26 @@ const CatTwoForApproval = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      pagination: 1,
       status: "FOR_APPROVAL",
+      search: searchQuery || "",
     };
-  }, [page, rowsPerPage]);
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -87,37 +98,17 @@ const CatTwoForApproval = ({
     return catTwoDetails;
   }, [catTwoDetails]);
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = taskData?.result?.data || [];
+  const submissionsData = useMemo(() => {
+    if (!taskData?.result) return [];
 
-    let filtered = rawData;
+    const result = taskData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    taskData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [taskData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -255,6 +246,8 @@ const CatTwoForApproval = ({
 
   const isLoadingState = queryLoading || isFetching;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -266,7 +259,7 @@ const CatTwoForApproval = ({
           backgroundColor: "white",
         }}>
         <CatTwoTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -283,7 +276,7 @@ const CatTwoForApproval = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

@@ -31,8 +31,6 @@ import {
 const DataChangeForMDAProcessing = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   employeeIdToInclude,
 }) => {
   const theme = useTheme();
@@ -102,25 +100,31 @@ const DataChangeForMDAProcessing = ({
 
   const apiQueryParams = useMemo(() => {
     const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      pagination: 1,
       approval_status: "PENDING MDA CREATION",
       search: searchQuery || "",
       view_mode: "hr",
     };
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
 
     if (employeeIdToInclude) {
       params.employee_id_to_include = employeeIdToInclude;
     }
 
     return params;
-  }, [page, rowsPerPage, searchQuery, employeeIdToInclude]);
+  }, [page, rowsPerPage, searchQuery, dateFilters, employeeIdToInclude]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -151,40 +155,24 @@ const DataChangeForMDAProcessing = ({
   const [updateMda, { isLoading: isUpdatingMda }] = useUpdateMdaMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    filtered = filtered.filter(
-      (submission) => submission.status === "PENDING MDA CREATION"
-    );
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.filter(
+        (submission) => submission.status === "PENDING MDA CREATION"
       );
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result.filter(
+        (submission) => submission.status === "PENDING MDA CREATION"
+      );
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -540,6 +528,8 @@ const DataChangeForMDAProcessing = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   const positions = [
     { id: 10, title: "JUNIOR DEVELOPER" },
     { id: 11, title: "SENIOR DEVELOPER" },
@@ -558,7 +548,7 @@ const DataChangeForMDAProcessing = ({
           backgroundColor: "white",
         }}>
         <DataChangeForApprovalTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -576,7 +566,7 @@ const DataChangeForMDAProcessing = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

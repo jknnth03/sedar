@@ -12,13 +12,8 @@ import {
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDADATable from "./MDADATable";
 import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
-const MDADAAwaitingResubmission = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+
+const MDADAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -78,20 +73,28 @@ const MDADAAwaitingResubmission = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      pagination: 1,
       approval_status: "AWAITING RESUBMISSION",
       search: searchQuery || "",
       type: "da",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -114,36 +117,20 @@ const MDADAAwaitingResubmission = ({
     useResubmitFormSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleResubmit = useCallback(
     async (submissionId) => {
@@ -278,6 +265,8 @@ const MDADAAwaitingResubmission = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <>
       <Box
@@ -298,7 +287,7 @@ const MDADAAwaitingResubmission = ({
             backgroundColor: "white",
           }}>
           <MDADATable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -310,8 +299,9 @@ const MDADAAwaitingResubmission = ({
             onCancel={onCancel}
             onRefetch={refetch}
           />
+
           <CustomTablePagination
-            count={filteredSubmissions.length}
+            count={totalCount}
             page={Math.max(0, page - 1)}
             rowsPerPage={rowsPerPage}
             onPageChange={handlePageChange}

@@ -12,12 +12,7 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const EvaluationRecommendationCompleted = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -46,8 +41,10 @@ const EvaluationRecommendationCompleted = ({
       approval_status: "COMPLETED",
       pagination: 1,
       search: searchQuery || "",
+      start_date: dateFilters?.start_date,
+      end_date: dateFilters?.end_date,
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -69,37 +66,13 @@ const EvaluationRecommendationCompleted = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleEvaluationSubmissionQuery();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissions = useMemo(() => {
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = useMemo(() => {
+    return submissionsData?.result?.total || 0;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -189,7 +162,7 @@ const EvaluationRecommendationCompleted = ({
           backgroundColor: "white",
         }}>
         <EvaluationRecommendationTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -201,7 +174,7 @@ const EvaluationRecommendationCompleted = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

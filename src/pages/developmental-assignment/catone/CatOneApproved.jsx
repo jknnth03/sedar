@@ -25,8 +25,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const CatOneApproved = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
 }) => {
@@ -53,6 +51,28 @@ const CatOneApproved = ({
     },
   });
 
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "KICKOFF_COMPLETE",
+      search: searchQuery || "",
+    };
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
+
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
@@ -63,18 +83,10 @@ const CatOneApproved = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatOneTaskQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "KICKOFF_COMPLETE",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatOneTaskQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catOneDetails,
@@ -91,46 +103,16 @@ const CatOneApproved = ({
   }, [catOneDetails]);
 
   const submissionsData = useMemo(() => {
-    if (!taskData?.result?.data) return [];
+    if (!taskData?.result) return [];
 
-    const data = taskData.result.data;
+    const result = taskData.result;
 
-    if (Array.isArray(data)) {
-      return data;
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
     return [];
   }, [taskData]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -211,6 +193,8 @@ const CatOneApproved = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -222,7 +206,7 @@ const CatOneApproved = ({
           backgroundColor: "white",
         }}>
         <CatOneTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -238,7 +222,7 @@ const CatOneApproved = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

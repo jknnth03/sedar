@@ -311,6 +311,7 @@ const PendingRegistrationModal = ({
     isFetchingData,
     shouldFetchData,
     initializePendingFormData,
+    clearErrors,
   ]);
 
   const handleEmploymentTypeChange = useCallback(

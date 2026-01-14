@@ -15,7 +15,13 @@ import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
+const DARecommendationCancelled = ({
+  searchQuery,
+  dateFilters,
+  filterDataByDate,
+  filterDataBySearch,
+  onCancel,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -44,24 +50,14 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    const params = {
+    return {
       page: page,
       per_page: rowsPerPage,
-      status: "active",
-      approval_status: "COMPLETED",
+      status: "CANCELLED",
       pagination: 1,
       search: searchQuery || "",
     };
-
-    if (dateFilters?.start_date) {
-      params.start_date = dateFilters.start_date;
-    }
-    if (dateFilters?.end_date) {
-      params.end_date = dateFilters.end_date;
-    }
-
-    return params;
-  }, [page, rowsPerPage, searchQuery, dateFilters]);
+  }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
     setPage(1);
@@ -83,14 +79,37 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleDaSubmissionQuery();
 
-  const submissionsList = useMemo(() => {
-    const data = submissionsData?.result?.data || [];
-    return data;
-  }, [submissionsData]);
+  const filteredSubmissions = useMemo(() => {
+    const rawData = submissionsData?.result?.data || [];
 
-  const totalCount = useMemo(() => {
-    return submissionsData?.result?.total || 0;
-  }, [submissionsData]);
+    let filtered = rawData;
+
+    if (dateFilters && filterDataByDate) {
+      filtered = filterDataByDate(
+        filtered,
+        dateFilters.startDate,
+        dateFilters.endDate
+      );
+    }
+
+    if (searchQuery && filterDataBySearch) {
+      filtered = filterDataBySearch(filtered, searchQuery);
+    }
+
+    return filtered;
+  }, [
+    submissionsData,
+    dateFilters,
+    searchQuery,
+    filterDataByDate,
+    filterDataBySearch,
+  ]);
+
+  const paginatedSubmissions = useMemo(() => {
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return filteredSubmissions.slice(startIndex, endIndex);
+  }, [filteredSubmissions, page, rowsPerPage]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -124,17 +143,21 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      const submission = filteredSubmissions.find(
+        (sub) => sub.id === submissionId
+      );
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissionsList]
+    [filteredSubmissions]
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      const submission = filteredSubmissions.find(
+        (sub) => sub.id === submissionId
+      );
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -146,7 +169,7 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
         });
       }
     },
-    [submissionsList, enqueueSnackbar]
+    [filteredSubmissions, enqueueSnackbar]
   );
 
   const handleActionConfirm = async () => {
@@ -263,7 +286,7 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
           backgroundColor: "white",
         }}>
         <DARecommendationTable
-          submissionsList={submissionsList}
+          submissionsList={paginatedSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -271,12 +294,12 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="COMPLETED"
+          statusFilter="CANCELLED"
           onCancel={handleCancel}
         />
 
         <CustomTablePagination
-          count={totalCount}
+          count={filteredSubmissions.length}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
@@ -306,4 +329,4 @@ const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
   );
 };
 
-export default DARecommendationCompleted;
+export default DARecommendationCancelled;

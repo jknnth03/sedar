@@ -14,8 +14,6 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const DataChangeCompleted = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
 }) => {
@@ -42,14 +40,25 @@ const DataChangeCompleted = ({
   });
 
   const queryParams = useMemo(() => {
-    return {
-      page: 1,
-      per_page: 10,
+    const params = {
+      page: page,
+      per_page: rowsPerPage,
       status: "active",
       pagination: 1,
       approval_status: "COMPLETED",
+      search: searchQuery || "",
     };
-  }, []);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -76,36 +85,10 @@ const DataChangeCompleted = ({
   });
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -195,7 +178,7 @@ const DataChangeCompleted = ({
           backgroundColor: "white",
         }}>
         <DataChangeForapprovalTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -211,7 +194,7 @@ const DataChangeCompleted = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

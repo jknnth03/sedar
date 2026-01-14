@@ -22,8 +22,6 @@ import { useCancelFormSubmissionMutation } from "../../../features/api/approvals
 const PdpForAssessment = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   onRowClick,
   onCancel,
 }) => {
@@ -54,13 +52,23 @@ const PdpForAssessment = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
-      pagination: 1,
       status: "FOR_ASSESSMENT",
+      search: searchQuery || "",
     };
-  }, [page, rowsPerPage]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -79,37 +87,19 @@ const PdpForAssessment = ({
 
   const [cancelPdpSubmission] = useCancelFormSubmissionMutation();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = taskData?.result?.data || [];
-
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+  const submissionsData = useMemo(() => {
+    if (!taskData?.result) {
+      return [];
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    const result = taskData.result;
+
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    return filtered;
-  }, [
-    taskData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [taskData]);
 
   const handleRowClick = useCallback(
     (submission) => {
@@ -132,9 +122,7 @@ const PdpForAssessment = ({
 
   const handleCancelSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -146,7 +134,7 @@ const PdpForAssessment = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -277,6 +265,8 @@ const PdpForAssessment = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = taskData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -288,7 +278,7 @@ const PdpForAssessment = ({
           backgroundColor: "white",
         }}>
         <PdpTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissionsData}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -305,7 +295,7 @@ const PdpForAssessment = ({
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

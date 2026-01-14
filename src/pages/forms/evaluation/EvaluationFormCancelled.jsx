@@ -12,12 +12,7 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const EvaluationFormCancelled = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -44,8 +39,10 @@ const EvaluationFormCancelled = ({
       approval_status: "CANCELLED",
       pagination: true,
       search: searchQuery || "",
+      start_date: dateFilters?.start_date,
+      end_date: dateFilters?.end_date,
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);

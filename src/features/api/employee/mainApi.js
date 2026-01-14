@@ -10,7 +10,8 @@ const mainApi = sedarApi
             pagination = 1,
             page = 1,
             per_page = 10,
-            status,
+            status = "all",
+            employment_status = "ACTIVE",
             search,
             ...otherParams
           } = params;
@@ -21,6 +22,8 @@ const mainApi = sedarApi
           if (page) queryParams.append("page", page);
           if (per_page) queryParams.append("per_page", per_page);
           if (status) queryParams.append("status", status);
+          if (employment_status)
+            queryParams.append("employment_status", employment_status);
           if (search) queryParams.append("search", search);
 
           Object.entries(otherParams).forEach(([key, value]) => {
@@ -43,9 +46,10 @@ const mainApi = sedarApi
       getAllEmployees: build.query({
         query: (params = {}) => {
           const {
-            pagination = true,
+            pagination = "none",
             page = 1,
-            status = "active",
+            status = "all",
+            employment_status = "ACTIVE",
             search,
             ...otherParams
           } = params;
@@ -55,6 +59,8 @@ const mainApi = sedarApi
           if (pagination) queryParams.append("pagination", pagination);
           if (page) queryParams.append("page", page);
           if (status) queryParams.append("status", status);
+          if (employment_status)
+            queryParams.append("employment_status", employment_status);
           if (search) queryParams.append("search", search);
 
           Object.entries(otherParams).forEach(([key, value]) => {
@@ -70,6 +76,71 @@ const mainApi = sedarApi
             url,
             method: "GET",
           };
+        },
+        providesTags: ["employees"],
+      }),
+
+      getGeneralInfo: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = "none",
+            status = "all",
+            employment_status = "ACTIVE",
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination);
+          queryParams.append("status", status);
+          queryParams.append("employment_status", employment_status);
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              queryParams.append(key, value);
+            }
+          });
+
+          const queryString = queryParams.toString();
+
+          return {
+            url: `employees/general-info?${queryString}`,
+            method: "GET",
+          };
+        },
+        providesTags: ["employees"],
+      }),
+
+      getReferredByOptions: build.query({
+        query: () => {
+          const queryParams = new URLSearchParams();
+          queryParams.append("pagination", "none");
+          queryParams.append("status", "all");
+          queryParams.append("employment_status", "ACTIVE");
+
+          return {
+            url: `employees/general-info?${queryParams.toString()}`,
+            method: "GET",
+          };
+        },
+        transformResponse: (response) => {
+          if (Array.isArray(response)) {
+            return response.map((emp) => ({
+              value: emp.id,
+              label: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
+              employee_number: emp.employee_number,
+              ...emp,
+            }));
+          }
+          if (response?.data && Array.isArray(response.data)) {
+            return response.data.map((emp) => ({
+              value: emp.id,
+              label: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
+              employee_number: emp.employee_number,
+              ...emp,
+            }));
+          }
+          return [];
         },
         providesTags: ["employees"],
       }),
@@ -222,6 +293,10 @@ export const {
   useLazyGetEmployeesQuery,
   useGetAllEmployeesQuery,
   useLazyGetAllEmployeesQuery,
+  useGetGeneralInfoQuery,
+  useLazyGetGeneralInfoQuery,
+  useGetReferredByOptionsQuery,
+  useLazyGetReferredByOptionsQuery,
   useGetSingleEmployeeQuery,
   useLazyGetSingleEmployeeQuery,
   useGetAllPositionsQuery,

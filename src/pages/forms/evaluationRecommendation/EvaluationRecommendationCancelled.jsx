@@ -4,15 +4,20 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetCatTwoTasksQuery,
-  useGetCatTwoTaskByIdQuery,
-} from "../../../features/api/da-task/catTwoApi";
+  useGetEvaluationSubmissionsQuery,
+  useLazyGetSingleEvaluationSubmissionQuery,
+} from "../../../features/api/forms/evaluationRecommendationApi";
+import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import CatTwoTable from "./CatTwoTable";
-import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
+import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const CatTwoApproved = ({ searchQuery, dateFilters }) => {
+const EvaluationRecommendationCancelled = ({
+  searchQuery,
+  dateFilters,
+  filterDataByDate,
+  filterDataBySearch,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -22,106 +27,103 @@ const CatTwoApproved = ({ searchQuery, dateFilters }) => {
   const [rowsPerPage, setRowsPerPage] = useState(
     parseInt(queryParams?.rowsPerPage) || 10
   );
-
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
+  const [modalMode, setModalMode] = useState("view");
+  const [isLoading, setIsLoading] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const methods = useForm({
-    defaultValues: {
-      template_id: null,
-      employee_id: null,
-      date_assessed: null,
-      remarks: "",
-    },
+    defaultValues: {},
   });
 
   const apiQueryParams = useMemo(() => {
-    const params = {
-      pagination: 1,
+    return {
       page: page,
       per_page: rowsPerPage,
-      status: "FINAL_COMPLETE",
+      status: "active",
+      approval_status: "CANCELLED",
+      pagination: 1,
       search: searchQuery || "",
     };
-
-    if (
-      dateFilters?.start_date !== undefined &&
-      dateFilters?.start_date !== null
-    ) {
-      params.start_date = dateFilters.start_date;
-    }
-    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
-      params.end_date = dateFilters.end_date;
-    }
-
-    return params;
-  }, [page, rowsPerPage, searchQuery, dateFilters]);
+  }, [page, rowsPerPage, searchQuery]);
 
   useEffect(() => {
     setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
-    data: taskData,
+    data: submissionsData,
     isLoading: queryLoading,
     isFetching,
     refetch,
     error,
-  } = useGetCatTwoTasksQuery(apiQueryParams, {
+  } = useGetEvaluationSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const {
-    data: catTwoDetails,
-    isLoading: detailsLoading,
-    refetch: refetchDetails,
-  } = useGetCatTwoTaskByIdQuery(selectedSubmissionId, {
-    skip: !selectedSubmissionId,
-    refetchOnMountOrArgChange: true,
-  });
+  const [
+    triggerGetSubmission,
+    { data: submissionDetails, isLoading: detailsLoading },
+  ] = useLazyGetSingleEvaluationSubmissionQuery();
 
-  const submissionDetails = useMemo(() => {
-    if (!catTwoDetails?.result) return null;
-    return catTwoDetails;
-  }, [catTwoDetails]);
+  const filteredSubmissions = useMemo(() => {
+    const rawData = submissionsData?.result?.data || [];
 
-  const submissionsData = useMemo(() => {
-    if (!taskData?.result) return [];
+    let filtered = rawData;
 
-    const result = taskData.result;
-
-    if (result.data && Array.isArray(result.data)) {
-      return result.data;
+    if (dateFilters && filterDataByDate) {
+      filtered = filterDataByDate(
+        filtered,
+        dateFilters.startDate,
+        dateFilters.endDate
+      );
     }
 
-    return [];
-  }, [taskData]);
+    if (searchQuery && filterDataBySearch) {
+      filtered = filterDataBySearch(filtered, searchQuery);
+    }
 
-  const handleRowClick = useCallback((submission) => {
-    setModalMode("view");
-    setSelectedSubmissionId(submission.id);
-    setSelectedSubmission(submission);
-    setMenuAnchor({});
-    setModalOpen(true);
-  }, []);
+    return filtered;
+  }, [
+    submissionsData,
+    dateFilters,
+    searchQuery,
+    filterDataByDate,
+    filterDataBySearch,
+  ]);
+
+  const paginatedSubmissions = useMemo(() => {
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return filteredSubmissions.slice(startIndex, endIndex);
+  }, [filteredSubmissions, page, rowsPerPage]);
+
+  const handleRowClick = useCallback(
+    async (submission) => {
+      setSelectedSubmissionId(submission.id);
+      setModalMode("view");
+      setModalOpen(true);
+      setMenuAnchor({});
+
+      try {
+        await triggerGetSubmission(submission.id);
+      } catch (error) {
+        console.error("Error fetching submission details:", error);
+      }
+    },
+    [triggerGetSubmission]
+  );
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedSubmissionId(null);
-    setSelectedSubmission(null);
+    setModalLoading(false);
     setModalMode("view");
-  }, []);
-
-  const handleRefreshDetails = useCallback(() => {
-    refetch();
-    if (selectedSubmissionId) {
-      refetchDetails();
-    }
-  }, [refetch, refetchDetails, selectedSubmissionId]);
+    methods.reset();
+  }, [methods]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -174,13 +176,7 @@ const CatTwoApproved = ({ searchQuery, dateFilters }) => {
     [setQueryParams, queryParams]
   );
 
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
-
-  const isLoadingState = queryLoading || isFetching;
-
-  const totalCount = taskData?.result?.total || 0;
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   return (
     <FormProvider {...methods}>
@@ -192,8 +188,8 @@ const CatTwoApproved = ({ searchQuery, dateFilters }) => {
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <CatTwoTable
-          submissionsList={submissionsData}
+        <EvaluationRecommendationTable
+          submissionsList={paginatedSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -201,14 +197,11 @@ const CatTwoApproved = ({ searchQuery, dateFilters }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          selectedFilters={[]}
-          showArchived={false}
-          hideStatusColumn={false}
-          forApproved={true}
+          statusFilter="CANCELLED"
         />
 
         <CustomTablePagination
-          count={totalCount}
+          count={filteredSubmissions.length}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
@@ -216,18 +209,16 @@ const CatTwoApproved = ({ searchQuery, dateFilters }) => {
         />
       </Box>
 
-      <CatTwoModal
+      <EvaluationRecommendationModal
         open={modalOpen}
         onClose={handleModalClose}
+        selectedEntry={submissionDetails}
+        isLoading={modalLoading || detailsLoading}
         mode={modalMode}
-        onModeChange={handleModeChange}
-        selectedEntry={submissionDetails?.result || selectedSubmission}
-        isLoading={detailsLoading}
-        onRefreshDetails={handleRefreshDetails}
-        forApproved={true}
+        submissionId={selectedSubmissionId}
       />
     </FormProvider>
   );
 };
 
-export default CatTwoApproved;
+export default EvaluationRecommendationCancelled;
