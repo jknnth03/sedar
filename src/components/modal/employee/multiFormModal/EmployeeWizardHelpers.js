@@ -293,7 +293,7 @@ export const initializeFormData = (initialData) => {
     pag_ibig_number: initialData?.account?.pag_ibig_number || "",
     philhealth_number: initialData?.account?.philhealth_number || "",
     tin_number: initialData?.account?.tin_number || "",
-    bank_id: initialData?.account?.bank || null,
+    bank: initialData?.account?.bank || null,
     bank_account_number: initialData?.account?.bank_account_number || "",
 
     email_address: initialData?.contacts?.email_address || "",

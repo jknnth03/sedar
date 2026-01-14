@@ -15,10 +15,14 @@ import {
   DialogContent,
   Typography,
   IconButton,
+  Button,
 } from "@mui/material";
 import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
+  Visibility as VisibilityIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import { useLazyGetAllCabinetsQuery } from "../../../../../features/api/extras/cabinets";
@@ -73,6 +77,8 @@ const FileForm = ({
   const [fileUrl, setFileUrl] = useState(null);
   const [currentFileId, setCurrentFileId] = useState(null);
   const [currentFileName, setCurrentFileName] = useState("");
+  const [previewFiles, setPreviewFiles] = useState({});
+  const [isPreviewingNewFile, setIsPreviewingNewFile] = useState(false);
 
   const [dropdownsLoaded, setDropdownsLoaded] = useState({
     fileTypes: false,
@@ -102,20 +108,24 @@ const FileForm = ({
     isLoading: isLoadingAttachment,
     error: attachmentError,
   } = useGetFileEmpAttachmentQuery(currentFileId, {
-    skip: !fileViewerOpen || !currentFileId || currentFileId === "undefined",
+    skip:
+      !fileViewerOpen ||
+      !currentFileId ||
+      currentFileId === "undefined" ||
+      isPreviewingNewFile,
   });
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
 
   useEffect(() => {
-    if (attachmentData) {
+    if (attachmentData && !isPreviewingNewFile) {
       const url = URL.createObjectURL(attachmentData);
       setFileUrl(url);
 
       return () => URL.revokeObjectURL(url);
     }
-  }, [attachmentData]);
+  }, [attachmentData, isPreviewingNewFile]);
 
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
@@ -293,6 +303,28 @@ const FileForm = ({
     return "Unknown file";
   }, []);
 
+  // File validation function
+  const validateFile = useCallback((file) => {
+    const allowedTypes = ["application/pdf"];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        message: "Only PDF files are allowed",
+      };
+    }
+
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        message: "File size must be less than 10MB",
+      };
+    }
+
+    return { isValid: true };
+  }, []);
+
   const handleFileDownload = useCallback(
     (fileUrl, fileName) => {
       if (!fileUrl) {
@@ -317,30 +349,15 @@ const FileForm = ({
     [enqueueSnackbar]
   );
 
-  const handleFileViewerOpen = useCallback(
-    (fileId, fileName) => {
-      if (
-        fileId &&
-        fileId !== "undefined" &&
-        fileId !== "null" &&
-        fileId !== undefined &&
-        fileId !== null
-      ) {
-        setCurrentFileId(String(fileId));
-        setCurrentFileName(fileName || "attachment");
-        setFileViewerOpen(true);
-      } else {
-        enqueueSnackbar("Invalid file ID", { variant: "error" });
-      }
-    },
-    [enqueueSnackbar]
-  );
-
   const handleFileViewerClose = useCallback(() => {
     setFileViewerOpen(false);
     setCurrentFileId(null);
     setCurrentFileName("");
-  }, []);
+    setIsPreviewingNewFile(false);
+    if (fileUrl && isPreviewingNewFile) {
+      setFileUrl(null);
+    }
+  }, [fileUrl, isPreviewingNewFile]);
 
   const handleDownloadFromViewer = useCallback(() => {
     if (attachmentData) {
@@ -440,7 +457,6 @@ const FileForm = ({
       initializeEmptyForm,
       processedFileTypes,
       processedFileCabinets,
-      enqueueSnackbar,
     ]
   );
 
@@ -576,10 +592,16 @@ const FileForm = ({
       const file = event.target.files[0];
 
       if (file) {
-        if (file.size > 10 * 1024 * 1024) {
+        // Validate file before accepting it
+        const validation = validateFile(file);
+
+        if (!validation.isValid) {
           setError(`files.${index}.file_attachment`, {
-            message: "File size must be less than 10MB",
+            message: validation.message,
           });
+          enqueueSnackbar(validation.message, { variant: "error" });
+          // Clear the input
+          event.target.value = "";
           return;
         }
 
@@ -593,15 +615,35 @@ const FileForm = ({
           shouldDirty: true,
         });
 
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewFiles((prev) => ({
+          ...prev,
+          [index]: objectUrl,
+        }));
+
         clearErrors(`files.${index}.file_attachment`);
+        enqueueSnackbar("File uploaded successfully", { variant: "success" });
       }
+
+      // Clear the input value to allow re-uploading the same file
+      event.target.value = "";
     },
-    [setValue, clearErrors, setError, isReadOnly]
+    [setValue, clearErrors, setError, isReadOnly, validateFile, enqueueSnackbar]
   );
 
   const handleRemoveFile = useCallback(
     (index) => {
       if (isReadOnly) return;
+
+      const currentFile = watchedFiles[index];
+      if (currentFile?.file_attachment instanceof File && previewFiles[index]) {
+        URL.revokeObjectURL(previewFiles[index]);
+        setPreviewFiles((prev) => {
+          const newPreviews = { ...prev };
+          delete newPreviews[index];
+          return newPreviews;
+        });
+      }
 
       setValue(`files.${index}.file_attachment`, null, {
         shouldValidate: false,
@@ -613,7 +655,7 @@ const FileForm = ({
         fileInput.value = "";
       }
     },
-    [setValue, clearErrors, isReadOnly]
+    [setValue, clearErrors, isReadOnly, watchedFiles, previewFiles]
   );
 
   const addFileLine = useCallback(() => {
@@ -640,10 +682,22 @@ const FileForm = ({
 
       const currentFiles = getValues("files") || [];
       if (currentFiles.length > 1) {
+        const fileToRemove = currentFiles[index];
+        if (
+          fileToRemove?.file_attachment instanceof File &&
+          previewFiles[index]
+        ) {
+          URL.revokeObjectURL(previewFiles[index]);
+          setPreviewFiles((prev) => {
+            const newPreviews = { ...prev };
+            delete newPreviews[index];
+            return newPreviews;
+          });
+        }
         remove(index);
       }
     },
-    [getValues, remove, isReadOnly]
+    [getValues, remove, isReadOnly, previewFiles]
   );
 
   const validateForm = useCallback(() => {
@@ -679,6 +733,54 @@ const FileForm = ({
 
     return true;
   }, [getValues, setError]);
+
+  const handlePreviewFile = useCallback(
+    (index) => {
+      const file = watchedFiles[index];
+
+      if (!file) {
+        enqueueSnackbar("No file to preview", { variant: "warning" });
+        return;
+      }
+
+      if (file.file_attachment instanceof File) {
+        const objectUrl = previewFiles[index];
+        if (objectUrl) {
+          setFileUrl(objectUrl);
+          setCurrentFileName(file.file_attachment.name);
+          setIsPreviewingNewFile(true);
+          setFileViewerOpen(true);
+        } else {
+          enqueueSnackbar("File preview not available", { variant: "error" });
+        }
+      } else if (file.original_file_id) {
+        const fileId = String(file.original_file_id);
+        const fileName = file.existing_file_name || "attachment";
+
+        if (fileId && fileId !== "undefined" && fileId !== "null") {
+          setCurrentFileId(fileId);
+          setCurrentFileName(fileName);
+          setIsPreviewingNewFile(false);
+          setFileViewerOpen(true);
+        } else {
+          enqueueSnackbar("Invalid file ID", { variant: "error" });
+        }
+      } else {
+        enqueueSnackbar("File not available for preview", {
+          variant: "warning",
+        });
+      }
+    },
+    [watchedFiles, previewFiles, enqueueSnackbar]
+  );
+
+  useEffect(() => {
+    return () => {
+      Object.values(previewFiles).forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
 
   const hasErrors = fileTypesError || fileCabinetsError;
 
@@ -741,7 +843,7 @@ const FileForm = ({
           height: "calc(90vh - 140px)",
           overflow: "hidden",
         }}>
-        {isLoadingAttachment ? (
+        {isLoadingAttachment && !isPreviewingNewFile ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -753,7 +855,7 @@ const FileForm = ({
               Loading attachment...
             </Typography>
           </Box>
-        ) : attachmentError ? (
+        ) : attachmentError && !isPreviewingNewFile ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -777,7 +879,7 @@ const FileForm = ({
               alignItems: "center",
               backgroundColor: "#f5f5f5",
             }}>
-            {attachmentData ? (
+            {fileUrl ? (
               <iframe
                 src={fileUrl}
                 width="100%"
@@ -845,7 +947,7 @@ const FileForm = ({
         handleFileChange={handleFileChange}
         handleRemoveFile={handleRemoveFile}
         handleFileDownload={handleFileDownload}
-        handleFileViewerOpen={handleFileViewerOpen}
+        handleFileViewerOpen={handlePreviewFile}
         addFileLine={addFileLine}
         removeFileLine={removeFileLine}
       />

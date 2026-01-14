@@ -26,12 +26,12 @@ const AccountForm = ({
     watch,
     setValue,
     getValues,
-    reset,
   } = useFormContext();
 
   const [dropdownsLoaded, setDropdownsLoaded] = useState({
     banks: false,
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [
     triggerBanks,
@@ -89,75 +89,54 @@ const AccountForm = ({
 
   const bankValue = watch("bank");
 
+  // CONSOLIDATED INITIALIZATION EFFECT - Only runs once when data is ready
   useEffect(() => {
-    if (selectedAccount && banks.length > 0) {
-      const bankData =
-        selectedAccount.bank ||
-        selectedAccount.account?.bank ||
-        selectedAccount.account_info?.bank;
+    // Skip if already initialized or banks not loaded yet
+    if (isInitialized || banks.length === 0) return;
 
-      if (
-        bankData &&
-        typeof bankData === "object" &&
-        bankData.id &&
-        !bankValue
-      ) {
-        const matchingBank = banks.find((bank) => bank.id === bankData.id);
-        if (matchingBank) {
-          setValue("bank", matchingBank, {
-            shouldValidate: false,
-            shouldDirty: false,
-          });
-        }
-      }
-    }
-  }, [selectedAccount, bankValue, banks, setValue]);
+    const bankData =
+      selectedAccount?.bank ||
+      selectedAccount?.account?.bank ||
+      selectedAccount?.account_info?.bank;
 
-  useEffect(() => {
-    if (
-      selectedAccount &&
-      (mode === "edit" || mode === "view") &&
-      banks.length > 0
-    ) {
-      const currentFormValues = getValues();
-      const bankData = selectedAccount.bank;
-
-      if (!currentFormValues.bank && bankData && bankData.id) {
-        const matchingBank = banks.find((bank) => bank.id === bankData.id);
-        if (matchingBank) {
-          setValue("bank", matchingBank, {
-            shouldValidate: false,
-            shouldDirty: false,
-          });
-        }
-      }
-    }
-  }, [selectedAccount, mode, banks, getValues, setValue]);
-
-  useEffect(() => {
-    const allFormValues = getValues();
-
-    if (allFormValues.sss_number && !bankValue && banks.length > 0) {
-      const landBank = banks.find((bank) => bank.id === 1);
-      if (landBank) {
-        setValue("bank", landBank, {
+    // Only set initial value in edit/view mode with existing data
+    if ((mode === "edit" || mode === "view") && bankData?.id) {
+      const matchingBank = banks.find((bank) => bank.id === bankData.id);
+      if (matchingBank && !bankValue) {
+        setValue("bank", matchingBank, {
           shouldValidate: false,
-          shouldDirty: false,
+          shouldDirty: true, // CHANGED: Set to true so form recognizes the change
         });
+        setIsInitialized(true);
       }
-    }
-  }, [banks, bankValue, getValues, setValue]);
-
-  useEffect(() => {
-    if (banks.length > 0 && bankValue) {
-      if (typeof bankValue === "object" && bankValue.id) {
-        const foundBank = banks.find((bank) => bank.id === bankValue.id);
-        if (foundBank && foundBank.name !== bankValue.name) {
-          setValue("bank", foundBank, { shouldValidate: false });
+    } else if (mode === "create") {
+      // In create mode, only auto-set Landbank if SSS exists and no bank selected
+      const currentFormValues = getValues();
+      if (currentFormValues.sss_number && !bankValue) {
+        const landBank = banks.find((bank) => bank.id === 1);
+        if (landBank) {
+          setValue("bank", landBank, {
+            shouldValidate: false,
+            shouldDirty: true, // CHANGED: Set to true
+          });
         }
       }
+      setIsInitialized(true);
     }
-  }, [banks, bankValue, setValue]);
+  }, [
+    banks,
+    selectedAccount,
+    mode,
+    bankValue,
+    setValue,
+    getValues,
+    isInitialized,
+  ]);
+
+  // Reset initialization when mode or selectedAccount changes
+  useEffect(() => {
+    setIsInitialized(false);
+  }, [mode, selectedAccount]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {

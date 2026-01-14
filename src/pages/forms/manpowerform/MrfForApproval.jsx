@@ -138,27 +138,39 @@ const MrfForApproval = ({
   }, []);
 
   const handleCancelSubmission = useCallback(
-    (submissionId) => {
+    async (submissionId, reason) => {
       setMenuAnchor({});
 
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
+      console.log(
+        "Cancelling submission:",
+        submissionId,
+        "with reason:",
+        reason
       );
 
-      if (submission) {
-        setTimeout(() => {
-          setSelectedSubmissionForAction(submission);
-          setConfirmAction("cancel");
-          setConfirmOpen(true);
-        }, 50);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
+      try {
+        await cancelMrfSubmission({
+          submissionId,
+          reason,
+        }).unwrap();
+
+        enqueueSnackbar("MRF submission cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+      } catch (error) {
+        console.error("Cancel error:", error);
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to cancel submission. Please try again.";
+        enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [cancelMrfSubmission, enqueueSnackbar, refetch]
   );
 
   const handleModalClose = useCallback(() => {
@@ -296,14 +308,7 @@ const MrfForApproval = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelMrfSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("MRF submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createMrfSubmission(pendingFormData).unwrap();
         enqueueSnackbar("MRF submission created successfully!", {
           variant: "success",

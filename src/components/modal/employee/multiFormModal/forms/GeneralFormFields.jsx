@@ -61,6 +61,11 @@ const GeneralFormFields = ({
   useEffect(() => {
     let timeoutId;
 
+    // Early return if not in create mode
+    if (mode !== "create") {
+      return;
+    }
+
     if (
       isManualIdEntry &&
       watchedPrefix?.id &&
@@ -551,12 +556,14 @@ const GeneralFormFields = ({
               disabled={
                 isFieldDisabled ||
                 nextIdLoading ||
-                (!isManualIdEntry && mode === "create")
+                (!isManualIdEntry && mode === "create") ||
+                mode === "edit" ||
+                mode === "view"
               }
               error={!!errors.id_number}
               helperText={errors.id_number?.message}
               InputProps={{
-                readOnly: isReadOnly,
+                readOnly: isReadOnly || mode === "edit",
                 endAdornment:
                   mode === "create" && !isReadOnly ? (
                     <InputAdornment position="end">
@@ -605,7 +612,9 @@ const GeneralFormFields = ({
                       </Tooltip>
                     </InputAdornment>
                   ) : (nextIdLoading && mode === "create") ||
-                    (uniqueCheckLoading && isManualIdEntry) ? (
+                    (uniqueCheckLoading &&
+                      isManualIdEntry &&
+                      mode === "create") ? (
                     <InputAdornment position="end">
                       <CircularProgress
                         size={20}
@@ -617,7 +626,9 @@ const GeneralFormFields = ({
                   ) : null,
               }}
               placeholder={
-                nextIdLoading
+                mode === "edit" || mode === "view"
+                  ? ""
+                  : nextIdLoading
                   ? "Generating ID..."
                   : isManualIdEntry
                   ? "Enter ID manually"

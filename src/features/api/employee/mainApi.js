@@ -1,7 +1,7 @@
 import { sedarApi } from "..";
 
 const mainApi = sedarApi
-  .enhanceEndpoints({ addTagTypes: ["employees"] })
+  .enhanceEndpoints({ addTagTypes: ["employees", "positions"] })
   .injectEndpoints({
     endpoints: (build) => ({
       getEmployees: build.query({
@@ -40,7 +40,16 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: (result) =>
+          result?.data
+            ? [
+                { type: "employees", id: "LIST" },
+                ...result.data.map((emp) => ({
+                  type: "employees",
+                  id: emp.id,
+                })),
+              ]
+            : [{ type: "employees", id: "LIST" }],
       }),
 
       getAllEmployees: build.query({
@@ -77,7 +86,7 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "ALL_LIST" }],
       }),
 
       getGeneralInfo: build.query({
@@ -108,7 +117,7 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "GENERAL_INFO" }],
       }),
 
       getReferredByOptions: build.query({
@@ -142,7 +151,7 @@ const mainApi = sedarApi
           }
           return [];
         },
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "REFERRED_BY_OPTIONS" }],
       }),
 
       getSingleEmployee: build.query({
@@ -152,7 +161,6 @@ const mainApi = sedarApi
         }),
         providesTags: (result, error, employeeId) => [
           { type: "employees", id: employeeId },
-          "employees",
         ],
       }),
 
@@ -161,7 +169,7 @@ const mainApi = sedarApi
           url: `positions/manpower-options`,
           method: "GET",
         }),
-        providesTags: ["employees"],
+        providesTags: ["positions"],
       }),
 
       getAllApprovedMrf: build.query({
@@ -189,7 +197,7 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "REPLACEMENT_OPTIONS" }],
       }),
 
       getEmployeeRegistrationCounts: build.query({
@@ -197,7 +205,7 @@ const mainApi = sedarApi
           url: "me/employee-registrations/counts",
           method: "GET",
         }),
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "REGISTRATION_COUNTS" }],
       }),
 
       createEmployee: build.mutation({
@@ -260,7 +268,12 @@ const mainApi = sedarApi
             };
           }
         },
-        invalidatesTags: ["employees"],
+        invalidatesTags: [
+          { type: "employees", id: "LIST" },
+          { type: "employees", id: "ALL_LIST" },
+          { type: "employees", id: "GENERAL_INFO" },
+          { type: "employees", id: "REGISTRATION_COUNTS" },
+        ],
       }),
 
       updateEmployee: build.mutation({
@@ -271,7 +284,9 @@ const mainApi = sedarApi
         }),
         invalidatesTags: (result, error, body) => [
           { type: "employees", id: body?.id },
-          "employees",
+          { type: "employees", id: "LIST" },
+          { type: "employees", id: "ALL_LIST" },
+          { type: "employees", id: "GENERAL_INFO" },
         ],
       }),
 
@@ -282,7 +297,10 @@ const mainApi = sedarApi
         }),
         invalidatesTags: (result, error, employeeId) => [
           { type: "employees", id: employeeId },
-          "employees",
+          { type: "employees", id: "LIST" },
+          { type: "employees", id: "ALL_LIST" },
+          { type: "employees", id: "GENERAL_INFO" },
+          { type: "employees", id: "REGISTRATION_COUNTS" },
         ],
       }),
     }),

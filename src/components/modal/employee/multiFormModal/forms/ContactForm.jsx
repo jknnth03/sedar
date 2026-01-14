@@ -100,8 +100,18 @@ const ContactForm = ({
         setValue("email_address", selectedContacts.email_address);
       }
 
-      if (selectedContacts.contact_remarks) {
-        setValue("contact_remarks", selectedContacts.contact_remarks);
+      if (selectedContacts.mobile_number_remarks) {
+        setValue(
+          "mobile_number_remarks",
+          selectedContacts.mobile_number_remarks
+        );
+      }
+
+      if (selectedContacts.email_address_remarks) {
+        setValue(
+          "email_address_remarks",
+          selectedContacts.email_address_remarks
+        );
       }
     }
   }, [selectedContacts, mode, setValue, formatPhoneNumber]);
@@ -157,7 +167,7 @@ const ContactForm = ({
 
         <Grid item xs={12} sm={6} sx={{ minWidth: "547px", maxWidth: "547px" }}>
           <Controller
-            name="mobile_remarks"
+            name="mobile_number_remarks"
             control={control}
             render={({ field }) => (
               <TextField
@@ -212,7 +222,7 @@ const ContactForm = ({
 
         <Grid item xs={12} sm={6} sx={{ minWidth: "547px", maxWidth: "547px" }}>
           <Controller
-            name="email_remarks"
+            name="email_address_remarks"
             control={control}
             render={({ field }) => (
               <TextField

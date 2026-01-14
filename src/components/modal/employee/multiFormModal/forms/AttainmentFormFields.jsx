@@ -15,7 +15,8 @@ import {
   CircularProgress,
   IconButton,
 } from "@mui/material";
-import { Close, AttachFile } from "@mui/icons-material";
+import { Close, AttachFile, Visibility } from "@mui/icons-material";
+import { useSnackbar } from "notistack";
 
 import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsEmpApi";
 
@@ -40,7 +41,11 @@ const AttainmentFormFields = ({
     control,
     formState: { errors },
     setValue,
+    setError,
+    clearErrors,
   } = useFormContext();
+
+  const { enqueueSnackbar } = useSnackbar();
 
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [currentAttachmentId, setCurrentAttachmentId] = useState(null);
@@ -52,7 +57,7 @@ const AttainmentFormFields = ({
 
   const { data: attachmentData, isLoading: isLoadingAttachment } =
     useGetAttainmentAttachmentQuery(currentAttachmentId, {
-      skip: !currentAttachmentId || isNewFile,
+      skip: !currentAttachmentId || isNewFile || !fileViewerOpen,
     });
 
   useEffect(() => {
@@ -109,15 +114,48 @@ const AttainmentFormFields = ({
     };
   };
 
+  const validateFile = (file) => {
+    const allowedTypes = ["application/pdf"];
+    const maxSize = 10 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        message: "Only PDF files are allowed",
+      };
+    }
+
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        message: "File size must be less than 10MB",
+      };
+    }
+
+    return { isValid: true };
+  };
+
   const handleInternalFileChange = useCallback(
     (event) => {
       const file = event.target.files?.[0];
       if (file) {
+        const validation = validateFile(file);
+
+        if (!validation.isValid) {
+          setError("attainment_attachment", {
+            message: validation.message,
+          });
+          enqueueSnackbar(validation.message, { variant: "error" });
+          event.target.value = "";
+          return;
+        }
+
         setValue("attainment_attachment", file);
         setValue("attachment_filename", file.name);
         setValue("existing_attachment_filename", null);
         setValue("attachment_url", null);
         setValue("existing_attachment_url", null);
+        clearErrors("attainment_attachment");
 
         if (handleFileChange) {
           handleFileChange(event);
@@ -125,7 +163,7 @@ const AttainmentFormFields = ({
       }
       event.target.value = "";
     },
-    [setValue, handleFileChange]
+    [setValue, handleFileChange, setError, clearErrors, enqueueSnackbar]
   );
 
   const handleFileViewerOpen = useCallback(() => {
@@ -792,27 +830,21 @@ const AttainmentFormFields = ({
                       {getFileName(getDisplayFilename())}
                     </Typography>
 
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Button
-                        variant="contained"
-                        size="medium"
-                        disabled={isLoading}
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <IconButton
                         onClick={handleFileViewerOpen}
+                        disabled={isLoading}
                         sx={{
-                          textTransform: "none",
-                          backgroundColor: "#1976d2",
-                          color: "#fff",
-                          fontWeight: 600,
-                          px: 3,
+                          color: "#1976d2",
                           "&:hover": {
-                            backgroundColor: "#1565c0",
+                            backgroundColor: "rgba(25, 118, 210, 0.08)",
                           },
                         }}>
-                        View File
-                      </Button>
+                        <Visibility />
+                      </IconButton>
 
                       <input
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        accept=".pdf"
                         style={{ display: "none" }}
                         id="attainment-file-input-replace"
                         type="file"
@@ -844,7 +876,7 @@ const AttainmentFormFields = ({
                 ) : (
                   <>
                     <input
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      accept=".pdf"
                       style={{ display: "none" }}
                       id="attainment-file-input"
                       type="file"
@@ -902,7 +934,7 @@ const AttainmentFormFields = ({
                               color: "#666",
                               fontSize: "0.8rem",
                             }}>
-                            Supported formats: PDF, DOC, DOCX, JPG, PNG
+                            Supported format: PDF only (Max: 10MB)
                           </Typography>
                         </Box>
                       </Button>
@@ -921,18 +953,31 @@ const AttainmentFormFields = ({
                   minHeight: "60px",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
+                  justifyContent: "space-between",
                 }}>
                 {hasExistingFile() ? (
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      color: "#666",
-                      fontWeight: 600,
-                      fontSize: "0.95rem",
-                    }}>
-                    {getFileName(getDisplayFilename())}
-                  </Typography>
+                  <>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: "#666",
+                        fontWeight: 600,
+                        fontSize: "0.95rem",
+                        flex: 1,
+                      }}>
+                      {getFileName(getDisplayFilename())}
+                    </Typography>
+                    <IconButton
+                      onClick={handleFileViewerOpen}
+                      sx={{
+                        color: "#1976d2",
+                        "&:hover": {
+                          backgroundColor: "rgba(25, 118, 210, 0.08)",
+                        },
+                      }}>
+                      <Visibility />
+                    </IconButton>
+                  </>
                 ) : (
                   <Typography
                     variant="body2"

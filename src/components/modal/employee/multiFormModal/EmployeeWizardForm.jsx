@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
@@ -137,7 +137,6 @@ const EmployeeWizardForm = ({
   const isDisabled = isSubmitting || blockAllInteractions;
   const canEdit = hasEnableEditPermission;
 
-  // Check if employee status is INACTIVE
   const isEmployeeInactive =
     initialData?.status === "INACTIVE" ||
     initialData?.general_info?.status === "INACTIVE";
@@ -168,6 +167,47 @@ const EmployeeWizardForm = ({
     if (onClose) onClose();
   };
 
+  const collectAttainmentData = useCallback(() => {
+    const formValues = getValues();
+
+    const hasAttainmentData =
+      formValues.program_id &&
+      formValues.degree_id &&
+      formValues.honor_title_id &&
+      formValues.attainment_id;
+
+    if (hasAttainmentData) {
+      const attainmentEntry = {
+        program_id: formValues.program_id,
+        program: formValues.program_id,
+        degree_id: formValues.degree_id,
+        degree: formValues.degree_id,
+        honor_title_id: formValues.honor_title_id,
+        honor_title: formValues.honor_title_id,
+        attainment_id: formValues.attainment_id,
+        attainment: formValues.attainment_id,
+        academic_year_from: formValues.academic_year_from,
+        academic_year_to: formValues.academic_year_to,
+        gpa: formValues.gpa,
+        institution: formValues.institution,
+        attainment_remarks: formValues.attainment_remarks,
+        attainment_attachment: formValues.attainment_attachment,
+        attachment_filename:
+          formValues.attachment_filename ||
+          formValues.existing_attachment_filename,
+        attainment_attachment_filename:
+          formValues.attachment_filename ||
+          formValues.existing_attachment_filename,
+        existing_attachment_filename: formValues.existing_attachment_filename,
+        existing_attachment_url: formValues.existing_attachment_url,
+        attachment_url: formValues.existing_attachment_url,
+        id: formValues.id,
+      };
+
+      setValue("attainments", [attainmentEntry], { shouldValidate: false });
+    }
+  }, [getValues, setValue]);
+
   const { onSubmit, handleUpdateAtStep, onError } = useFormSubmission({
     isDisabled,
     isCreateMode,
@@ -195,6 +235,29 @@ const EmployeeWizardForm = ({
     isDisabled,
     isViewMode,
     getValues
+  );
+
+  const enhancedHandleNext = useCallback(() => {
+    if (isDisabled) return;
+
+    if (activeStep === 4) {
+      collectAttainmentData();
+    }
+
+    handleNext();
+  }, [isDisabled, activeStep, collectAttainmentData, handleNext]);
+
+  const enhancedHandleStepClick = useCallback(
+    (stepIndex) => {
+      if (!isViewMode || isDisabled) return;
+
+      if (activeStep === 4 && stepIndex !== 4) {
+        collectAttainmentData();
+      }
+
+      handleStepClick(stepIndex);
+    },
+    [isViewMode, isDisabled, activeStep, collectAttainmentData, handleStepClick]
   );
 
   useEffect(() => {
@@ -488,7 +551,7 @@ const EmployeeWizardForm = ({
                       isViewMode && !isDisabled ? { opacity: 0.7 } : {},
                     opacity: isDisabled ? 0.6 : 1,
                   }}
-                  onClick={() => handleStepClick(index)}
+                  onClick={() => enhancedHandleStepClick(index)}
                   StepIconComponent={renderStepIcon}>
                   {label}
                 </StepLabel>
@@ -550,7 +613,7 @@ const EmployeeWizardForm = ({
         hasErrors={hasErrors}
         handleUpdateAtStep={handleUpdateAtStep}
         handleBack={handleBack}
-        handleNext={handleNext}
+        handleNext={enhancedHandleNext}
         handleClose={handleClose}
         handleSubmit={handleSubmit}
         onSubmit={onSubmit}

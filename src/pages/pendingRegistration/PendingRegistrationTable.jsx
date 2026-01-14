@@ -7,7 +7,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   CircularProgress,
   Typography,
   Box,
@@ -19,11 +18,6 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Skeleton,
 } from "@mui/material";
 import {
@@ -32,6 +26,7 @@ import {
   History as HistoryIcon,
 } from "@mui/icons-material";
 import PendingRegistrationDialog from "./PendingRegistrationDialog";
+import ConfirmationDialog from "../../styles/ConfirmationDialog";
 import { useCancelFormSubmissionMutation } from "../../features/api/approvalsetting/formSubmissionApi";
 import pendingApi from "../../features/api/employee/pendingApi";
 import mainApi from "../../features/api/employee/mainApi";
@@ -65,6 +60,7 @@ const PendingRegistrationTable = ({
   const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
   const [pendingCancelRegistration, setPendingCancelRegistration] =
     useState(null);
+  const [cancelRemarks, setCancelRemarks] = useState("");
 
   const [cancelFormSubmission, { isLoading: isCancelling }] =
     useCancelFormSubmissionMutation();
@@ -111,38 +107,14 @@ const PendingRegistrationTable = ({
     if (!shouldEnableCancelButton(registration)) return;
     handleMenuClose();
     setPendingCancelRegistration(registration);
+    setCancelRemarks("");
     setShowCancelConfirmDialog(true);
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!pendingCancelRegistration) return;
-
-    setIsProcessing(true);
-    setShowCancelConfirmDialog(false);
-
-    try {
-      const submissionId =
-        pendingCancelRegistration?.id ||
-        pendingCancelRegistration?.submission_id;
-      await cancelFormSubmission(submissionId).unwrap();
-
-      dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
-      dispatch(mainApi.util.invalidateTags(["employees"]));
-      dispatch(moduleApi.util.invalidateTags(["dashboard"]));
-
-      if (onRefetch) {
-        onRefetch();
-      }
-    } catch (error) {
-    } finally {
-      setIsProcessing(false);
-      setPendingCancelRegistration(null);
-    }
   };
 
   const handleCancelDialogClose = () => {
     setShowCancelConfirmDialog(false);
     setPendingCancelRegistration(null);
+    setCancelRemarks("");
   };
 
   const renderStatusChip = useCallback((registration) => {
@@ -445,27 +417,6 @@ const PendingRegistrationTable = ({
         </Table>
       </TableContainer>
 
-      {!isLoadingState &&
-        !error &&
-        filteredPendingList.length > 0 &&
-        paginationData && (
-          <Box sx={styles.paginationContainer}>
-            <TablePagination
-              component="div"
-              count={paginationData?.total || 0}
-              page={(paginationData?.current_page || 1) - 1}
-              onPageChange={onPageChange}
-              rowsPerPage={paginationData?.per_page || 10}
-              onRowsPerPageChange={onRowsPerPageChange}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              labelRowsPerPage="Rows per page:"
-              labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
-              }
-            />
-          </Box>
-        )}
-
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -503,131 +454,32 @@ const PendingRegistrationTable = ({
         </MenuItem>
       </Menu>
 
-      <Dialog
+      <ConfirmationDialog
         open={showCancelConfirmDialog}
         onClose={handleCancelDialogClose}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            padding: 2,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            textAlign: "center",
-          },
-        }}>
-        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 2,
-            }}>
-            <Box
-              sx={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                backgroundColor: "#ff4400",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-              <Typography
-                sx={{
-                  color: "white",
-                  fontSize: "30px",
-                  fontWeight: "normal",
-                }}>
-                ?
-              </Typography>
-            </Box>
-          </Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 600,
-              color: "rgb(25, 45, 84)",
-              marginBottom: 0,
-            }}>
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              marginBottom: 2,
-              fontSize: "16px",
-              color: "#333",
-              fontWeight: 400,
-            }}>
-            Are you sure you want to <strong>Cancel</strong> this registration?
-          </Typography>
-          {pendingCancelRegistration && (
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getFullName(pendingCancelRegistration)} - ID:{" "}
-              {pendingCancelRegistration?.id}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions
-          sx={{
-            justifyContent: "center",
-            padding: 0,
-            marginTop: 3,
-            gap: 2,
-          }}>
-          <Button
-            onClick={handleCancelDialogClose}
-            variant="outlined"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              borderColor: "#f44336",
-              color: "#f44336",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                borderColor: "#d32f2f",
-                backgroundColor: "rgba(244, 67, 54, 0.04)",
-              },
-            }}
-            disabled={isProcessing}>
-            CANCEL
-          </Button>
-          <Button
-            onClick={handleConfirmCancel}
-            variant="contained"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              backgroundColor: "#4caf50",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                backgroundColor: "#388e3c",
-              },
-            }}
-            disabled={isProcessing}>
-            {isProcessing ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              "CONFIRM"
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmCancel}
+        isLoading={isProcessing}
+        action="cancel"
+        itemId={pendingCancelRegistration?.id}
+        itemName={`${getFullName(pendingCancelRegistration)} - ID: ${
+          pendingCancelRegistration?.id || "N/A"
+        }`}
+        module="Employee Registration"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        onSuccess={() => {
+          dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
+          dispatch(mainApi.util.invalidateTags(["employees"]));
+          dispatch(moduleApi.util.invalidateTags(["dashboard"]));
+          if (onRefetch) {
+            onRefetch();
+          }
+        }}
+      />
 
       <PendingRegistrationDialog
         historyDialogOpen={historyDialogOpen}

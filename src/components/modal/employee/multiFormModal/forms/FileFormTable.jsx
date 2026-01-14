@@ -41,23 +41,9 @@ const FileFormTable = ({
 
   const handleFileViewerClick = useCallback(
     (index) => {
-      const fileId =
-        watchedFiles[index]?.original_file_id ||
-        watchedFiles[index]?.id ||
-        watchedFiles[index]?.file_id;
-
-      if (fileId && fileId !== "undefined" && fileId !== "null") {
-        const fileName = getFileName(watchedFiles[index].existing_file_name);
-        handleFileViewerOpen(fileId, fileName);
-      } else {
-        console.error(
-          "No valid file ID found for file at index:",
-          index,
-          watchedFiles[index]
-        );
-      }
+      handleFileViewerOpen(index);
     },
-    [watchedFiles, getFileName, handleFileViewerOpen]
+    [handleFileViewerOpen]
   );
 
   return (
@@ -313,7 +299,8 @@ const FileFormTable = ({
                       </Button>
                     </label>
 
-                    {watchedFiles?.[index]?.existing_file_name &&
+                    {(watchedFiles?.[index]?.file_attachment instanceof File ||
+                      watchedFiles?.[index]?.existing_file_name) &&
                       !isReadOnly && (
                         <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
                           <IconButton
@@ -343,7 +330,7 @@ const FileFormTable = ({
                         sx={{
                           minWidth: "auto",
                           padding: "8px",
-                          ml: watchedFiles?.[index]?.existing_file_name ? 0 : 1,
+                          ml: 0,
                           "&:hover": {
                             backgroundColor: "rgba(211, 47, 47, 0.08)",
                           },

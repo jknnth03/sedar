@@ -9,8 +9,8 @@ import {
   Button,
   Typography,
   CircularProgress,
-  TablePagination,
   useTheme,
+  TablePagination,
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
@@ -20,7 +20,6 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 import pendingApi from "../../features/api/employee/pendingApi";
 import mainApi from "../../features/api/employee/mainApi";
 import moduleApi from "../../features/api/usermanagement/dashboardApi";
-import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
 
@@ -44,6 +43,7 @@ const PendingRegistrationForapproval = ({
   searchQuery,
   startDate,
   endDate,
+  onRowClick,
 }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -52,17 +52,12 @@ const PendingRegistrationForapproval = ({
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [localSearchQuery, setLocalSearchQuery] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedEmployeeForAction, setSelectedEmployeeForAction] =
     useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null);
 
   const methods = useForm();
 
@@ -116,7 +111,7 @@ const PendingRegistrationForapproval = ({
 
   const employeesList = useMemo(() => {
     const data = employeesData?.result?.data || employeesData?.data || [];
-    return data;
+    return Array.isArray(data) ? data : [];
   }, [employeesData]);
 
   const paginationData = useMemo(() => {
@@ -168,53 +163,6 @@ const PendingRegistrationForapproval = ({
   const handleSearchChange = useCallback((newSearchQuery) => {
     setLocalSearchQuery(newSearchQuery);
     setPage(1);
-  }, []);
-
-  const handleRowClick = useCallback(
-    async (employee) => {
-      setModalLoading(true);
-      try {
-        const submittableId = employee?.submittable?.id;
-
-        if (!submittableId) {
-          throw new Error("Submittable ID not found for this record");
-        }
-
-        const result = await getSingleEmployee(submittableId).unwrap();
-        setSelectedEmployee(result?.result || employee);
-        setModalMode("view");
-        setModalOpen(true);
-      } catch (error) {
-        enqueueSnackbar("Failed to load employee details", {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        setSelectedEmployee(employee);
-        setModalMode("view");
-        setModalOpen(true);
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [getSingleEmployee, enqueueSnackbar]
-  );
-
-  const handleModalClose = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEmployee(null);
-    setModalMode("view");
-    methods.reset();
-    setPendingFormData(null);
-  }, [methods]);
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
-
-  const handleModalSave = useCallback(async (employeeData, mode) => {
-    setPendingFormData(employeeData);
-    setConfirmAction("update");
-    setConfirmOpen(true);
   }, []);
 
   const handleApproveEmployee = useCallback(
@@ -349,17 +297,11 @@ const PendingRegistrationForapproval = ({
     if (!confirmAction) return;
 
     setIsLoading(true);
-    setModalLoading(true);
 
     try {
       let successMessage = "";
 
       switch (confirmAction) {
-        case "update":
-          if (pendingFormData && selectedEmployee) {
-            successMessage = "Employee registration updated successfully!";
-          }
-          break;
         case "approve":
           if (selectedEmployeeForAction) {
             if (!canApproveEmployee(selectedEmployeeForAction)) {
@@ -391,19 +333,11 @@ const PendingRegistrationForapproval = ({
         });
       }
 
-      dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
-      dispatch(mainApi.util.invalidateTags(["employees"]));
-      dispatch(moduleApi.util.invalidateTags(["dashboard"]));
-
       refetch();
-      handleModalClose();
     } catch (error) {
       let errorMessage = "Action failed. Please try again.";
 
-      if (confirmAction === "update") {
-        errorMessage =
-          "Failed to update employee registration. Please try again.";
-      } else if (confirmAction === "approve") {
+      if (confirmAction === "approve") {
         if (error?.data?.message) {
           errorMessage = error.data.message;
         } else if (error?.message) {
@@ -430,8 +364,6 @@ const PendingRegistrationForapproval = ({
       setSelectedEmployeeForAction(null);
       setConfirmAction(null);
       setIsLoading(false);
-      setModalLoading(false);
-      setPendingFormData(null);
     }
   };
 
@@ -449,7 +381,6 @@ const PendingRegistrationForapproval = ({
     if (!confirmAction) return "";
 
     const messages = {
-      update: "Are you sure you want to update this employee registration?",
       approve: "Are you sure you want to approve this employee registration?",
       reject: (
         <>
@@ -466,7 +397,6 @@ const PendingRegistrationForapproval = ({
     if (!confirmAction) return "Confirmation";
 
     const titles = {
-      update: "Confirmation",
       approve: "Confirmation",
       reject: "Confirmation",
     };
@@ -478,7 +408,6 @@ const PendingRegistrationForapproval = ({
     if (!confirmAction) return "CONFIRM";
 
     const texts = {
-      update: "CONFIRM",
       approve: "CONFIRM",
       reject: "CONFIRM",
     };
@@ -487,28 +416,17 @@ const PendingRegistrationForapproval = ({
   }, [confirmAction]);
 
   const getEmployeeDisplayName = useCallback(() => {
-    if (confirmAction === "update") {
-      return (
-        selectedEmployee?.submittable?.general_info?.full_name ||
-        selectedEmployee?.full_name ||
-        selectedEmployee?.name ||
-        "Employee Registration"
-      );
-    }
     return (
       selectedEmployeeForAction?.submittable?.general_info?.full_name ||
       selectedEmployeeForAction?.full_name ||
       selectedEmployeeForAction?.name ||
       "Employee"
     );
-  }, [confirmAction, selectedEmployee, selectedEmployeeForAction]);
+  }, [selectedEmployeeForAction]);
 
   const getEmployeeId = useCallback(() => {
-    if (confirmAction === "update") {
-      return selectedEmployee?.id || "Unknown";
-    }
     return selectedEmployeeForAction?.id || "Unknown";
-  }, [confirmAction, selectedEmployee, selectedEmployeeForAction]);
+  }, [selectedEmployeeForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
@@ -521,7 +439,7 @@ const PendingRegistrationForapproval = ({
             isLoadingState={isLoadingState}
             error={error}
             searchQuery={effectiveSearchQuery}
-            handleRowClick={handleRowClick}
+            handleRowClick={onRowClick}
             handleActionClick={handleActionClick}
             handleMenuOpen={handleMenuOpen}
             handleMenuClose={handleMenuClose}
@@ -673,25 +591,6 @@ const PendingRegistrationForapproval = ({
             </Button>
           </DialogActions>
         </Dialog>
-
-        <PendingRegistrationModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          onSave={handleModalSave}
-          onApprove={handleApproveEmployee}
-          onReject={handleRejectEmployee}
-          initialData={selectedEmployee}
-          isLoading={modalLoading}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          canApprove={
-            selectedEmployee ? canApproveEmployee(selectedEmployee) : false
-          }
-          canReject={
-            selectedEmployee ? canRejectEmployee(selectedEmployee) : false
-          }
-          onRefetch={refetch}
-        />
       </Box>
     </FormProvider>
   );

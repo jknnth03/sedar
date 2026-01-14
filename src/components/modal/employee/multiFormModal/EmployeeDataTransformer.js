@@ -299,8 +299,8 @@ export const transformEmployeeData = (formData) => {
 
     email_address: cleanedData.email_address || "",
     mobile_number: cleanedData.mobile_number || "",
-    email_address_remarks: cleanedData.contact_remarks || "",
-    mobile_number_remarks: cleanedData.contact_remarks || "",
+    email_address_remarks: cleanedData.email_address_remarks || "",
+    mobile_number_remarks: cleanedData.mobile_number_remarks || "",
 
     manpower_form_id: manpowerFormId,
 

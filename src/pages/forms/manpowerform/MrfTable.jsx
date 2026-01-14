@@ -23,6 +23,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import MrfHistoryDialog from "./MrfHistoryDialog";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
 
 const MrfTable = ({
@@ -43,6 +44,11 @@ const MrfTable = ({
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedMrfHistory, setSelectedMrfHistory] = React.useState(null);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [selectedSubmissionForCancel, setSelectedSubmissionForCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const renderPosition = (positionTitle, jobLevel) => {
     if (!positionTitle) return "-";
@@ -128,9 +134,15 @@ const MrfTable = ({
   const handleCancelClick = (e, submission) => {
     e.stopPropagation();
     handleMenuClose(submission.id);
-    if (onCancel) {
-      onCancel(submission.id);
-    }
+    setSelectedSubmissionForCancel(submission);
+    setCancelRemarks("");
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelDialogClose = () => {
+    setShowCancelDialog(false);
+    setSelectedSubmissionForCancel(null);
+    setCancelRemarks("");
   };
 
   const handleUpdateClick = (submission) => {
@@ -450,6 +462,27 @@ const MrfTable = ({
           </TableBody>
         </Table>
       </TableContainer>
+
+      <ConfirmationDialog
+        open={showCancelDialog}
+        onClose={handleCancelDialogClose}
+        isLoading={isCancelling}
+        action="cancel"
+        itemId={selectedSubmissionForCancel?.id}
+        itemName={`${selectedSubmissionForCancel?.reference_number || "N/A"}`}
+        module="Manpower Requisition Form"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        onSuccess={() => {
+          if (onCancel) {
+            onCancel();
+          }
+        }}
+      />
 
       <MrfHistoryDialog
         historyDialogOpen={historyDialogOpen}

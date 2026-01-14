@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,6 +10,8 @@ import {
   CircularProgress,
   TextField,
 } from "@mui/material";
+import { useCancelFormSubmissionMutation } from "../features/api/approvalsetting/formSubmissionApi";
+import { useSnackbar } from "notistack";
 
 const ConfirmationDialog = ({
   open,
@@ -18,6 +20,7 @@ const ConfirmationDialog = ({
   isLoading = false,
   action = "",
   itemName = "",
+  itemId = null,
   module = "Manpower Requisition Form",
   showRemarks = false,
   remarks = "",
@@ -25,7 +28,14 @@ const ConfirmationDialog = ({
   remarksRequired = false,
   remarksLabel = "Remarks (Optional)",
   remarksPlaceholder = "Add any additional remarks...",
+  onSuccess = () => {},
 }) => {
+  const { enqueueSnackbar } = useSnackbar();
+  const [cancelFormSubmission, { isLoading: isCancelling }] =
+    useCancelFormSubmissionMutation();
+  const [localRemarks, setLocalRemarks] = useState("");
+  const [remarksError, setRemarksError] = useState("");
+
   const getActionConfig = () => {
     switch (action) {
       case "approve":
@@ -52,12 +62,79 @@ const ConfirmationDialog = ({
   };
 
   const actionConfig = getActionConfig();
-  const hasRemarksError = remarksRequired && !remarks.trim();
+  const currentRemarks = remarks || localRemarks;
+  const hasRemarksError = remarksRequired && !currentRemarks.trim();
+
+  const handleRemarksChange = (value) => {
+    setLocalRemarks(value);
+    if (onRemarksChange) {
+      onRemarksChange(value);
+    }
+    if (remarksError) {
+      setRemarksError("");
+    }
+  };
+
+  const handleClose = () => {
+    if (!isLoading && !isCancelling) {
+      setLocalRemarks("");
+      setRemarksError("");
+      onClose();
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (action === "cancel" && itemId) {
+      if (!currentRemarks.trim()) {
+        setRemarksError("Remarks are required for cancellation");
+        return;
+      }
+
+      try {
+        const result = await cancelFormSubmission({
+          submissionId: itemId,
+          reason: currentRemarks.trim(),
+        }).unwrap();
+
+        enqueueSnackbar("Request cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        setLocalRemarks("");
+        setRemarksError("");
+        onClose();
+
+        if (onSuccess) {
+          onSuccess();
+        }
+      } catch (error) {
+        console.error("Cancel error:", error);
+        const errorMessage =
+          error?.data?.message || "Failed to cancel request. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    } else {
+      if (remarksRequired && !currentRemarks.trim()) {
+        setRemarksError("Remarks are required");
+        return;
+      }
+
+      if (onConfirm) {
+        onConfirm();
+      }
+    }
+  };
+
+  const isProcessing = isLoading || isCancelling;
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="xs"
       fullWidth
       PaperProps={{
@@ -138,13 +215,17 @@ const ConfirmationDialog = ({
             rows={3}
             label={remarksLabel}
             placeholder={remarksPlaceholder}
-            value={remarks}
-            onChange={(e) => onRemarksChange(e.target.value)}
+            value={currentRemarks}
+            onChange={(e) => handleRemarksChange(e.target.value)}
             required={remarksRequired}
-            error={hasRemarksError}
+            error={!!remarksError || hasRemarksError}
             helperText={
-              hasRemarksError ? "Remarks are required for rejection" : ""
+              remarksError ||
+              (hasRemarksError
+                ? "Remarks are required"
+                : `${currentRemarks.length} characters`)
             }
+            disabled={isProcessing}
             sx={{
               marginTop: 2,
               "& .MuiOutlinedInput-root": {
@@ -162,7 +243,7 @@ const ConfirmationDialog = ({
           gap: 2,
         }}>
         <Button
-          onClick={onClose}
+          onClick={handleClose}
           variant="outlined"
           sx={{
             textTransform: "uppercase",
@@ -177,11 +258,11 @@ const ConfirmationDialog = ({
               backgroundColor: "rgba(244, 67, 54, 0.04)",
             },
           }}
-          disabled={isLoading}>
+          disabled={isProcessing}>
           CANCEL
         </Button>
         <Button
-          onClick={onConfirm}
+          onClick={handleConfirm}
           variant="contained"
           sx={{
             textTransform: "uppercase",
@@ -194,8 +275,8 @@ const ConfirmationDialog = ({
               backgroundColor: "#388e3c",
             },
           }}
-          disabled={isLoading || hasRemarksError}>
-          {isLoading ? (
+          disabled={isProcessing || hasRemarksError}>
+          {isProcessing ? (
             <CircularProgress size={20} color="inherit" />
           ) : (
             "CONFIRM"

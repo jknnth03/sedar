@@ -660,7 +660,8 @@ export const createFlattenedEmployeeSchema = () => {
         /^\d{3}-\d{3}-\d{4}$/,
         "Mobile Number format should be XXX-XXX-XXXX."
       ),
-    contact_remarks: yup.string().nullable(),
+    mobile_number_remarks: yup.string().nullable(),
+    email_address_remarks: yup.string().nullable(),
 
     files: yup.array().of(
       yup.object().shape({

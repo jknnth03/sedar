@@ -870,7 +870,6 @@ const PendingRegistration = () => {
             mode={createModalMode}
             initialData={editData}
             onSubmit={handleCreateSubmit}
-            refetchQueries={[refetchCounts, refetchDashboard]}
           />
         </Box>
       </FormProvider>

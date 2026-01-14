@@ -316,27 +316,6 @@ export const useFormSubmission = ({
       result = await createEmployee(transformedData).unwrap();
     }
 
-    // Refetch queries BEFORE calling onSubmitProp to ensure data is fresh
-    if (refetchQueries && Array.isArray(refetchQueries)) {
-      await Promise.all(
-        refetchQueries.map(async (query) => {
-          try {
-            if (typeof query === "function") {
-              await query();
-            } else if (query && typeof query.refetch === "function") {
-              await query.refetch();
-            }
-          } catch (error) {
-            console.error("Error refetching query:", error);
-          }
-        })
-      );
-    }
-
-    if (onRefetch) {
-      await onRefetch();
-    }
-
     if (onSubmitProp) {
       await onSubmitProp(transformedData, currentMode, result);
     }

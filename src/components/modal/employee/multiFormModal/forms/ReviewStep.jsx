@@ -1,13 +1,148 @@
-import React from "react";
-import { Box, Typography, Paper } from "@mui/material";
+import React, { useState, useCallback } from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  CircularProgress,
+} from "@mui/material";
 import { useFormContext } from "react-hook-form";
 import { useSelector } from "react-redux";
+import {
+  Visibility as VisibilityIcon,
+  Close as CloseIcon,
+  AttachFile as AttachFileIcon,
+} from "@mui/icons-material";
+import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsEmpApi";
+import { useGetFileEmpAttachmentQuery } from "../../../../../features/api/employee/filesempApi";
 
 const ReviewStep = ({ initialData, showHeader = true }) => {
-  const { getValues } = useFormContext();
+  const { getValues, watch } = useFormContext();
   const approvalFormData = useSelector((state) => state.form.approvalForm);
 
-  const formValues = getValues();
+  const formValues = watch();
+
+  console.log("=== ReviewStep Debug ===");
+  console.log("Initial Data:", initialData);
+  console.log("Form Values from watch():", formValues);
+  console.log("Form Values from getValues():", getValues());
+
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [currentFileId, setCurrentFileId] = useState(null);
+  const [currentFileName, setCurrentFileName] = useState("");
+  const [fileUrl, setFileUrl] = useState(null);
+  const [isPreviewingNewFile, setIsPreviewingNewFile] = useState(false);
+  const [viewerType, setViewerType] = useState(null);
+
+  const {
+    data: attainmentAttachment,
+    isLoading: isLoadingAttainmentAttachment,
+  } = useGetAttainmentAttachmentQuery(currentFileId, {
+    skip:
+      !fileViewerOpen ||
+      !currentFileId ||
+      viewerType !== "attainment" ||
+      isPreviewingNewFile,
+  });
+
+  const { data: fileAttachment, isLoading: isLoadingFileAttachment } =
+    useGetFileEmpAttachmentQuery(currentFileId, {
+      skip:
+        !fileViewerOpen ||
+        !currentFileId ||
+        viewerType !== "file" ||
+        isPreviewingNewFile,
+    });
+
+  React.useEffect(() => {
+    if (
+      attainmentAttachment &&
+      !isPreviewingNewFile &&
+      viewerType === "attainment"
+    ) {
+      const url = URL.createObjectURL(attainmentAttachment);
+      setFileUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [attainmentAttachment, isPreviewingNewFile, viewerType]);
+
+  React.useEffect(() => {
+    if (fileAttachment && !isPreviewingNewFile && viewerType === "file") {
+      const url = URL.createObjectURL(fileAttachment);
+      setFileUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [fileAttachment, isPreviewingNewFile, viewerType]);
+
+  const handleFileViewerClose = useCallback(() => {
+    setFileViewerOpen(false);
+    setCurrentFileId(null);
+    setCurrentFileName("");
+    setIsPreviewingNewFile(false);
+    setViewerType(null);
+    if (fileUrl && isPreviewingNewFile) {
+      setFileUrl(null);
+    }
+  }, [fileUrl, isPreviewingNewFile]);
+
+  const handleAttainmentPreview = useCallback((attainment) => {
+    console.log("Previewing attainment:", attainment);
+    if (attainment?.attainment_attachment instanceof File) {
+      const objectUrl = URL.createObjectURL(attainment.attainment_attachment);
+      setFileUrl(objectUrl);
+      setCurrentFileName(attainment.attainment_attachment.name);
+      setIsPreviewingNewFile(true);
+      setViewerType("attainment");
+      setFileViewerOpen(true);
+    } else if (attainment?.id) {
+      const attachmentId = attainment.id;
+      const fileName =
+        attainment.attainment_attachment_filename ||
+        attainment.attachment_filename ||
+        attainment.existing_attachment_filename ||
+        "attachment";
+
+      setCurrentFileId(String(attachmentId));
+      setCurrentFileName(fileName);
+      setIsPreviewingNewFile(false);
+      setViewerType("attainment");
+      setFileViewerOpen(true);
+    }
+  }, []);
+
+  const handleFilePreview = useCallback((file) => {
+    console.log("Previewing file:", file);
+    if (file?.file_attachment instanceof File) {
+      const objectUrl = URL.createObjectURL(file.file_attachment);
+      setFileUrl(objectUrl);
+      setCurrentFileName(file.file_attachment.name);
+      setIsPreviewingNewFile(true);
+      setViewerType("file");
+      setFileViewerOpen(true);
+    } else {
+      const fileId = file?.original_file_id || file?.id || file?.file_id;
+      const fileName =
+        file?.existing_file_name ||
+        file?.file_name ||
+        file?.name ||
+        file?.filename ||
+        file?.original_name ||
+        "attachment";
+
+      if (fileId && fileId !== "undefined" && fileId !== "null") {
+        setCurrentFileId(String(fileId));
+        setCurrentFileName(fileName);
+        setIsPreviewingNewFile(false);
+        setViewerType("file");
+        setFileViewerOpen(true);
+      } else {
+        console.error("No valid file ID found:", file);
+      }
+    }
+  }, []);
 
   const general_info = initialData?.general_info || {};
   const address = initialData?.address || {};
@@ -248,62 +383,6 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
     },
   ];
 
-  const attainmentFields = [
-    {
-      key: "academic_year_from",
-      label: "Academic Year From",
-      value: getValue("attainments.0.academic_year_from", "academic_year_from"),
-    },
-    {
-      key: "academic_year_to",
-      label: "Academic Year To",
-      value: getValue("attainments.0.academic_year_to", "academic_year_to"),
-    },
-    {
-      key: "program",
-      label: "Program",
-      value:
-        getValue("attainments.0.program.name", "program_id") ||
-        formValues.program_id?.name,
-    },
-    {
-      key: "degree",
-      label: "Degree",
-      value:
-        getValue("attainments.0.degree.name", "degree_id") ||
-        formValues.degree_id?.name,
-    },
-    {
-      key: "honor_title",
-      label: "Honor Title",
-      value:
-        getValue("attainments.0.honor_title.name", "honor_title_id") ||
-        formValues.honor_title_id?.name,
-    },
-    {
-      key: "attainment",
-      label: "Attainment",
-      value:
-        getValue("attainments.0.attainment.name", "attainment_id") ||
-        formValues.attainment_id?.name,
-    },
-    {
-      key: "gpa",
-      label: "GPA",
-      value: getValue("attainments.0.gpa", "gpa"),
-    },
-    {
-      key: "institution",
-      label: "Institution",
-      value: getValue("attainments.0.institution", "institution"),
-    },
-    {
-      key: "attainment_remarks",
-      label: "Attainment Remarks",
-      value: getValue("attainments.0.attainment_remarks", "attainment_remarks"),
-    },
-  ];
-
   const contactFields = [
     {
       key: "email",
@@ -367,45 +446,172 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
     },
   ];
 
+  const attainmentsData =
+    formValues.attainments || initialData?.attainments || [];
+
+  console.log("Attainments from formValues:", formValues.attainments);
+  console.log("Attainments from initialData:", initialData?.attainments);
+  console.log("Final attainmentsData:", attainmentsData);
+
+  const hasAttainmentData = attainmentsData && attainmentsData.length > 0;
+
+  console.log("Has attainment data:", hasAttainmentData);
+
   const filesData = initialData?.files || formValues.files || [];
-  const fileFields = filesData
-    .map((file, index) => [
-      {
-        key: `file_${index}_name`,
-        label: `File ${index + 1} - Name`,
-        value:
-          file?.file_name ||
-          file?.name ||
-          file?.original_name ||
-          file?.filename ||
-          (file?.file && file.file.name) ||
-          "Uploaded file",
-      },
-      {
-        key: `file_${index}_type`,
-        label: `File ${index + 1} - Type`,
-        value:
-          file?.file_type_id?.name ||
-          file?.file_type?.name ||
-          file?.type?.name ||
-          formatValue(null),
-      },
-      {
-        key: `file_${index}_cabinet`,
-        label: `File ${index + 1} - Cabinet`,
-        value:
-          file?.file_cabinet_id?.name ||
-          file?.file_cabinet?.name ||
-          file?.cabinet?.name ||
-          formatValue(null),
-      },
-      {
-        key: `file_${index}_description`,
-        label: `File ${index + 1} - Description`,
-        value: file?.file_description || file?.description || formatValue(null),
-      },
-    ])
-    .flat();
+  const hasFilesData = filesData && filesData.length > 0;
+
+  console.log("Files data:", filesData);
+  console.log("Has files data:", hasFilesData);
+
+  const hasAttachmentFile = (attainment) => {
+    if (attainment?.attainment_attachment instanceof File) return true;
+
+    const filename =
+      attainment?.attainment_attachment_filename ||
+      attainment?.attachment_filename ||
+      attainment?.existing_attachment_filename;
+    if (filename && typeof filename === "string") {
+      const lower = filename.toLowerCase().trim();
+      return (
+        lower !== "no attachment attached" &&
+        lower !== "no file attached" &&
+        lower !== ""
+      );
+    }
+
+    const attachmentUrl = attainment?.attainment_attachment;
+    if (attachmentUrl && typeof attachmentUrl === "string") {
+      return attachmentUrl.includes("/attachment");
+    }
+
+    return false;
+  };
+
+  const hasFile = (file) => {
+    if (file?.file_attachment instanceof File) return true;
+    const hasValidId = file?.original_file_id || file?.id || file?.file_id;
+    const hasValidName =
+      file?.existing_file_name ||
+      file?.file_name ||
+      file?.name ||
+      file?.filename;
+    return hasValidId || hasValidName;
+  };
+
+  const FileViewerDialog = () => (
+    <Dialog
+      open={fileViewerOpen}
+      onClose={handleFileViewerClose}
+      maxWidth={false}
+      fullWidth={false}
+      PaperProps={{
+        sx: {
+          width: "77vw",
+          height: "96vh",
+          maxWidth: "80vw",
+          maxHeight: "96vh",
+          margin: "0",
+          position: "fixed",
+          top: "2vh",
+          left: "320px",
+          transform: "none",
+          borderRadius: 2,
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+        },
+      }}
+      BackdropProps={{
+        sx: {
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+        },
+      }}>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: 1,
+          borderColor: "divider",
+          padding: "12px 24px",
+          backgroundColor: "#f8f9fa",
+        }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Attachment - {currentFileName}
+        </Typography>
+        <IconButton
+          onClick={handleFileViewerClose}
+          size="small"
+          sx={{
+            color: "text.secondary",
+            "&:hover": {
+              backgroundColor: "rgba(0, 0, 0, 0.04)",
+            },
+          }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent
+        sx={{
+          p: 0,
+          position: "relative",
+          height: "calc(90vh - 140px)",
+          overflow: "hidden",
+        }}>
+        {(isLoadingAttainmentAttachment || isLoadingFileAttachment) &&
+        !isPreviewingNewFile ? (
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            height="100%"
+            flexDirection="column">
+            <CircularProgress size={48} />
+            <Typography variant="body1" sx={{ mt: 2, color: "text.secondary" }}>
+              Loading attachment...
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "#f5f5f5",
+            }}>
+            {fileUrl ? (
+              <iframe
+                src={fileUrl}
+                width="100%"
+                height="100%"
+                style={{
+                  border: "none",
+                  borderRadius: "0 0 8px 8px",
+                }}
+                title="File Attachment"
+              />
+            ) : (
+              <Box textAlign="center">
+                <AttachFileIcon
+                  sx={{ fontSize: 64, color: "text.secondary", mb: 2 }}
+                />
+                <Typography variant="h6" color="text.secondary">
+                  {currentFileName}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}>
+                  File preview not available
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <Box className="review-step">
@@ -493,26 +699,147 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Box>
       </Paper>
 
-      <Paper className="review-step__section">
-        <Typography
-          variant="h6"
-          className="review-step__section-title"
-          gutterBottom>
-          Educational Attainment
-        </Typography>
-        <Box className="review-step__section-grid">
-          {attainmentFields.map(({ key, label, value }) => (
-            <Box key={key} className="review-step__section-field">
-              <Typography variant="caption" className="field-label">
-                {label}
+      {hasAttainmentData && (
+        <Paper className="review-step__section">
+          <Typography
+            variant="h6"
+            className="review-step__section-title"
+            gutterBottom>
+            Educational Attainment
+          </Typography>
+          {attainmentsData.map((attainment, index) => (
+            <Box
+              key={index}
+              sx={{ mb: index < attainmentsData.length - 1 ? 3 : 0 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}>
+                Attainment #{index + 1}
               </Typography>
-              <Typography variant="body2" className="field-value">
-                {formatValue(value)}
-              </Typography>
+              <Box className="review-step__section-grid">
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Program
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(
+                      attainment.program_id?.name || attainment.program?.name
+                    )}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Degree
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(
+                      attainment.degree_id?.name || attainment.degree?.name
+                    )}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Honor Title
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(
+                      attainment.honor_title_id?.name ||
+                        attainment.honor_title?.name
+                    )}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Attainment
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(
+                      attainment.attainment_id?.name ||
+                        attainment.attainment?.name
+                    )}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Academic Year From
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(attainment.academic_year_from)}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Academic Year To
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(attainment.academic_year_to)}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    GPA
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(attainment.gpa)}
+                  </Typography>
+                </Box>
+                <Box className="review-step__section-field">
+                  <Typography variant="caption" className="field-label">
+                    Institution
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(attainment.institution)}
+                  </Typography>
+                </Box>
+                <Box
+                  className="review-step__section-field"
+                  sx={{ gridColumn: "1 / -1" }}>
+                  <Typography variant="caption" className="field-label">
+                    Remarks
+                  </Typography>
+                  <Typography variant="body2" className="field-value">
+                    {formatValue(attainment.attainment_remarks)}
+                  </Typography>
+                </Box>
+                {hasAttachmentFile(attainment) && (
+                  <Box
+                    className="review-step__section-field"
+                    sx={{ gridColumn: "1 / -1" }}>
+                    <Typography variant="caption" className="field-label">
+                      Attachment
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}>
+                      <Typography
+                        variant="body2"
+                        className="field-value"
+                        sx={{ mr: 1 }}>
+                        {attainment.attainment_attachment instanceof File
+                          ? attainment.attainment_attachment.name
+                          : attainment.attainment_attachment_filename ||
+                            attainment.attachment_filename ||
+                            attainment.existing_attachment_filename ||
+                            "Attachment"}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleAttainmentPreview(attainment)}
+                        color="primary"
+                        title="View attachment">
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
             </Box>
           ))}
-        </Box>
-      </Paper>
+        </Paper>
+      )}
 
       <Paper className="review-step__section">
         <Typography
@@ -556,7 +883,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Box>
       </Paper>
 
-      {fileFields.length > 0 && (
+      {hasFilesData && (
         <Paper className="review-step__section">
           <Typography
             variant="h6"
@@ -564,20 +891,89 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
             gutterBottom>
             Files & Attachments
           </Typography>
-          <Box className="review-step__section-grid">
-            {fileFields.map(({ key, label, value }) => (
-              <Box key={key} className="review-step__section-field">
-                <Typography variant="caption" className="field-label">
-                  {label}
-                </Typography>
-                <Typography variant="body2" className="field-value">
-                  {formatValue(value)}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
+          {filesData.map(
+            (file, index) =>
+              hasFile(file) && (
+                <Box
+                  key={index}
+                  sx={{ mb: index < filesData.length - 1 ? 3 : 0 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}>
+                    File #{index + 1}
+                  </Typography>
+                  <Box className="review-step__section-grid">
+                    <Box className="review-step__section-field">
+                      <Typography variant="caption" className="field-label">
+                        File Type
+                      </Typography>
+                      <Typography variant="body2" className="field-value">
+                        {formatValue(
+                          file.file_type_id?.name || file.file_type?.name
+                        )}
+                      </Typography>
+                    </Box>
+                    <Box className="review-step__section-field">
+                      <Typography variant="caption" className="field-label">
+                        File Cabinet
+                      </Typography>
+                      <Typography variant="body2" className="field-value">
+                        {formatValue(
+                          file.file_cabinet_id?.name ||
+                            file.file_cabinet?.name ||
+                            file.cabinet?.name
+                        )}
+                      </Typography>
+                    </Box>
+                    <Box
+                      className="review-step__section-field"
+                      sx={{ gridColumn: "1 / -1" }}>
+                      <Typography variant="caption" className="field-label">
+                        Description
+                      </Typography>
+                      <Typography variant="body2" className="field-value">
+                        {formatValue(file.file_description || file.description)}
+                      </Typography>
+                    </Box>
+                    <Box
+                      className="review-step__section-field"
+                      sx={{ gridColumn: "1 / -1" }}>
+                      <Typography variant="caption" className="field-label">
+                        File Name
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}>
+                        <Typography
+                          variant="body2"
+                          className="field-value"
+                          sx={{ mr: 1 }}>
+                          {file.file_attachment instanceof File
+                            ? file.file_attachment.name
+                            : file.existing_file_name ||
+                              file.file_name ||
+                              "Uploaded file"}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleFilePreview(file)}
+                          color="primary"
+                          title="View file">
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              )
+          )}
         </Paper>
       )}
+
+      <FileViewerDialog />
     </Box>
   );
 };
