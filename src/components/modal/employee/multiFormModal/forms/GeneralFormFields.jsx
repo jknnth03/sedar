@@ -27,10 +27,12 @@ const GeneralFormFields = ({
   prefixes,
   referrers,
   approvalForms,
+  nationalities,
   religionsLoading,
   prefixesLoading,
   generalsLoading,
   approvalFormsLoading,
+  nationalitiesLoading,
   nextIdLoading,
   uniqueCheckLoading,
   handleDropdownFocus,
@@ -666,21 +668,56 @@ const GeneralFormFields = ({
           <Controller
             name="nationality"
             control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label={
-                  <>
-                    Nationality <span style={{ color: "red" }}>*</span>
-                  </>
-                }
-                variant="outlined"
+            render={({ field: { onChange, value } }) => (
+              <FormControl
                 fullWidth
-                disabled={isFieldDisabled}
+                variant="outlined"
                 error={!!errors.nationality}
-                helperText={errors.nationality?.message}
-                InputProps={{ readOnly: isReadOnly }}
-              />
+                disabled={isFieldDisabled || nationalitiesLoading}>
+                <Autocomplete
+                  onChange={(event, item) => {
+                    if (!isReadOnly) {
+                      onChange(item || null);
+                    }
+                  }}
+                  value={value || null}
+                  options={nationalities ?? []}
+                  loading={nationalitiesLoading}
+                  disabled={isFieldDisabled}
+                  readOnly={isReadOnly}
+                  getOptionLabel={(item) => item?.name || ""}
+                  isOptionEqualToValue={(option, value) => {
+                    if (!option || !value) return false;
+                    return option.id === value.id;
+                  }}
+                  onFocus={() => {
+                    if (!isReadOnly) {
+                      handleDropdownFocus("nationalities");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!value || !value.id) {
+                      onChange(null);
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={
+                        <>
+                          Nationality <span style={{ color: "red" }}>*</span>
+                        </>
+                      }
+                      error={!!errors.nationality}
+                      helperText={errors.nationality?.message}
+                      InputProps={{
+                        ...params.InputProps,
+                        readOnly: isReadOnly,
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
             )}
           />
         </Box>

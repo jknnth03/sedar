@@ -83,6 +83,7 @@ import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommenda
 import BiAnnualPerformance from "../../pages/forms/biAnnualPerformance/BiAnnualPerformance.jsx";
 import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.jsx";
 import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualApproval.jsx";
+import Nationalities from "../../pages/extras/Nationalities.jsx";
 
 export const ROUTES = [
   {
@@ -619,6 +620,14 @@ export const ROUTES = [
         element: <HonorTitles />,
         handle: {
           permission: MODULES.EXTRAS.children.HONORTITLES.permissionId,
+        },
+      },
+      {
+        id: "EXTRAS.NATIONALITIES",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.NATIONALITIES.path}`,
+        element: <Nationalities />,
+        handle: {
+          permission: MODULES.EXTRAS.children.NATIONALITIES.permissionId,
         },
       },
       {

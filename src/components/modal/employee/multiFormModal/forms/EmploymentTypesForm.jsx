@@ -7,18 +7,11 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Grid,
   InputAdornment,
   FormHelperText,
-  Button,
-  IconButton,
   Typography,
 } from "@mui/material";
-import {
-  CalendarToday as CalendarIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-} from "@mui/icons-material";
+import { CalendarToday as CalendarIcon } from "@mui/icons-material";
 import { useFormContext, Controller, useFieldArray } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import EmployeeHeader from "./EmployeeHeader";
@@ -82,12 +75,11 @@ const EmploymentTypesForm = ({
     setValue,
     getValues,
     clearErrors,
-    setError,
     trigger,
     formState: { errors },
   } = useFormContext();
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, replace } = useFieldArray({
     control,
     name: "employment_types",
   });
@@ -100,7 +92,7 @@ const EmploymentTypesForm = ({
   const lastEmployeeId = useRef(null);
   const watchedEmploymentTypes = watch("employment_types");
 
-  const getEmploymentTypeLabelOptions = (mode, isAddingLine = false) => {
+  const getEmploymentTypeLabelOptions = (mode) => {
     if (mode === "create") {
       return ["PROBATIONARY", "AGENCY HIRED", "PROJECT BASED"];
     }
@@ -177,31 +169,6 @@ const EmploymentTypesForm = ({
       max: getMaxDate(),
       probationaryStartDate,
     };
-  };
-
-  const hasRegularEmploymentType = () => {
-    const currentEmploymentTypes = watchedEmploymentTypes || [];
-    return currentEmploymentTypes.some(
-      (emp) => emp.employment_type_label === "REGULAR"
-    );
-  };
-
-  const canAddLine = () => {
-    if (mode !== "edit") return false;
-
-    if (hasRegularEmploymentType()) return false;
-
-    if (fields.length >= 2) return false;
-
-    return true;
-  };
-
-  const canRemoveLine = () => {
-    if (mode !== "edit") return false;
-
-    if (fields.length <= 1) return false;
-
-    return true;
   };
 
   const getAvailableEmploymentTypes = (currentIndex) => {
@@ -451,49 +418,6 @@ const EmploymentTypesForm = ({
     }
   }, [watchedEmploymentTypes, setValue, isReadOnly, isInitialized]);
 
-  const addEmploymentLine = useCallback(() => {
-    if (!canAddLine()) return;
-
-    const currentEmploymentTypes = watchedEmploymentTypes || [];
-    const newIndex = currentEmploymentTypes.length;
-    const newLine = {
-      id: generateUniqueId(`new_employment_${newIndex}`),
-      index: newIndex,
-      employment_type_label: "",
-      employment_start_date: "",
-      employment_end_date: "",
-      regularization_date: "",
-    };
-    append(newLine);
-
-    setTimeout(() => {
-      trigger("employment_types");
-    }, 100);
-  }, [watchedEmploymentTypes, append, trigger]);
-
-  const removeEmploymentLine = useCallback(
-    (index) => {
-      if (!canRemoveLine()) return;
-      if (index === fields.length - 1) {
-        remove(index);
-        setTimeout(() => {
-          trigger("employment_types");
-        }, 100);
-      }
-    },
-    [remove, trigger, fields.length]
-  );
-
-  const validateEmploymentLine = useCallback((line) => {
-    if (!line || !line.employment_type_label) return false;
-
-    if (line.employment_type_label === "REGULAR") {
-      return !!line.regularization_date;
-    } else {
-      return !!line.employment_start_date;
-    }
-  }, []);
-
   const isFormValid = React.useMemo(() => {
     const employmentTypes = watchedEmploymentTypes || [];
     if (employmentTypes.length === 0) return false;
@@ -505,11 +429,9 @@ const EmploymentTypesForm = ({
         return !!line.regularization_date;
       } else {
         const hasStartDate = !!line.employment_start_date;
-        const needsEndDate = [
-          "PROBATIONARY",
-          "AGENCY HIRED",
-          "PROJECT BASED",
-        ].includes(line.employment_type_label);
+        const needsEndDate = ["AGENCY HIRED", "PROJECT BASED"].includes(
+          line.employment_type_label
+        );
         const hasEndDate = !!line.employment_end_date;
 
         return hasStartDate && (!needsEndDate || hasEndDate);
@@ -539,7 +461,7 @@ const EmploymentTypesForm = ({
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ width: "100%", maxWidth: "1200px", overflow: "0" }}>
       <EmployeeHeader getValues={getValues} selectedGeneral={employeeData} />
       {errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -547,399 +469,349 @@ const EmploymentTypesForm = ({
         </Alert>
       )}
 
-      {fields.map((field, index) => {
-        const currentEmploymentType = watchedEmploymentTypes?.[index];
-        const isRegular =
-          currentEmploymentType?.employment_type_label === "REGULAR";
-        const isNonRegular =
-          currentEmploymentType?.employment_type_label && !isRegular;
-        const isEndDateRequired =
-          currentEmploymentType?.employment_type_label === "PROBATIONARY" ||
-          currentEmploymentType?.employment_type_label === "AGENCY HIRED" ||
-          currentEmploymentType?.employment_type_label === "PROJECT BASED";
+      <Box sx={{ px: 2 }}>
+        {fields.map((field, index) => {
+          const currentEmploymentType = watchedEmploymentTypes?.[index];
+          const isRegular =
+            currentEmploymentType?.employment_type_label === "REGULAR";
+          const isNonRegular =
+            currentEmploymentType?.employment_type_label && !isRegular;
+          const isEndDateRequired =
+            currentEmploymentType?.employment_type_label === "AGENCY HIRED" ||
+            currentEmploymentType?.employment_type_label === "PROJECT BASED";
 
-        const regularizationConstraints = getRegularizationDateConstraints();
-        const availableEmploymentTypes = getAvailableEmploymentTypes(index);
-        const lineDisabled = isLineDisabled(index);
+          const regularizationConstraints = getRegularizationDateConstraints();
+          const availableEmploymentTypes = getAvailableEmploymentTypes(index);
+          const lineDisabled = isLineDisabled(index);
 
-        return (
-          <Box
-            key={field.id}
-            sx={{ mb: 2, border: "1px solid #e0e0e0", borderRadius: 2, p: 2 }}>
-            <Grid container spacing={2} sx={{ alignItems: "flex-start" }}>
-              <Grid
-                item
-                xs={12}
-                sm={3}
-                sx={{ minWidth: "346px", maxWidth: "346px" }}>
-                <Controller
-                  name={`employment_types.${index}.employment_type_label`}
-                  control={control}
-                  rules={{ required: "Employment type is required" }}
-                  render={({ field: controllerField, fieldState }) => (
-                    <FormControl
-                      className="general-form__text-field"
-                      fullWidth
-                      variant="outlined"
-                      disabled={isFieldDisabled || lineDisabled}
-                      error={!!fieldState.error}>
-                      <InputLabel>
-                        Employment Type Label{" "}
-                        <span style={{ color: "red" }}>*</span>
-                      </InputLabel>
-                      <Select
-                        {...controllerField}
-                        label="Employment Type Label *"
-                        readOnly={isReadOnly || lineDisabled}
-                        sx={{
-                          borderRadius: 2,
-                          ...(lineDisabled && {
-                            backgroundColor: "#f5f5f5",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#e0e0e0",
-                            },
-                          }),
-                        }}
-                        onChange={(e) => {
-                          if (!lineDisabled) {
-                            controllerField.onChange(e);
-                            setTimeout(() => {
-                              trigger(
-                                `employment_types.${index}.employment_type_label`
-                              );
-                              setForceUpdate((prev) => prev + 1);
-                            }, 100);
-                          }
-                        }}>
-                        <MenuItem value="">
-                          <em>Select Employment Type</em>
-                        </MenuItem>
-                        {availableEmploymentTypes.map((label) => (
-                          <MenuItem key={label} value={label}>
-                            {label}
+          return (
+            <Box
+              key={field.id}
+              sx={{
+                mb: 2,
+                border: "1px solid #e0e0e0",
+                borderRadius: 2,
+                p: 2,
+              }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "1fr",
+                    md: "repeat(2, 1fr)",
+                  },
+                  "@media (min-width: 750px)": {
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                  },
+                  gap: 2,
+                }}>
+                <Box>
+                  <Controller
+                    name={`employment_types.${index}.employment_type_label`}
+                    control={control}
+                    render={({
+                      field: { onChange, value, onBlur },
+                      fieldState: { error },
+                    }) => (
+                      <FormControl
+                        className="general-form__text-field"
+                        fullWidth
+                        variant="outlined"
+                        disabled={isFieldDisabled || lineDisabled}
+                        error={!!error}>
+                        <InputLabel>
+                          Employment Type Label{" "}
+                          <span style={{ color: "red" }}>*</span>
+                        </InputLabel>
+                        <Select
+                          onChange={(e) => {
+                            if (!lineDisabled) {
+                              onChange(e);
+                              setTimeout(() => {
+                                trigger(
+                                  `employment_types.${index}.employment_type_label`
+                                );
+                                setForceUpdate((prev) => prev + 1);
+                              }, 100);
+                            }
+                          }}
+                          onBlur={onBlur}
+                          value={value || ""}
+                          label="Employment Type Label *"
+                          readOnly={isReadOnly || lineDisabled}
+                          sx={{
+                            borderRadius: 2,
+                            ...(lineDisabled && {
+                              backgroundColor: "#f5f5f5",
+                              "& .MuiOutlinedInput-notchedOutline": {
+                                borderColor: "#e0e0e0",
+                              },
+                            }),
+                          }}>
+                          <MenuItem value="">
+                            <em>Select Employment Type</em>
                           </MenuItem>
-                        ))}
-                      </Select>
-                      {fieldState.error && (
-                        <FormHelperText error>
-                          {fieldState.error.message}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              {!isRegular && (
-                <Grid item xs={12} sm={4}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={3}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}></Grid>
-                  <Controller
-                    name={`employment_types.${index}.employment_start_date`}
-                    control={control}
-                    rules={{
-                      required: "Employment start date is required",
-                    }}
-                    render={({ field: controllerField, fieldState }) => (
-                      <TextField
-                        {...controllerField}
-                        className="general-form__text-field"
-                        label={
-                          <>
-                            Employment Start Date{" "}
-                            <span style={{ color: "red" }}>*</span>
-                          </>
-                        }
-                        type="date"
-                        variant="outlined"
-                        fullWidth
-                        disabled={isFieldDisabled || lineDisabled}
-                        error={!!fieldState.error}
-                        helperText={
-                          fieldState.error?.message ||
-                          "Cannot select dates more than 1 month in the past"
-                        }
-                        inputProps={{
-                          min: getMinDateWithOneMonthBack(),
-                          max: getMaxDate(),
-                        }}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <CalendarIcon />
-                            </InputAdornment>
-                          ),
-                          readOnly: isReadOnly || lineDisabled,
-                        }}
-                        onChange={(e) => {
-                          if (
-                            !isReadOnly &&
-                            !lineDisabled &&
-                            handleDateValidation(
-                              e.target.value,
-                              "employment_start_date",
-                              index
-                            )
-                          ) {
-                            controllerField.onChange(e);
-                            setTimeout(() => {
-                              trigger(
-                                `employment_types.${index}.employment_start_date`
-                              );
-                            }, 100);
-                          }
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            ...(lineDisabled && {
-                              backgroundColor: "#f5f5f5",
-                              "& .MuiOutlinedInput-notchedOutline": {
-                                borderColor: "#e0e0e0",
-                              },
-                            }),
-                          },
-                        }}
-                      />
+                          {availableEmploymentTypes.map((label) => (
+                            <MenuItem key={label} value={label}>
+                              {label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {error && (
+                          <FormHelperText error>{error.message}</FormHelperText>
+                        )}
+                      </FormControl>
                     )}
                   />
-                </Grid>
-              )}
+                </Box>
 
-              {!isRegular && (
-                <Grid item xs={12} sm={4}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={3}
-                    sx={{ minWidth: "346px", maxWidth: "346px" }}></Grid>
-                  <Controller
-                    name={`employment_types.${index}.employment_end_date`}
-                    control={control}
-                    rules={{
-                      required: isEndDateRequired
-                        ? "Employment end date is required"
-                        : false,
-                    }}
-                    render={({ field: controllerField, fieldState }) => (
-                      <TextField
-                        {...controllerField}
-                        className="general-form__text-field"
-                        label={
-                          <>
-                            Employment End Date{" "}
-                            {isEndDateRequired && (
+                {!isRegular && (
+                  <Box>
+                    <Controller
+                      name={`employment_types.${index}.employment_start_date`}
+                      control={control}
+                      render={({
+                        field: { onChange, value, onBlur },
+                        fieldState: { error },
+                      }) => (
+                        <TextField
+                          onChange={(e) => {
+                            if (
+                              !isReadOnly &&
+                              !lineDisabled &&
+                              handleDateValidation(
+                                e.target.value,
+                                "employment_start_date",
+                                index
+                              )
+                            ) {
+                              onChange(e);
+                              setTimeout(() => {
+                                trigger(
+                                  `employment_types.${index}.employment_start_date`
+                                );
+                              }, 100);
+                            }
+                          }}
+                          onBlur={onBlur}
+                          value={value || ""}
+                          className="general-form__text-field"
+                          label={
+                            <>
+                              Employment Start Date{" "}
                               <span style={{ color: "red" }}>*</span>
-                            )}
-                          </>
-                        }
-                        type="date"
-                        variant="outlined"
-                        fullWidth
-                        disabled={isFieldDisabled || lineDisabled}
-                        error={!!fieldState.error}
-                        helperText={
-                          fieldState.error?.message ||
-                          (isEndDateRequired
-                            ? "Required and cannot be before start date"
-                            : "Cannot be before start date")
-                        }
-                        inputProps={{
-                          min:
-                            currentEmploymentType?.employment_start_date ||
-                            getMinDateWithOneMonthBack(),
-                          max: getMaxDate(),
-                        }}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <CalendarIcon />
-                            </InputAdornment>
-                          ),
-                          readOnly: isReadOnly || lineDisabled,
-                        }}
-                        onChange={(e) => {
-                          if (
-                            !isReadOnly &&
-                            !lineDisabled &&
-                            handleDateValidation(
-                              e.target.value,
-                              "employment_end_date",
-                              index
-                            )
-                          ) {
-                            controllerField.onChange(e);
-                            setTimeout(() => {
-                              trigger(
-                                `employment_types.${index}.employment_end_date`
-                              );
-                            }, 100);
+                            </>
                           }
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            ...(lineDisabled && {
-                              backgroundColor: "#f5f5f5",
-                              "& .MuiOutlinedInput-notchedOutline": {
-                                borderColor: "#e0e0e0",
-                              },
-                            }),
-                          },
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
-              )}
-
-              {isRegular && (
-                <Grid item xs={12} sm={8}>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={3}
-                    sx={{ minWidth: "706px", maxWidth: "706px" }}></Grid>
-                  <Controller
-                    name={`employment_types.${index}.regularization_date`}
-                    control={control}
-                    rules={{
-                      required: "Regularization date is required",
-                    }}
-                    render={({ field: controllerField, fieldState }) => (
-                      <TextField
-                        {...controllerField}
-                        className="general-form__text-field"
-                        label={
-                          <>
-                            Regularization Date{" "}
-                            <span style={{ color: "red" }}>*</span>
-                          </>
-                        }
-                        type="date"
-                        variant="outlined"
-                        fullWidth
-                        disabled={isFieldDisabled || lineDisabled}
-                        error={!!fieldState.error}
-                        helperText={
-                          fieldState.error?.message ||
-                          (regularizationConstraints.probationaryStartDate
-                            ? "Required and cannot be before probationary start date or more than 1 month in the past"
-                            : "Required for regular employees. Add probationary employment first for proper validation.")
-                        }
-                        inputProps={{
-                          min: regularizationConstraints.min,
-                          max: regularizationConstraints.max,
-                        }}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <CalendarIcon />
-                            </InputAdornment>
-                          ),
-                          readOnly: isReadOnly || lineDisabled,
-                        }}
-                        onChange={(e) => {
-                          if (
-                            !isReadOnly &&
-                            !lineDisabled &&
-                            handleDateValidation(
-                              e.target.value,
-                              "regularization_date",
-                              index
-                            )
-                          ) {
-                            controllerField.onChange(e);
-                            setTimeout(() => {
-                              trigger(
-                                `employment_types.${index}.regularization_date`
-                              );
-                            }, 100);
+                          type="date"
+                          variant="outlined"
+                          fullWidth
+                          disabled={isFieldDisabled || lineDisabled}
+                          error={!!error}
+                          helperText={
+                            error?.message ||
+                            "Cannot select dates more than 1 month in the past"
                           }
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            ...(lineDisabled && {
-                              backgroundColor: "#f5f5f5",
-                              "& .MuiOutlinedInput-notchedOutline": {
-                                borderColor: "#e0e0e0",
-                              },
-                            }),
-                          },
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
-              )}
-
-              {!isReadOnly && (
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 1,
-                      mt: 2,
-                      justifyContent: "flex-start",
-                    }}>
-                    {canRemoveLine() && index === fields.length - 1 && (
-                      <Button
-                        onClick={() => removeEmploymentLine(index)}
-                        disabled={isFieldDisabled}
-                        variant="contained"
-                        size="small"
-                        startIcon={<DeleteIcon />}
-                        sx={{
-                          backgroundColor: "rgb(220, 53, 69)",
-                          color: "#fff !important",
-                          "&:hover": {
-                            backgroundColor: "rgb(200, 35, 51)",
-                            color: "#fff !important",
-                          },
-                        }}
-                        title="Remove this employment line">
-                        Remove Line
-                      </Button>
-                    )}
-                    {canAddLine() && index === fields.length - 1 && (
-                      <Button
-                        onClick={addEmploymentLine}
-                        disabled={isFieldDisabled}
-                        variant="contained"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        sx={{
-                          backgroundColor: "rgb(40, 167, 69)",
-                          color: "#fff !important",
-                          "&:hover": {
-                            backgroundColor: "rgb(34, 142, 58)",
-                            color: "#fff !important",
-                          },
-                        }}
-                        title="Add new employment line">
-                        Add Line
-                      </Button>
-                    )}
+                          inputProps={{
+                            min: getMinDateWithOneMonthBack(),
+                            max: getMaxDate(),
+                          }}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CalendarIcon />
+                              </InputAdornment>
+                            ),
+                            readOnly: isReadOnly || lineDisabled,
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                              ...(lineDisabled && {
+                                backgroundColor: "#f5f5f5",
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "#e0e0e0",
+                                },
+                              }),
+                            },
+                          }}
+                        />
+                      )}
+                    />
                   </Box>
-                </Grid>
-              )}
-            </Grid>
-          </Box>
-        );
-      })}
+                )}
+
+                {!isRegular && (
+                  <Box>
+                    <Controller
+                      name={`employment_types.${index}.employment_end_date`}
+                      control={control}
+                      render={({
+                        field: { onChange, value, onBlur },
+                        fieldState: { error },
+                      }) => (
+                        <TextField
+                          onChange={(e) => {
+                            if (
+                              !isReadOnly &&
+                              !lineDisabled &&
+                              handleDateValidation(
+                                e.target.value,
+                                "employment_end_date",
+                                index
+                              )
+                            ) {
+                              onChange(e);
+                              setTimeout(() => {
+                                trigger(
+                                  `employment_types.${index}.employment_end_date`
+                                );
+                              }, 100);
+                            }
+                          }}
+                          onBlur={onBlur}
+                          value={value || ""}
+                          className="general-form__text-field"
+                          label={
+                            <>
+                              Employment End Date{" "}
+                              {isEndDateRequired && (
+                                <span style={{ color: "red" }}>*</span>
+                              )}
+                            </>
+                          }
+                          type="date"
+                          variant="outlined"
+                          fullWidth
+                          disabled={isFieldDisabled || lineDisabled}
+                          error={!!error}
+                          helperText={
+                            error?.message ||
+                            (isEndDateRequired
+                              ? "Required and cannot be before start date"
+                              : "Cannot be before start date")
+                          }
+                          inputProps={{
+                            min:
+                              currentEmploymentType?.employment_start_date ||
+                              getMinDateWithOneMonthBack(),
+                            max: getMaxDate(),
+                          }}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CalendarIcon />
+                              </InputAdornment>
+                            ),
+                            readOnly: isReadOnly || lineDisabled,
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                              ...(lineDisabled && {
+                                backgroundColor: "#f5f5f5",
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "#e0e0e0",
+                                },
+                              }),
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  </Box>
+                )}
+
+                {isRegular && (
+                  <Box sx={{ gridColumn: "1 / -1" }}>
+                    <Controller
+                      name={`employment_types.${index}.regularization_date`}
+                      control={control}
+                      render={({
+                        field: { onChange, value, onBlur },
+                        fieldState: { error },
+                      }) => (
+                        <TextField
+                          onChange={(e) => {
+                            if (
+                              !isReadOnly &&
+                              !lineDisabled &&
+                              handleDateValidation(
+                                e.target.value,
+                                "regularization_date",
+                                index
+                              )
+                            ) {
+                              onChange(e);
+                              setTimeout(() => {
+                                trigger(
+                                  `employment_types.${index}.regularization_date`
+                                );
+                              }, 100);
+                            }
+                          }}
+                          onBlur={onBlur}
+                          value={value || ""}
+                          className="general-form__text-field"
+                          label={
+                            <>
+                              Regularization Date{" "}
+                              <span style={{ color: "red" }}>*</span>
+                            </>
+                          }
+                          type="date"
+                          variant="outlined"
+                          fullWidth
+                          disabled={isFieldDisabled || lineDisabled}
+                          error={!!error}
+                          helperText={
+                            error?.message ||
+                            (regularizationConstraints.probationaryStartDate
+                              ? "Required and cannot be before probationary start date or more than 1 month in the past"
+                              : "Required for regular employees. Add probationary employment first for proper validation.")
+                          }
+                          inputProps={{
+                            min: regularizationConstraints.min,
+                            max: regularizationConstraints.max,
+                          }}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CalendarIcon />
+                              </InputAdornment>
+                            ),
+                            readOnly: isReadOnly || lineDisabled,
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                              ...(lineDisabled && {
+                                backgroundColor: "#f5f5f5",
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "#e0e0e0",
+                                },
+                              }),
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 };

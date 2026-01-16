@@ -68,6 +68,7 @@ import RecommendIcon from "@mui/icons-material/Recommend";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import { calculateCounts } from "./NotificationBadge";
+import PublicIcon from "@mui/icons-material/Public";
 
 export const createEnhancedModules = (dashboardData = {}) => {
   const counts = calculateCounts(dashboardData);
@@ -803,6 +804,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Job Rates",
           path: "jobrates",
           icon: <StarIcon sx={iconStyles.child} />,
+        },
+        NATIONALITIES: {
+          name: "Nationalities",
+          permissionId: "EXTRAS.NATIONALITIES",
+          displayName: "Nationalities",
+          path: "nationalities",
+          icon: <PublicIcon sx={iconStyles.child} />,
         },
       },
     },

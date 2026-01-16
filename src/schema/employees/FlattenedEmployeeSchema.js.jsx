@@ -98,93 +98,13 @@ const transformNumberValue = (value, originalValue) => {
   return isNaN(parsed) ? (originalValue === "" ? undefined : null) : parsed;
 };
 
-export const validateEmploymentTypes = (employmentTypes) => {
-  if (!employmentTypes || employmentTypes.length === 0) {
-    return "At least one employment type is required";
-  }
-
-  for (let i = 0; i < employmentTypes.length; i++) {
-    const employment = employmentTypes[i];
-    const entryNum = i + 1;
-
-    if (!employment.employment_type_label?.trim()) {
-      return `Employment type is required for entry ${entryNum}`;
-    }
-
-    if (!VALID_EMPLOYMENT_TYPES.includes(employment.employment_type_label)) {
-      return `Invalid employment type for entry ${entryNum}`;
-    }
-
-    if (employment.employment_type_label === "REGULAR") {
-      const regDate = employment.regularization_date;
-      if (
-        !regDate ||
-        (typeof regDate === "string" && !regDate.trim()) ||
-        (regDate instanceof Date && isNaN(regDate.getTime()))
-      ) {
-        return `Regularization date is required for REGULAR employment (entry ${entryNum})`;
-      }
-    } else {
-      const startDate = employment.employment_start_date;
-      if (
-        !startDate ||
-        (typeof startDate === "string" && !startDate.trim()) ||
-        (startDate instanceof Date && isNaN(startDate.getTime()))
-      ) {
-        return `Employment start date is required for ${employment.employment_type_label} employment (entry ${entryNum})`;
-      }
-
-      if (
-        ["AGENCY HIRED", "PROJECT BASED"].includes(
-          employment.employment_type_label
-        )
-      ) {
-        const endDate = employment.employment_end_date;
-        if (
-          !endDate ||
-          (typeof endDate === "string" && !endDate.trim()) ||
-          (endDate instanceof Date && isNaN(endDate.getTime()))
-        ) {
-          return `Employment end date is required for ${employment.employment_type_label} employment (entry ${entryNum})`;
-        }
-      }
-    }
-
-    if (employment.employment_start_date && employment.employment_end_date) {
-      let startDate, endDate;
-
-      if (typeof employment.employment_start_date === "string") {
-        startDate = new Date(employment.employment_start_date);
-      } else {
-        startDate = employment.employment_start_date;
-      }
-
-      if (typeof employment.employment_end_date === "string") {
-        endDate = new Date(employment.employment_end_date);
-      } else {
-        endDate = employment.employment_end_date;
-      }
-
-      if (
-        !isNaN(startDate.getTime()) &&
-        !isNaN(endDate.getTime()) &&
-        endDate <= startDate
-      ) {
-        return `End date must be after start date for entry ${entryNum}`;
-      }
-    }
-  }
-
-  return null;
-};
-
 const employmentTypeSchema = yup.object().shape({
   id: yup.string().nullable(),
   index: yup.number().nullable(),
   employment_type_label: yup
     .string()
     .transform(transformEmploymentType)
-    .required("Employment Type is required.")
+    .required("Employment type is required.")
     .test("valid-employment-type", "Invalid employment type", function (value) {
       return !value || VALID_EMPLOYMENT_TYPES.includes(value);
     }),
@@ -196,9 +116,7 @@ const employmentTypeSchema = yup.object().shape({
       is: (val) => val && val !== "REGULAR",
       then: (schema) =>
         schema
-          .required(
-            "Employment start date is required for non-regular employees"
-          )
+          .required("Employment start date is required.")
           .typeError("Please provide a valid employment start date"),
       otherwise: (schema) => schema.nullable(),
     }),
@@ -207,11 +125,10 @@ const employmentTypeSchema = yup.object().shape({
     .nullable()
     .transform(transformDateValue)
     .when("employment_type_label", {
-      is: (val) =>
-        val && ["PROBATIONARY", "AGENCY HIRED", "PROJECT BASED"].includes(val),
+      is: (val) => val && ["AGENCY HIRED", "PROJECT BASED"].includes(val),
       then: (schema) =>
         schema
-          .required("Employment end date is required for temporary employees")
+          .required("Employment end date is required.")
           .typeError("Please provide a valid employment end date"),
       otherwise: (schema) => schema.nullable(),
     })
@@ -240,7 +157,7 @@ const employmentTypeSchema = yup.object().shape({
       is: (val) => val === "REGULAR",
       then: (schema) =>
         schema
-          .required("Regularization date is required for regular employees")
+          .required("Regularization date is required.")
           .typeError("Please provide a valid regularization date"),
       otherwise: (schema) => schema.nullable(),
     }),
@@ -375,7 +292,16 @@ const fieldSchemas = {
       return age >= 18;
     }),
   birth_place: yup.string().required("Birthplace is required."),
-  nationality: yup.string().required("Nationality is required."),
+  nationality: yup
+    .mixed()
+    .required("Nationality is required.")
+    .test("is-valid-object", "Nationality is required.", function (value) {
+      if (!value || typeof value !== "object" || !value.id) {
+        return false;
+      }
+      return true;
+    })
+    .transform(transformObjectField),
   gender: yup.string().required("Gender is required."),
   civil_status: yup.string().required("Civil Status is required."),
   religion: yup
@@ -494,21 +420,7 @@ const fieldSchemas = {
     .array()
     .of(employmentTypeSchema)
     .min(1, "At least one employment type is required.")
-    .required("Employment types are required.")
-    .test(
-      "employment-types-validation",
-      "Employment types validation failed",
-      function (value) {
-        const validationResult = validateEmploymentTypes(value);
-        if (validationResult) {
-          return this.createError({
-            message: validationResult,
-            path: this.path,
-          });
-        }
-        return true;
-      }
-    ),
+    .required("Employment types are required."),
   employment_type_label: yup
     .string()
     .transform(transformEmploymentType)
@@ -830,7 +742,6 @@ export const getStepValidationSchema = (stepIndex) => {
 export default {
   createFlattenedEmployeeSchema,
   getStepValidationSchema,
-  validateEmploymentTypes,
   VALID_EMPLOYMENT_TYPES,
   STEPS,
 };

@@ -9,6 +9,7 @@ import {
 } from "../../../../../features/api/extras/prefixesApi";
 import { useLazyGetAllGeneralsQuery } from "../../../../../features/api/employee/generalApi";
 import { useLazyGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
+import { useLazyGetAllShowNationalitiesQuery } from "../../../../../features/api/extras/nationalitiesApi";
 import { useDispatch } from "react-redux";
 import { setApprovalForm } from "../../../../../features/slice/formSlice";
 import GeneralFormFields from "./GeneralFormFields";
@@ -39,6 +40,7 @@ const GeneralForm = ({
     prefixes: false,
     referrers: false,
     approvalForms: false,
+    nationalities: false,
   });
 
   const [formInitialized, setFormInitialized] = useState(false);
@@ -80,6 +82,15 @@ const GeneralForm = ({
       error: approvalFormsError,
     },
   ] = useLazyGetAllManpowerQuery();
+
+  const [
+    triggerNationalities,
+    {
+      data: nationalitiesData,
+      isLoading: nationalitiesLoading,
+      error: nationalitiesError,
+    },
+  ] = useLazyGetAllShowNationalitiesQuery();
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
@@ -235,6 +246,37 @@ const GeneralForm = ({
     isViewMode,
   ]);
 
+  const nationalities = useMemo(() => {
+    if ((mode === "view" || isViewMode) && selectedGeneral?.nationality) {
+      return [selectedGeneral.nationality];
+    }
+    if (mode === "edit" && selectedGeneral?.nationality) {
+      const existingNationality = selectedGeneral.nationality;
+      const apiNationalities = normalizeApiData(nationalitiesData);
+
+      if (!nationalitiesData) {
+        return [existingNationality];
+      }
+
+      const hasExistingInApi = apiNationalities.some(
+        (nationality) => nationality.id === existingNationality.id
+      );
+
+      if (!hasExistingInApi) {
+        return [existingNationality, ...apiNationalities];
+      }
+
+      return apiNationalities;
+    }
+    return normalizeApiData(nationalitiesData);
+  }, [
+    mode,
+    isViewMode,
+    nationalitiesData,
+    selectedGeneral?.nationality,
+    normalizeApiData,
+  ]);
+
   useEffect(() => {
     const fetchNextId = async () => {
       if (
@@ -311,6 +353,9 @@ const GeneralForm = ({
         case "approvalForms":
           triggerApprovalForms(fetchParams);
           break;
+        case "nationalities":
+          triggerNationalities(fetchParams);
+          break;
       }
 
       setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
@@ -321,6 +366,7 @@ const GeneralForm = ({
       triggerPrefixes,
       triggerGenerals,
       triggerApprovalForms,
+      triggerNationalities,
       mode,
       isViewMode,
     ]
@@ -353,6 +399,7 @@ const GeneralForm = ({
     prefixesError ||
     generalsError ||
     approvalFormsError ||
+    nationalitiesError ||
     nextIdError ||
     uniqueCheckError;
 
@@ -394,10 +441,12 @@ const GeneralForm = ({
         prefixes={prefixes}
         referrers={referrers}
         approvalForms={approvalForms}
+        nationalities={nationalities}
         religionsLoading={religionsLoading}
         prefixesLoading={prefixesLoading}
         generalsLoading={generalsLoading}
         approvalFormsLoading={approvalFormsLoading}
+        nationalitiesLoading={nationalitiesLoading}
         nextIdLoading={nextIdLoading}
         uniqueCheckLoading={uniqueCheckLoading}
         handleDropdownFocus={handleDropdownFocus}
