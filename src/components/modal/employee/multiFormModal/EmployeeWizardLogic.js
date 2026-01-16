@@ -1,70 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import { createFlattenedEmployeeSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import { transformEmployeeData } from "./EmployeeDataTransformer.js";
 import { STEPS } from "./EmployeeWizardHelpers.js";
-
-import AddressForm from "./forms/AddressForm.jsx";
-import PositionForm from "./forms/PositionForm.jsx";
-import EmploymentTypeForm from "./forms/EmploymentTypesForm.jsx";
-import AttainmentForm from "./forms/AttainmentForm.jsx";
-import AccountForm from "./forms/AccountForm.jsx";
-import ContactForm from "./forms/ContactForm.jsx";
-import FileForm from "./forms/FileForm.jsx";
-import ReviewStep from "./forms/ReviewStep";
-import GeneralForm from "./forms/GeneralForm.jsx";
-
-export const getStepComponents = () => ({
-  0: GeneralForm,
-  1: AddressForm,
-  2: PositionForm,
-  3: EmploymentTypeForm,
-  4: AttainmentForm,
-  5: AccountForm,
-  6: ContactForm,
-  7: FileForm,
-  8: ReviewStep,
-});
-
-export const transformEmploymentTypesForAPI = (employmentTypes) => {
-  if (!employmentTypes || !Array.isArray(employmentTypes)) return [];
-
-  const formatDateForAPI = (date) => {
-    if (!date) return null;
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))
-      return date;
-
-    let dateObj = date instanceof Date ? date : new Date(date);
-    return isNaN(dateObj.getTime())
-      ? null
-      : dateObj.toISOString().split("T")[0];
-  };
-
-  return employmentTypes.map((employment) => {
-    const transformed = {
-      id:
-        employment.id &&
-        typeof employment.id === "string" &&
-        employment.id.startsWith("employment_")
-          ? null
-          : employment.id && !isNaN(parseInt(employment.id))
-          ? parseInt(employment.id)
-          : null,
-      employment_type_label: employment.employment_type_label || "",
-    };
-
-    [
-      "employment_start_date",
-      "employment_end_date",
-      "regularization_date",
-    ].forEach((field) => {
-      if (employment[field]) {
-        transformed[field] = formatDateForAPI(employment[field]);
-      }
-    });
-
-    return transformed;
-  });
-};
 
 export const getFieldStep = (fieldPath) => {
   const stepFieldMap = {
@@ -290,10 +226,7 @@ export const useFormSubmission = ({
   };
 
   const processSubmission = async (data, isUpdate = false) => {
-    const fullSchema = createFlattenedEmployeeSchema();
-    await fullSchema.validate(data, { abortEarly: false });
-
-    const transformedData = transformEmployeeData(data);
+    const transformedData = transformEmployeeData(data, isUpdate);
     Object.keys(transformedData).forEach((key) => {
       if (transformedData[key] === undefined) delete transformedData[key];
     });
@@ -396,8 +329,6 @@ export const useFormSubmission = ({
 
     try {
       const currentData = getValues();
-      const fullSchema = createFlattenedEmployeeSchema();
-      await fullSchema.validate(currentData, { abortEarly: false });
       await processSubmission(currentData, true);
 
       setSubmissionResult({
@@ -447,76 +378,8 @@ export const useStepNavigation = (
   setSubmissionResult,
   isDisabled,
   isViewMode,
-  trigger
+  validateCurrentStep
 ) => {
-  const stepFieldMap = {
-    0: [
-      "submission_title",
-      "first_name",
-      "last_name",
-      "middle_name",
-      "prefix",
-      "id_number",
-      "suffix",
-      "birth_date",
-      "birth_place",
-      "nationality",
-      "gender",
-      "civil_status",
-      "religion",
-      "referred_by",
-      "remarks",
-    ],
-    1: [
-      "region_id",
-      "province_id",
-      "city_municipality_id",
-      "barangay_id",
-      "street",
-      "zip_code",
-      "sub_municipality",
-      "foreign_address",
-      "address_remarks",
-    ],
-    2: [
-      "position_title",
-      "job_rate",
-      "schedule_id",
-      "job_level_id",
-      "allowance",
-      "additional_rate",
-    ],
-    3: ["employment_types"],
-    4: [
-      "attainment_id",
-      "program_id",
-      "degree_id",
-      "honor_title_id",
-      "academic_year_from",
-      "academic_year_to",
-      "gpa",
-      "institution",
-      "attainment_attachment",
-      "attainment_remarks",
-    ],
-    5: [
-      "sss_number",
-      "pag_ibig_number",
-      "philhealth_number",
-      "tin_number",
-      "bank",
-      "bank_account_number",
-    ],
-    6: [
-      "email_address",
-      "mobile_number",
-      "mobile_number_remarks",
-      "email_address_remarks",
-    ],
-    7: ["files"],
-    8: [],
-  };
-
   const handleNext = async () => {
     if (isViewMode || isDisabled) {
       if (isViewMode) setActiveStep((prev) => prev + 1);
@@ -525,24 +388,13 @@ export const useStepNavigation = (
 
     setSubmissionResult(null);
 
-    const fieldsToValidate = stepFieldMap[activeStep] || [];
+    const isValid = await validateCurrentStep();
 
-    if (fieldsToValidate.length === 0) {
-      setActiveStep((prev) => prev + 1);
+    if (!isValid) {
       return;
     }
 
-    try {
-      const isValid = await trigger(fieldsToValidate, { shouldFocus: true });
-
-      if (!isValid) {
-        return;
-      }
-
-      setActiveStep((prev) => prev + 1);
-    } catch (error) {
-      return;
-    }
+    setActiveStep((prev) => prev + 1);
   };
 
   const handleBack = () => {

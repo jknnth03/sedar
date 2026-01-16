@@ -25,11 +25,6 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
 
   const formValues = watch();
 
-  console.log("=== ReviewStep Debug ===");
-  console.log("Initial Data:", initialData);
-  console.log("Form Values from watch():", formValues);
-  console.log("Form Values from getValues():", getValues());
-
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [currentFileId, setCurrentFileId] = useState(null);
   const [currentFileName, setCurrentFileName] = useState("");
@@ -89,7 +84,6 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
   }, [fileUrl, isPreviewingNewFile]);
 
   const handleAttainmentPreview = useCallback((attainment) => {
-    console.log("Previewing attainment:", attainment);
     if (attainment?.attainment_attachment instanceof File) {
       const objectUrl = URL.createObjectURL(attainment.attainment_attachment);
       setFileUrl(objectUrl);
@@ -114,7 +108,6 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
   }, []);
 
   const handleFilePreview = useCallback((file) => {
-    console.log("Previewing file:", file);
     if (file?.file_attachment instanceof File) {
       const objectUrl = URL.createObjectURL(file.file_attachment);
       setFileUrl(objectUrl);
@@ -449,19 +442,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
   const attainmentsData =
     formValues.attainments || initialData?.attainments || [];
 
-  console.log("Attainments from formValues:", formValues.attainments);
-  console.log("Attainments from initialData:", initialData?.attainments);
-  console.log("Final attainmentsData:", attainmentsData);
-
   const hasAttainmentData = attainmentsData && attainmentsData.length > 0;
-
-  console.log("Has attainment data:", hasAttainmentData);
 
   const filesData = initialData?.files || formValues.files || [];
   const hasFilesData = filesData && filesData.length > 0;
-
-  console.log("Files data:", filesData);
-  console.log("Has files data:", hasFilesData);
 
   const hasAttachmentFile = (attainment) => {
     if (attainment?.attainment_attachment instanceof File) return true;

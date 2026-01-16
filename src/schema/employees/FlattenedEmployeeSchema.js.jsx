@@ -240,15 +240,23 @@ const fileSchema = yup.object().shape({
 });
 
 const fieldSchemas = {
-  submission_title: yup
-    .mixed()
-    .nullable()
-    .test("is-valid-submission", "Form is required.", function (value) {
-      if (!value || typeof value !== "object") {
-        return false;
-      }
-      return !!(value.id || value.submission_title || value.linked_mrf_title);
-    }),
+  submission_title: yup.mixed().when("$mode", {
+    is: (mode) => mode === "create",
+    then: (schema) =>
+      schema
+        .nullable()
+        .test("is-valid-submission", "Form is required.", function (value) {
+          if (!value || typeof value !== "object") {
+            return false;
+          }
+          return !!(
+            value.id ||
+            value.submission_title ||
+            value.linked_mrf_title
+          );
+        }),
+    otherwise: (schema) => schema.nullable(),
+  }),
   first_name: yup.string().required("First name is required."),
   middle_name: yup.string().nullable(),
   last_name: yup.string().required("Last Name is required."),
@@ -658,7 +666,7 @@ export const createFlattenedEmployeeSchema = () => {
   return yup.object().shape(fieldSchemas);
 };
 
-export const getStepValidationSchema = (stepIndex) => {
+export const getStepValidationSchema = (stepIndex, mode) => {
   const stepFieldMap = {
     0: [
       "submission_title",

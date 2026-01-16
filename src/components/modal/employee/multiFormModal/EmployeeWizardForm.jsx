@@ -28,7 +28,7 @@ import {
 import { useSelector } from "react-redux";
 import "./Employee.scss";
 
-import { createFlattenedEmployeeSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
+import { getStepValidationSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import {
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
@@ -142,7 +142,6 @@ const EmployeeWizardForm = ({
 
   const methods = useForm({
     defaultValues: getDefaultValues({ mode, initialData }),
-    resolver: yupResolver(createFlattenedEmployeeSchema()),
     mode: "onChange",
     reValidateMode: "onChange",
     shouldUnregister: false,
@@ -208,6 +207,28 @@ const EmployeeWizardForm = ({
     }
   }, [getValues, setValue]);
 
+  const validateCurrentStep = useCallback(async () => {
+    try {
+      const formData = getValues();
+      const stepSchema = getStepValidationSchema(activeStep, currentMode);
+      await stepSchema.validate(formData, {
+        abortEarly: false,
+        context: { mode: currentMode },
+      });
+      return true;
+    } catch (err) {
+      if (err.inner) {
+        err.inner.forEach((error) => {
+          setError(error.path, {
+            type: "manual",
+            message: error.message,
+          });
+        });
+      }
+      return false;
+    }
+  }, [activeStep, currentMode, getValues, setError]);
+
   const { onSubmit, handleUpdateAtStep, onError } = useFormSubmission({
     isDisabled,
     isCreateMode,
@@ -234,18 +255,27 @@ const EmployeeWizardForm = ({
     setSubmissionResult,
     isDisabled,
     isViewMode,
-    trigger
+    validateCurrentStep
   );
 
-  const enhancedHandleNext = useCallback(() => {
+  const enhancedHandleNext = useCallback(async () => {
     if (isDisabled) return;
 
     if (activeStep === 4) {
       collectAttainmentData();
     }
 
-    handleNext();
-  }, [isDisabled, activeStep, collectAttainmentData, handleNext]);
+    const isValid = await validateCurrentStep();
+    if (isValid) {
+      handleNext();
+    }
+  }, [
+    isDisabled,
+    activeStep,
+    collectAttainmentData,
+    validateCurrentStep,
+    handleNext,
+  ]);
 
   const enhancedHandleStepClick = useCallback(
     (stepIndex) => {
@@ -320,6 +350,12 @@ const EmployeeWizardForm = ({
 
     return () => subscription.unsubscribe();
   }, [watch, handleEmploymentTypeChange, isFormInitialized, isDisabled]);
+
+  useEffect(() => {
+    if (activeStep !== 7) {
+      clearErrors("files");
+    }
+  }, [activeStep, clearErrors]);
 
   const handleEditClick = () => {
     if (isDisabled || !canEditEmployee) return;

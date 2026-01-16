@@ -246,7 +246,7 @@ export const transformEmployeeData = (formData) => {
     id_number: cleanedData.id_number,
     birth_date: formatDateForAPI(cleanedData.birth_date),
     birth_place: cleanedData.birth_place || "",
-    nationality: cleanedData.nationality || "",
+    nationality_id: extractIdFromObject(cleanedData.nationality),
     gender: cleanedData.gender,
     civil_status: cleanedData.civil_status,
     religion_id: extractIdFromObject(cleanedData.religion),
@@ -332,15 +332,29 @@ export const transformEmployeeData = (formData) => {
     "email_address_remarks",
   ];
 
+  const requiredBackendFields = [
+    "nationality_id",
+    "prefix_id",
+    "religion_id",
+    "referrer_id",
+  ];
+
   Object.entries(transformedData).forEach(([key, value]) => {
     if (value === null || value === undefined) {
-      if (alwaysRequiredFields.includes(key)) {
+      if (
+        alwaysRequiredFields.includes(key) ||
+        requiredBackendFields.includes(key)
+      ) {
         formDatas.append(key, "");
       }
       return;
     }
 
-    if (value === "" && !alwaysRequiredFields.includes(key)) {
+    if (
+      value === "" &&
+      !alwaysRequiredFields.includes(key) &&
+      !requiredBackendFields.includes(key)
+    ) {
       return;
     }
 
