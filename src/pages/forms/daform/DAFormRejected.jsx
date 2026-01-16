@@ -11,20 +11,22 @@ import {
 } from "../../../features/api/forms/daformApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormTable from "./DAFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormRejected = ({ searchQuery, dateFilters }) => {
+const DAFormRejected = ({
+  searchQuery,
+  dateFilters,
+  setQueryParams,
+  currentParams,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -101,6 +103,8 @@ const DAFormRejected = ({ searchQuery, dateFilters }) => {
     const data = submissionsData?.result?.data || [];
     return data;
   }, [submissionsData]);
+
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -229,7 +233,7 @@ const DAFormRejected = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -237,7 +241,7 @@ const DAFormRejected = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -249,7 +253,7 @@ const DAFormRejected = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -257,7 +261,7 @@ const DAFormRejected = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -346,8 +350,6 @@ const DAFormRejected = ({ searchQuery, dateFilters }) => {
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
-
-  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>

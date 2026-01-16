@@ -15,12 +15,6 @@ import {
   Tooltip,
   Skeleton,
   useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -30,6 +24,7 @@ import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DataChangeDialog from "./DataChangeDialog";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
 
 const DataChangeMDATable = ({
@@ -48,10 +43,10 @@ const DataChangeMDATable = ({
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedDataChangeHistory, setSelectedDataChangeHistory] =
     React.useState(null);
-  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
-  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [selectedSubmissionForCancel, setSelectedSubmissionForCancel] =
     React.useState(null);
-  const [isCancelling, setIsCancelling] = React.useState(false);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
 
   const getMovementTypeLabel = (movementType) => {
     return movementType || "-";
@@ -160,40 +155,24 @@ const DataChangeMDATable = ({
     setSelectedDataChangeHistory(null);
   };
 
-  const handleCancelClick = (submission) => {
-    setSelectedSubmissionToCancel(submission);
-    setCancelDialogOpen(true);
+  const handleCancelClick = (e, submission) => {
+    e.stopPropagation();
     handleMenuClose(submission.id);
+    setSelectedSubmissionForCancel(submission);
+    setCancelRemarks("");
+    setShowCancelDialog(true);
   };
 
   const handleCancelDialogClose = () => {
-    setCancelDialogOpen(false);
-    setSelectedSubmissionToCancel(null);
-    setIsCancelling(false);
+    setShowCancelDialog(false);
+    setSelectedSubmissionForCancel(null);
+    setCancelRemarks("");
   };
 
-  const handleConfirmCancel = async () => {
-    if (!selectedSubmissionToCancel) {
-      return;
-    }
-
-    setIsCancelling(true);
-
-    try {
-      if (onCancel) {
-        const success = await onCancel(selectedSubmissionToCancel.id);
-
-        if (success) {
-          handleCancelDialogClose();
-        } else {
-          setIsCancelling(false);
-        }
-      } else {
-        setIsCancelling(false);
-        handleCancelDialogClose();
-      }
-    } catch (error) {
-      setIsCancelling(false);
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
+    if (onCancel) {
+      onCancel();
     }
   };
 
@@ -415,8 +394,7 @@ const DataChangeMDATable = ({
                       </MenuItem>
                       <MenuItem
                         onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelClick(submission);
+                          handleCancelClick(e, submission);
                         }}
                         disabled={!canCancelSubmission(submission)}
                         sx={
@@ -480,130 +458,22 @@ const DataChangeMDATable = ({
         selectedDataChangeHistory={selectedDataChangeHistory}
       />
 
-      <Dialog
-        open={cancelDialogOpen}
+      <ConfirmationDialog
+        open={showCancelDialog}
         onClose={handleCancelDialogClose}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            padding: 2,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            textAlign: "center",
-          },
-        }}>
-        <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 2,
-            }}>
-            <Box
-              sx={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                backgroundColor: "#ff4400",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-              <Typography
-                sx={{
-                  color: "white",
-                  fontSize: "30px",
-                  fontWeight: "normal",
-                }}>
-                ?
-              </Typography>
-            </Box>
-          </Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 600,
-              color: "rgb(25, 45, 84)",
-              marginBottom: 0,
-            }}>
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              marginBottom: 2,
-              fontSize: "16px",
-              color: "#333",
-              fontWeight: 400,
-            }}>
-            Are you sure you want to <strong>Cancel</strong> this MDA Request?
-          </Typography>
-          {selectedSubmissionToCancel && (
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {selectedSubmissionToCancel?.reference_number}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions
-          sx={{
-            justifyContent: "center",
-            padding: 0,
-            marginTop: 3,
-            gap: 2,
-          }}>
-          <Button
-            onClick={handleCancelDialogClose}
-            variant="outlined"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              borderColor: "#f44336",
-              color: "#f44336",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                borderColor: "#d32f2f",
-                backgroundColor: "rgba(244, 67, 54, 0.04)",
-              },
-            }}
-            disabled={isCancelling}>
-            CANCEL
-          </Button>
-          <Button
-            onClick={handleConfirmCancel}
-            variant="contained"
-            sx={{
-              textTransform: "uppercase",
-              fontWeight: 600,
-              backgroundColor: "#4caf50",
-              paddingX: 3,
-              paddingY: 1,
-              borderRadius: 2,
-              "&:hover": {
-                backgroundColor: "#388e3c",
-              },
-            }}
-            disabled={isCancelling}>
-            {isCancelling ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              "CONFIRM"
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        action="cancel"
+        itemId={selectedSubmissionForCancel?.id}
+        itemName={selectedSubmissionForCancel?.reference_number || "N/A"}
+        module="Data Change Request"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleCancelSuccess}
+      />
     </>
   );
 };

@@ -9,23 +9,25 @@ import {
   useUpdateMrfSubmissionMutation,
   useGetSingleMrfSubmissionQuery,
   useResubmitMrfSubmissionMutation,
-  useCancelMrfSubmissionMutation,
 } from "../../../features/api/forms/mrfApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
+const MrfAwaitingResubmission = ({
+  searchQuery,
+  dateFilters,
+  setQueryParams,
+  currentParams,
+  onCancel,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -107,7 +109,6 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
   const [createMrfSubmission] = useCreateMrfSubmissionMutation();
   const [updateMrfSubmission] = useUpdateMrfSubmissionMutation();
   const [resubmitMrfSubmission] = useResubmitMrfSubmissionMutation();
-  const [cancelMrfSubmission] = useCancelMrfSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
     return submissionsData?.result?.data || [];
@@ -136,24 +137,9 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -251,7 +237,7 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -259,7 +245,7 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -271,7 +257,7 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -279,7 +265,7 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -287,21 +273,16 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelMrfSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("MRF submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        refetchDashboard();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createMrfSubmission(pendingFormData).unwrap();
+
         enqueueSnackbar("MRF submission created successfully!", {
           variant: "success",
           autoHideDuration: 2000,
@@ -316,7 +297,7 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
       ) {
         await updateMrfSubmission({
           id: selectedSubmissionForAction.id,
-          data: pendingFormData,
+          body: pendingFormData,
         }).unwrap();
 
         enqueueSnackbar("MRF submission updated successfully!", {
@@ -333,8 +314,9 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
       ) {
         await resubmitMrfSubmission({
           id: selectedSubmissionForAction.id,
-          ...pendingFormData,
+          data: pendingFormData,
         }).unwrap();
+
         enqueueSnackbar("MRF submission resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
@@ -371,10 +353,10 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    const name =
       selectedSubmissionForAction?.reference_number ||
       "Manpower Requisition Form";
-    return submissionForAction;
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -402,6 +384,7 @@ const MrfAwaitingResubmission = ({ searchQuery, dateFilters }) => {
           onCancel={handleCancelSubmission}
           onUpdate={handleUpdateSubmission}
           onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
         <CustomTablePagination

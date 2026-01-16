@@ -26,7 +26,10 @@ import {
   StyledTabs,
   StyledTab,
 } from "../manpowerform/FormSubmissionStyles";
-import { useCreateFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import {
+  useCreateFormSubmissionMutation,
+  useCancelFormSubmissionMutation,
+} from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { format } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -301,6 +304,7 @@ const MrfMainContainer = () => {
   const [formIsLoading, setFormIsLoading] = useState(false);
 
   const [createSubmission] = useCreateFormSubmissionMutation();
+  const [cancelFormSubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -392,6 +396,58 @@ const MrfMainContainer = () => {
     setFormModalOpen(true);
   }, []);
 
+  const handleCancel = useCallback(
+    async (entryId, cancellationReason) => {
+      if (!entryId) {
+        enqueueSnackbar("Invalid submission ID", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
+
+      if (!cancellationReason || cancellationReason.trim().length < 10) {
+        enqueueSnackbar("Cancellation reason must be at least 10 characters", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
+
+      try {
+        await cancelFormSubmission({
+          submissionId: entryId,
+          reason: cancellationReason.trim(),
+        }).unwrap();
+
+        enqueueSnackbar("Manpower form cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error in handleCancel:", error);
+
+        let errorMessage = "Failed to cancel manpower form. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelFormSubmission, enqueueSnackbar]
+  );
+
   const handleSave = useCallback(
     async (formData, mode, entryId) => {
       setFormIsLoading(true);
@@ -438,6 +494,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -452,6 +509,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -466,6 +524,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -480,6 +539,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -494,6 +554,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -508,6 +569,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -522,6 +584,7 @@ const MrfMainContainer = () => {
             dateFilters={apiDateFilters}
             setQueryParams={setQueryParams}
             currentParams={currentParams}
+            onCancel={handleCancel}
             onRowClick={handleRowClick}
           />
         ),
@@ -533,6 +596,7 @@ const MrfMainContainer = () => {
       apiDateFilters,
       setQueryParams,
       currentParams,
+      handleCancel,
       handleRowClick,
       mrfCounts,
     ]

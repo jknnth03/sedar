@@ -85,9 +85,7 @@ const EmployeeWizardForm = ({
           const perms = roleData.accessPermissions || [];
           setHasEnableEditPermission(perms.includes("Enable Edit"));
           return;
-        } catch (error) {
-          console.error("Error parsing user role:", error);
-        }
+        } catch (error) {}
       }
 
       const reduxPerms =
@@ -145,7 +143,8 @@ const EmployeeWizardForm = ({
   const methods = useForm({
     defaultValues: getDefaultValues({ mode, initialData }),
     resolver: yupResolver(createFlattenedEmployeeSchema()),
-    mode: "onSubmit",
+    mode: "onChange",
+    reValidateMode: "onChange",
     shouldUnregister: false,
   });
 
@@ -157,6 +156,7 @@ const EmployeeWizardForm = ({
     clearErrors,
     getValues,
     setError,
+    trigger,
     formState: { errors },
   } = methods;
 
@@ -234,7 +234,7 @@ const EmployeeWizardForm = ({
     setSubmissionResult,
     isDisabled,
     isViewMode,
-    getValues
+    trigger
   );
 
   const enhancedHandleNext = useCallback(() => {

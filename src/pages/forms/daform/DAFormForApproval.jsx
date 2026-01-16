@@ -11,10 +11,7 @@ import {
 import DAFormTable from "./DAFormTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
@@ -45,7 +42,6 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [updateDaSubmission] = useUpdateDaMutation();
   const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     const params = {
@@ -141,32 +137,9 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
     [submissionsList]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      setIsLoading(true);
-      try {
-        await cancelDaSubmission(submissionId).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        return true;
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to cancel submission. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [cancelDaSubmission, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -304,7 +277,7 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
           statusFilter="PENDING"
-          onCancel={handleCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

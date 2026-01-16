@@ -11,21 +11,23 @@ import {
   useResubmitDataChangeSubmissionMutation,
 } from "../../../features/api/forms/datachangeApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DataChangeForapprovalTable from "./DataChangeForapprovalTable";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DataChangeRejected = ({ searchQuery, dateFilters }) => {
+const DataChangeRejected = ({
+  searchQuery,
+  dateFilters,
+  setQueryParams,
+  currentParams,
+  onCancel,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -104,7 +106,6 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
   const [resubmitDataChangeSubmission] =
     useResubmitDataChangeSubmissionMutation();
-  const [cancelDataChangeSubmission] = useCancelFormSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
     return submissionsData?.result?.data || [];
@@ -133,24 +134,9 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -248,7 +234,7 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -256,7 +242,7 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -268,7 +254,7 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -276,7 +262,7 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -284,22 +270,14 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDataChangeSubmission(
-          selectedSubmissionForAction.id
-        ).unwrap();
-        enqueueSnackbar("Data change submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        refetchDashboard();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createDataChangeSubmission(pendingFormData).unwrap();
         enqueueSnackbar("Data change submission created successfully!", {
           variant: "success",
@@ -370,9 +348,9 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    const name =
       selectedSubmissionForAction?.reference_number || "Data Change Request";
-    return submissionForAction;
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -404,6 +382,7 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
           onCancel={handleCancelSubmission}
           onUpdate={handleEditSubmission}
           onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
         <CustomTablePagination
@@ -423,6 +402,7 @@ const DataChangeRejected = ({ searchQuery, dateFilters }) => {
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         onSave={handleModalSave}
+        sss
         onRefreshDetails={handleRefreshDetails}
         onSuccessfulSave={handleModalSuccessCallback}
       />

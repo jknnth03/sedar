@@ -106,11 +106,6 @@ const FileFormTable = ({
                         />
                       )}
                     />
-                    {fieldState.error && (
-                      <FormHelperText>
-                        {fieldState.error.message}
-                      </FormHelperText>
-                    )}
                   </FormControl>
                 )}
               />
@@ -170,11 +165,6 @@ const FileFormTable = ({
                         />
                       )}
                     />
-                    {fieldState.error && (
-                      <FormHelperText>
-                        {fieldState.error.message}
-                      </FormHelperText>
-                    )}
                   </FormControl>
                 )}
               />
@@ -272,7 +262,7 @@ const FileFormTable = ({
                 ) : (
                   <Box sx={{ display: "flex", alignItems: "center" }}>
                     <input
-                      accept="*/*"
+                      accept="application/pdf"
                       style={{ display: "none" }}
                       id={`file-upload-input-${index}`}
                       type="file"
@@ -288,7 +278,17 @@ const FileFormTable = ({
                         fullWidth
                         disabled={isFieldDisabled}
                         className="file-upload-button"
-                        sx={{ height: "56px" }}>
+                        sx={{
+                          height: "56px",
+                          borderColor: errors.files?.[index]?.file_attachment
+                            ? "#d32f2f"
+                            : undefined,
+                          "&:hover": {
+                            borderColor: errors.files?.[index]?.file_attachment
+                              ? "#d32f2f"
+                              : undefined,
+                          },
+                        }}>
                         {watchedFiles?.[index]?.file_attachment instanceof File
                           ? watchedFiles[index].file_attachment.name
                           : watchedFiles?.[index]?.existing_file_name
@@ -343,26 +343,25 @@ const FileFormTable = ({
                 )}
 
                 {errors.files?.[index]?.file_attachment && (
-                  <Typography
-                    color="error"
-                    variant="caption"
-                    className="file-upload-error">
+                  <FormHelperText error sx={{ ml: 2, mt: 0.5 }}>
                     {errors.files[index].file_attachment.message}
-                  </Typography>
+                  </FormHelperText>
                 )}
 
-                {!isReadOnly && (
+                {!errors.files?.[index]?.file_attachment && !isReadOnly && (
                   <Typography
                     variant="caption"
                     color="text.secondary"
+                    sx={{ display: "block", ml: 2, mt: 0.5 }}
                     className="file-upload-caption">
                     {watchedFiles?.[index]?.existing_file_name
-                      ? "Leave empty to keep current file. Max size: 10MB"
-                      : "Max size: 10MB"}
+                      ? "Leave empty to keep current file. Max size: 10MB. Only PDF files allowed."
+                      : "Max size: 10MB. Only PDF files allowed."}
                   </Typography>
                 )}
               </Box>
             </Grid>
+
             {!isReadOnly && (
               <Grid item xs={12}>
                 <Box

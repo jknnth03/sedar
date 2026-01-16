@@ -175,6 +175,10 @@ const MDARecommendationAwaitingResubmission = ({
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -254,8 +258,7 @@ const MDARecommendationAwaitingResubmission = ({
           handleEditSubmission={handleEditSubmission}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          onCancel={onCancel}
-          onRefetch={refetch}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

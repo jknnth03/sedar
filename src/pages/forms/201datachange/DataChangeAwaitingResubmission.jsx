@@ -5,7 +5,7 @@ import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetDataChangeSubmissionsQuery,
-  useLazyGetDataChangeSubmissionDetailsQuery,
+  useGetDataChangeSubmissionDetailsQuery,
   useCreateDataChangeSubmissionMutation,
   useUpdateDataChangeSubmissionMutation,
   useResubmitDataChangeSubmissionMutation,
@@ -94,10 +94,14 @@ const DataChangeAwaitingResubmission = ({
 
   const { refetch: refetchDashboard } = useShowDashboardQuery();
 
-  const [
-    triggerGetSubmission,
-    { data: submissionDetails, isLoading: detailsLoading },
-  ] = useLazyGetDataChangeSubmissionDetailsQuery();
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetDataChangeSubmissionDetailsQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
+  });
 
   const [createDataChangeSubmission] = useCreateDataChangeSubmissionMutation();
   const [updateDataChangeSubmission] = useUpdateDataChangeSubmissionMutation();
@@ -110,47 +114,26 @@ const DataChangeAwaitingResubmission = ({
 
   const totalCount = submissionsData?.result?.total || 0;
 
-  const handleRowClick = useCallback(
-    async (submission) => {
-      setModalMode("view");
-      setSelectedSubmissionId(submission.id);
-      setMenuAnchor({});
-      setModalOpen(true);
+  const handleRowClick = useCallback((submission) => {
+    setModalMode("view");
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalOpen(true);
+  }, []);
 
-      try {
-        await triggerGetSubmission(submission.id);
-      } catch (error) {}
-    },
-    [triggerGetSubmission]
-  );
+  const handleEditSubmission = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("edit");
+    setModalOpen(true);
+  }, []);
 
-  const handleEditSubmission = useCallback(
-    async (submission) => {
-      setSelectedSubmissionId(submission.id);
-      setMenuAnchor({});
-      setModalMode("edit");
-      setModalOpen(true);
-
-      try {
-        await triggerGetSubmission(submission.id);
-      } catch (error) {}
-    },
-    [triggerGetSubmission]
-  );
-
-  const handleResubmitSubmission = useCallback(
-    async (submission) => {
-      setSelectedSubmissionId(submission.id);
-      setMenuAnchor({});
-      setModalMode("resubmit");
-      setModalOpen(true);
-
-      try {
-        await triggerGetSubmission(submission.id);
-      } catch (error) {}
-    },
-    [triggerGetSubmission]
-  );
+  const handleResubmitSubmission = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("resubmit");
+    setModalOpen(true);
+  }, []);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -160,10 +143,10 @@ const DataChangeAwaitingResubmission = ({
   }, []);
 
   const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId) {
-      triggerGetSubmission(selectedSubmissionId);
+    if (selectedSubmissionId && refetchDetails) {
+      refetchDetails();
     }
-  }, [selectedSubmissionId, triggerGetSubmission]);
+  }, [selectedSubmissionId, refetchDetails]);
 
   const handleModalSave = useCallback(
     async (submissionData, mode, submissionId) => {
@@ -228,29 +211,6 @@ const DataChangeAwaitingResubmission = ({
     ]
   );
 
-  const handleResubmitDirect = useCallback(
-    async (entryId) => {
-      try {
-        const submission =
-          submissionDetails?.result ||
-          filteredSubmissions.find((sub) => sub.id === entryId);
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("resubmit");
-        setConfirmOpen(true);
-        return true;
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message || "Failed to resubmit. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return false;
-      }
-    },
-    [submissionDetails, filteredSubmissions, enqueueSnackbar]
-  );
-
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -307,7 +267,9 @@ const DataChangeAwaitingResubmission = ({
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
@@ -378,9 +340,9 @@ const DataChangeAwaitingResubmission = ({
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    const name =
       selectedSubmissionForAction?.reference_number || "Data Change Request";
-    return submissionForAction;
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -412,6 +374,7 @@ const DataChangeAwaitingResubmission = ({
           onCancel={onCancel}
           onUpdate={handleEditSubmission}
           onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
         <CustomTablePagination
@@ -431,7 +394,6 @@ const DataChangeAwaitingResubmission = ({
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         onSave={handleModalSave}
-        onResubmit={handleResubmitDirect}
         onRefreshDetails={handleRefreshDetails}
         onSuccessfulSave={handleModalSuccessCallback}
       />

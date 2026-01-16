@@ -327,24 +327,16 @@ const formSubmissionApi = sedarApi
       }),
 
       cancelFormSubmission: build.mutation({
-        query: (arg) => {
-          const submissionId = typeof arg === "object" ? arg.submissionId : arg;
-          const reason = typeof arg === "object" ? arg.reason : "";
-
-          return {
-            url: `form-submissions/${submissionId}/cancel`,
-            method: "POST",
-            body: { reason },
-          };
-        },
-        invalidatesTags: (result, error, arg) => {
-          const submissionId = typeof arg === "object" ? arg.submissionId : arg;
-          return [
-            { type: "formSubmissions", id: submissionId },
-            "formSubmissions",
-            "mrfSubmissions",
-          ];
-        },
+        query: ({ id, reason }) => ({
+          url: `form-submissions/${id}/cancel`,
+          method: "POST",
+          body: { reason },
+        }),
+        invalidatesTags: (result, error, { id }) => [
+          { type: "formSubmissions", id },
+          "formSubmissions",
+          "mrfSubmissions",
+        ],
         async onQueryStarted(arg, { dispatch, queryFulfilled }) {
           try {
             await queryFulfilled;

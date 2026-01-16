@@ -64,119 +64,6 @@ export const formatDateForPayload = (date) => {
   return null;
 };
 
-export const populateFormWithEntry = (entry, setValue) => {
-  if (!entry) return;
-
-  const submittable = entry.submittable || entry.data || entry;
-
-  if (submittable.position_id || submittable.position) {
-    setValue(
-      "position_id",
-      submittable.position || { id: submittable.position_id },
-      { shouldValidate: false }
-    );
-  }
-
-  if (submittable.job_level_id || submittable.job_level) {
-    setValue(
-      "job_level_id",
-      submittable.job_level || { id: submittable.job_level_id },
-      { shouldValidate: false }
-    );
-  }
-
-  if (submittable.requisition_type_id || submittable.requisition_type) {
-    setValue(
-      "requisition_type_id",
-      submittable.requisition_type || { id: submittable.requisition_type_id },
-      { shouldValidate: false }
-    );
-  }
-
-  if (
-    submittable.employee_to_be_replaced_id ||
-    submittable.employee_to_be_replaced
-  ) {
-    setValue(
-      "employee_to_be_replaced_id",
-      submittable.employee_to_be_replaced || {
-        id: submittable.employee_to_be_replaced_id,
-      },
-      { shouldValidate: false }
-    );
-  }
-
-  if (submittable.expected_salary) {
-    setValue("expected_salary", submittable.expected_salary, {
-      shouldValidate: false,
-    });
-  }
-
-  if (submittable.employment_type) {
-    setValue("employment_type", submittable.employment_type, {
-      shouldValidate: false,
-    });
-  }
-
-  if (submittable.justification) {
-    setValue("justification", submittable.justification, {
-      shouldValidate: false,
-    });
-  }
-
-  if (submittable.remarks) {
-    setValue("remarks", submittable.remarks, { shouldValidate: false });
-  }
-
-  if (submittable.employee_movement_details) {
-    const movement = submittable.employee_movement_details;
-
-    if (movement.employee_id || movement.employee) {
-      setValue(
-        "movement_employee_id",
-        movement.employee || { id: movement.employee_id },
-        { shouldValidate: false }
-      );
-    }
-
-    if (movement.new_position_id || movement.new_position) {
-      setValue(
-        "movement_new_position_id",
-        movement.new_position || { id: movement.new_position_id },
-        { shouldValidate: false }
-      );
-    }
-
-    if (movement.reason_for_change) {
-      setValue("movement_reason_for_change", movement.reason_for_change, {
-        shouldValidate: false,
-      });
-    }
-
-    if (movement.is_developmental_assignment !== undefined) {
-      setValue(
-        "movement_is_da",
-        Boolean(movement.is_developmental_assignment),
-        {
-          shouldValidate: false,
-        }
-      );
-    }
-
-    if (movement.da_start_date) {
-      setValue("movement_da_start_date", dayjs(movement.da_start_date), {
-        shouldValidate: false,
-      });
-    }
-
-    if (movement.da_end_date) {
-      setValue("movement_da_end_date", dayjs(movement.da_end_date), {
-        shouldValidate: false,
-      });
-    }
-  }
-};
-
 export const buildCreatePayload = (
   data,
   currentMode,
@@ -366,92 +253,155 @@ export const buildEditPayload = (
   selectedFile,
   requisitionType
 ) => {
+  console.log("🔧 buildEditPayload called");
+  console.log("   Data:", data);
+  console.log("   Selected Entry:", selectedEntry);
+  console.log("   Selected File:", selectedFile);
+  console.log("   Requisition Type:", requisitionType);
+
   const isAdditional = isAdditionalManpower(requisitionType);
   const isReplacement = isReplacementDueToEmployeeMovement(requisitionType);
 
-  const updateData = {
-    _method: "PATCH",
-  };
+  console.log("   Is Additional:", isAdditional);
+  console.log("   Is Replacement:", isReplacement);
 
+  // ALWAYS use FormData for PATCH requests
+  const formData = new FormData();
+
+  // Add the PATCH method
+  formData.append("_method", "PATCH");
+
+  // Add basic fields
   if (data.position_id?.id) {
-    updateData.position_id = data.position_id.id;
+    formData.append("position_id", data.position_id.id.toString());
   }
 
   if (data.job_level_id?.id) {
-    updateData.job_level_id = data.job_level_id.id;
+    formData.append("job_level_id", data.job_level_id.id.toString());
   }
 
   if (data.employment_type && data.employment_type.trim() !== "") {
-    updateData.employment_type = data.employment_type;
+    formData.append("employment_type", data.employment_type);
   }
 
   if (data.expected_salary) {
-    updateData.expected_salary = data.expected_salary;
+    formData.append("expected_salary", data.expected_salary.toString());
   }
 
   if (data.requisition_type_id?.id) {
-    updateData.requisition_type_id = data.requisition_type_id.id;
+    formData.append(
+      "requisition_type_id",
+      data.requisition_type_id.id.toString()
+    );
   }
 
   if (data.justification && data.justification.trim() !== "") {
-    updateData.justification = data.justification;
+    formData.append("justification", data.justification);
   }
 
   if (data.remarks && data.remarks.trim() !== "") {
-    updateData.remarks = data.remarks;
+    formData.append("remarks", data.remarks);
   }
 
+  // Handle employee to be replaced (for non-additional, non-replacement types)
   if (data.employee_to_be_replaced_id?.id && !isAdditional && !isReplacement) {
-    updateData.employee_to_be_replaced_id = data.employee_to_be_replaced_id.id;
+    formData.append(
+      "employee_to_be_replaced_id",
+      data.employee_to_be_replaced_id.id.toString()
+    );
   }
 
+  // Handle Employee Movement (CRITICAL FIX - using bracket notation as shown in Postman)
   if (isReplacement) {
+    console.log("   📋 Building Employee Movement payload");
+
     if (data.movement_employee_id?.id) {
-      updateData.employee_id = data.movement_employee_id.id;
+      formData.append(
+        "employee_movement[employee_id]",
+        data.movement_employee_id.id.toString()
+      );
+      console.log(
+        "   ✅ Added employee_movement[employee_id]:",
+        data.movement_employee_id.id
+      );
     }
 
     if (data.movement_new_position_id?.id) {
-      updateData.to_position_id = data.movement_new_position_id.id;
+      formData.append(
+        "employee_movement[new_position_id]",
+        data.movement_new_position_id.id.toString()
+      );
+      console.log(
+        "   ✅ Added employee_movement[new_position_id]:",
+        data.movement_new_position_id.id
+      );
     }
 
     if (
       data.movement_reason_for_change &&
       data.movement_reason_for_change.trim() !== ""
     ) {
-      updateData.reason_for_change = data.movement_reason_for_change;
+      formData.append(
+        "employee_movement[reason_for_change]",
+        data.movement_reason_for_change
+      );
+      console.log(
+        "   ✅ Added employee_movement[reason_for_change]:",
+        data.movement_reason_for_change
+      );
     }
 
-    updateData.is_developmental_assignment = data.movement_is_da || false;
+    const isDevelopmentalAssignment = data.movement_is_da ? "1" : "0";
+    formData.append(
+      "employee_movement[is_developmental_assignment]",
+      isDevelopmentalAssignment
+    );
+    console.log(
+      "   ✅ Added employee_movement[is_developmental_assignment]:",
+      isDevelopmentalAssignment
+    );
 
     if (data.movement_is_da) {
       const formattedStartDate = formatDateForPayload(
         data.movement_da_start_date
       );
       if (formattedStartDate) {
-        updateData.da_start_date = formattedStartDate;
+        formData.append("employee_movement[da_start_date]", formattedStartDate);
+        console.log(
+          "   ✅ Added employee_movement[da_start_date]:",
+          formattedStartDate
+        );
       }
 
       const formattedEndDate = formatDateForPayload(data.movement_da_end_date);
       if (formattedEndDate) {
-        updateData.da_end_date = formattedEndDate;
+        formData.append("employee_movement[da_end_date]", formattedEndDate);
+        console.log(
+          "   ✅ Added employee_movement[da_end_date]:",
+          formattedEndDate
+        );
       }
     }
   }
 
+  // Handle file attachment if provided
   if (selectedFile && selectedFile instanceof File) {
-    const formData = new FormData();
-    formData.append("id", selectedEntry.id);
-    Object.keys(updateData).forEach((key) => {
-      formData.append(key, updateData[key]);
-    });
     formData.append("manpower_form_attachment", selectedFile);
-    return formData;
-  } else {
-    return { id: selectedEntry.id, ...updateData };
+    console.log("   ✅ Added manpower_form_attachment file");
   }
+
+  // Log the final FormData contents
+  console.log("   📦 Final FormData contents:");
+  for (let [key, value] of formData.entries()) {
+    console.log(`     ${key}:`, value);
+  }
+
+  return formData;
 };
 
 export const buildResubmitPayload = (data, requisitionType) => {
+  console.log("🔧 buildResubmitPayload called");
+
   const isAdditional = isAdditionalManpower(requisitionType);
   const isReplacement = isReplacementDueToEmployeeMovement(requisitionType);
 
@@ -523,6 +473,7 @@ export const buildResubmitPayload = (data, requisitionType) => {
     }
   }
 
+  console.log("   📦 Final resubmit payload:", resubmitData);
   return resubmitData;
 };
 

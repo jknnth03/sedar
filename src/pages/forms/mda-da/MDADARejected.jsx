@@ -174,6 +174,10 @@ const MDADARejected = ({ searchQuery, dateFilters, onCancel }) => {
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -264,8 +268,8 @@ const MDADARejected = ({ searchQuery, dateFilters, onCancel }) => {
             handleEditSubmission={handleEditSubmission}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            onCancel={onCancel}
-            onRefetch={refetch}
+            statusFilter="REJECTED"
+            onCancel={handleCancelSubmission}
           />
 
           <CustomTablePagination

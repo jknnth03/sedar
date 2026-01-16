@@ -8,7 +8,6 @@ import {
   useLazyGetSingleProbationaryEvaluationQuery,
   useUpdateProbationaryEvaluationMutation,
   useResubmitProbationaryEvaluationMutation,
-  useCancelProbationaryEvaluationMutation,
 } from "../../../features/api/forms/evaluationFormApi";
 import EvaluationFormTable from "./EvaluationFormTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -44,8 +43,6 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     useUpdateProbationaryEvaluationMutation();
   const [resubmitProbationaryEvaluation] =
     useResubmitProbationaryEvaluationMutation();
-  const [cancelProbationaryEvaluation] =
-    useCancelProbationaryEvaluationMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -158,22 +155,9 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     [submissions]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      const submission = submissions.find((sub) => sub.id === submissionId);
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [submissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -181,16 +165,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelProbationaryEvaluation(
-          selectedSubmissionForAction.id
-        ).unwrap();
-        enqueueSnackbar("Probationary Evaluation cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
+      if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitProbationaryEvaluation(
           selectedSubmissionForAction.id
         ).unwrap();
@@ -303,7 +278,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
           statusFilter="REJECTED"
-          onCancel={handleCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -28,12 +28,12 @@ const ConfirmationDialog = ({
   remarksRequired = false,
   remarksLabel = "Remarks (Optional)",
   remarksPlaceholder = "Add any additional remarks...",
+  remarksMinLength = 0,
   onSuccess = () => {},
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [cancelFormSubmission, { isLoading: isCancelling }] =
     useCancelFormSubmissionMutation();
-  const [localRemarks, setLocalRemarks] = useState("");
   const [remarksError, setRemarksError] = useState("");
 
   const getActionConfig = () => {
@@ -62,11 +62,10 @@ const ConfirmationDialog = ({
   };
 
   const actionConfig = getActionConfig();
-  const currentRemarks = remarks || localRemarks;
-  const hasRemarksError = remarksRequired && !currentRemarks.trim();
+  const hasRemarksError =
+    remarksRequired && (!remarks || remarks.trim().length < remarksMinLength);
 
   const handleRemarksChange = (value) => {
-    setLocalRemarks(value);
     if (onRemarksChange) {
       onRemarksChange(value);
     }
@@ -77,23 +76,29 @@ const ConfirmationDialog = ({
 
   const handleClose = () => {
     if (!isLoading && !isCancelling) {
-      setLocalRemarks("");
       setRemarksError("");
       onClose();
     }
   };
 
   const handleConfirm = async () => {
-    if (action === "cancel" && itemId) {
-      if (!currentRemarks.trim()) {
-        setRemarksError("Remarks are required for cancellation");
-        return;
-      }
+    if (
+      remarksRequired &&
+      (!remarks || remarks.trim().length < remarksMinLength)
+    ) {
+      setRemarksError(
+        remarksMinLength > 0
+          ? `Remarks must be at least ${remarksMinLength} characters`
+          : "Remarks are required"
+      );
+      return;
+    }
 
-      try {
-        const result = await cancelFormSubmission({
-          submissionId: itemId,
-          reason: currentRemarks.trim(),
+    try {
+      if (action === "cancel" && itemId) {
+        await cancelFormSubmission({
+          id: itemId,
+          reason: remarks.trim(),
         }).unwrap();
 
         enqueueSnackbar("Request cancelled successfully!", {
@@ -101,31 +106,23 @@ const ConfirmationDialog = ({
           autoHideDuration: 2000,
         });
 
-        setLocalRemarks("");
-        setRemarksError("");
-        onClose();
-
-        if (onSuccess) {
-          onSuccess();
+        if (onSuccess && typeof onSuccess === "function") {
+          await onSuccess();
         }
-      } catch (error) {
-        console.error("Cancel error:", error);
-        const errorMessage =
-          error?.data?.message || "Failed to cancel request. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    } else {
-      if (remarksRequired && !currentRemarks.trim()) {
-        setRemarksError("Remarks are required");
-        return;
-      }
 
-      if (onConfirm) {
-        onConfirm();
+        handleClose();
+      } else if (onConfirm && typeof onConfirm === "function") {
+        await onConfirm();
+      } else if (onSuccess && typeof onSuccess === "function") {
+        await onSuccess();
       }
+    } catch (error) {
+      const errorMessage =
+        error?.data?.message || "Failed to process request. Please try again.";
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 2000,
+      });
     }
   };
 
@@ -215,15 +212,17 @@ const ConfirmationDialog = ({
             rows={3}
             label={remarksLabel}
             placeholder={remarksPlaceholder}
-            value={currentRemarks}
+            value={remarks}
             onChange={(e) => handleRemarksChange(e.target.value)}
             required={remarksRequired}
             error={!!remarksError || hasRemarksError}
             helperText={
               remarksError ||
-              (hasRemarksError
+              (hasRemarksError && remarksMinLength > 0
+                ? `Remarks must be at least ${remarksMinLength} characters`
+                : hasRemarksError
                 ? "Remarks are required"
-                : `${currentRemarks.length} characters`)
+                : `${remarks.length} characters`)
             }
             disabled={isProcessing}
             sx={{

@@ -306,11 +306,12 @@ const mrfApi = sedarApi
       }),
 
       cancelMrfSubmission: build.mutation({
-        query: (submissionId) => ({
+        query: ({ submissionId, reason }) => ({
           url: `form-submissions/${submissionId}/cancel`,
           method: "POST",
+          body: { reason },
         }),
-        invalidatesTags: (result, error, submissionId) => [
+        invalidatesTags: (result, error, { submissionId }) => [
           { type: "mrfSubmissions", id: submissionId },
           "mrfSubmissions",
         ],

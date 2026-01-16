@@ -11,10 +11,7 @@ import {
 import EvaluationFormTable from "./EvaluationFormTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
@@ -46,7 +43,6 @@ const EvaluationFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const [updateProbationaryEvaluation] =
     useUpdateProbationaryEvaluationMutation();
   const [resubmitProbationaryEvaluation] = useResubmitFormSubmissionMutation();
-  const [cancelProbationaryEvaluation] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -135,32 +131,9 @@ const EvaluationFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
     [submissionsList]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      setIsLoading(true);
-      try {
-        await cancelProbationaryEvaluation(submissionId).unwrap();
-        enqueueSnackbar("Probationary Evaluation cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        return true;
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to cancel submission. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [cancelProbationaryEvaluation, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -301,7 +274,7 @@ const EvaluationFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
           statusFilter="PENDING"
-          onCancel={handleCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

@@ -9,7 +9,6 @@ import {
   useCreatePerformanceEvaluationMutation,
   useUpdatePerformanceEvaluationMutation,
   useResubmitPerformanceEvaluationMutation,
-  useCancelPerformanceEvaluationMutation,
 } from "../../../features/api/forms/biAnnualPerformanceApi";
 import BiAnnualPerformanceTable from "./BiAnnualPerformanceTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -52,8 +51,6 @@ const BiAnnualPerformanceForApproval = ({
     useUpdatePerformanceEvaluationMutation();
   const [resubmitPerformanceEvaluation] =
     useResubmitPerformanceEvaluationMutation();
-  const [cancelPerformanceEvaluation] =
-    useCancelPerformanceEvaluationMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -171,32 +168,9 @@ const BiAnnualPerformanceForApproval = ({
     [submissionsList]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      setIsLoading(true);
-      try {
-        await cancelPerformanceEvaluation(submissionId).unwrap();
-        enqueueSnackbar("Performance Evaluation cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        return true;
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to cancel submission. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [cancelPerformanceEvaluation, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -336,7 +310,7 @@ const BiAnnualPerformanceForApproval = ({
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
           statusFilter="PENDING"
-          onCancel={handleCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

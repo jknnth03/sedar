@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
   Box,
@@ -10,6 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs"; // IMPORTANT: Import dayjs
 import { useLazyGetManpowerOptionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import { useLazyGetAllJobLevelsQuery } from "../../../../features/api/masterlist/jobLevelsApi";
 import { useLazyGetAllRequisitionsQuery } from "../../../../features/api/extras/requisitionsApi";
@@ -24,6 +25,14 @@ const safeStringRender = (value, fallback = "") => {
   if (typeof value === "number") return value.toString();
   if (value && typeof value === "object") return fallback;
   return value || fallback;
+};
+
+// Helper function to convert string dates to dayjs objects
+const parseDateValue = (value) => {
+  if (!value) return null;
+  if (dayjs.isDayjs(value)) return value;
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed : null;
 };
 
 const FormSubmissionFields = ({
@@ -108,6 +117,133 @@ const FormSubmissionFields = ({
     () => normalizeApiData(employeesData),
     [employeesData, normalizeApiData]
   );
+
+  useEffect(() => {
+    if (mode === "view" && selectedEntry?.submittable) {
+      const submittable = selectedEntry.submittable;
+      const replacementInfo = submittable.replacement_info;
+
+      if (submittable.position_id || submittable.position) {
+        setValue(
+          "position_id",
+          submittable.position || { id: submittable.position_id },
+          { shouldValidate: false }
+        );
+      }
+
+      if (submittable.job_level_id || submittable.job_level) {
+        setValue(
+          "job_level_id",
+          submittable.job_level || { id: submittable.job_level_id },
+          { shouldValidate: false }
+        );
+      }
+
+      if (submittable.requisition_type_id || submittable.requisition_type) {
+        setValue(
+          "requisition_type_id",
+          submittable.requisition_type || {
+            id: submittable.requisition_type_id,
+          },
+          { shouldValidate: false }
+        );
+      }
+
+      if (submittable.expected_salary) {
+        setValue("expected_salary", submittable.expected_salary, {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.employment_type) {
+        setValue("employment_type", submittable.employment_type, {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.justification) {
+        setValue("justification", submittable.justification, {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.remarks) {
+        setValue("remarks", submittable.remarks, { shouldValidate: false });
+      }
+
+      if (submittable.position_id && submittable.requisition_type_id) {
+        triggerGetEmployees({
+          position_id: submittable.position_id,
+          requisition_type_id: submittable.requisition_type_id,
+          ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
+        });
+      }
+
+      if (
+        replacementInfo?.type === "employee_movement" &&
+        replacementInfo.details
+      ) {
+        const employeeData = replacementInfo.details.employee;
+        const newPositionData = replacementInfo.details.new_position;
+
+        if (employeeData) {
+          setValue("movement_employee_id", {
+            id: employeeData.id,
+            full_name: employeeData.full_name,
+            employee_code: employeeData.employee_code,
+          });
+        }
+
+        if (newPositionData) {
+          setValue("movement_new_position_id", {
+            id: newPositionData.id,
+            code: newPositionData.code,
+            title: newPositionData.title,
+            title_with_unit: newPositionData.title_with_unit,
+          });
+        }
+
+        if (replacementInfo.details.reason_for_change) {
+          setValue(
+            "movement_reason_for_change",
+            replacementInfo.details.reason_for_change
+          );
+        }
+
+        // FIXED: Convert string dates to dayjs objects
+        if (replacementInfo.details.da_start_date) {
+          const startDate = parseDateValue(
+            replacementInfo.details.da_start_date
+          );
+          setValue("movement_da_start_date", startDate, {
+            shouldValidate: false,
+          });
+        }
+
+        if (replacementInfo.details.da_end_date) {
+          const endDate = parseDateValue(replacementInfo.details.da_end_date);
+          setValue("movement_da_end_date", endDate, { shouldValidate: false });
+        }
+
+        if (
+          replacementInfo.details.da_start_date ||
+          replacementInfo.details.da_end_date
+        ) {
+          setValue("movement_is_da", true);
+        }
+      } else if (
+        replacementInfo?.type === "direct_replacement" &&
+        replacementInfo.details?.employee
+      ) {
+        const employeeData = replacementInfo.details.employee;
+        setValue("employee_to_be_replaced_id", {
+          id: employeeData.id,
+          full_name: employeeData.full_name,
+          employee_code: employeeData.employee_code,
+        });
+      }
+    }
+  }, [mode, selectedEntry, setValue, triggerGetEmployees]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
@@ -272,7 +408,6 @@ const FormSubmissionFields = ({
   return (
     <>
       <Box sx={{ width: "100%", ...(formStyles?.container || {}) }}>
-        {/* BOX 1: Requisition Type to Job Level */}
         <Box sx={{ mb: 3 }}>
           <Box
             sx={{
@@ -280,7 +415,6 @@ const FormSubmissionFields = ({
               gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
               gap: 2,
             }}>
-            {/* Requisition Type */}
             <Box>
               <Controller
                 name="requisition_type_id"
@@ -351,7 +485,6 @@ const FormSubmissionFields = ({
               />
             </Box>
 
-            {/* Position */}
             <Box>
               <Controller
                 name="position_id"
@@ -424,7 +557,6 @@ const FormSubmissionFields = ({
               />
             </Box>
 
-            {/* Employee Selection (conditional) */}
             <Box>
               {isReplacementDueToEmployeeMovement() ? (
                 <Controller
@@ -578,7 +710,6 @@ const FormSubmissionFields = ({
               )}
             </Box>
 
-            {/* New Position (conditional) */}
             {shouldShowMovementFields() && (
               <Box>
                 <Controller
@@ -638,7 +769,6 @@ const FormSubmissionFields = ({
               </Box>
             )}
 
-            {/* Job Level */}
             <Box>
               <Controller
                 name="job_level_id"
@@ -694,7 +824,6 @@ const FormSubmissionFields = ({
           </Box>
         </Box>
 
-        {/* BOX 2: Expected Salary to Remarks */}
         <Box sx={{ mb: 3 }}>
           <Box
             sx={{
@@ -702,7 +831,6 @@ const FormSubmissionFields = ({
               gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
               gap: 2,
             }}>
-            {/* Expected Salary */}
             <Box>
               <Controller
                 name="expected_salary"
@@ -724,7 +852,6 @@ const FormSubmissionFields = ({
               />
             </Box>
 
-            {/* Employment Type */}
             <Box>
               <Controller
                 name="employment_type"
@@ -752,7 +879,6 @@ const FormSubmissionFields = ({
               />
             </Box>
 
-            {/* Reason for Change (conditional) */}
             {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
               <Box>
                 <Controller
@@ -784,7 +910,6 @@ const FormSubmissionFields = ({
               </Box>
             )}
 
-            {/* Justification */}
             <Box>
               <Controller
                 name="justification"
@@ -806,7 +931,6 @@ const FormSubmissionFields = ({
               />
             </Box>
 
-            {/* Remarks */}
             <Box>
               <Controller
                 name="remarks"
@@ -827,7 +951,6 @@ const FormSubmissionFields = ({
               />
             </Box>
 
-            {/* Developmental Assignment Checkbox (conditional) - Full Width */}
             {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
               <Box
                 sx={{
@@ -854,7 +977,6 @@ const FormSubmissionFields = ({
               </Box>
             )}
 
-            {/* Start Date (conditional) */}
             {shouldShowDateFields() && (
               <Box sx={{ pl: { sm: 4.4 } }}>
                 <Controller
@@ -865,25 +987,27 @@ const FormSubmissionFields = ({
                       {...field}
                       label="Start Date"
                       disabled={isReadOnly}
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          required={true}
-                          fullWidth
-                          error={!!errors.movement_da_start_date}
-                          helperText={getErrorMessage(
+                      value={field.value || null}
+                      onChange={(newValue) => {
+                        field.onChange(newValue);
+                      }}
+                      slotProps={{
+                        textField: {
+                          required: true,
+                          fullWidth: true,
+                          error: !!errors.movement_da_start_date,
+                          helperText: getErrorMessage(
                             errors.movement_da_start_date
-                          )}
-                          sx={formStyles?.textField?.(isReadOnly) || {}}
-                        />
-                      )}
+                          ),
+                          sx: formStyles?.textField?.(isReadOnly) || {},
+                        },
+                      }}
                     />
                   )}
                 />
               </Box>
             )}
 
-            {/* End Date (conditional) */}
             {shouldShowDateFields() && (
               <Box>
                 <Controller
@@ -894,23 +1018,26 @@ const FormSubmissionFields = ({
                       {...field}
                       label="End Date"
                       disabled={isReadOnly}
+                      value={field.value || null}
+                      onChange={(newValue) => {
+                        field.onChange(newValue);
+                      }}
                       minDate={
                         watch("movement_da_start_date")
-                          ? watch("movement_da_start_date").add(1, "day")
+                          ? dayjs(watch("movement_da_start_date")).add(1, "day")
                           : undefined
                       }
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          required={true}
-                          fullWidth
-                          error={!!errors.movement_da_end_date}
-                          helperText={getErrorMessage(
+                      slotProps={{
+                        textField: {
+                          required: true,
+                          fullWidth: true,
+                          error: !!errors.movement_da_end_date,
+                          helperText: getErrorMessage(
                             errors.movement_da_end_date
-                          )}
-                          sx={formStyles?.textField?.(isReadOnly) || {}}
-                        />
-                      )}
+                          ),
+                          sx: formStyles?.textField?.(isReadOnly) || {},
+                        },
+                      }}
                     />
                   )}
                 />
@@ -919,7 +1046,6 @@ const FormSubmissionFields = ({
           </Box>
         </Box>
 
-        {/* BOX 3: Attachment */}
         <Box sx={{ mb: 3, ...(formStyles?.attachmentContainer || {}) }}>
           <AttachmentField
             selectedEntry={selectedEntry}

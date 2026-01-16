@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import React, { useEffect, useCallback } from "react";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import {
   Box,
@@ -69,18 +63,18 @@ const FileForm = ({
   });
 
   const watchedFiles = watch("files");
-  const isInitialMount = useRef(true);
-  const hasInitializedData = useRef(false);
+  const isInitialMount = React.useRef(true);
+  const hasInitializedData = React.useRef(false);
 
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [fileUrl, setFileUrl] = useState(null);
-  const [currentFileId, setCurrentFileId] = useState(null);
-  const [currentFileName, setCurrentFileName] = useState("");
-  const [previewFiles, setPreviewFiles] = useState({});
-  const [isPreviewingNewFile, setIsPreviewingNewFile] = useState(false);
+  const [errorMessage, setErrorMessage] = React.useState(null);
+  const [fileViewerOpen, setFileViewerOpen] = React.useState(false);
+  const [fileUrl, setFileUrl] = React.useState(null);
+  const [currentFileId, setCurrentFileId] = React.useState(null);
+  const [currentFileName, setCurrentFileName] = React.useState("");
+  const [previewFiles, setPreviewFiles] = React.useState({});
+  const [isPreviewingNewFile, setIsPreviewingNewFile] = React.useState(false);
 
-  const [dropdownsLoaded, setDropdownsLoaded] = useState({
+  const [dropdownsLoaded, setDropdownsLoaded] = React.useState({
     fileTypes: false,
     fileCabinets: false,
   });
@@ -180,7 +174,7 @@ const FileForm = ({
     [dropdownsLoaded, triggerFileTypes, triggerFileCabinets, mode, isViewMode]
   );
 
-  const processedFileTypes = useMemo(() => {
+  const processedFileTypes = React.useMemo(() => {
     if ((mode === "view" || isViewMode) && employeeData?.files) {
       const existingTypes = employeeData.files
         .filter((file) => file.file_type)
@@ -209,7 +203,7 @@ const FileForm = ({
     return normalizeApiData(fileTypesData);
   }, [mode, isViewMode, fileTypesData, employeeData?.files, normalizeApiData]);
 
-  const processedFileCabinets = useMemo(() => {
+  const processedFileCabinets = React.useMemo(() => {
     if ((mode === "view" || isViewMode) && employeeData?.files) {
       const existingCabinets = employeeData.files
         .filter((file) => file.file_cabinet || file.cabinet)
@@ -303,10 +297,9 @@ const FileForm = ({
     return "Unknown file";
   }, []);
 
-  // File validation function
   const validateFile = useCallback((file) => {
     const allowedTypes = ["application/pdf"];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
 
     if (!allowedTypes.includes(file.type)) {
       return {
@@ -574,7 +567,7 @@ const FileForm = ({
     );
   }, []);
 
-  const isFormValid = useMemo(() => {
+  const isFormValid = React.useMemo(() => {
     const files = watchedFiles || [];
     return files.length > 0 && files.every(validateFileLine);
   }, [watchedFiles, validateFileLine]);
@@ -592,7 +585,6 @@ const FileForm = ({
       const file = event.target.files[0];
 
       if (file) {
-        // Validate file before accepting it
         const validation = validateFile(file);
 
         if (!validation.isValid) {
@@ -600,7 +592,6 @@ const FileForm = ({
             message: validation.message,
           });
           enqueueSnackbar(validation.message, { variant: "error" });
-          // Clear the input
           event.target.value = "";
           return;
         }
@@ -622,10 +613,8 @@ const FileForm = ({
         }));
 
         clearErrors(`files.${index}.file_attachment`);
-        enqueueSnackbar("File uploaded successfully", { variant: "success" });
       }
 
-      // Clear the input value to allow re-uploading the same file
       event.target.value = "";
     },
     [setValue, clearErrors, setError, isReadOnly, validateFile, enqueueSnackbar]
@@ -699,40 +688,6 @@ const FileForm = ({
     },
     [getValues, remove, isReadOnly, previewFiles]
   );
-
-  const validateForm = useCallback(() => {
-    const files = getValues("files") || [];
-    let hasErrors = false;
-
-    files.forEach((line, index) => {
-      if (line.file_type_id) {
-        const fileTypeId = line.file_type_id?.id || line.file_type_id;
-        if (!fileTypeId || fileTypeId <= 0) {
-          setError(`files.${index}.file_type_id`, {
-            message: "Invalid file type",
-          });
-          hasErrors = true;
-        }
-      }
-
-      if (line.file_cabinet_id) {
-        const fileCabinetId = line.file_cabinet_id?.id || line.file_cabinet_id;
-        if (!fileCabinetId || fileCabinetId <= 0) {
-          setError(`files.${index}.file_cabinet_id`, {
-            message: "Invalid file cabinet",
-          });
-          hasErrors = true;
-        }
-      }
-    });
-
-    if (hasErrors) {
-      setErrorMessage("Please fill in all required fields correctly.");
-      return false;
-    }
-
-    return true;
-  }, [getValues, setError]);
 
   const handlePreviewFile = useCallback(
     (index) => {

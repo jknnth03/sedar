@@ -8,11 +8,9 @@ import {
   useCreateMrfSubmissionMutation,
   useUpdateMrfSubmissionMutation,
   useResubmitMrfSubmissionMutation,
-  useCancelMrfSubmissionMutation,
   useGetSingleMrfSubmissionQuery,
 } from "../../../features/api/forms/mrfApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
@@ -21,16 +19,15 @@ import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 const MrfReturned = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
+  setQueryParams,
+  currentParams,
+  onCancel,
 }) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -63,7 +60,7 @@ const MrfReturned = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -71,7 +68,17 @@ const MrfReturned = ({
       approval_status: "returned",
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -102,39 +109,12 @@ const MrfReturned = ({
   const [createMrfSubmission] = useCreateMrfSubmissionMutation();
   const [updateMrfSubmission] = useUpdateMrfSubmissionMutation();
   const [resubmitMrfSubmission] = useResubmitMrfSubmissionMutation();
-  const [cancelMrfSubmission] = useCancelMrfSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -157,24 +137,9 @@ const MrfReturned = ({
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -272,7 +237,7 @@ const MrfReturned = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -280,7 +245,7 @@ const MrfReturned = ({
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -292,7 +257,7 @@ const MrfReturned = ({
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -300,7 +265,7 @@ const MrfReturned = ({
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -308,20 +273,14 @@ const MrfReturned = ({
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelMrfSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("MRF submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        refetchDashboard();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createMrfSubmission(pendingFormData).unwrap();
         enqueueSnackbar("MRF submission created successfully!", {
           variant: "success",
@@ -337,7 +296,7 @@ const MrfReturned = ({
       ) {
         await updateMrfSubmission({
           id: selectedSubmissionForAction.id,
-          data: pendingFormData,
+          body: pendingFormData,
         }).unwrap();
 
         enqueueSnackbar("MRF submission updated successfully!", {
@@ -392,10 +351,10 @@ const MrfReturned = ({
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    const name =
       selectedSubmissionForAction?.reference_number ||
       "Manpower Requisition Form";
-    return submissionForAction;
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -411,7 +370,7 @@ const MrfReturned = ({
           backgroundColor: "white",
         }}>
         <MrfTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={filteredSubmissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -423,10 +382,11 @@ const MrfReturned = ({
           onCancel={handleCancelSubmission}
           onUpdate={handleUpdateSubmission}
           onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}

@@ -34,7 +34,6 @@ import {
   shouldEnableEditButton,
   shouldEnableResubmitButton,
   shouldShowResubmitButton,
-  populateFormWithEntry,
   buildCreatePayload,
   buildEditPayload,
   buildResubmitPayload,
@@ -66,33 +65,20 @@ const FormContent = ({
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [formInitialized, setFormInitialized] = useState(false);
 
   const watchedRequisitionType = watch("requisition_type_id");
 
   useEffect(() => {
     setCurrentMode(mode);
     setOriginalMode(mode);
-  }, [mode]);
+  }, [mode, selectedEntry]);
 
   useEffect(() => {
-    if (currentMode === "create" && !formInitialized) {
+    if (currentMode === "create") {
       reset(formSubmissionDefaultValues);
       setSelectedFile(null);
-      setFormInitialized(true);
     }
-  }, [currentMode, formInitialized, reset]);
-
-  useEffect(() => {
-    if (
-      (currentMode === "view" || currentMode === "edit") &&
-      selectedEntry &&
-      !formInitialized
-    ) {
-      populateFormWithEntry(selectedEntry, setValue);
-      setFormInitialized(true);
-    }
-  }, [currentMode, selectedEntry, formInitialized, setValue]);
+  }, [currentMode, reset]);
 
   useEffect(() => {
     if (backendErrors && Object.keys(backendErrors).length > 0) {
@@ -112,7 +98,6 @@ const FormContent = ({
 
   const handleModeChange = (newMode) => {
     setCurrentMode(newMode);
-    setFormInitialized(false);
     if (onModeChange) {
       onModeChange(newMode);
     }
@@ -125,7 +110,6 @@ const FormContent = ({
 
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
-    setFormInitialized(false);
     if (onModeChange) {
       onModeChange(originalMode);
     }
@@ -135,7 +119,6 @@ const FormContent = ({
     setCurrentMode("create");
     setOriginalMode("create");
     setSelectedFile(null);
-    setFormInitialized(false);
     reset(formSubmissionDefaultValues);
     onClose();
   };
@@ -167,12 +150,18 @@ const FormContent = ({
     const isValid = await trigger();
 
     if (isValid) {
-      const data = getValues();
-      const resubmitData = buildResubmitPayload(data, watchedRequisitionType);
-      const submissionId = selectedEntry?.id || selectedEntry?.submittable?.id;
+      setIsUpdating(true);
+      try {
+        const data = getValues();
+        const resubmitData = buildResubmitPayload(data, watchedRequisitionType);
+        const submissionId =
+          selectedEntry?.id || selectedEntry?.submittable?.id;
 
-      if (onResubmit && submissionId) {
-        await onResubmit(resubmitData, "resubmit", submissionId);
+        if (onResubmit && submissionId) {
+          await onResubmit(resubmitData, "resubmit", submissionId);
+        }
+      } finally {
+        setIsUpdating(false);
       }
     }
   };
@@ -180,34 +169,37 @@ const FormContent = ({
   const handleSaveClick = async () => {
     const isValid = await trigger();
     if (isValid) {
-      const data = getValues();
+      setIsUpdating(true);
+      try {
+        const data = getValues();
 
-      if (currentMode === "create") {
-        const payload = buildCreatePayload(
-          data,
-          currentMode,
-          selectedFile,
-          watchedRequisitionType
-        );
-        if (onSave) {
-          await onSave(payload, currentMode);
+        if (currentMode === "create") {
+          const payload = buildCreatePayload(
+            data,
+            currentMode,
+            selectedFile,
+            watchedRequisitionType
+          );
+
+          if (onSave) {
+            await onSave(payload, currentMode);
+          }
+        } else if (currentMode === "edit" && selectedEntry?.id) {
+          const payload = buildEditPayload(
+            data,
+            selectedEntry,
+            selectedFile,
+            watchedRequisitionType
+          );
+
+          if (onSave) {
+            await onSave(payload, currentMode, selectedEntry.id);
+          }
         }
-      } else if (currentMode === "edit" && selectedEntry?.id) {
-        const payload = buildEditPayload(
-          data,
-          selectedEntry,
-          selectedFile,
-          watchedRequisitionType
-        );
-        if (onSave) {
-          await onSave(payload, currentMode);
-        }
+      } finally {
+        setIsUpdating(false);
       }
     }
-  };
-
-  const getSubmissionDisplayName = () => {
-    return selectedEntry?.reference_number || "New Manpower Form";
   };
 
   const isProcessing = isLoading || isUpdating;

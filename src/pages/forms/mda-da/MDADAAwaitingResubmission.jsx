@@ -206,6 +206,10 @@ const MDADAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -296,8 +300,8 @@ const MDADAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
             handleEditSubmission={handleEditSubmission}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            onCancel={onCancel}
-            onRefetch={refetch}
+            statusFilter="AWAITING_RESUBMISSION"
+            onCancel={handleCancelSubmission}
           />
 
           <CustomTablePagination

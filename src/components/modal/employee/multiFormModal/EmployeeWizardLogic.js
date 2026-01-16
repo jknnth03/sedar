@@ -1,10 +1,7 @@
 import { useState, useCallback, useRef } from "react";
-import {
-  createFlattenedEmployeeSchema,
-  getStepValidationSchema,
-} from "../../../../schema/employees/FlattenedEmployeeSchema.js";
+import { createFlattenedEmployeeSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import { transformEmployeeData } from "./EmployeeDataTransformer.js";
-import { STEPS, triggerRefetch } from "./EmployeeWizardHelpers.js";
+import { STEPS } from "./EmployeeWizardHelpers.js";
 
 import AddressForm from "./forms/AddressForm.jsx";
 import PositionForm from "./forms/PositionForm.jsx";
@@ -450,16 +447,74 @@ export const useStepNavigation = (
   setSubmissionResult,
   isDisabled,
   isViewMode,
-  getValues
+  trigger
 ) => {
-  const validateCurrentStep = async (stepIndex) => {
-    try {
-      const stepSchema = getStepValidationSchema(stepIndex);
-      await stepSchema.validate(getValues(), { abortEarly: false });
-      return true;
-    } catch {
-      return false;
-    }
+  const stepFieldMap = {
+    0: [
+      "submission_title",
+      "first_name",
+      "last_name",
+      "middle_name",
+      "prefix",
+      "id_number",
+      "suffix",
+      "birth_date",
+      "birth_place",
+      "nationality",
+      "gender",
+      "civil_status",
+      "religion",
+      "referred_by",
+      "remarks",
+    ],
+    1: [
+      "region_id",
+      "province_id",
+      "city_municipality_id",
+      "barangay_id",
+      "street",
+      "zip_code",
+      "sub_municipality",
+      "foreign_address",
+      "address_remarks",
+    ],
+    2: [
+      "position_title",
+      "job_rate",
+      "schedule_id",
+      "job_level_id",
+      "allowance",
+      "additional_rate",
+    ],
+    3: ["employment_types"],
+    4: [
+      "attainment_id",
+      "program_id",
+      "degree_id",
+      "honor_title_id",
+      "academic_year_from",
+      "academic_year_to",
+      "gpa",
+      "institution",
+      "attainment_attachment",
+      "attainment_remarks",
+    ],
+    5: [
+      "sss_number",
+      "pag_ibig_number",
+      "philhealth_number",
+      "tin_number",
+      "bank",
+      "bank_account_number",
+    ],
+    6: [
+      "email_address",
+      "mobile_number",
+      "mobile_number_remarks",
+      "email_address_remarks",
+    ],
+    7: ["files"],
+    8: [],
   };
 
   const handleNext = async () => {
@@ -469,15 +524,25 @@ export const useStepNavigation = (
     }
 
     setSubmissionResult(null);
-    const stepValid = await validateCurrentStep(activeStep);
-    if (!stepValid) {
-      setSubmissionResult({
-        type: "error",
-        message: "Please fill in all required fields to continue.",
-      });
+
+    const fieldsToValidate = stepFieldMap[activeStep] || [];
+
+    if (fieldsToValidate.length === 0) {
+      setActiveStep((prev) => prev + 1);
       return;
     }
-    setActiveStep((prev) => prev + 1);
+
+    try {
+      const isValid = await trigger(fieldsToValidate, { shouldFocus: true });
+
+      if (!isValid) {
+        return;
+      }
+
+      setActiveStep((prev) => prev + 1);
+    } catch (error) {
+      return;
+    }
   };
 
   const handleBack = () => {

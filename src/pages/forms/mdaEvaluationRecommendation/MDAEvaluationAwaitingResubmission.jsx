@@ -207,6 +207,10 @@ const MDAEvaluationAwaitingResubmission = ({
     ]
   );
 
+  const handleCancelSubmission = useCallback(() => {
+    triggerGetSubmissions(apiQueryParams);
+  }, [triggerGetSubmissions, apiQueryParams]);
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -289,7 +293,7 @@ const MDAEvaluationAwaitingResubmission = ({
           selectedFilters={[]}
           showArchived={false}
           hideStatusColumn={false}
-          onCancel={onCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

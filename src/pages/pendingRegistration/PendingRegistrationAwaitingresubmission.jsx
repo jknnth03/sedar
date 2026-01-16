@@ -7,10 +7,6 @@ import {
   Box,
   TextField,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   useTheme,
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
@@ -20,6 +16,7 @@ import { useGetPendingEmployeesQuery } from "../../features/api/employee/pending
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import PendingRegistrationTable from "./PendingRegistrationTable";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
+import ConfirmationDialog from "../../styles/ConfirmationDialog";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -441,6 +438,12 @@ const PendingRegistrationAwaitingresubmission = ({
     }
   };
 
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setSelectedEmployeeForAction(null);
+    setConfirmAction(null);
+  }, []);
+
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage + 1);
   }, []);
@@ -451,45 +454,6 @@ const PendingRegistrationAwaitingresubmission = ({
     setPage(1);
   }, []);
 
-  const getConfirmationMessage = useCallback(() => {
-    if (!confirmAction) return "";
-
-    const messages = {
-      approve:
-        "Are you sure you want to approve this employee registration? This will move it from awaiting resubmission to approved status.",
-      reject: (
-        <>
-          Are you sure you want to <strong>Reject</strong> this Employee
-          Registration? This will permanently reject the resubmission request.
-        </>
-      ),
-    };
-
-    return messages[confirmAction] || "";
-  }, [confirmAction]);
-
-  const getConfirmationTitle = useCallback(() => {
-    if (!confirmAction) return "Confirmation";
-
-    const titles = {
-      approve: "Approve Resubmission",
-      reject: "Reject Resubmission",
-    };
-
-    return titles[confirmAction] || "Confirmation";
-  }, [confirmAction]);
-
-  const getConfirmButtonText = useCallback(() => {
-    if (!confirmAction) return "CONFIRM";
-
-    const texts = {
-      approve: "APPROVE",
-      reject: "REJECT",
-    };
-
-    return texts[confirmAction] || "CONFIRM";
-  }, [confirmAction]);
-
   const getEmployeeDisplayName = useCallback(() => {
     return (
       selectedEmployeeForAction?.submittable?.general_info?.full_name ||
@@ -497,10 +461,6 @@ const PendingRegistrationAwaitingresubmission = ({
       selectedEmployeeForAction?.name ||
       "Employee"
     );
-  }, [selectedEmployeeForAction]);
-
-  const getEmployeeId = useCallback(() => {
-    return selectedEmployeeForAction?.id || "Unknown";
   }, [selectedEmployeeForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -546,128 +506,15 @@ const PendingRegistrationAwaitingresubmission = ({
           </Box>
         </Box>
 
-        <Dialog
+        <ConfirmationDialog
           open={confirmOpen}
-          onClose={() => !isLoading && setConfirmOpen(false)}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              padding: 2,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-              textAlign: "center",
-            },
-          }}>
-          <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}>
-              <Box
-                sx={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: "50%",
-                  backgroundColor: "#ff4400",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                <Typography
-                  sx={{
-                    color: "white",
-                    fontSize: "30px",
-                    fontWeight: "normal",
-                  }}>
-                  ?
-                </Typography>
-              </Box>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: "rgb(25, 45, 84)",
-                marginBottom: 0,
-              }}>
-              {getConfirmationTitle()}
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-            <Typography
-              variant="body1"
-              sx={{
-                marginBottom: 2,
-                fontSize: "16px",
-                color: "#333",
-                fontWeight: 400,
-              }}>
-              {getConfirmationMessage()}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}>
-              {getEmployeeDisplayName()} - ID: {getEmployeeId()}
-            </Typography>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              justifyContent: "center",
-              padding: 0,
-              marginTop: 3,
-              gap: 2,
-            }}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                borderColor: "#f44336",
-                color: "#f44336",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  borderColor: "#d32f2f",
-                  backgroundColor: "rgba(244, 67, 54, 0.04)",
-                },
-              }}
-              disabled={isLoading}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleActionConfirm}
-              variant="contained"
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                backgroundColor: "#4caf50",
-                paddingX: 3,
-                paddingY: 1,
-                borderRadius: 2,
-                "&:hover": {
-                  backgroundColor: "#388e3c",
-                },
-              }}
-              disabled={isLoading}>
-              {isLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                getConfirmButtonText()
-              )}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onClose={handleConfirmationCancel}
+          onConfirm={handleActionConfirm}
+          isLoading={isLoading}
+          action={confirmAction}
+          itemName={getEmployeeDisplayName()}
+          module="Employee Registration"
+        />
       </Box>
     </FormProvider>
   );

@@ -41,11 +41,9 @@ const PendingRegistrationTable = ({
   error,
   searchQuery,
   handleRowClick,
-  handleEditSubmission,
-  handleActionClick,
-  paginationData,
-  onPageChange,
-  onRowsPerPageChange,
+  handleMenuOpen,
+  handleMenuClose,
+  menuAnchor = {},
   onRefetch,
   statusFilter = null,
 }) => {
@@ -54,8 +52,6 @@ const PendingRegistrationTable = ({
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedRegistrationHistory, setSelectedRegistrationHistory] =
     useState(null);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedRegistration, setSelectedRegistration] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
   const [pendingCancelRegistration, setPendingCancelRegistration] =
@@ -85,13 +81,7 @@ const PendingRegistrationTable = ({
 
   const handleActionsClick = (event, registration) => {
     event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setSelectedRegistration(registration);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedRegistration(null);
+    handleMenuOpen(event, registration);
   };
 
   const shouldEnableCancelButton = useCallback(
@@ -105,7 +95,7 @@ const PendingRegistrationTable = ({
 
   const handleCancelRequest = async (registration) => {
     if (!shouldEnableCancelButton(registration)) return;
-    handleMenuClose();
+    handleMenuClose(registration.id);
     setPendingCancelRegistration(registration);
     setCancelRemarks("");
     setShowCancelConfirmDialog(true);
@@ -115,6 +105,39 @@ const PendingRegistrationTable = ({
     setShowCancelConfirmDialog(false);
     setPendingCancelRegistration(null);
     setCancelRemarks("");
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelRemarks || cancelRemarks.trim().length < 10) {
+      return;
+    }
+
+    if (!pendingCancelRegistration?.id) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      await cancelFormSubmission({
+        id: pendingCancelRegistration.id,
+        remarks: cancelRemarks.trim(),
+      }).unwrap();
+
+      dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
+      dispatch(mainApi.util.invalidateTags(["employees"]));
+      dispatch(moduleApi.util.invalidateTags(["dashboard"]));
+
+      if (onRefetch) {
+        onRefetch();
+      }
+
+      handleCancelDialogClose();
+    } catch (error) {
+      console.error("Error canceling registration:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const renderStatusChip = useCallback((registration) => {
@@ -418,9 +441,16 @@ const PendingRegistrationTable = ({
       </TableContainer>
 
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
+        anchorEl={
+          menuAnchor[Object.keys(menuAnchor).find((key) => menuAnchor[key])]
+        }
+        open={Object.values(menuAnchor).some(Boolean)}
+        onClose={() => {
+          const openKey = Object.keys(menuAnchor).find(
+            (key) => menuAnchor[key]
+          );
+          if (openKey) handleMenuClose(openKey);
+        }}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -433,20 +463,32 @@ const PendingRegistrationTable = ({
           sx: styles.actionMenu(theme),
         }}>
         <MenuItem
-          onClick={() => handleCancelRequest(selectedRegistration)}
-          disabled={!shouldEnableCancelButton(selectedRegistration)}
-          sx={
-            shouldEnableCancelButton(selectedRegistration)
+          onClick={() => {
+            const selectedReg = pendingList.find((reg) => menuAnchor[reg.id]);
+            if (selectedReg) handleCancelRequest(selectedReg);
+          }}
+          disabled={(() => {
+            const selectedReg = pendingList.find((reg) => menuAnchor[reg.id]);
+            return !shouldEnableCancelButton(selectedReg);
+          })()}
+          sx={(() => {
+            const selectedReg = pendingList.find((reg) => menuAnchor[reg.id]);
+            return shouldEnableCancelButton(selectedReg)
               ? styles.cancelMenuItem
-              : styles.cancelMenuItemDisabled
-          }>
+              : styles.cancelMenuItemDisabled;
+          })()}>
           <ListItemIcon>
             <CancelIcon
               fontSize="small"
               sx={{
-                color: shouldEnableCancelButton(selectedRegistration)
-                  ? "#d32f2f"
-                  : "rgba(0, 0, 0, 0.26)",
+                color: (() => {
+                  const selectedReg = pendingList.find(
+                    (reg) => menuAnchor[reg.id]
+                  );
+                  return shouldEnableCancelButton(selectedReg)
+                    ? "#d32f2f"
+                    : "rgba(0, 0, 0, 0.26)";
+                })(),
               }}
             />
           </ListItemIcon>
@@ -457,7 +499,6 @@ const PendingRegistrationTable = ({
       <ConfirmationDialog
         open={showCancelConfirmDialog}
         onClose={handleCancelDialogClose}
-        onConfirm={handleConfirmCancel}
         isLoading={isProcessing}
         action="cancel"
         itemId={pendingCancelRegistration?.id}
@@ -471,14 +512,7 @@ const PendingRegistrationTable = ({
         remarksRequired={true}
         remarksLabel="Cancellation Remarks *"
         remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
-        onSuccess={() => {
-          dispatch(pendingApi.util.invalidateTags(["PendingEmployees"]));
-          dispatch(mainApi.util.invalidateTags(["employees"]));
-          dispatch(moduleApi.util.invalidateTags(["dashboard"]));
-          if (onRefetch) {
-            onRefetch();
-          }
-        }}
+        onSuccess={handleConfirmCancel}
       />
 
       <PendingRegistrationDialog

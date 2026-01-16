@@ -8,7 +8,6 @@ import {
   useGetSingleProbationaryEvaluationQuery,
   useUpdateProbationaryEvaluationMutation,
   useResubmitProbationaryEvaluationMutation,
-  useCancelProbationaryEvaluationMutation,
 } from "../../../features/api/forms/evaluationFormApi";
 import EvaluationFormTable from "./EvaluationFormTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -49,8 +48,6 @@ const EvaluationFormAwaitingResubmission = ({
     useUpdateProbationaryEvaluationMutation();
   const [resubmitProbationaryEvaluation] =
     useResubmitProbationaryEvaluationMutation();
-  const [cancelProbationaryEvaluation] =
-    useCancelProbationaryEvaluationMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
@@ -139,32 +136,9 @@ const EvaluationFormAwaitingResubmission = ({
     [submissionsList]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      setIsLoading(true);
-      try {
-        await cancelProbationaryEvaluation(submissionId).unwrap();
-        enqueueSnackbar("Probationary Evaluation cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        return true;
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to cancel submission. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [cancelProbationaryEvaluation, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -305,7 +279,7 @@ const EvaluationFormAwaitingResubmission = ({
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
           statusFilter="AWAITING RESUBMISSION"
-          onCancel={handleCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

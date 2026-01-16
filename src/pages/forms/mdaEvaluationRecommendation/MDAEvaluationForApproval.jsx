@@ -203,6 +203,10 @@ const MDAEvaluationForApproval = ({ searchQuery, dateFilters, onCancel }) => {
     ]
   );
 
+  const handleCancelSubmission = useCallback(() => {
+    triggerGetSubmissions(apiQueryParams);
+  }, [triggerGetSubmissions, apiQueryParams]);
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -285,7 +289,7 @@ const MDAEvaluationForApproval = ({ searchQuery, dateFilters, onCancel }) => {
           selectedFilters={[]}
           showArchived={false}
           hideStatusColumn={false}
-          onCancel={onCancel}
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination

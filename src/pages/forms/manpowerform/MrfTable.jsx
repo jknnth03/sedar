@@ -40,6 +40,7 @@ const MrfTable = ({
   onCancel,
   onUpdate,
   onResubmit,
+  refetch,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
@@ -48,7 +49,6 @@ const MrfTable = ({
   const [selectedSubmissionForCancel, setSelectedSubmissionForCancel] =
     React.useState(null);
   const [cancelRemarks, setCancelRemarks] = React.useState("");
-  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const renderPosition = (positionTitle, jobLevel) => {
     if (!positionTitle) return "-";
@@ -143,6 +143,13 @@ const MrfTable = ({
     setShowCancelDialog(false);
     setSelectedSubmissionForCancel(null);
     setCancelRemarks("");
+  };
+
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   const handleUpdateClick = (submission) => {
@@ -466,7 +473,6 @@ const MrfTable = ({
       <ConfirmationDialog
         open={showCancelDialog}
         onClose={handleCancelDialogClose}
-        isLoading={isCancelling}
         action="cancel"
         itemId={selectedSubmissionForCancel?.id}
         itemName={`${selectedSubmissionForCancel?.reference_number || "N/A"}`}
@@ -477,11 +483,8 @@ const MrfTable = ({
         remarksRequired={true}
         remarksLabel="Cancellation Remarks *"
         remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
-        onSuccess={() => {
-          if (onCancel) {
-            onCancel();
-          }
-        }}
+        remarksMinLength={10}
+        onSuccess={handleCancelSuccess}
       />
 
       <MrfHistoryDialog

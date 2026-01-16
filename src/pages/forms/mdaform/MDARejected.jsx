@@ -11,7 +11,6 @@ import {
 import MDAForApprovalTable from "./MDAForApprovalTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const MDARejected = ({ searchQuery, dateFilters, onCancel }) => {
@@ -36,7 +35,6 @@ const MDARejected = ({ searchQuery, dateFilters, onCancel }) => {
   });
 
   const [updateMdaSubmission] = useUpdateMdaMutation();
-  const [cancelMdaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     const params = {
@@ -159,41 +157,9 @@ const MDARejected = ({ searchQuery, dateFilters, onCancel }) => {
     ]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      try {
-        console.log("Cancelling MDA submission:", submissionId);
-
-        await cancelMdaSubmission(submissionId).unwrap();
-
-        enqueueSnackbar("MDA submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        await refetch();
-
-        return true;
-      } catch (error) {
-        console.error("Error cancelling MDA submission:", error);
-
-        let errorMessage = "Failed to cancel MDA submission";
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-
-        return false;
-      }
-    },
-    [cancelMdaSubmission, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -281,7 +247,7 @@ const MDARejected = ({ searchQuery, dateFilters, onCancel }) => {
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
             statusFilter="REJECTED"
-            onCancel={handleCancel}
+            onCancel={handleCancelSubmission}
           />
 
           <CustomTablePagination

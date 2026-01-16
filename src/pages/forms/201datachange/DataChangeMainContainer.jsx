@@ -401,10 +401,26 @@ const DataChangeMainContainer = () => {
 
   const handleCancel = useCallback(
     async (entryId, cancellationReason) => {
+      if (!entryId) {
+        enqueueSnackbar("Invalid submission ID", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
+
+      if (!cancellationReason || cancellationReason.trim().length < 10) {
+        enqueueSnackbar("Cancellation reason must be at least 10 characters", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
+
       try {
         await cancelDataChangeSubmission({
-          id: entryId,
-          cancellation_reason: cancellationReason,
+          submissionId: entryId,
+          reason: cancellationReason.trim(),
         }).unwrap();
 
         enqueueSnackbar("Data change cancelled successfully!", {

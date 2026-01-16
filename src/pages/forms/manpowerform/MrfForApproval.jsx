@@ -10,7 +10,6 @@ import {
   useCreateMrfSubmissionMutation,
   useUpdateMrfSubmissionMutation,
   useResubmitMrfSubmissionMutation,
-  useCancelMrfSubmissionMutation,
 } from "../../../features/api/forms/mrfApi";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
@@ -22,6 +21,7 @@ const MrfForApproval = ({
   dateFilters,
   setQueryParams,
   currentParams,
+  onCancel,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -108,7 +108,6 @@ const MrfForApproval = ({
   const [createMrfSubmission] = useCreateMrfSubmissionMutation();
   const [updateMrfSubmission] = useUpdateMrfSubmissionMutation();
   const [resubmitMrfSubmission] = useResubmitMrfSubmissionMutation();
-  const [cancelMrfSubmission] = useCancelMrfSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
     return submissionsData?.result?.data || [];
@@ -137,41 +136,9 @@ const MrfForApproval = ({
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId, reason) => {
-      setMenuAnchor({});
-
-      console.log(
-        "Cancelling submission:",
-        submissionId,
-        "with reason:",
-        reason
-      );
-
-      try {
-        await cancelMrfSubmission({
-          submissionId,
-          reason,
-        }).unwrap();
-
-        enqueueSnackbar("MRF submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } catch (error) {
-        console.error("Cancel error:", error);
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to cancel submission. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [cancelMrfSubmission, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -303,13 +270,16 @@ const MrfForApproval = ({
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
       if (confirmAction === "create" && pendingFormData) {
-        await createMrfSubmission(pendingFormData).unwrap();
+        const result = await createMrfSubmission(pendingFormData).unwrap();
+
         enqueueSnackbar("MRF submission created successfully!", {
           variant: "success",
           autoHideDuration: 2000,
@@ -321,7 +291,7 @@ const MrfForApproval = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        await updateMrfSubmission({
+        const result = await updateMrfSubmission({
           id: selectedSubmissionForAction.id,
           body: pendingFormData,
         }).unwrap();
@@ -337,10 +307,11 @@ const MrfForApproval = ({
         pendingFormData &&
         selectedSubmissionForAction
       ) {
-        await resubmitMrfSubmission({
+        const result = await resubmitMrfSubmission({
           id: selectedSubmissionForAction.id,
           data: pendingFormData,
         }).unwrap();
+
         enqueueSnackbar("MRF submission resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
@@ -376,10 +347,10 @@ const MrfForApproval = ({
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    return (
+    const name =
       selectedSubmissionForAction?.reference_number ||
-      "Manpower Requisition Form"
-    );
+      "Manpower Requisition Form";
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -403,10 +374,12 @@ const MrfForApproval = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
+          statusFilter="PENDING"
           hideActions={false}
           onCancel={handleCancelSubmission}
           onUpdate={handleUpdateSubmission}
           onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
         <CustomTablePagination

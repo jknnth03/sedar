@@ -8,23 +8,25 @@ import {
   useCreateMrfSubmissionMutation,
   useUpdateMrfSubmissionMutation,
   useResubmitMrfSubmissionMutation,
-  useCancelMrfSubmissionMutation,
   useGetSingleMrfSubmissionQuery,
 } from "../../../features/api/forms/mrfApi";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MrfForReceiving = ({ searchQuery, dateFilters }) => {
+const MrfForReceiving = ({
+  searchQuery,
+  dateFilters,
+  setQueryParams,
+  currentParams,
+  onCancel,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -104,7 +106,6 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
   const [createMrfSubmission] = useCreateMrfSubmissionMutation();
   const [updateMrfSubmission] = useUpdateMrfSubmissionMutation();
   const [resubmitMrfSubmission] = useResubmitMrfSubmissionMutation();
-  const [cancelMrfSubmission] = useCancelMrfSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
     return submissionsData?.result?.data || [];
@@ -133,24 +134,9 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -246,7 +232,7 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -254,7 +240,7 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -266,7 +252,7 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -274,7 +260,7 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -282,19 +268,14 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelMrfSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("MRF submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createMrfSubmission(pendingFormData).unwrap();
         enqueueSnackbar("MRF submission created successfully!", {
           variant: "success",
@@ -309,7 +290,7 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
       ) {
         await updateMrfSubmission({
           id: selectedSubmissionForAction.id,
-          data: pendingFormData,
+          body: pendingFormData,
         }).unwrap();
 
         enqueueSnackbar("MRF submission updated successfully!", {
@@ -362,10 +343,10 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    const name =
       selectedSubmissionForAction?.reference_number ||
       "Manpower Requisition Form";
-    return submissionForAction;
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -393,6 +374,7 @@ const MrfForReceiving = ({ searchQuery, dateFilters }) => {
           onCancel={handleCancelSubmission}
           onUpdate={handleUpdateSubmission}
           onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
         <CustomTablePagination

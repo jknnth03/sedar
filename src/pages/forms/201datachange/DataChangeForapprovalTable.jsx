@@ -16,12 +16,14 @@ import {
   Skeleton,
   useTheme,
 } from "@mui/material";
+import { useSnackbar } from "notistack";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DataChangeDialog from "./DataChangeDialog";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
 
 const DataChangeForApprovalTable = ({
@@ -41,11 +43,18 @@ const DataChangeForApprovalTable = ({
   onCancel,
   forMDAProcessing = false,
   onCreateMDA,
+  refetch,
 }) => {
   const theme = useTheme();
+
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedDataChangeHistory, setSelectedDataChangeHistory] =
     React.useState(null);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [selectedSubmissionForCancel, setSelectedSubmissionForCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const getMovementTypeLabel = (movementType) => {
     return movementType || "-";
@@ -158,9 +167,16 @@ const DataChangeForApprovalTable = ({
   const handleCancelClick = (e, submission) => {
     e.stopPropagation();
     handleMenuClose(submission.id);
-    if (onCancel) {
-      onCancel(submission.id);
-    }
+    setSelectedSubmissionForCancel(submission);
+    setCancelRemarks("");
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelDialogClose = () => {
+    setShowCancelDialog(false);
+    setSelectedSubmissionForCancel(null);
+    setCancelRemarks("");
+    setIsCancelling(false);
   };
 
   const canCancelSubmission = (submission) => {
@@ -219,6 +235,41 @@ const DataChangeForApprovalTable = ({
       (submission) => submission.status !== "PENDING MDA CREATION"
     );
   const totalColumns = shouldShowActionsColumn ? 7 : 6;
+
+  const handleConfirmCancel = async () => {
+    if (!cancelRemarks || cancelRemarks.trim().length < 10) {
+      return;
+    }
+
+    if (!selectedSubmissionForCancel?.id) {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      if (onCancel) {
+        const success = await onCancel(
+          selectedSubmissionForCancel.id,
+          cancelRemarks.trim()
+        );
+
+        if (success) {
+          handleCancelDialogClose();
+          if (refetch) {
+            await refetch();
+          }
+        } else {
+          setIsCancelling(false);
+        }
+      } else {
+        handleCancelDialogClose();
+      }
+    } catch (error) {
+      console.error("Error in handleConfirmCancel:", error);
+      setIsCancelling(false);
+    }
+  };
 
   return (
     <>
@@ -441,6 +492,24 @@ const DataChangeForApprovalTable = ({
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDataChangeHistory={selectedDataChangeHistory}
+      />
+
+      <ConfirmationDialog
+        open={showCancelDialog}
+        onClose={handleCancelDialogClose}
+        isLoading={isCancelling}
+        action="cancel"
+        itemId={selectedSubmissionForCancel?.id}
+        itemName={selectedSubmissionForCancel?.reference_number || "N/A"}
+        module="Data Change Request"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleConfirmCancel}
       />
     </>
   );

@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
@@ -17,10 +11,7 @@ import {
 import MDAForApprovalTable from "./MDAForApprovalTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const MDAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
@@ -40,15 +31,12 @@ const MDAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
 
-  const cancelInProgressRef = useRef(false);
-
   const methods = useForm({
     defaultValues: {},
   });
 
   const [updateMdaSubmission] = useUpdateMdaMutation();
   const [resubmitMdaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelMdaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     const params = {
@@ -199,47 +187,9 @@ const MDAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
     [resubmitMdaSubmission, enqueueSnackbar, refetchDetails, refetch]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      if (cancelInProgressRef.current) return;
-
-      cancelInProgressRef.current = true;
-
-      try {
-        console.log("Cancelling MDA submission:", submissionId);
-
-        await cancelMdaSubmission(submissionId).unwrap();
-
-        enqueueSnackbar("MDA submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        await refetch();
-
-        return true;
-      } catch (error) {
-        console.error("Error cancelling MDA submission:", error);
-
-        let errorMessage = "Failed to cancel MDA submission";
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-
-        return false;
-      } finally {
-        cancelInProgressRef.current = false;
-      }
-    },
-    [cancelMdaSubmission, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -327,7 +277,7 @@ const MDAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
             statusFilter="AWAITING RESUBMISSION"
-            onCancel={handleCancel}
+            onCancel={handleCancelSubmission}
           />
 
           <CustomTablePagination

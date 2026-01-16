@@ -11,20 +11,22 @@ import {
 } from "../../../features/api/forms/daformApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormTable from "./DAFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
+const DAFormAwaitingResubmission = ({
+  searchQuery,
+  dateFilters,
+  setQueryParams,
+  currentParams,
+  onCancel,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -95,12 +97,13 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [updateDaSubmission] = useUpdateDaMutation();
   const [resubmitDaSubmission] = useResubmitDaMutation();
-  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsList = useMemo(() => {
     const data = submissionsData?.result?.data || [];
     return data;
   }, [submissionsData]);
+
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
@@ -123,22 +126,10 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [submissionsList, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+    refetchDashboard();
+  }, [refetch, refetchDashboard]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -229,7 +220,7 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -237,7 +228,7 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, currentParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -249,7 +240,7 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
       if (setQueryParams) {
         setQueryParams(
           {
-            ...queryParams,
+            ...currentParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -257,7 +248,7 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, currentParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
@@ -270,15 +261,7 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-        refetchDashboard();
-      } else if (
+      if (
         confirmAction === "update" &&
         pendingFormData &&
         selectedSubmissionForAction
@@ -341,8 +324,6 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
-  const totalCount = submissionsData?.result?.total || 0;
-
   return (
     <FormProvider {...methods}>
       <Box
@@ -362,7 +343,7 @@ const DAFormAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          hideActions={false}
+          statusFilter="AWAITING RESUBMISSION"
           onCancel={handleCancelSubmission}
           onUpdate={handleUpdateSubmission}
           onResubmit={handleResubmitSubmission}

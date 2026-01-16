@@ -162,6 +162,13 @@ const DAFormTable = ({
     setCancelRemarks("");
   };
 
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
   const canCancelSubmission = (submission) => {
     return submission?.actions?.can_cancel === true;
   };
@@ -474,11 +481,7 @@ const DAFormTable = ({
         remarksRequired={true}
         remarksLabel="Cancellation Remarks *"
         remarksPlaceholder="Please provide a reason for cancellation"
-        onSuccess={() => {
-          if (onCancel) {
-            onCancel();
-          }
-        }}
+        onSuccess={handleCancelSuccess}
       />
     </>
   );

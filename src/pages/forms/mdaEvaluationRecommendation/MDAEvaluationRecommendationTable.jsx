@@ -23,6 +23,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
 
 const MDAEvaluationRecommendationTable = ({
@@ -44,6 +45,10 @@ const MDAEvaluationRecommendationTable = ({
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedEvaluationHistory, setSelectedEvaluationHistory] =
     React.useState(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
+  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -157,11 +162,23 @@ const MDAEvaluationRecommendationTable = ({
     }
   };
 
-  const handleCancelClick = (e, submission) => {
-    e.stopPropagation();
+  const handleCancelClick = (submission) => {
+    setSelectedSubmissionToCancel(submission);
+    setCancelRemarks("");
+    setCancelDialogOpen(true);
     handleMenuClose(submission.id);
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelDialogOpen(false);
+    setSelectedSubmissionToCancel(null);
+    setCancelRemarks("");
+  };
+
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
     if (onCancel) {
-      onCancel(submission.id);
+      onCancel();
     }
   };
 
@@ -404,7 +421,10 @@ const MDAEvaluationRecommendationTable = ({
                             Edit
                           </MenuItem>
                           <MenuItem
-                            onClick={(e) => handleCancelClick(e, submission)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelClick(submission);
+                            }}
                             disabled={!canCancelSubmission(submission)}
                             sx={
                               canCancelSubmission(submission)
@@ -467,6 +487,23 @@ const MDAEvaluationRecommendationTable = ({
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDaHistory={selectedEvaluationHistory}
+      />
+
+      <ConfirmationDialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        action="cancel"
+        itemId={selectedSubmissionToCancel?.id}
+        itemName={selectedSubmissionToCancel?.reference_number || "N/A"}
+        module="MDA Evaluation"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleCancelSuccess}
       />
     </>
   );
