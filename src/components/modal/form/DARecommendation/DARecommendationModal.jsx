@@ -56,9 +56,12 @@ const DARecommendationModal = ({
 
   useEffect(() => {
     if (open && selectedEntry) {
-      setEditingEntryId(selectedEntry.id || selectedEntry.result?.id);
+      console.log("DARecommendationModal - selectedEntry:", selectedEntry);
+      const extractedId =
+        selectedEntry.id || selectedEntry.result?.id || submissionId;
+      setEditingEntryId(extractedId);
     }
-  }, [open, selectedEntry]);
+  }, [open, selectedEntry, submissionId]);
 
   const normalizeStatus = (status) => {
     if (!status) return "";
@@ -151,6 +154,8 @@ const DARecommendationModal = ({
   };
 
   const handleFormSubmit = async (data) => {
+    console.log("handleFormSubmit - data.kpis:", data.kpis);
+
     const status = selectedEntry?.status || selectedEntry?.result?.status;
     const normalizedStatus = normalizeStatus(status);
 
@@ -188,9 +193,18 @@ const DARecommendationModal = ({
       finalRecommendation = "FOR EXTENSION";
     }
 
-    if (currentMode === "edit" && normalizedStatus === "FOR RECOMMENDATION") {
+    if (
+      currentMode === "edit" &&
+      (normalizedStatus === "FOR RECOMMENDATION" ||
+        normalizedStatus === "PENDING RECOMMENDATION APPROVAL")
+    ) {
       if (!finalRecommendation) {
         alert("Please select a recommendation option");
+        return;
+      }
+
+      if (data.for_extension && !data.extension_end_date) {
+        alert("Please provide an extension end date");
         return;
       }
 
@@ -217,6 +231,12 @@ const DARecommendationModal = ({
         objectives: objectives,
       };
 
+      if (data.for_extension && data.extension_end_date) {
+        formattedData.extension_end_date = dayjs(
+          data.extension_end_date
+        ).format("YYYY-MM-DD");
+      }
+
       if (onSubmit) {
         try {
           setIsUpdating(true);
@@ -225,7 +245,7 @@ const DARecommendationModal = ({
             selectedEntry?.id ||
             selectedEntry?.result?.id ||
             null;
-          await onSubmit(formattedData, entryId);
+          await onSubmit(formattedData, currentMode, entryId);
         } catch (error) {
           alert("Failed to submit. Please try again.");
         } finally {
@@ -246,6 +266,11 @@ const DARecommendationModal = ({
         return;
       }
 
+      if (data.for_extension && !data.extension_end_date) {
+        alert("Please provide an extension end date");
+        return;
+      }
+
       const hasAllActualPerformance = data.kpis.every(
         (kpi) =>
           kpi.actual_performance !== null &&
@@ -258,6 +283,23 @@ const DARecommendationModal = ({
         return;
       }
 
+      const objectives = data.kpis.map((kpi) => ({
+        id: kpi.id,
+        actual_performance: kpi.actual_performance,
+        remarks: kpi.remarks || "",
+      }));
+
+      const formattedData = {
+        final_recommendation: finalRecommendation,
+        objectives: objectives,
+      };
+
+      if (data.for_extension && data.extension_end_date) {
+        formattedData.extension_end_date = dayjs(
+          data.extension_end_date
+        ).format("YYYY-MM-DD");
+      }
+
       if (onSave) {
         try {
           setIsUpdating(true);
@@ -266,7 +308,72 @@ const DARecommendationModal = ({
             selectedEntry?.id ||
             selectedEntry?.result?.id ||
             null;
-          await onSave(data, currentMode, entryId);
+          await onSave(formattedData, currentMode, entryId);
+        } catch (error) {
+          alert("Failed to save. Please try again.");
+        } finally {
+          setIsUpdating(false);
+        }
+      } else {
+        alert("Save function not available. Please refresh the page.");
+      }
+      return;
+    }
+
+    if (
+      currentMode === "edit" &&
+      normalizedStatus === "AWAITING RECOMMENDATION RESUBMISSION"
+    ) {
+      if (!finalRecommendation) {
+        alert("Please select a recommendation option");
+        return;
+      }
+
+      if (data.for_extension && !data.extension_end_date) {
+        alert("Please provide an extension end date");
+        return;
+      }
+
+      const hasAllActualPerformance = data.kpis.every(
+        (kpi) =>
+          kpi.actual_performance !== null &&
+          kpi.actual_performance !== undefined &&
+          kpi.actual_performance !== ""
+      );
+
+      if (!hasAllActualPerformance) {
+        alert("Please fill in all Actual Performance fields");
+        return;
+      }
+
+      const objectives = data.kpis.map((kpi) => ({
+        id: kpi.id,
+        actual_performance: kpi.actual_performance,
+        remarks: kpi.remarks || "",
+      }));
+
+      console.log("AWAITING RESUBMISSION - mapped objectives:", objectives);
+
+      const formattedData = {
+        final_recommendation: finalRecommendation,
+        objectives: objectives,
+      };
+
+      if (data.for_extension && data.extension_end_date) {
+        formattedData.extension_end_date = dayjs(
+          data.extension_end_date
+        ).format("YYYY-MM-DD");
+      }
+
+      if (onSave) {
+        try {
+          setIsUpdating(true);
+          const entryId =
+            editingEntryId ||
+            selectedEntry?.id ||
+            selectedEntry?.result?.id ||
+            null;
+          await onSave(formattedData, currentMode, entryId);
         } catch (error) {
           alert("Failed to save. Please try again.");
         } finally {
@@ -375,6 +482,7 @@ const DARecommendationModal = ({
     };
     return titles[currentMode] || "DA Recommendation";
   };
+
   const showResubmitButton = () => {
     const status = selectedEntry?.status || selectedEntry?.result?.status;
     const normalizedStatus = normalizeStatus(status);
@@ -405,7 +513,9 @@ const DARecommendationModal = ({
 
     if (
       currentMode === "edit" &&
-      normalizedStatus === "RECOMMENDATION REJECTED"
+      (normalizedStatus === "RECOMMENDATION REJECTED" ||
+        normalizedStatus === "PENDING RECOMMENDATION APPROVAL" ||
+        normalizedStatus === "AWAITING RECOMMENDATION RESUBMISSION")
     ) {
       return isProcessing ? "Updating..." : "Update";
     }

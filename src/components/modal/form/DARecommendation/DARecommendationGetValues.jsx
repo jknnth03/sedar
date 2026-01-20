@@ -31,7 +31,7 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const toPosition = submittable.to_position || {};
   const objectives = submittable.objectives || [];
   const finalRecommendation = submittable.final_recommendation;
-
+  console.log("getViewEditModeFormData - objectives from API:", objectives);
   return {
     form_id: selectedEntry?.form?.id || selectedEntry?.result?.form?.id || 7,
     employee_id: employee.id || null,

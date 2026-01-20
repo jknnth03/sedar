@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
+import dayjs from "dayjs";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
@@ -183,6 +184,37 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
         return;
       }
 
+      if (formData.objectives && formData.objectives.length > 0) {
+        try {
+          setModalLoading(true);
+
+          await submitDaRecommendation({
+            id: entryId,
+            body: formData,
+          }).unwrap();
+
+          enqueueSnackbar("DA Recommendation updated successfully", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+
+          handleModalClose();
+          await refetch();
+          await refetchDashboard();
+        } catch (error) {
+          const errorMessage =
+            error?.data?.message ||
+            "Failed to update recommendation. Please try again.";
+          enqueueSnackbar(errorMessage, {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+        } finally {
+          setModalLoading(false);
+        }
+        return;
+      }
+
       if (!formData.kpis || formData.kpis.length === 0) {
         enqueueSnackbar("Please add at least one objective/KPI.", {
           variant: "error",
@@ -224,7 +256,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
       }
 
       const objectives = formData.kpis.map((kpi) => ({
-        id: kpi.id,
+        id: kpi.id || kpi.source_kpi_id,
         actual_performance: kpi.actual_performance,
         remarks: kpi.remarks || "",
       }));
@@ -233,6 +265,12 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
         final_recommendation: finalRecommendation,
         objectives: objectives,
       };
+
+      if (formData.for_extension && formData.extension_end_date) {
+        payload.extension_end_date = dayjs(formData.extension_end_date).format(
+          "YYYY-MM-DD"
+        );
+      }
 
       try {
         setModalLoading(true);

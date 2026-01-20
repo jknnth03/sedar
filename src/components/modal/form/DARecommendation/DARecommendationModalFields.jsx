@@ -77,6 +77,10 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   useEffect(() => {
     if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
       if (isInitialMount.current && formValues.kpis.length > 0) {
+        console.log(
+          "DARecommendationModalFields - Setting kpisList:",
+          formValues.kpis
+        );
         setKpisList(formValues.kpis);
         isInitialMount.current = false;
       }
@@ -149,6 +153,8 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
       setKpisList((prevKpisList) => {
         const updatedKpis = [...prevKpisList];
 
+        console.log("BEFORE UPDATE - kpi:", updatedKpis[index]);
+
         if (field === "actual_performance") {
           let numValue = value === "" || value === null ? null : Number(value);
 
@@ -167,6 +173,8 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             [field]: value,
           };
         }
+
+        console.log("AFTER UPDATE - kpi:", updatedKpis[index]);
 
         setValue("kpis", updatedKpis, { shouldValidate: false });
 
@@ -860,6 +868,11 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     <Controller
                       name="extension_end_date"
                       control={control}
+                      rules={{
+                        required: forExtension
+                          ? "Extension end date is required"
+                          : false,
+                      }}
                       render={({ field: dateField }) => (
                         <DatePicker
                           {...dateField}

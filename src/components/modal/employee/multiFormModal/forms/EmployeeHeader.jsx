@@ -178,6 +178,8 @@ const EmployeeHeader = ({
       selectedGeneral?.position?.charging?.name;
     const chargingFromSubmissionTitle =
       formData?.submission_title?.submittable?.position?.charging?.name;
+    const chargingFromPositionDetailsEmployee =
+      selectedGeneral?.position_details?.employee?.charging?.name;
 
     const chargingSources = [
       chargingFromInitialData,
@@ -186,6 +188,7 @@ const EmployeeHeader = ({
       chargingFromFormPosition,
       chargingFromFormPositionDetails,
       chargingFromSelectedGeneralPosition,
+      chargingFromPositionDetailsEmployee,
       formData?.charging_name,
       formData?.charging?.name,
       formData?.charging,
@@ -195,6 +198,7 @@ const EmployeeHeader = ({
       formData?.unit?.name,
       formData?.division?.name,
       selectedGeneral?.position_details?.charging?.name,
+      selectedGeneral?.general_info?.charging?.name,
     ];
 
     for (const charging of chargingSources) {
@@ -316,7 +320,6 @@ const EmployeeHeader = ({
         </Box>
 
         <Box sx={{ flex: 1 }}>
-          {/* First Row */}
           <Box
             sx={{
               display: "grid",
@@ -401,7 +404,6 @@ const EmployeeHeader = ({
             </Box>
           </Box>
 
-          {/* Second Row */}
           <Box
             sx={{
               display: "grid",
@@ -486,7 +488,6 @@ const EmployeeHeader = ({
             </Box>
           </Box>
 
-          {/* Address Row */}
           <Box>
             <Box
               component="h3"

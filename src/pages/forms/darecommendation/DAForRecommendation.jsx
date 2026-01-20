@@ -11,6 +11,7 @@ import {
   useResubmitDaSubmissionMutation,
   useCancelDaSubmissionMutation,
 } from "../../../features/api/forms/daRecommentdationApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
@@ -41,6 +42,8 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
   const methods = useForm({
     defaultValues: {},
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const [submitDaRecommendation] = useSubmitDaRecommendationMutation();
   const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
@@ -136,6 +139,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         });
         handleModalClose();
         await refetch();
+        await refetchDashboard();
       } catch (error) {
         const errorMessage =
           error?.data?.message ||
@@ -148,7 +152,13 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         setModalLoading(false);
       }
     },
-    [submitDaRecommendation, enqueueSnackbar, handleModalClose, refetch]
+    [
+      submitDaRecommendation,
+      enqueueSnackbar,
+      handleModalClose,
+      refetch,
+      refetchDashboard,
+    ]
   );
 
   const handleResubmit = useCallback(
@@ -191,6 +201,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
@@ -199,6 +210,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         });
         await handleRefreshDetails();
         await refetch();
+        await refetchDashboard();
       }
     } catch (error) {
       const errorMessage =

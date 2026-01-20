@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
+import dayjs from "dayjs";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
@@ -110,6 +111,7 @@ const DARecommendationAwaitingResubmission = ({
       try {
         await triggerGetSubmission(submission.id);
       } catch (error) {
+        console.error("Error fetching submission details:", error);
         enqueueSnackbar("Error fetching submission details", {
           variant: "error",
           autoHideDuration: 2000,
@@ -133,9 +135,11 @@ const DARecommendationAwaitingResubmission = ({
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
-  const handleSubmit = useCallback(
-    async (formData, entryId) => {
-      if (!entryId) {
+  const handleSave = useCallback(
+    async (formData, mode, entryId) => {
+      const submissionId = entryId || selectedSubmissionId;
+
+      if (!submissionId) {
         enqueueSnackbar("Submission ID not found. Please try again.", {
           variant: "error",
           autoHideDuration: 2000,
@@ -143,47 +147,50 @@ const DARecommendationAwaitingResubmission = ({
         return;
       }
 
-      try {
-        setModalLoading(true);
+      if (formData.objectives && formData.objectives.length > 0) {
+        const allHaveActualPerformance = formData.objectives.every(
+          (obj) =>
+            obj.actual_performance !== null &&
+            obj.actual_performance !== undefined &&
+            obj.actual_performance !== ""
+        );
 
-        await submitDaRecommendation({ id: entryId, body: formData }).unwrap();
+        if (!allHaveActualPerformance) {
+          enqueueSnackbar("Please fill in all Actual Performance fields.", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+          return;
+        }
 
-        enqueueSnackbar("DA Recommendation submitted successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
+        try {
+          setModalLoading(true);
 
-        handleModalClose();
-        await refetch();
-        await refetchDashboard();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to submit recommendation. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      submitDaRecommendation,
-      enqueueSnackbar,
-      handleModalClose,
-      refetch,
-      refetchDashboard,
-    ]
-  );
+          await submitDaRecommendation({
+            id: submissionId,
+            body: formData,
+          }).unwrap();
 
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      if (!entryId) {
-        enqueueSnackbar("Submission ID not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
+          enqueueSnackbar("DA Recommendation updated successfully", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+
+          handleModalClose();
+          await refetch();
+          await refetchDashboard();
+        } catch (error) {
+          console.error("API Error:", error);
+          const errorMessage =
+            error?.data?.message ||
+            "Failed to update recommendation. Please try again.";
+          enqueueSnackbar(errorMessage, {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+        } finally {
+          setModalLoading(false);
+        }
         return;
       }
 
@@ -228,7 +235,7 @@ const DARecommendationAwaitingResubmission = ({
       }
 
       const objectives = formData.kpis.map((kpi) => ({
-        id: kpi.id,
+        id: kpi.id || kpi.source_kpi_id,
         actual_performance: kpi.actual_performance,
         remarks: kpi.remarks || "",
       }));
@@ -238,10 +245,19 @@ const DARecommendationAwaitingResubmission = ({
         objectives: objectives,
       };
 
+      if (formData.for_extension && formData.extension_end_date) {
+        payload.extension_end_date = dayjs(formData.extension_end_date).format(
+          "YYYY-MM-DD"
+        );
+      }
+
       try {
         setModalLoading(true);
 
-        await submitDaRecommendation({ id: entryId, body: payload }).unwrap();
+        await submitDaRecommendation({
+          id: submissionId,
+          body: payload,
+        }).unwrap();
 
         enqueueSnackbar("DA Recommendation updated successfully", {
           variant: "success",
@@ -252,6 +268,7 @@ const DARecommendationAwaitingResubmission = ({
         await refetch();
         await refetchDashboard();
       } catch (error) {
+        console.error("API Error:", error);
         const errorMessage =
           error?.data?.message ||
           "Failed to update recommendation. Please try again.";
@@ -269,6 +286,7 @@ const DARecommendationAwaitingResubmission = ({
       handleModalClose,
       refetch,
       refetchDashboard,
+      selectedSubmissionId,
     ]
   );
 
@@ -311,6 +329,7 @@ const DARecommendationAwaitingResubmission = ({
           variant: "success",
           autoHideDuration: 2000,
         });
+        handleModalClose();
         refetch();
         refetchDashboard();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
@@ -324,6 +343,7 @@ const DARecommendationAwaitingResubmission = ({
         await refetchDashboard();
       }
     } catch (error) {
+      console.error("Action error:", error);
       const errorMessage =
         error?.data?.message ||
         `Failed to ${confirmAction} recommendation. Please try again.`;
@@ -404,6 +424,16 @@ const DARecommendationAwaitingResubmission = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const normalizedSubmissionDetails = useMemo(() => {
+    if (!submissionDetails) return null;
+
+    if (submissionDetails.result) {
+      return submissionDetails.result;
+    }
+
+    return submissionDetails;
+  }, [submissionDetails]);
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -440,9 +470,9 @@ const DARecommendationAwaitingResubmission = ({
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
-        onSubmit={handleSubmit}
         onSave={handleSave}
-        selectedEntry={submissionDetails}
+        onSubmit={handleSave}
+        selectedEntry={normalizedSubmissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
@@ -455,6 +485,7 @@ const DARecommendationAwaitingResubmission = ({
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
+        module="DA Recommendation"
       />
     </FormProvider>
   );

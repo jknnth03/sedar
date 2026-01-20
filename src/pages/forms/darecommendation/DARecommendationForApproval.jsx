@@ -2,13 +2,16 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
+import dayjs from "dayjs";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
   useCancelDaSubmissionMutation,
   useResubmitDaSubmissionMutation,
+  useSubmitDaRecommendationMutation,
 } from "../../../features/api/forms/daRecommentdationApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
@@ -46,6 +49,9 @@ const DARecommendationForApproval = ({
 
   const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
+  const [submitDaRecommendation] = useSubmitDaRecommendationMutation();
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const apiQueryParams = useMemo(() => {
     const params = {
@@ -122,6 +128,165 @@ const DARecommendationForApproval = ({
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
+  const handleSave = useCallback(
+    async (formData, mode, entryId) => {
+      console.log("handleSave called with:", { formData, mode, entryId });
+
+      const submissionId = entryId || selectedSubmissionId;
+
+      if (!submissionId) {
+        enqueueSnackbar("Submission ID not found. Please try again.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return;
+      }
+
+      console.log("Using submission ID:", submissionId);
+
+      if (formData.objectives && formData.objectives.length > 0) {
+        const allHaveActualPerformance = formData.objectives.every(
+          (obj) =>
+            obj.actual_performance !== null &&
+            obj.actual_performance !== undefined &&
+            obj.actual_performance !== ""
+        );
+
+        if (!allHaveActualPerformance) {
+          enqueueSnackbar("Please fill in all Actual Performance fields.", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+          return;
+        }
+
+        try {
+          setModalLoading(true);
+
+          console.log("Sending to API:", { id: entryId, body: formData });
+
+          await submitDaRecommendation({
+            id: entryId,
+            body: formData,
+          }).unwrap();
+
+          enqueueSnackbar("DA Recommendation updated successfully", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+
+          handleModalClose();
+          await refetch();
+          await refetchDashboard();
+        } catch (error) {
+          console.error("API Error:", error);
+          const errorMessage =
+            error?.data?.message ||
+            "Failed to update recommendation. Please try again.";
+          enqueueSnackbar(errorMessage, {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+        } finally {
+          setModalLoading(false);
+        }
+        return;
+      }
+
+      if (!formData.kpis || formData.kpis.length === 0) {
+        enqueueSnackbar("Please add at least one objective/KPI.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return;
+      }
+
+      let finalRecommendation = null;
+      if (formData.for_permanent_appointment) {
+        finalRecommendation = "FOR PERMANENT";
+      } else if (formData.not_for_permanent_appointment) {
+        finalRecommendation = "NOT FOR PERMANENT";
+      } else if (formData.for_extension) {
+        finalRecommendation = "FOR EXTENSION";
+      }
+
+      if (!finalRecommendation) {
+        enqueueSnackbar("Please select a recommendation option.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return;
+      }
+
+      const hasAllActualPerformance = formData.kpis.every(
+        (kpi) =>
+          kpi.actual_performance !== null &&
+          kpi.actual_performance !== undefined &&
+          kpi.actual_performance !== ""
+      );
+
+      if (!hasAllActualPerformance) {
+        enqueueSnackbar("Please fill in all Actual Performance fields.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return;
+      }
+
+      const objectives = formData.kpis.map((kpi) => ({
+        id: kpi.id || kpi.source_kpi_id,
+        actual_performance: kpi.actual_performance,
+        remarks: kpi.remarks || "",
+      }));
+
+      const payload = {
+        final_recommendation: finalRecommendation,
+        objectives: objectives,
+      };
+
+      if (formData.for_extension && formData.extension_end_date) {
+        payload.extension_end_date = dayjs(formData.extension_end_date).format(
+          "YYYY-MM-DD"
+        );
+      }
+
+      try {
+        setModalLoading(true);
+
+        console.log("Sending to API:", { id: entryId, body: payload });
+
+        await submitDaRecommendation({ id: entryId, body: payload }).unwrap();
+
+        enqueueSnackbar("DA Recommendation updated successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        handleModalClose();
+        await refetch();
+        await refetchDashboard();
+      } catch (error) {
+        console.error("API Error:", error);
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to update recommendation. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [
+      submitDaRecommendation,
+      enqueueSnackbar,
+      handleModalClose,
+      refetch,
+      refetchDashboard,
+    ]
+  );
+
   const handleResubmit = useCallback(
     async (submissionId) => {
       const submission = submissionsList.find((sub) => sub.id === submissionId);
@@ -163,6 +328,7 @@ const DARecommendationForApproval = ({
         });
         handleModalClose();
         refetch();
+        refetchDashboard();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
@@ -171,6 +337,7 @@ const DARecommendationForApproval = ({
         });
         await handleRefreshDetails();
         await refetch();
+        await refetchDashboard();
       }
     } catch (error) {
       const errorMessage =
@@ -301,6 +468,8 @@ const DARecommendationForApproval = ({
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
+        onSave={handleSave}
+        onSubmit={handleSave}
         selectedEntry={normalizedSubmissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
