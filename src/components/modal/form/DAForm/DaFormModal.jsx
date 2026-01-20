@@ -53,6 +53,7 @@ const DAFormModal = ({
 
   const prevOpenRef = useRef(open);
   const prevModeRef = useRef(mode);
+  const isSubmittingRef = useRef(false);
 
   const formValues = watch();
 
@@ -87,6 +88,7 @@ const DAFormModal = ({
       setHasInitialized(false);
       setIsFormReady(false);
       prevOpenRef.current = false;
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -149,6 +151,11 @@ const DAFormModal = ({
   };
 
   const onSubmit = async (data) => {
+    if (isSubmittingRef.current) {
+      console.log("⚠️ Form already submitting, ignoring");
+      return;
+    }
+
     if (currentMode === "create") {
       if (!data.employee_id) {
         alert("Please select an Employee");
@@ -205,7 +212,15 @@ const DAFormModal = ({
             selectedEntry?.result?.id ||
             null
           : null;
-      await onSave(formattedData, currentMode, entryId);
+
+      try {
+        isSubmittingRef.current = true;
+        await onSave(formattedData, currentMode, entryId);
+      } catch (error) {
+        console.error("Error in onSave:", error);
+      } finally {
+        isSubmittingRef.current = false;
+      }
     }
   };
 
@@ -252,6 +267,7 @@ const DAFormModal = ({
     setHasInitialized(false);
     setIsFormReady(false);
     prevOpenRef.current = false;
+    isSubmittingRef.current = false;
     onClose();
   };
 
@@ -275,7 +291,7 @@ const DAFormModal = ({
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === "edit";
   const isResubmitMode = currentMode === "resubmit";
-  const isProcessing = isLoading || isUpdating;
+  const isProcessing = isLoading || isUpdating || isSubmittingRef.current;
 
   const formKey = `da-form-${
     open ? "open" : "closed"
@@ -342,6 +358,7 @@ const DAFormModal = ({
                 isReadOnly={isReadOnly}
                 submissionId={submissionId}
                 currentMode={currentMode}
+                selectedEntry={selectedEntry}
               />
             ) : (
               <Box

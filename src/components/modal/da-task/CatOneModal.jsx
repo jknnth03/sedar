@@ -197,7 +197,11 @@ const CatOneModal = ({
 
   const shouldShowPrintButton = () => {
     const status = selectedEntry?.status;
-    return status === "APPROVED" || status === "KICKOFF_COMPLETE";
+    return (
+      status === "APPROVED" ||
+      status === "FOR_ASSESSMENT" ||
+      status === "KICKOFF_COMPLETE"
+    );
   };
 
   const handleModeChange = (newMode) => {

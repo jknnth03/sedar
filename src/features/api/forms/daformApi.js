@@ -86,28 +86,50 @@ const daformApi = sedarApi
 
       updateDa: build.mutation({
         query: ({ id, data }) => {
+          console.log("🔴 UPDATE DA MUTATION - id:", id);
+          console.log("🔴 UPDATE DA MUTATION - data:", data);
+          console.log("🔴 approved_mrf_id in data:", data.approved_mrf_id);
+          console.log("🔴 kpis in data:", data.kpis);
+
           const formData = new FormData();
 
           Object.keys(data).forEach((key) => {
             if (data[key] !== undefined && data[key] !== null) {
-              if (Array.isArray(data[key])) {
-                data[key].forEach((item, index) => {
-                  if (typeof item === "object" && item !== null) {
-                    Object.keys(item).forEach((itemKey) => {
-                      if (
-                        item[itemKey] !== undefined &&
-                        item[itemKey] !== null
-                      ) {
-                        formData.append(
-                          `${key}[${index}][${itemKey}]`,
-                          item[itemKey]
-                        );
-                      }
-                    });
-                  } else {
-                    formData.append(`${key}[${index}]`, item);
-                  }
+              // Special handling for kpis array
+              if (key === "kpis" && Array.isArray(data[key])) {
+                console.log(
+                  "🔴 Processing kpis array with length:",
+                  data[key].length
+                );
+                data[key].forEach((kpi, index) => {
+                  formData.append(
+                    `kpis[${index}][source_kpi_id]`,
+                    kpi.source_kpi_id
+                  );
+                  formData.append(
+                    `kpis[${index}][objective_id]`,
+                    kpi.objective_id
+                  );
+                  formData.append(
+                    `kpis[${index}][objective_name]`,
+                    kpi.objective_name
+                  );
+                  formData.append(
+                    `kpis[${index}][distribution_percentage]`,
+                    kpi.distribution_percentage
+                  );
+                  formData.append(
+                    `kpis[${index}][deliverable]`,
+                    kpi.deliverable
+                  );
+                  formData.append(
+                    `kpis[${index}][target_percentage]`,
+                    kpi.target_percentage
+                  );
                 });
+              } else if (Array.isArray(data[key])) {
+                // For other arrays
+                formData.append(key, JSON.stringify(data[key]));
               } else if (
                 typeof data[key] === "object" &&
                 !(data[key] instanceof File)
@@ -120,6 +142,11 @@ const daformApi = sedarApi
           });
 
           formData.append("_method", "PATCH");
+
+          console.log("🔴 FormData contents:");
+          for (let pair of formData.entries()) {
+            console.log("  ", pair[0], "=", pair[1]);
+          }
 
           return {
             url: `form-submissions/${id}`,

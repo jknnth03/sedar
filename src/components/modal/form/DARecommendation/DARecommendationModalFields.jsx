@@ -397,7 +397,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                       }
                     }}
                     label="INCLUSIVE DATES - FROM"
-                    disabled={isReadOnly}
+                    disabled={true}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -445,7 +445,7 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                         : undefined
                     }
                     label="INCLUSIVE DATES - TO"
-                    disabled={isReadOnly || !watch("start_date")}
+                    disabled={true}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -705,19 +705,26 @@ const DARecommendationModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                         }
                         placeholder={isReadOnly ? "-" : "Optional remarks"}
                         multiline
-                        maxRows={2}
+                        rows={2}
                         sx={{
                           width: "100%",
+                          "& .MuiInputBase-input": {
+                            color: "#000000",
+                            WebkitTextFillColor: "#000000",
+                          },
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: "white",
                             "& fieldset": {
-                              borderColor: "#e0e0e0",
+                              borderColor: "#000000",
+                              borderWidth: "1px",
                             },
                             "&:hover fieldset": {
-                              borderColor: isReadOnly ? "#e0e0e0" : "#bdbdbd",
+                              borderColor: isReadOnly ? "#000000" : "#1976d2",
+                              borderWidth: isReadOnly ? "1px" : "2px",
                             },
                             "&.Mui-focused fieldset": {
-                              borderColor: isReadOnly ? "#e0e0e0" : "#1976d2",
+                              borderColor: isReadOnly ? "#000000" : "#1976d2",
+                              borderWidth: isReadOnly ? "1px" : "2px",
                             },
                           },
                         }}

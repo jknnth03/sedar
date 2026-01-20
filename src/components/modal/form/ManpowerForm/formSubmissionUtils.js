@@ -387,13 +387,6 @@ export const buildEditPayload = (
   // Handle file attachment if provided
   if (selectedFile && selectedFile instanceof File) {
     formData.append("manpower_form_attachment", selectedFile);
-    console.log("   ✅ Added manpower_form_attachment file");
-  }
-
-  // Log the final FormData contents
-  console.log("   📦 Final FormData contents:");
-  for (let [key, value] of formData.entries()) {
-    console.log(`     ${key}:`, value);
   }
 
   return formData;

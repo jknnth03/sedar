@@ -27,7 +27,7 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const employee = submittable.employee || {};
   const fromPosition = submittable.from_position || {};
   const toPosition = submittable.to_position || {};
-  const objectives = submittable.objectives || {};
+  const objectives = submittable.objectives || [];
   const mrfDetails =
     submittable.mrf_details || selectedEntry?.mrf_details || {};
 
@@ -76,7 +76,7 @@ export const formatFormDataForSubmission = (formData) => {
   };
 
   if (formData.kpis?.length) {
-    baseData.objectives = formData.kpis.map((kpi) => ({
+    baseData.kpis = formData.kpis.map((kpi) => ({
       source_kpi_id: kpi.source_kpi_id,
       objective_id: kpi.objective_id,
       objective_name: kpi.objective_name || "",
@@ -97,6 +97,7 @@ export const validateDAFormData = (formData) => {
   const errors = [];
 
   if (!formData.employee_id) errors.push("Employee is required");
+  if (!formData.approved_mrf_id) errors.push("MRF is required");
   if (!formData.to_position_id) errors.push("Position - TO is required");
   if (!formData.start_date) errors.push("Start date is required");
   if (!formData.end_date) errors.push("End date is required");

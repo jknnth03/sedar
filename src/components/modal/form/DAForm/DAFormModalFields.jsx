@@ -17,14 +17,18 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { sectionTitleStyles } from "./DAFormModal.styles";
-import { useGetAllPositionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import {
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,
 } from "../../../../features/api/forms/daformApi";
-import { useGetAllMrfSubmissionsQuery } from "../../../../features/api/forms/mrfApi";
+import { useGetAllEmployeeMovementSubmissionsQuery } from "../../../../features/api/approvalsetting/formSubmissionApi";
 
-const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
+const DAFormModalFields = ({
+  isCreate,
+  isReadOnly,
+  currentMode,
+  selectedEntry,
+}) => {
   const {
     control,
     watch,
@@ -34,30 +38,26 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
   const formValues = watch();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [selectedToPosition, setSelectedToPosition] = useState(null);
   const [selectedMrf, setSelectedMrf] = useState(null);
   const [kpisList, setKpisList] = useState([]);
   const [shouldFetchEmployees, setShouldFetchEmployees] = useState(false);
-  const [shouldFetchPositions, setShouldFetchPositions] = useState(false);
   const [shouldFetchMrf, setShouldFetchMrf] = useState(false);
   const [isKpisLoading, setIsKpisLoading] = useState(false);
+  const [hasSyncedMrf, setHasSyncedMrf] = useState(false);
 
   const isInitialMount = useRef(true);
   const prevModeRef = useRef(currentMode);
+  const prevSelectedMrfRef = useRef(null);
 
   const { data: employeesData, isLoading: isEmployeesLoading } =
     useGetAllEmployeesDaQuery(undefined, {
       skip: !shouldFetchEmployees,
     });
-  const { data: positionsData, isLoading: isPositionsLoading } =
-    useGetAllPositionsQuery(undefined, {
-      skip: !shouldFetchPositions,
-    });
+
   const { data: mrfData, isLoading: isMrfLoading } =
-    useGetAllMrfSubmissionsQuery(
+    useGetAllEmployeeMovementSubmissionsQuery(
       {
         status: "active",
-        approval_status: "approved",
       },
       {
         skip: !shouldFetchMrf,
@@ -69,9 +69,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   const employees = Array.isArray(employeesData?.result?.data)
     ? employeesData.result.data
     : [];
-  const positions = Array.isArray(positionsData?.result)
-    ? positionsData.result
-    : [];
+
   const mrfSubmissions = Array.isArray(mrfData?.result?.data)
     ? mrfData.result.data
     : Array.isArray(mrfData?.result)
@@ -79,8 +77,15 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
     : [];
 
   useEffect(() => {
+    if (!isCreate) {
+      setShouldFetchMrf(true);
+    }
+  }, [isCreate]);
+
+  useEffect(() => {
     if (!isCreate && currentMode !== prevModeRef.current) {
       isInitialMount.current = true;
+      setHasSyncedMrf(false);
       prevModeRef.current = currentMode;
     }
   }, [currentMode, isCreate]);
@@ -95,73 +100,141 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   }, [isCreate, formValues.kpis]);
 
   useEffect(() => {
+    if (
+      !isCreate &&
+      formValues.approved_mrf_id &&
+      mrfSubmissions.length > 0 &&
+      !hasSyncedMrf
+    ) {
+      let matchingMrf = mrfSubmissions.find(
+        (mrf) => mrf.id === formValues.approved_mrf_id
+      );
+
+      if (!matchingMrf && selectedEntry) {
+        const mrfDetails =
+          selectedEntry?.mrf_details || selectedEntry?.result?.mrf_details;
+        if (mrfDetails && mrfDetails.id === formValues.approved_mrf_id) {
+          matchingMrf = {
+            id: mrfDetails.id,
+            submission_title:
+              mrfDetails.linked_mrf_title || mrfDetails.reference_number,
+          };
+        }
+      }
+
+      if (matchingMrf) {
+        setSelectedMrf(matchingMrf);
+        setHasSyncedMrf(true);
+      }
+    }
+  }, [
+    isCreate,
+    currentMode,
+    formValues.approved_mrf_id,
+    mrfSubmissions,
+    hasSyncedMrf,
+    selectedEntry,
+  ]);
+
+  useEffect(() => {
     if (selectedEmployee) {
       setValue("employee_id", selectedEmployee.id);
       setValue("employee_name", selectedEmployee.employee_name);
-      setValue("from_position_id", selectedEmployee.position_id);
-      setValue("from_position_title", selectedEmployee.position_title);
-      setValue("from_department", selectedEmployee.department || "-");
     }
   }, [selectedEmployee, setValue]);
 
   useEffect(() => {
-    if (selectedMrf) {
-      setValue("approved_mrf_id", selectedMrf.id);
-      setValue(
-        "mrf_reference_number",
-        selectedMrf.reference_number || selectedMrf.submission_title
+    const loadMrfData = async () => {
+      const mrfChanged =
+        prevSelectedMrfRef.current !== null &&
+        prevSelectedMrfRef.current?.id !== selectedMrf?.id;
+
+      console.log("🔵 LOAD MRF DATA EFFECT");
+      console.log("  - selectedMrf:", selectedMrf);
+      console.log("  - prevSelectedMrf:", prevSelectedMrfRef.current);
+      console.log("  - mrfChanged:", mrfChanged);
+      console.log("  - isCreate:", isCreate);
+      console.log("  - isReadOnly:", isReadOnly);
+      console.log(
+        "  - Should load?",
+        selectedMrf && (isCreate || (!isReadOnly && mrfChanged))
       );
-    }
-  }, [selectedMrf, setValue]);
 
-  useEffect(() => {
-    const loadPositionKpis = async () => {
-      if (selectedToPosition) {
-        setValue("to_position_id", selectedToPosition.id);
-        setValue("to_position_code", selectedToPosition.code);
-        setValue("to_position_title", selectedToPosition.title.name);
+      if (selectedMrf && (isCreate || (!isReadOnly && mrfChanged))) {
+        console.log("✅ Loading MRF data for id:", selectedMrf.id);
+        console.log("✅ Setting approved_mrf_id to:", selectedMrf.id);
+        setValue("approved_mrf_id", selectedMrf.id);
+        console.log("✅ After setValue, checking form value...");
 
-        if (selectedToPosition.charging) {
-          setValue(
-            "to_department",
-            selectedToPosition.charging.department_name || "-"
-          );
-        } else {
-          setValue("to_department", "-");
+        setTimeout(() => {
+          const currentValue = watch("approved_mrf_id");
+          console.log("✅ Form value after setValue:", currentValue);
+        }, 100);
+        setValue("mrf_reference_number", selectedMrf.submission_title || "");
+
+        setValue("employee_id", selectedMrf.employee_id || "");
+        setValue("employee_name", selectedMrf.employee_name || "");
+
+        setValue("from_position_id", selectedMrf.from_position?.id || "");
+        setValue("from_position_title", selectedMrf.from_position?.title || "");
+        setValue(
+          "from_department",
+          selectedMrf.from_position?.department || "-"
+        );
+
+        setValue("to_position_id", selectedMrf.to_position?.id || "");
+        setValue("to_position_code", "");
+        setValue("to_position_title", selectedMrf.to_position?.title || "");
+        setValue("to_department", selectedMrf.to_position?.department || "-");
+
+        if (selectedMrf.da_start_date) {
+          setValue("start_date", dayjs(selectedMrf.da_start_date));
         }
 
-        try {
-          setIsKpisLoading(true);
-          const kpisResponse = await fetchPositionKpis(
-            selectedToPosition.id
-          ).unwrap();
+        if (selectedMrf.da_end_date) {
+          setValue("end_date", dayjs(selectedMrf.da_end_date));
+        }
 
-          if (kpisResponse?.result && kpisResponse.result.length > 0) {
-            const autoFilledKpis = kpisResponse.result.map((kpi) => ({
-              source_kpi_id: kpi.id,
-              objective_id: kpi.objective_id,
-              objective_name: kpi.objective_name,
-              distribution_percentage: kpi.distribution_percentage,
-              deliverable: kpi.deliverable,
-              target_percentage: kpi.target_percentage,
-            }));
-            setKpisList(autoFilledKpis);
-            setValue("kpis", autoFilledKpis);
-          } else {
+        if (selectedMrf.to_position?.id) {
+          try {
+            setIsKpisLoading(true);
+            const kpisResponse = await fetchPositionKpis(
+              selectedMrf.to_position.id
+            ).unwrap();
+
+            if (kpisResponse?.result && kpisResponse.result.length > 0) {
+              const autoFilledKpis = kpisResponse.result.map((kpi) => ({
+                source_kpi_id: kpi.id,
+                objective_id: kpi.objective_id,
+                objective_name: kpi.objective_name,
+                distribution_percentage: kpi.distribution_percentage,
+                deliverable: kpi.deliverable,
+                target_percentage: kpi.target_percentage,
+              }));
+              setKpisList(autoFilledKpis);
+              setValue("kpis", autoFilledKpis);
+            } else {
+              setKpisList([]);
+              setValue("kpis", []);
+            }
+          } catch (error) {
             setKpisList([]);
             setValue("kpis", []);
+          } finally {
+            setIsKpisLoading(false);
           }
-        } catch (error) {
-          setKpisList([]);
-          setValue("kpis", []);
-        } finally {
-          setIsKpisLoading(false);
         }
       }
+
+      prevSelectedMrfRef.current = selectedMrf;
     };
 
-    loadPositionKpis();
-  }, [selectedToPosition, setValue, fetchPositionKpis]);
+    loadMrfData();
+  }, [selectedMrf, setValue, fetchPositionKpis, isCreate, isReadOnly]);
+
+  const handleMrfOpen = () => {
+    setShouldFetchMrf(true);
+  };
 
   return (
     <Box sx={{ height: "100%" }}>
@@ -184,63 +257,16 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               gap: 2,
             }}>
             <Box>
-              {isCreate ? (
-                <Autocomplete
-                  options={employees}
-                  getOptionLabel={(option) => option.employee_name}
-                  loading={isEmployeesLoading}
-                  value={selectedEmployee}
-                  onChange={(event, newValue) => {
-                    setSelectedEmployee(newValue);
-                  }}
-                  onOpen={() => setShouldFetchEmployees(true)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="EMPLOYEE NAME"
-                      fullWidth
-                      error={!!errors.employee_id}
-                      helperText={errors.employee_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isEmployeesLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                      sx={{ bgcolor: "white" }}
-                    />
-                  )}
-                  disabled={isReadOnly}
-                />
-              ) : (
-                <TextField
-                  label="EMPLOYEE NAME"
-                  value={formValues.employee_name || ""}
-                  disabled
-                  fullWidth
-                  sx={{ bgcolor: "white" }}
-                />
-              )}
-            </Box>
-
-            <Box>
-              {isCreate ? (
+              {!isReadOnly ? (
                 <Autocomplete
                   options={mrfSubmissions}
-                  getOptionLabel={(option) =>
-                    option.reference_number || option.submission_title || ""
-                  }
+                  getOptionLabel={(option) => option.submission_title || ""}
                   loading={isMrfLoading}
                   value={selectedMrf}
                   onChange={(event, newValue) => {
                     setSelectedMrf(newValue);
                   }}
-                  onOpen={() => setShouldFetchMrf(true)}
+                  onOpen={handleMrfOpen}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -262,7 +288,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                       sx={{ bgcolor: "white" }}
                     />
                   )}
-                  disabled={isReadOnly}
                 />
               ) : (
                 <TextField
@@ -277,6 +302,16 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
             <Box>
               <TextField
+                label="EMPLOYEE NAME"
+                value={formValues.employee_name || ""}
+                disabled
+                fullWidth
+                sx={{ bgcolor: "white" }}
+              />
+            </Box>
+
+            <Box>
+              <TextField
                 label="POSITION - FROM"
                 value={formValues.from_position_title || ""}
                 disabled
@@ -286,54 +321,13 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             </Box>
 
             <Box>
-              {isCreate ? (
-                <Autocomplete
-                  options={positions}
-                  getOptionLabel={(option) =>
-                    `${option.code} - ${option.title.name}`
-                  }
-                  loading={isPositionsLoading}
-                  value={selectedToPosition}
-                  onChange={(event, newValue) => {
-                    setSelectedToPosition(newValue);
-                  }}
-                  onOpen={() => setShouldFetchPositions(true)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="POSITION - TO"
-                      fullWidth
-                      error={!!errors.to_position_id}
-                      helperText={errors.to_position_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isPositionsLoading || isKpisLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                      sx={{ bgcolor: "white" }}
-                    />
-                  )}
-                  disabled={isReadOnly || !selectedEmployee}
-                />
-              ) : (
-                <TextField
-                  label="POSITION - TO"
-                  value={
-                    formValues.to_position_code && formValues.to_position_title
-                      ? `${formValues.to_position_code} - ${formValues.to_position_title}`
-                      : ""
-                  }
-                  disabled
-                  fullWidth
-                  sx={{ bgcolor: "white" }}
-                />
-              )}
+              <TextField
+                label="POSITION - TO"
+                value={formValues.to_position_title || ""}
+                disabled
+                fullWidth
+                sx={{ bgcolor: "white" }}
+              />
             </Box>
 
             <Box>
@@ -396,7 +390,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                       }
                     }}
                     label="INCLUSIVE DATES - FROM"
-                    disabled={isReadOnly}
+                    disabled={true}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -439,7 +433,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     }
                     onChange={(date) => field.onChange(date)}
                     label="INCLUSIVE DATES - TO"
-                    disabled={isReadOnly}
+                    disabled={true}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -601,8 +595,8 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             <Typography
               variant="body1"
               sx={{ color: "text.secondary", fontWeight: 500 }}>
-              {isCreate && !selectedToPosition
-                ? "Please select a TO Position to load KPIs"
+              {isCreate && !selectedMrf
+                ? "Please select an MRF to load KPIs"
                 : "No KPIs available"}
             </Typography>
           </Box>

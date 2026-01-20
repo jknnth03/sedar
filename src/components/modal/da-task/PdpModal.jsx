@@ -306,7 +306,11 @@ const PdpModal = ({
 
   const shouldShowPrintButton = () => {
     const status = pdpData?.status;
-    return status === "APPROVED" || status === "KICKOFF_COMPLETE";
+    return (
+      status === "APPROVED" ||
+      status === "KICKOFF_COMPLETE" ||
+      status === "FOR_ASSESSMENT"
+    );
   };
 
   const handleModeChange = (newMode) => {
@@ -731,7 +735,6 @@ const PdpModal = ({
           </form>
         </StyledDialog>
 
-        {/* Print Dialog */}
         <Dialog
           open={showPrintDialog}
           onClose={handleClosePrintDialog}

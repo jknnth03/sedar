@@ -18,6 +18,78 @@ const PdpModalPrinting = ({ data }) => {
   const goals = data.goals || [];
   const coachingSessions = data.coaching_sessions || [];
 
+  const minGoalRows = 5;
+  const minActionRows = 5;
+  const minResourceRows = 5;
+  const minCoachingRows = 5;
+
+  const displayGoals = [...goals];
+  while (displayGoals.length < minGoalRows) {
+    displayGoals.push({ id: `empty-${displayGoals.length}`, isEmpty: true });
+  }
+
+  const getActionsForDisplay = () => {
+    const allActions = [];
+    displayGoals.forEach((goal, goalIndex) => {
+      if (goal.isEmpty) {
+        allActions.push({
+          id: `empty-action-${goalIndex}`,
+          goalNumber: goalIndex + 1,
+          isEmpty: true,
+        });
+      } else if (goal.actions && goal.actions.length > 0) {
+        goal.actions.forEach((action) => {
+          allActions.push({
+            ...action,
+            goalNumber: goalIndex + 1,
+          });
+        });
+      } else {
+        allActions.push({
+          id: `empty-action-${goalIndex}`,
+          goalNumber: goalIndex + 1,
+          isEmpty: true,
+        });
+      }
+    });
+    while (allActions.length < minActionRows) {
+      allActions.push({
+        id: `empty-action-extra-${allActions.length}`,
+        isEmpty: true,
+      });
+    }
+    return allActions;
+  };
+
+  const getResourcesForDisplay = () => {
+    const allResources = [];
+    displayGoals.forEach((goal) => {
+      if (!goal.isEmpty && goal.resources && goal.resources.length > 0) {
+        goal.resources.forEach((resource) => {
+          allResources.push(resource);
+        });
+      }
+    });
+    while (allResources.length < minResourceRows) {
+      allResources.push({
+        id: `empty-resource-${allResources.length}`,
+        isEmpty: true,
+      });
+    }
+    return allResources;
+  };
+
+  const displayActions = getActionsForDisplay();
+  const displayResources = getResourcesForDisplay();
+
+  const displayCoachingSessions = [...coachingSessions];
+  while (displayCoachingSessions.length < minCoachingRows) {
+    displayCoachingSessions.push({
+      id: `empty-coaching-${displayCoachingSessions.length}`,
+      isEmpty: true,
+    });
+  }
+
   return (
     <div
       style={{
@@ -280,7 +352,7 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "10%",
                     }}>
@@ -293,7 +365,7 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "70%",
                     }}>
@@ -306,39 +378,42 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "20%",
                     }}>
                     Target
                   </td>
                 </tr>
-                {goals.map((goal, index) => (
+                {displayGoals.map((goal, index) => (
                   <tr key={goal.id}>
                     <td
                       style={{
                         textAlign: "center",
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}>
-                      {index + 1}
+                      {!goal.isEmpty ? index + 1 : ""}
                     </td>
                     <td
                       style={{
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}>
-                      {goal.description || ""}
+                      {!goal.isEmpty ? goal.description || "" : ""}
                     </td>
                     <td
                       style={{
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}>
-                      {goal.target_date || ""}
+                      {!goal.isEmpty ? goal.target_date || "" : ""}
                     </td>
                   </tr>
                 ))}
@@ -379,9 +454,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "10%",
+                      width: "8%",
                     }}>
                     GOAL #
                   </td>
@@ -392,9 +467,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "40%",
+                      width: "30%",
                     }}>
                     ACTIVITY
                   </td>
@@ -405,9 +480,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "12%",
+                      width: "13%",
                     }}>
                     DUE DATE
                   </td>
@@ -418,9 +493,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "12%",
+                      width: "13%",
                     }}>
                     DATE ACCOMPLISHED
                   </td>
@@ -431,9 +506,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "18%",
+                      width: "22%",
                     }}>
                     EXPECTED PROGRESS
                   </td>
@@ -444,87 +519,72 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "8%",
+                      width: "14%",
                     }}>
                     SIGNATURE OF IMMEDIATE SUPERIOR
                   </td>
                 </tr>
-                {goals.map((goal, goalIndex) =>
-                  goal.actions && goal.actions.length > 0 ? (
-                    goal.actions.map((action) => (
-                      <tr key={action.id}>
-                        <td
-                          style={{
-                            textAlign: "center",
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {goalIndex + 1}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {action.activity || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {action.due_date || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {action.date_accomplished || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {action.expected_progress || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}></td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr key={`empty-${goal.id}`}>
-                      <td
-                        style={{
-                          textAlign: "center",
-                          border: "1px solid #000",
-                          padding: "8px",
-                          fontSize: "11px",
-                        }}>
-                        {goalIndex + 1}
-                      </td>
-                      <td
-                        colSpan={5}
-                        style={{
-                          border: "1px solid #000",
-                          padding: "8px",
-                          fontSize: "11px",
-                        }}></td>
-                    </tr>
-                  )
-                )}
+                {displayActions.map((action) => (
+                  <tr key={action.id}>
+                    <td
+                      style={{
+                        textAlign: "center",
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!action.isEmpty && action.goalNumber
+                        ? action.goalNumber
+                        : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!action.isEmpty ? action.activity || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!action.isEmpty ? action.due_date || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!action.isEmpty ? action.date_accomplished || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!action.isEmpty ? action.expected_progress || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -565,9 +625,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "20%",
+                      width: "23%",
                     }}>
                     RESOURCE ITEM
                   </td>
@@ -578,7 +638,7 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "30%",
                     }}>
@@ -591,9 +651,9 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
-                      width: "30%",
+                      width: "27%",
                     }}>
                     PERSON/DEPT. IN CHARGE
                   </td>
@@ -604,63 +664,53 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "20%",
                     }}>
                     DUE DATE
                   </td>
                 </tr>
-                {goals.map((goal) =>
-                  goal.resources && goal.resources.length > 0 ? (
-                    goal.resources.map((resource) => (
-                      <tr key={resource.id}>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {resource.resource_item || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {resource.description || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {resource.person_in_charge || ""}
-                        </td>
-                        <td
-                          style={{
-                            border: "1px solid #000",
-                            padding: "8px",
-                            fontSize: "11px",
-                          }}>
-                          {resource.due_date || ""}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr key={`empty-resource-${goal.id}`}>
-                      <td
-                        colSpan={4}
-                        style={{
-                          border: "1px solid #000",
-                          padding: "8px",
-                          fontSize: "11px",
-                        }}></td>
-                    </tr>
-                  )
-                )}
+                {displayResources.map((resource) => (
+                  <tr key={resource.id}>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!resource.isEmpty ? resource.resource_item || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!resource.isEmpty ? resource.description || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!resource.isEmpty ? resource.person_in_charge || "" : ""}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "12px 8px",
+                        fontSize: "11px",
+                        minHeight: "40px",
+                      }}>
+                      {!resource.isEmpty ? resource.due_date || "" : ""}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -690,7 +740,7 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "20%",
                     }}>
@@ -703,7 +753,7 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "20%",
                     }}>
@@ -716,7 +766,7 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "40%",
                     }}>
@@ -729,44 +779,48 @@ const PdpModalPrinting = ({ data }) => {
                       fontWeight: "bold",
                       textAlign: "center",
                       border: "1px solid #000",
-                      padding: "8px",
+                      padding: "12px 8px",
                       fontSize: "11px",
                       width: "20%",
                     }}>
                     EMPLOYEE SIGNATURE
                   </td>
                 </tr>
-                {coachingSessions.map((session) => (
+                {displayCoachingSessions.map((session) => (
                   <tr key={session.id}>
                     <td
                       style={{
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}>
-                      {session.month_label || ""}
+                      {!session.isEmpty ? session.month_label || "" : ""}
                     </td>
                     <td
                       style={{
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}>
-                      {session.session_date || ""}
+                      {!session.isEmpty ? session.session_date || "" : ""}
                     </td>
                     <td
                       style={{
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}>
-                      {session.commitment || ""}
+                      {!session.isEmpty ? session.commitment || "" : ""}
                     </td>
                     <td
                       style={{
                         border: "1px solid #000",
-                        padding: "8px",
+                        padding: "12px 8px",
                         fontSize: "11px",
+                        minHeight: "40px",
                       }}></td>
                   </tr>
                 ))}
@@ -774,119 +828,126 @@ const PdpModalPrinting = ({ data }) => {
             </table>
           </div>
 
-          <div style={{ marginTop: "24px" }}>
-            <div
+          <div style={{ marginTop: "20px" }}>
+            <table
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: "16px",
-                marginBottom: "16px",
+                width: "100%",
+                borderCollapse: "collapse",
               }}>
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "11px", marginBottom: "8px" }}>
-                  Assessed by:
-                </p>
-                <div
-                  style={{
-                    minHeight: "60px",
-                    marginBottom: "8px",
-                  }}></div>
-                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
-                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                    Immediate Superior
-                  </p>
-                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                    (Name, Signature, Date)
-                  </p>
-                </div>
-              </div>
+              <tbody>
+                <tr>
+                  <td
+                    style={{
+                      width: "33.33%",
+                      textAlign: "center",
+                      padding: "4px",
+                    }}>
+                    <div style={{ fontSize: "11px", marginBottom: "4px" }}>
+                      Assessed by:
+                    </div>
+                    <div style={{ height: "50px" }}></div>
+                    <div
+                      style={{
+                        borderTop: "1px solid #000",
+                        paddingTop: "4px",
+                      }}>
+                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                        Immediate Superior
+                      </div>
+                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                        (Name, Signature, Date)
+                      </div>
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      width: "33.33%",
+                      textAlign: "center",
+                      padding: "4px",
+                    }}>
+                    <div style={{ fontSize: "11px", marginBottom: "4px" }}>
+                      Reviewed by:
+                    </div>
+                    <div style={{ height: "50px" }}></div>
+                    <div
+                      style={{
+                        borderTop: "1px solid #000",
+                        paddingTop: "4px",
+                      }}>
+                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                        Department Head
+                      </div>
+                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                        (Name, Signature, Date)
+                      </div>
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      width: "33.33%",
+                      textAlign: "center",
+                      padding: "4px",
+                    }}>
+                    <div style={{ fontSize: "11px", marginBottom: "4px" }}>
+                      &nbsp;
+                    </div>
+                    <div style={{ height: "50px" }}></div>
+                    <div
+                      style={{
+                        borderTop: "1px solid #000",
+                        paddingTop: "4px",
+                      }}>
+                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                        Department Manager/Director
+                      </div>
+                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                        (Name, Signature, Date)
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "11px", marginBottom: "8px" }}>
-                  Reviewed by:
-                </p>
-                <div
-                  style={{
-                    minHeight: "60px",
-                    marginBottom: "8px",
-                  }}></div>
-                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
-                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                    Department Head
-                  </p>
-                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                    (Name, Signature, Date)
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "11px", marginBottom: "8px" }}>&nbsp;</p>
-                <div
-                  style={{
-                    minHeight: "60px",
-                    marginBottom: "8px",
-                  }}></div>
-                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
-                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                    Department Manager/Director
-                  </p>
-                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
-                    (Name, Signature, Date)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ textAlign: "center", marginBottom: "16px" }}>
-              <p style={{ fontSize: "11px", marginBottom: "8px" }}>
+            <div style={{ marginTop: "12px", textAlign: "center" }}>
+              <div style={{ fontSize: "11px", marginBottom: "4px" }}>
                 Conformed by:
-              </p>
-              <div
-                style={{
-                  minHeight: "60px",
-                  marginBottom: "8px",
-                  maxWidth: "300px",
-                  margin: "0 auto 8px",
-                }}></div>
+              </div>
+              <div style={{ height: "50px" }}></div>
               <div
                 style={{
                   borderTop: "1px solid #000",
-                  paddingTop: "8px",
+                  paddingTop: "4px",
                   maxWidth: "300px",
                   margin: "0 auto",
                 }}>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                <div style={{ fontSize: "10px", margin: "2px 0" }}>
                   Employee's Signature
-                </p>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                </div>
+                <div style={{ fontSize: "10px", margin: "2px 0" }}>
                   (Name, Signature, Date)
-                </p>
+                </div>
               </div>
             </div>
 
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "11px", marginBottom: "8px" }}>Noted by:</p>
-              <div
-                style={{
-                  minHeight: "60px",
-                  marginBottom: "8px",
-                  maxWidth: "300px",
-                  margin: "0 auto 8px",
-                }}></div>
+            <div style={{ marginTop: "12px", textAlign: "center" }}>
+              <div style={{ fontSize: "11px", marginBottom: "4px" }}>
+                Noted by:
+              </div>
+              <div style={{ height: "50px" }}></div>
               <div
                 style={{
                   borderTop: "1px solid #000",
-                  paddingTop: "8px",
+                  paddingTop: "4px",
                   maxWidth: "300px",
                   margin: "0 auto",
                 }}>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                <div style={{ fontSize: "10px", margin: "2px 0" }}>
                   HR Department
-                </p>
-                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                </div>
+                <div style={{ fontSize: "10px", margin: "2px 0" }}>
                   (Name, Signature, Date)
-                </p>
+                </div>
               </div>
             </div>
           </div>

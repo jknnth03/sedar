@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
@@ -31,6 +37,9 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const isSubmittingRef = useRef(false);
 
   const methods = useForm({
     defaultValues: {},
@@ -107,13 +116,23 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
     setSelectedEntry(null);
     setSelectedSubmissionId(null);
     setModalMode("view");
+    setIsUpdating(false);
+    isSubmittingRef.current = false;
   }, []);
 
   const handleSave = useCallback(
     async (formData, mode) => {
+      if (isSubmittingRef.current) {
+        console.log("⚠️ Already submitting, ignoring duplicate call");
+        return;
+      }
+
       try {
+        isSubmittingRef.current = true;
+        setIsUpdating(true);
+
         if (mode === "edit" && selectedSubmissionId) {
-          await updateDaSubmission({
+          const result = await updateDaSubmission({
             id: selectedSubmissionId,
             data: formData,
           }).unwrap();
@@ -134,6 +153,9 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
             variant: "error",
           }
         );
+      } finally {
+        setIsUpdating(false);
+        isSubmittingRef.current = false;
       }
     },
     [
@@ -296,7 +318,7 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
         onSave={handleSave}
         onResubmit={handleResubmit}
         selectedEntry={selectedEntry}
-        isLoading={detailsLoading}
+        isLoading={detailsLoading || isUpdating}
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />

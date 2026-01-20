@@ -110,6 +110,122 @@ const formSubmissionApi = sedarApi
         providesTags: ["mrfSubmissions"],
       }),
 
+      getAllEmployeeMovementSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = true,
+            page = 1,
+            per_page = 10,
+            status,
+            approval_status,
+            search,
+            start_date,
+            end_date,
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination.toString());
+          queryParams.append("page", page.toString());
+          queryParams.append("per_page", per_page.toString());
+          queryParams.append("form_type", "da");
+
+          if (status) {
+            queryParams.append("status", status);
+          }
+
+          if (approval_status) {
+            queryParams.append("approval_status", approval_status);
+          }
+
+          if (search && search.trim() !== "") {
+            queryParams.append("search", search.trim());
+          }
+
+          if (start_date) {
+            queryParams.append("start_date", start_date);
+          }
+
+          if (end_date) {
+            queryParams.append("end_date", end_date);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = `mrf/open?${queryString}`;
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["mrfSubmissions"],
+      }),
+
+      getEmployeeMovementSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = true,
+            page = 1,
+            per_page = 10,
+            status,
+            approval_status,
+            search,
+            start_date,
+            end_date,
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination.toString());
+          queryParams.append("page", page.toString());
+          queryParams.append("per_page", per_page.toString());
+          queryParams.append("form_type", "da");
+
+          if (status) {
+            queryParams.append("status", status);
+          }
+
+          if (approval_status) {
+            queryParams.append("approval_status", approval_status);
+          }
+
+          if (search && search.trim() !== "") {
+            queryParams.append("search", search.trim());
+          }
+
+          if (start_date) {
+            queryParams.append("start_date", start_date);
+          }
+
+          if (end_date) {
+            queryParams.append("end_date", end_date);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = `me/mrf-submissions?${queryString}`;
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["mrfSubmissions"],
+      }),
+
       getSingleFormSubmission: build.query({
         query: (formSubmissionId) => ({
           url: `form-submissions/${formSubmissionId}`,
@@ -377,6 +493,10 @@ export const {
   useGetFormSubmissionsQuery,
   useGetMrfSubmissionsQuery,
   useLazyGetMrfSubmissionsQuery,
+  useGetAllEmployeeMovementSubmissionsQuery,
+  useLazyGetAllEmployeeMovementSubmissionsQuery,
+  useGetEmployeeMovementSubmissionsQuery,
+  useLazyGetEmployeeMovementSubmissionsQuery,
   useGetMrfSubmissionsCountsQuery,
   useLazyGetMrfSubmissionsCountsQuery,
   useGetSingleFormSubmissionQuery,
