@@ -149,27 +149,8 @@ const DAFormModalFields = ({
         prevSelectedMrfRef.current !== null &&
         prevSelectedMrfRef.current?.id !== selectedMrf?.id;
 
-      console.log("🔵 LOAD MRF DATA EFFECT");
-      console.log("  - selectedMrf:", selectedMrf);
-      console.log("  - prevSelectedMrf:", prevSelectedMrfRef.current);
-      console.log("  - mrfChanged:", mrfChanged);
-      console.log("  - isCreate:", isCreate);
-      console.log("  - isReadOnly:", isReadOnly);
-      console.log(
-        "  - Should load?",
-        selectedMrf && (isCreate || (!isReadOnly && mrfChanged))
-      );
-
       if (selectedMrf && (isCreate || (!isReadOnly && mrfChanged))) {
-        console.log("✅ Loading MRF data for id:", selectedMrf.id);
-        console.log("✅ Setting approved_mrf_id to:", selectedMrf.id);
         setValue("approved_mrf_id", selectedMrf.id);
-        console.log("✅ After setValue, checking form value...");
-
-        setTimeout(() => {
-          const currentValue = watch("approved_mrf_id");
-          console.log("✅ Form value after setValue:", currentValue);
-        }, 100);
         setValue("mrf_reference_number", selectedMrf.submission_title || "");
 
         setValue("employee_id", selectedMrf.employee_id || "");

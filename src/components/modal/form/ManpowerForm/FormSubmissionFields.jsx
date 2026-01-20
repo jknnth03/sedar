@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs"; // IMPORTANT: Import dayjs
+import dayjs from "dayjs";
 import { useLazyGetManpowerOptionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import { useLazyGetAllJobLevelsQuery } from "../../../../features/api/masterlist/jobLevelsApi";
 import { useLazyGetAllRequisitionsQuery } from "../../../../features/api/extras/requisitionsApi";
@@ -27,7 +27,6 @@ const safeStringRender = (value, fallback = "") => {
   return value || fallback;
 };
 
-// Helper function to convert string dates to dayjs objects
 const parseDateValue = (value) => {
   if (!value) return null;
   if (dayjs.isDayjs(value)) return value;
@@ -59,6 +58,7 @@ const FormSubmissionFields = ({
     employees: false,
     movementPosition: false,
   });
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
 
   const watchedRequisitionType = watch("requisition_type_id");
   const watchedPositionId = watch("position_id");
@@ -210,7 +210,6 @@ const FormSubmissionFields = ({
           );
         }
 
-        // FIXED: Convert string dates to dayjs objects
         if (replacementInfo.details.da_start_date) {
           const startDate = parseDateValue(
             replacementInfo.details.da_start_date
@@ -245,6 +244,34 @@ const FormSubmissionFields = ({
     }
   }, [mode, selectedEntry, setValue, triggerGetEmployees]);
 
+  useEffect(() => {
+    const loadEmployees = async () => {
+      if (
+        watchedPositionId?.id &&
+        watchedRequisitionType?.id &&
+        !isReadOnly &&
+        !isEditMode
+      ) {
+        setIsLoadingEmployees(true);
+        await triggerGetEmployees({
+          position_id: watchedPositionId.id,
+          requisition_type_id: watchedRequisitionType.id,
+          ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
+        });
+        setIsLoadingEmployees(false);
+      }
+    };
+
+    loadEmployees();
+  }, [
+    watchedRequisitionType?.id,
+    watchedPositionId?.id,
+    isReadOnly,
+    isEditMode,
+    triggerGetEmployees,
+    selectedEntry?.id,
+  ]);
+
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
       if (!shouldLoadDropdowns || dropdownsLoaded[dropdownName]) return;
@@ -262,15 +289,6 @@ const FormSubmissionFields = ({
         case "jobLevels":
           triggerGetJobLevels();
           break;
-        case "employees":
-          if (watchedPositionId?.id && watchedRequisitionType?.id) {
-            triggerGetEmployees({
-              position_id: watchedPositionId.id,
-              requisition_type_id: watchedRequisitionType.id,
-              ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
-            });
-          }
-          break;
         default:
           break;
       }
@@ -278,13 +296,9 @@ const FormSubmissionFields = ({
     [
       dropdownsLoaded,
       shouldLoadDropdowns,
-      watchedPositionId,
-      watchedRequisitionType,
-      selectedEntry?.id,
       triggerGetRequisitions,
       triggerGetPositions,
       triggerGetJobLevels,
-      triggerGetEmployees,
     ]
   );
 
@@ -568,7 +582,6 @@ const FormSubmissionFields = ({
                         if (isReadOnly || isEditMode) return;
                         onChange(item);
                       }}
-                      onOpen={() => handleDropdownFocus("employees")}
                       value={value || null}
                       disabled={
                         isReadOnly ||
@@ -577,7 +590,7 @@ const FormSubmissionFields = ({
                         !watchedRequisitionType
                       }
                       options={employees}
-                      loading={employeesLoading}
+                      loading={isLoadingEmployees || employeesLoading}
                       getOptionLabel={(option) =>
                         safeStringRender(
                           option?.full_name ||
@@ -613,7 +626,7 @@ const FormSubmissionFields = ({
                             ...params.InputProps,
                             endAdornment: (
                               <>
-                                {employeesLoading && (
+                                {(isLoadingEmployees || employeesLoading) && (
                                   <CircularProgress color="inherit" size={20} />
                                 )}
                                 {params.InputProps.endAdornment}
@@ -623,7 +636,7 @@ const FormSubmissionFields = ({
                         />
                       )}
                       noOptionsText={
-                        employeesLoading
+                        isLoadingEmployees || employeesLoading
                           ? "Loading employees..."
                           : !watchedPositionId || !watchedRequisitionType
                           ? "Select position and requisition type first"
@@ -643,7 +656,6 @@ const FormSubmissionFields = ({
                           return;
                         onChange(item);
                       }}
-                      onOpen={() => handleDropdownFocus("employees")}
                       value={value || null}
                       disabled={
                         isReadOnly ||
@@ -653,7 +665,7 @@ const FormSubmissionFields = ({
                         !watchedRequisitionType
                       }
                       options={employees}
-                      loading={employeesLoading}
+                      loading={isLoadingEmployees || employeesLoading}
                       getOptionLabel={(option) =>
                         safeStringRender(
                           option?.full_name ||
@@ -688,7 +700,7 @@ const FormSubmissionFields = ({
                             ...params.InputProps,
                             endAdornment: (
                               <>
-                                {employeesLoading && (
+                                {(isLoadingEmployees || employeesLoading) && (
                                   <CircularProgress color="inherit" size={20} />
                                 )}
                                 {params.InputProps.endAdornment}
@@ -698,7 +710,7 @@ const FormSubmissionFields = ({
                         />
                       )}
                       noOptionsText={
-                        employeesLoading
+                        isLoadingEmployees || employeesLoading
                           ? "Loading employees..."
                           : !watchedPositionId || !watchedRequisitionType
                           ? "Select position and requisition type first"

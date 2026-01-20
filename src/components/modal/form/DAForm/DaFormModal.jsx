@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   Dialog,
@@ -55,7 +55,30 @@ const DAFormModal = ({
   const prevModeRef = useRef(mode);
   const isSubmittingRef = useRef(false);
 
-  const formValues = watch();
+  const approved_mrf_id = watch("approved_mrf_id");
+  const employee_id = watch("employee_id");
+  const to_position_id = watch("to_position_id");
+
+  const isFormValid = useCallback(() => {
+    if (currentMode === "create") {
+      console.log("🔍 Validating:", {
+        approved_mrf_id,
+        employee_id,
+        to_position_id,
+        result: !!(approved_mrf_id && employee_id && to_position_id),
+      });
+      return !!(approved_mrf_id && employee_id && to_position_id);
+    }
+    return true;
+  }, [currentMode, approved_mrf_id, employee_id, to_position_id]);
+
+  console.log("🔍 Form Values Debug:", {
+    approved_mrf_id,
+    employee_id,
+    to_position_id,
+    currentMode,
+    isFormValid: isFormValid(),
+  });
 
   useEffect(() => {
     if (open && selectedEntry) {
@@ -157,14 +180,6 @@ const DAFormModal = ({
     }
 
     if (currentMode === "create") {
-      if (!data.employee_id) {
-        alert("Please select an Employee");
-        return;
-      }
-      if (!data.to_position_id) {
-        alert("Please select a TO Position");
-        return;
-      }
       if (!data.kpis || data.kpis.length === 0) {
         alert("Please add at least one KPI");
         return;
@@ -393,7 +408,7 @@ const DAFormModal = ({
               <Button
                 type="submit"
                 variant="contained"
-                disabled={isProcessing || !isFormReady}
+                disabled={isProcessing || !isFormReady || !isFormValid()}
                 startIcon={
                   isProcessing ? (
                     <CircularProgress size={16} />

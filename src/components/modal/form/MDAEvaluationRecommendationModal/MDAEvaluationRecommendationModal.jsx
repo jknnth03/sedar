@@ -99,6 +99,13 @@ const MDAEvaluationRecommendationModal = ({
     { data: prefillData, isLoading: isPrefillLoading, error: prefillError },
   ] = useLazyGetMdaEvaluationPrefillQuery();
 
+  const extractValue = (value) => {
+    if (typeof value === "object" && value !== null) {
+      return value.name || value.code || value.id || "";
+    }
+    return value || "";
+  };
+
   useEffect(() => {
     if (!open) {
       reset();
@@ -144,41 +151,41 @@ const MDAEvaluationRecommendationModal = ({
         probationary_evaluation_id:
           selectedEntry.submission_id || evaluationSubmissionId || null,
         employee_id: data.employee_id || "",
-        employee_name: data.employee_name || "",
-        employee_number: data.employee_number || "",
+        employee_name: extractValue(data.employee_name),
+        employee_number: extractValue(data.employee_number),
         effective_date: data.effective_date ? dayjs(data.effective_date) : null,
-        movement_type: data.movement_type || "",
+        movement_type: extractValue(data.movement_type),
         birth_date: data.birth_date ? dayjs(data.birth_date) : null,
-        birth_place: data.birth_place || "",
-        gender: data.gender || "",
-        nationality: data.nationality || "",
-        civil_status: data.civil_status || "",
-        address: data.address || "",
-        tin_number: data.tin_number || "",
-        sss_number: data.sss_number || "",
-        pag_ibig_number: data.pag_ibig_number || "",
-        philhealth_number: data.philhealth_number || "",
+        birth_place: extractValue(data.birth_place),
+        gender: extractValue(data.gender),
+        nationality: extractValue(data.nationality),
+        civil_status: extractValue(data.civil_status),
+        address: extractValue(data.address),
+        tin_number: extractValue(data.tin_number),
+        sss_number: extractValue(data.sss_number),
+        pag_ibig_number: extractValue(data.pag_ibig_number),
+        philhealth_number: extractValue(data.philhealth_number),
         from_position_id: fromData?.position_id || null,
-        from_position_title: fromData?.position_title || "",
-        from_department: fromData?.department || "",
-        from_sub_unit: fromData?.sub_unit || "",
-        from_job_level: fromData?.job_level || "",
+        from_position_title: extractValue(fromData?.position_title),
+        from_department: extractValue(fromData?.department),
+        from_sub_unit: extractValue(fromData?.sub_unit),
+        from_job_level: extractValue(fromData?.job_level),
         from_job_level_id: fromData?.job_level_id || null,
-        from_job_rate: fromData?.job_rate || "",
-        from_allowance: fromData?.allowance || "",
-        from_additional_rate: fromData?.additional_rate || "",
-        from_schedule: fromData?.schedule || "",
+        from_job_rate: extractValue(fromData?.job_rate),
+        from_allowance: extractValue(fromData?.allowance),
+        from_additional_rate: extractValue(fromData?.additional_rate),
+        from_schedule: extractValue(fromData?.schedule),
         to_position_id: toData?.position_id || null,
-        to_position_title: toData?.position_title || "",
-        to_department: toData?.department || "",
-        to_sub_unit: toData?.sub_unit || "",
-        to_job_level: toData?.job_level || "",
+        to_position_title: extractValue(toData?.position_title),
+        to_department: extractValue(toData?.department),
+        to_sub_unit: extractValue(toData?.sub_unit),
+        to_job_level: extractValue(toData?.job_level),
         to_job_level_id: toData?.job_level_id || null,
-        to_job_rate: toData?.job_rate || "",
-        to_allowance: toData?.allowance || "",
-        to_additional_rate: toData?.additional_rate || "",
-        to_schedule: toData?.schedule || "",
-        reference_number: data.reference_number || "",
+        to_job_rate: extractValue(toData?.job_rate),
+        to_allowance: extractValue(toData?.allowance),
+        to_additional_rate: extractValue(toData?.additional_rate),
+        to_schedule: extractValue(toData?.schedule),
+        reference_number: extractValue(data.reference_number),
       };
 
       reset(formData);
@@ -197,46 +204,46 @@ const MDAEvaluationRecommendationModal = ({
         probationary_evaluation_id:
           data.probationary_evaluation_id || evaluationSubmissionId || null,
         employee_id: data.employee_id || "",
-        employee_name: data.employee_name || "",
-        employee_number: data.employee_number || "",
+        employee_name: extractValue(data.employee_name),
+        employee_number: extractValue(data.employee_number),
         effective_date: data.effective_date ? dayjs(data.effective_date) : null,
-        movement_type: data.movement_type || "",
+        movement_type: extractValue(data.movement_type),
         birth_date: data.birth_date ? dayjs(data.birth_date) : null,
-        birth_place: data.birth_place || "",
-        gender: data.gender || "",
-        nationality: data.nationality || "",
-        civil_status: data.civil_status || "",
-        address: data.address || "",
-        tin_number: data.tin_number || "",
-        sss_number: data.sss_number || "",
-        pag_ibig_number: data.pag_ibig_number || "",
-        philhealth_number: data.philhealth_number || "",
+        birth_place: extractValue(data.birth_place),
+        gender: extractValue(data.gender),
+        nationality: extractValue(data.nationality),
+        civil_status: extractValue(data.civil_status),
+        address: extractValue(data.address),
+        tin_number: extractValue(data.tin_number),
+        sss_number: extractValue(data.sss_number),
+        pag_ibig_number: extractValue(data.pag_ibig_number),
+        philhealth_number: extractValue(data.philhealth_number),
         from_position_id: fromData?.position_id || null,
-        from_position_title: fromData?.position_title || "",
-        from_department: fromData?.department || "",
-        from_sub_unit: fromData?.sub_unit || "",
-        from_job_level: fromData?.job_level || "",
+        from_position_title: extractValue(fromData?.position_title),
+        from_department: extractValue(fromData?.department),
+        from_sub_unit: extractValue(fromData?.sub_unit),
+        from_job_level: extractValue(fromData?.job_level),
         from_job_level_id: fromData?.job_level_id || null,
-        from_job_rate: fromData?.job_rate || "",
-        from_allowance: fromData?.allowance || "",
-        from_additional_rate: fromData?.additional_rate || "",
-        from_schedule: fromData?.schedule || "",
+        from_job_rate: extractValue(fromData?.job_rate),
+        from_allowance: extractValue(fromData?.allowance),
+        from_additional_rate: extractValue(fromData?.additional_rate),
+        from_schedule: extractValue(fromData?.schedule),
         to_position_id: toData?.position_id || null,
-        to_position_title: toData?.position_title || "",
-        to_department: toData?.department || "",
-        to_sub_unit: toData?.sub_unit || "",
-        to_job_level: toData?.job_level || "",
+        to_position_title: extractValue(toData?.position_title),
+        to_department: extractValue(toData?.department),
+        to_sub_unit: extractValue(toData?.sub_unit),
+        to_job_level: extractValue(toData?.job_level),
         to_job_level_id: toData?.job_level_id || null,
-        to_job_rate: toData?.job_rate || "",
-        to_allowance: toData?.allowance || "",
-        to_additional_rate: toData?.additional_rate || "",
-        to_schedule: toData?.schedule || "",
-        reference_number: data.reference_number || "",
+        to_job_rate: extractValue(toData?.job_rate),
+        to_allowance: extractValue(toData?.allowance),
+        to_additional_rate: extractValue(toData?.additional_rate),
+        to_schedule: extractValue(toData?.schedule),
+        reference_number: extractValue(data.reference_number),
       };
 
       reset(formData);
     }
-  }, [prefillData, reset, evaluationSubmissionId]);
+  }, [prefillData, reset, evaluationSubmissionId, selectedEntry]);
 
   useEffect(() => {
     if (prefillError) {
@@ -301,11 +308,6 @@ const MDAEvaluationRecommendationModal = ({
         });
         return;
       }
-
-      enqueueSnackbar("MDA saved successfully!", {
-        variant: "success",
-        autoHideDuration: 3000,
-      });
       handleClose();
     } catch (error) {
       const errorData = error?.response?.data || error?.data || {};

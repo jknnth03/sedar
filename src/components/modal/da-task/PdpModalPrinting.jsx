@@ -828,126 +828,119 @@ const PdpModalPrinting = ({ data }) => {
             </table>
           </div>
 
-          <div style={{ marginTop: "20px" }}>
-            <table
+          <div style={{ marginTop: "24px" }}>
+            <div
               style={{
-                width: "100%",
-                borderCollapse: "collapse",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "16px",
+                marginBottom: "16px",
               }}>
-              <tbody>
-                <tr>
-                  <td
-                    style={{
-                      width: "33.33%",
-                      textAlign: "center",
-                      padding: "4px",
-                    }}>
-                    <div style={{ fontSize: "11px", marginBottom: "4px" }}>
-                      Assessed by:
-                    </div>
-                    <div style={{ height: "50px" }}></div>
-                    <div
-                      style={{
-                        borderTop: "1px solid #000",
-                        paddingTop: "4px",
-                      }}>
-                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                        Immediate Superior
-                      </div>
-                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                        (Name, Signature, Date)
-                      </div>
-                    </div>
-                  </td>
-                  <td
-                    style={{
-                      width: "33.33%",
-                      textAlign: "center",
-                      padding: "4px",
-                    }}>
-                    <div style={{ fontSize: "11px", marginBottom: "4px" }}>
-                      Reviewed by:
-                    </div>
-                    <div style={{ height: "50px" }}></div>
-                    <div
-                      style={{
-                        borderTop: "1px solid #000",
-                        paddingTop: "4px",
-                      }}>
-                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                        Department Head
-                      </div>
-                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                        (Name, Signature, Date)
-                      </div>
-                    </div>
-                  </td>
-                  <td
-                    style={{
-                      width: "33.33%",
-                      textAlign: "center",
-                      padding: "4px",
-                    }}>
-                    <div style={{ fontSize: "11px", marginBottom: "4px" }}>
-                      &nbsp;
-                    </div>
-                    <div style={{ height: "50px" }}></div>
-                    <div
-                      style={{
-                        borderTop: "1px solid #000",
-                        paddingTop: "4px",
-                      }}>
-                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                        Department Manager/Director
-                      </div>
-                      <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                        (Name, Signature, Date)
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div style={{ marginTop: "12px", textAlign: "center" }}>
-              <div style={{ fontSize: "11px", marginBottom: "4px" }}>
-                Conformed by:
-              </div>
-              <div style={{ height: "50px" }}></div>
-              <div
-                style={{
-                  borderTop: "1px solid #000",
-                  paddingTop: "4px",
-                  maxWidth: "300px",
-                  margin: "0 auto",
-                }}>
-                <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                  Employee's Signature
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "11px", marginBottom: "8px" }}>
+                  Assessed by:
+                </p>
+                <div
+                  style={{
+                    minHeight: "60px",
+                    marginBottom: "8px",
+                  }}></div>
+                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    Immediate Superior
+                  </p>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    (Name, Signature, Date)
+                  </p>
                 </div>
-                <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                  (Name, Signature, Date)
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "11px", marginBottom: "8px" }}>
+                  Reviewed by:
+                </p>
+                <div
+                  style={{
+                    minHeight: "60px",
+                    marginBottom: "8px",
+                  }}></div>
+                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    Department Head
+                  </p>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    (Name, Signature, Date)
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "11px", marginBottom: "8px" }}>&nbsp;</p>
+                <div
+                  style={{
+                    minHeight: "60px",
+                    marginBottom: "8px",
+                  }}></div>
+                <div style={{ borderTop: "1px solid #000", paddingTop: "8px" }}>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    Department Manager/Director
+                  </p>
+                  <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                    (Name, Signature, Date)
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: "12px", textAlign: "center" }}>
-              <div style={{ fontSize: "11px", marginBottom: "4px" }}>
-                Noted by:
-              </div>
-              <div style={{ height: "50px" }}></div>
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+              <p style={{ fontSize: "11px", marginBottom: "8px" }}>
+                Conformed by:
+              </p>
+              <div
+                style={{
+                  minHeight: "60px",
+                  marginBottom: "8px",
+                  maxWidth: "300px",
+                  margin: "0 auto 8px",
+                }}></div>
               <div
                 style={{
                   borderTop: "1px solid #000",
-                  paddingTop: "4px",
+                  paddingTop: "8px",
                   maxWidth: "300px",
                   margin: "0 auto",
                 }}>
-                <div style={{ fontSize: "10px", margin: "2px 0" }}>
-                  HR Department
-                </div>
-                <div style={{ fontSize: "10px", margin: "2px 0" }}>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  Employee's Signature
+                </p>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
                   (Name, Signature, Date)
-                </div>
+                </p>
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: "11px", marginBottom: "8px" }}>Noted by:</p>
+              <div
+                style={{
+                  minHeight: "60px",
+                  marginBottom: "8px",
+                  maxWidth: "300px",
+                  margin: "0 auto 8px",
+                }}></div>
+              <div
+                style={{
+                  borderTop: "1px solid #000",
+                  paddingTop: "8px",
+                  maxWidth: "300px",
+                  margin: "0 auto",
+                }}>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  HR Department
+                </p>
+                <p style={{ fontSize: "10px", margin: "4px 0" }}>
+                  (Name, Signature, Date)
+                </p>
               </div>
             </div>
           </div>

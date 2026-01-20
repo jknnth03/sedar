@@ -132,9 +132,7 @@ const DARecommendationForApproval = ({
     async (formData, mode, entryId) => {
       console.log("handleSave called with:", { formData, mode, entryId });
 
-      const submissionId = entryId || selectedSubmissionId;
-
-      if (!submissionId) {
+      if (!entryId) {
         enqueueSnackbar("Submission ID not found. Please try again.", {
           variant: "error",
           autoHideDuration: 2000,
@@ -142,7 +140,7 @@ const DARecommendationForApproval = ({
         return;
       }
 
-      console.log("Using submission ID:", submissionId);
+      console.log("Using submission ID:", entryId);
 
       if (formData.objectives && formData.objectives.length > 0) {
         const allHaveActualPerformance = formData.objectives.every(

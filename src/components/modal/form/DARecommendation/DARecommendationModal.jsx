@@ -159,6 +159,15 @@ const DARecommendationModal = ({
     const status = selectedEntry?.status || selectedEntry?.result?.status;
     const normalizedStatus = normalizeStatus(status);
 
+    const entryId =
+      editingEntryId ||
+      selectedEntry?.id ||
+      selectedEntry?.result?.id ||
+      submissionId ||
+      null;
+
+    console.log("handleFormSubmit - entryId:", entryId);
+
     if (currentMode === "create") {
       if (!data.employee_id) {
         alert("Please select an Employee");
@@ -237,15 +246,13 @@ const DARecommendationModal = ({
         ).format("YYYY-MM-DD");
       }
 
-      if (onSubmit) {
+      const handlerToUse =
+        normalizedStatus === "FOR RECOMMENDATION" ? onSubmit : onSave;
+
+      if (handlerToUse) {
         try {
           setIsUpdating(true);
-          const entryId =
-            editingEntryId ||
-            selectedEntry?.id ||
-            selectedEntry?.result?.id ||
-            null;
-          await onSubmit(formattedData, currentMode, entryId);
+          await handlerToUse(formattedData, currentMode, entryId);
         } catch (error) {
           alert("Failed to submit. Please try again.");
         } finally {
@@ -303,11 +310,6 @@ const DARecommendationModal = ({
       if (onSave) {
         try {
           setIsUpdating(true);
-          const entryId =
-            editingEntryId ||
-            selectedEntry?.id ||
-            selectedEntry?.result?.id ||
-            null;
           await onSave(formattedData, currentMode, entryId);
         } catch (error) {
           alert("Failed to save. Please try again.");
@@ -368,11 +370,6 @@ const DARecommendationModal = ({
       if (onSave) {
         try {
           setIsUpdating(true);
-          const entryId =
-            editingEntryId ||
-            selectedEntry?.id ||
-            selectedEntry?.result?.id ||
-            null;
           await onSave(formattedData, currentMode, entryId);
         } catch (error) {
           alert("Failed to save. Please try again.");
@@ -417,13 +414,6 @@ const DARecommendationModal = ({
     if (onSave) {
       try {
         setIsUpdating(true);
-        const entryId =
-          currentMode === "edit"
-            ? editingEntryId ||
-              selectedEntry?.id ||
-              selectedEntry?.result?.id ||
-              null
-            : null;
         await onSave(formattedData, currentMode, entryId);
       } catch (error) {
         alert("Failed to save. Please try again.");

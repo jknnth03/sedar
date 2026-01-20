@@ -66,16 +66,23 @@ const InfoSection = ({ children }) => (
   <Box sx={infoSectionContainerStyles}>{children}</Box>
 );
 
-const InfoField = ({ label, value }) => (
-  <Box sx={infoFieldContainerStyles}>
-    <Typography variant="subtitle2" sx={infoFieldLabelStyles}>
-      {label}
-    </Typography>
-    <Typography variant="body2" sx={infoFieldValueStyles}>
-      {value || "-"}
-    </Typography>
-  </Box>
-);
+const InfoField = ({ label, value }) => {
+  const displayValue =
+    typeof value === "object" && value !== null
+      ? value.name || value.code || value.id || "-"
+      : value || "-";
+
+  return (
+    <Box sx={infoFieldContainerStyles}>
+      <Typography variant="subtitle2" sx={infoFieldLabelStyles}>
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={infoFieldValueStyles}>
+        {displayValue}
+      </Typography>
+    </Box>
+  );
+};
 
 const MDAEvaluationRecommendationModalFields = ({
   isCreate,
@@ -98,6 +105,13 @@ const MDAEvaluationRecommendationModalFields = ({
     return d.format("MMMM D, YYYY");
   };
 
+  const getDisplayValue = (value) => {
+    if (typeof value === "object" && value !== null) {
+      return value.name || value.code || value.id || "-";
+    }
+    return value || "-";
+  };
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -107,24 +121,33 @@ const MDAEvaluationRecommendationModalFields = ({
               <InfoSection>
                 <InfoField
                   label="Employee Code"
-                  value={formValues.employee_number}
+                  value={getDisplayValue(formValues.employee_number)}
                 />
-                <InfoField label="Gender" value={formValues.gender} />
-                <InfoField label="Nationality" value={formValues.nationality} />
+                <InfoField
+                  label="Gender"
+                  value={getDisplayValue(formValues.gender)}
+                />
+                <InfoField
+                  label="Nationality"
+                  value={getDisplayValue(formValues.nationality)}
+                />
               </InfoSection>
             </Box>
           </Grid>
           <Grid item xs={12} md={3}>
             <Box sx={infoBoxStyles.employeeInfo2}>
               <InfoSection>
-                <InfoField label="Full Name" value={formValues.employee_name} />
+                <InfoField
+                  label="Full Name"
+                  value={getDisplayValue(formValues.employee_name)}
+                />
                 <InfoField
                   label="Birth Date"
                   value={formatDate(formValues.birth_date)}
                 />
                 <InfoField
                   label="Civil Status"
-                  value={formValues.civil_status}
+                  value={getDisplayValue(formValues.civil_status)}
                 />
               </InfoSection>
             </Box>
@@ -132,11 +155,17 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item xs={12} md={3}>
             <Box sx={infoBoxStyles.birthPlaceInfo}>
               <InfoSection>
-                <InfoField label="Birth Place" value={formValues.birth_place} />
-                <InfoField label="SSS Number" value={formValues.sss_number} />
+                <InfoField
+                  label="Birth Place"
+                  value={getDisplayValue(formValues.birth_place)}
+                />
+                <InfoField
+                  label="SSS Number"
+                  value={getDisplayValue(formValues.sss_number)}
+                />
                 <InfoField
                   label="PhilHealth Number"
-                  value={formValues.philhealth_number}
+                  value={getDisplayValue(formValues.philhealth_number)}
                 />
               </InfoSection>
             </Box>
@@ -144,10 +173,13 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item xs={12} md={3}>
             <Box sx={infoBoxStyles.tinInfo}>
               <InfoSection>
-                <InfoField label="TIN Number" value={formValues.tin_number} />
+                <InfoField
+                  label="TIN Number"
+                  value={getDisplayValue(formValues.tin_number)}
+                />
                 <InfoField
                   label="Pag-IBIG Number"
-                  value={formValues.pag_ibig_number}
+                  value={getDisplayValue(formValues.pag_ibig_number)}
                 />
                 <InfoField
                   label="Effective Date"
@@ -161,7 +193,10 @@ const MDAEvaluationRecommendationModalFields = ({
 
       <Grid item xs={12} sx={addressGridStyles}>
         <InfoSection>
-          <InfoField label="Address" value={formValues.address} />
+          <InfoField
+            label="Address"
+            value={getDisplayValue(formValues.address)}
+          />
         </InfoSection>
       </Grid>
 
@@ -175,7 +210,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Position Title From"
-              value={formValues.from_position_title || ""}
+              value={getDisplayValue(formValues.from_position_title)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -185,7 +220,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Job Level From"
-              value={formValues.from_job_level || ""}
+              value={getDisplayValue(formValues.from_job_level)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -195,7 +230,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Job Rate From"
-              value={formValues.from_job_rate || ""}
+              value={getDisplayValue(formValues.from_job_rate)}
               fullWidth
               type="number"
               disabled={true}
@@ -210,7 +245,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Department From"
-              value={formValues.from_department || ""}
+              value={getDisplayValue(formValues.from_department)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -220,7 +255,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Sub Unit From"
-              value={formValues.from_sub_unit || ""}
+              value={getDisplayValue(formValues.from_sub_unit)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -230,7 +265,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Allowance From"
-              value={formValues.from_allowance || ""}
+              value={getDisplayValue(formValues.from_allowance)}
               fullWidth
               type="number"
               disabled={true}
@@ -245,7 +280,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Additional Rate From"
-              value={formValues.from_additional_rate || ""}
+              value={getDisplayValue(formValues.from_additional_rate)}
               fullWidth
               type="number"
               disabled={true}
@@ -269,7 +304,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Position"
-              value={formValues.to_position_title || ""}
+              value={getDisplayValue(formValues.to_position_title)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -279,7 +314,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Job Level To"
-              value={formValues.to_job_level || ""}
+              value={getDisplayValue(formValues.to_job_level)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -319,7 +354,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Department To"
-              value={formValues.to_department || ""}
+              value={getDisplayValue(formValues.to_department)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
@@ -329,7 +364,7 @@ const MDAEvaluationRecommendationModalFields = ({
           <Grid item sx={{ width: "336px", minWidth: "336px" }}>
             <TextField
               label="Sub Unit To"
-              value={formValues.to_sub_unit || ""}
+              value={getDisplayValue(formValues.to_sub_unit)}
               fullWidth
               disabled={true}
               InputLabelProps={{ shrink: true }}
