@@ -1,45 +1,33 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import {
   useGetCatTwoTasksQuery,
   useGetCatTwoTaskByIdQuery,
 } from "../../../features/api/da-task/catTwoApi";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import CatTwoTable from "./CatTwoTable";
 import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const CatTwoApproved = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  setQueryParams,
-  currentParams,
-  data,
-  isLoading: externalIsLoading,
-  page: externalPage,
-  rowsPerPage: externalRowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
-}) => {
+const CatTwoApproved = ({ searchQuery, dateFilters }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(
-    externalPage || parseInt(currentParams?.page) || 1
-  );
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10
   );
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
 
   const methods = useForm({
     defaultValues: {
@@ -50,24 +38,30 @@ const CatTwoApproved = ({
     },
   });
 
-  useEffect(() => {
-    if (externalPage !== undefined) {
-      setPage(externalPage);
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FINAL_COMPLETE",
+      search: searchQuery || "",
+    };
+
+    if (
+      dateFilters?.start_date !== undefined &&
+      dateFilters?.start_date !== null
+    ) {
+      params.start_date = dateFilters.start_date;
     }
-  }, [externalPage]);
+    if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    if (externalRowsPerPage !== undefined) {
-      setRowsPerPage(externalRowsPerPage);
-    }
-  }, [externalRowsPerPage]);
-
-  useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
-    if (onPageChange) {
-      onPageChange(newPage);
-    }
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -76,18 +70,10 @@ const CatTwoApproved = ({
     isFetching,
     refetch,
     error,
-  } = useGetCatTwoTasksQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FINAL_COMPLETE",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetCatTwoTasksQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const {
     data: catTwoDetails,
@@ -104,52 +90,22 @@ const CatTwoApproved = ({
   }, [catTwoDetails]);
 
   const submissionsData = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return [];
+    if (!taskData?.result) return [];
 
-    const result = dataSource.result;
+    const result = taskData.result;
 
-    if (Array.isArray(result)) {
-      return result.filter((item) => item.status === "APPROVED");
-    }
-
-    if (result.status === "APPROVED") {
-      return [result];
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
     return [];
-  }, [data, taskData]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+  }, [taskData]);
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
     setSelectedSubmissionId(submission.id);
     setSelectedSubmission(submission);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalOpen(true);
   }, []);
 
@@ -174,25 +130,20 @@ const CatTwoApproved = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
-      if (onPageChange) {
-        onPageChange(targetPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -200,7 +151,7 @@ const CatTwoApproved = ({
         );
       }
     },
-    [onPageChange, setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, queryParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -209,16 +160,10 @@ const CatTwoApproved = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
-      if (onRowsPerPageChange) {
-        onRowsPerPageChange(newRowsPerPage);
-      }
-      if (onPageChange) {
-        onPageChange(newPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -226,105 +171,61 @@ const CatTwoApproved = ({
         );
       }
     },
-    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
+    [setQueryParams, queryParams]
   );
 
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
 
-  const isLoadingState =
-    externalIsLoading !== undefined
-      ? externalIsLoading
-      : queryLoading || isFetching;
+  const isLoadingState = queryLoading || isFetching;
+
+  const totalCount = taskData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <CatTwoTable
-            submissionsList={filteredSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={true}
-            forApproved={true}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <CatTwoModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails?.result || selectedSubmission}
-          isLoading={detailsLoading}
-          onRefreshDetails={handleRefreshDetails}
+        <CatTwoTable
+          submissionsList={submissionsData}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
           forApproved={true}
         />
+
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Box>
+
+      <CatTwoModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails?.result || selectedSubmission}
+        isLoading={detailsLoading}
+        onRefreshDetails={handleRefreshDetails}
+        forApproved={true}
+      />
     </FormProvider>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Paper,
   Typography,
@@ -7,20 +7,13 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   CircularProgress,
   TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Box,
   Chip,
   useTheme,
   alpha,
 } from "@mui/material";
-import { Help as HelpIcon } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import { useGetGeneralsQuery } from "../../features/api/employee/generalApi";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
@@ -28,6 +21,7 @@ import { CONSTANT } from "../../config/index";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
+import CustomTablePagination from "../zzzreusable/CustomTablePagination";
 
 const General = ({
   searchQuery: parentSearchQuery,
@@ -39,16 +33,15 @@ const General = ({
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [currentParams, setQueryParams, removeQueryParams] =
-    useRememberQueryParams();
+  const [queryParams, setQueryParams] = useRememberQueryParams();
 
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [rowsPerPage, setRowsPerPage] = useState(
+    parseInt(queryParams?.rowsPerPage) || 10
+  );
 
   const searchQuery =
-    parentSearchQuery !== undefined
-      ? parentSearchQuery
-      : currentParams?.q ?? "";
+    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -58,7 +51,7 @@ const General = ({
   const [wizardMode, setWizardMode] = useState("create");
   const [wizardInitialData, setWizardInitialData] = useState(null);
 
-  const queryParams = useMemo(() => {
+  const apiQueryParams = useMemo(() => {
     const params = {
       pagination: page,
       page: page,
@@ -112,12 +105,16 @@ const General = ({
     return params;
   }, [debounceValue, page, rowsPerPage, filters]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filters]);
+
   const {
     data: employees,
     isLoading,
     isFetching,
     refetch,
-  } = useGetGeneralsQuery(queryParams);
+  } = useGetGeneralsQuery(apiQueryParams);
 
   const employeeList = useMemo(
     () => employees?.result?.data || [],
@@ -132,17 +129,11 @@ const General = ({
 
       if (onSearchChange) {
         onSearchChange(value);
-      } else {
-        if (value.trim()) {
-          setQueryParams({ q: value });
-        } else {
-          removeQueryParams(["q"]);
-        }
       }
 
       setPage(1);
     },
-    [onSearchChange, setQueryParams, removeQueryParams]
+    [onSearchChange]
   );
 
   const openWizard = useCallback(
@@ -188,14 +179,43 @@ const General = ({
     [refetch, enqueueSnackbar]
   );
 
-  const handlePageChange = useCallback((event, newPage) => {
-    setPage(newPage + 1);
-  }, []);
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      const targetPage = newPage + 1;
+      setPage(targetPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: targetPage,
+            rowsPerPage: rowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, rowsPerPage, queryParams]
+  );
 
-  const handleRowsPerPageChange = useCallback((event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
-  }, []);
+  const handleRowsPerPageChange = useCallback(
+    (event) => {
+      const newRowsPerPage = parseInt(event.target.value, 10);
+      const newPage = 1;
+      setRowsPerPage(newRowsPerPage);
+      setPage(newPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: newPage,
+            rowsPerPage: newRowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, queryParams]
+  );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
@@ -249,6 +269,8 @@ const General = ({
     return chargingData.filter((item) => item.code && item.name);
   }, []);
 
+  const isLoadingState = isLoading || isFetching;
+
   return (
     <Box
       sx={{
@@ -291,7 +313,7 @@ const General = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {isFetching ? (
+              {isLoadingState ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center">
                     <Box sx={{ py: 4 }}>
@@ -473,31 +495,13 @@ const General = ({
           </Table>
         </TableContainer>
 
-        <Box sx={{ flexShrink: 0 }}>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={totalCount}
-            rowsPerPage={rowsPerPage}
-            page={page - 1}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-              backgroundColor: alpha(theme.palette.background.paper, 0.6),
-              minHeight: "52px",
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: theme.spacing(2),
-                paddingRight: theme.spacing(1),
-              },
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  margin: 0,
-                  fontSize: "0.875rem",
-                },
-            }}
-          />
-        </Box>
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
 
       <EmployeeWizardForm

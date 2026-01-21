@@ -395,7 +395,7 @@ const MDADAModal = ({
 
   const showResubmitButton = () => {
     const status = selectedEntry?.result?.status || selectedEntry?.status;
-    return isViewMode && status !== "APPROVED" && status !== "CANCELLED";
+    return isViewMode && status === "AWAITING RESUBMISSION";
   };
 
   return (

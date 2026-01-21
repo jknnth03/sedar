@@ -27,7 +27,6 @@ const CatTwoApprovalDialog = ({
   isLoading = false,
   isLoadingData = false,
 }) => {
-  const [comments, setComments] = useState("");
   const [correctionRemarks, setCorrectionRemarks] = useState("");
   const [actionType, setActionType] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -48,7 +47,7 @@ const CatTwoApprovalDialog = ({
 
   const handleActionConfirm = async () => {
     if (confirmAction === "approve") {
-      const approveData = { comments: comments.trim() };
+      const approveData = {};
       setConfirmOpen(false);
       await onApprove(approveData);
       handleReset();
@@ -71,7 +70,6 @@ const CatTwoApprovalDialog = ({
   };
 
   const handleReset = () => {
-    setComments("");
     setCorrectionRemarks("");
     setCorrectionRemarksError(false);
     setActionType(null);
@@ -593,24 +591,6 @@ const CatTwoApprovalDialog = ({
               helperText={
                 correctionRemarksError ? "Correction remarks is required" : ""
               }
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                },
-              }}
-            />
-          )}
-
-          {confirmAction === "approve" && (
-            <TextField
-              label="Comments (Optional)"
-              placeholder="Add any additional comments..."
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              multiline
-              rows={3}
-              fullWidth
               variant="outlined"
               sx={{
                 "& .MuiOutlinedInput-root": {

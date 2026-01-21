@@ -1,7 +1,9 @@
 import { sedarApi } from "..";
 
-const moduleApi = sedarApi
-  .enhanceEndpoints({ addTagTypes: ["dashboard"] })
+export const dashboardApi = sedarApi
+  .enhanceEndpoints({
+    addTagTypes: ["Dashboard", "Notifications"], // ← UPDATED: Added Notifications tag
+  })
   .injectEndpoints({
     endpoints: (build) => ({
       showDashboard: build.query({
@@ -9,11 +11,12 @@ const moduleApi = sedarApi
           url: "dashboard/summary-counts",
           method: "GET",
         }),
-        providesTags: ["dashboard"],
+        providesTags: ["Dashboard", "Notifications"], // ← UPDATED: Added both tags
       }),
     }),
   });
 
-export const { useShowDashboardQuery } = moduleApi;
+export const { useShowDashboardQuery } = dashboardApi;
 
-export default moduleApi;
+// ← ALSO export as default for backward compatibility
+export default dashboardApi;

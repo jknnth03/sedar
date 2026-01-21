@@ -1,7 +1,7 @@
 import { sedarApi } from "..";
 
 const mainApi = sedarApi
-  .enhanceEndpoints({ addTagTypes: ["employees"] })
+  .enhanceEndpoints({ addTagTypes: ["employees", "positions"] })
   .injectEndpoints({
     endpoints: (build) => ({
       getEmployees: build.query({
@@ -10,7 +10,8 @@ const mainApi = sedarApi
             pagination = 1,
             page = 1,
             per_page = 10,
-            status,
+            status = "all",
+            employment_status = "ACTIVE",
             search,
             ...otherParams
           } = params;
@@ -21,6 +22,8 @@ const mainApi = sedarApi
           if (page) queryParams.append("page", page);
           if (per_page) queryParams.append("per_page", per_page);
           if (status) queryParams.append("status", status);
+          if (employment_status)
+            queryParams.append("employment_status", employment_status);
           if (search) queryParams.append("search", search);
 
           Object.entries(otherParams).forEach(([key, value]) => {
@@ -37,15 +40,25 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: (result) =>
+          result?.data
+            ? [
+                { type: "employees", id: "LIST" },
+                ...result.data.map((emp) => ({
+                  type: "employees",
+                  id: emp.id,
+                })),
+              ]
+            : [{ type: "employees", id: "LIST" }],
       }),
 
       getAllEmployees: build.query({
         query: (params = {}) => {
           const {
-            pagination = true,
+            pagination = "none",
             page = 1,
-            status = "active",
+            status = "all",
+            employment_status = "ACTIVE",
             search,
             ...otherParams
           } = params;
@@ -55,6 +68,8 @@ const mainApi = sedarApi
           if (pagination) queryParams.append("pagination", pagination);
           if (page) queryParams.append("page", page);
           if (status) queryParams.append("status", status);
+          if (employment_status)
+            queryParams.append("employment_status", employment_status);
           if (search) queryParams.append("search", search);
 
           Object.entries(otherParams).forEach(([key, value]) => {
@@ -71,7 +86,72 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "ALL_LIST" }],
+      }),
+
+      getGeneralInfo: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = "none",
+            status = "all",
+            employment_status = "ACTIVE",
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination);
+          queryParams.append("status", status);
+          queryParams.append("employment_status", employment_status);
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              queryParams.append(key, value);
+            }
+          });
+
+          const queryString = queryParams.toString();
+
+          return {
+            url: `employees/general-info?${queryString}`,
+            method: "GET",
+          };
+        },
+        providesTags: [{ type: "employees", id: "GENERAL_INFO" }],
+      }),
+
+      getReferredByOptions: build.query({
+        query: () => {
+          const queryParams = new URLSearchParams();
+          queryParams.append("pagination", "none");
+          queryParams.append("status", "all");
+          queryParams.append("employment_status", "ACTIVE");
+
+          return {
+            url: `employees/general-info?${queryParams.toString()}`,
+            method: "GET",
+          };
+        },
+        transformResponse: (response) => {
+          if (Array.isArray(response)) {
+            return response.map((emp) => ({
+              value: emp.id,
+              label: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
+              employee_number: emp.employee_number,
+              ...emp,
+            }));
+          }
+          if (response?.data && Array.isArray(response.data)) {
+            return response.data.map((emp) => ({
+              value: emp.id,
+              label: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
+              employee_number: emp.employee_number,
+              ...emp,
+            }));
+          }
+          return [];
+        },
+        providesTags: [{ type: "employees", id: "REFERRED_BY_OPTIONS" }],
       }),
 
       getSingleEmployee: build.query({
@@ -81,7 +161,6 @@ const mainApi = sedarApi
         }),
         providesTags: (result, error, employeeId) => [
           { type: "employees", id: employeeId },
-          "employees",
         ],
       }),
 
@@ -90,7 +169,7 @@ const mainApi = sedarApi
           url: `positions/manpower-options`,
           method: "GET",
         }),
-        providesTags: ["employees"],
+        providesTags: ["positions"],
       }),
 
       getAllApprovedMrf: build.query({
@@ -118,7 +197,7 @@ const mainApi = sedarApi
             method: "GET",
           };
         },
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "REPLACEMENT_OPTIONS" }],
       }),
 
       getEmployeeRegistrationCounts: build.query({
@@ -126,7 +205,7 @@ const mainApi = sedarApi
           url: "me/employee-registrations/counts",
           method: "GET",
         }),
-        providesTags: ["employees"],
+        providesTags: [{ type: "employees", id: "REGISTRATION_COUNTS" }],
       }),
 
       createEmployee: build.mutation({
@@ -189,7 +268,12 @@ const mainApi = sedarApi
             };
           }
         },
-        invalidatesTags: ["employees"],
+        invalidatesTags: [
+          { type: "employees", id: "LIST" },
+          { type: "employees", id: "ALL_LIST" },
+          { type: "employees", id: "GENERAL_INFO" },
+          { type: "employees", id: "REGISTRATION_COUNTS" },
+        ],
       }),
 
       updateEmployee: build.mutation({
@@ -200,7 +284,9 @@ const mainApi = sedarApi
         }),
         invalidatesTags: (result, error, body) => [
           { type: "employees", id: body?.id },
-          "employees",
+          { type: "employees", id: "LIST" },
+          { type: "employees", id: "ALL_LIST" },
+          { type: "employees", id: "GENERAL_INFO" },
         ],
       }),
 
@@ -211,7 +297,10 @@ const mainApi = sedarApi
         }),
         invalidatesTags: (result, error, employeeId) => [
           { type: "employees", id: employeeId },
-          "employees",
+          { type: "employees", id: "LIST" },
+          { type: "employees", id: "ALL_LIST" },
+          { type: "employees", id: "GENERAL_INFO" },
+          { type: "employees", id: "REGISTRATION_COUNTS" },
         ],
       }),
     }),
@@ -222,6 +311,10 @@ export const {
   useLazyGetEmployeesQuery,
   useGetAllEmployeesQuery,
   useLazyGetAllEmployeesQuery,
+  useGetGeneralInfoQuery,
+  useLazyGetGeneralInfoQuery,
+  useGetReferredByOptionsQuery,
+  useLazyGetReferredByOptionsQuery,
   useGetSingleEmployeeQuery,
   useLazyGetSingleEmployeeQuery,
   useGetAllPositionsQuery,

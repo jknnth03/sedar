@@ -13,6 +13,7 @@ const submissionApprovalApi = sedarApi
             page = 1,
             per_page = 10,
             status,
+            approval_status,
             search,
             ...otherParams
           } = params;
@@ -25,6 +26,10 @@ const submissionApprovalApi = sedarApi
 
           if (status) {
             queryParams.append("status", status);
+          }
+
+          if (approval_status) {
+            queryParams.append("approval_status", approval_status);
           }
 
           if (search && search.trim() !== "") {
@@ -49,6 +54,18 @@ const submissionApprovalApi = sedarApi
         },
         providesTags: ["submissionApprovals"],
       }),
+
+      getSingleSubmissionApproval: build.query({
+        query: (submissionApprovalId) => ({
+          url: `me/mrf-approvals/${submissionApprovalId}`,
+          method: "GET",
+        }),
+        providesTags: (result, error, submissionApprovalId) => [
+          { type: "submissionApprovals", id: submissionApprovalId },
+          "submissionApprovals",
+        ],
+      }),
+
       getMyRegistrationApprovals: build.query({
         query: (params = {}) => {
           const {
@@ -80,7 +97,6 @@ const submissionApprovalApi = sedarApi
           });
 
           const queryString = queryParams.toString();
-          // Fixed: Changed from "me/employee-registrations" to "me/employee-registration-approvals"
           const url = queryString
             ? `me/employee-registration-approvals?${queryString}`
             : "me/employee-registration-approvals";
@@ -92,16 +108,7 @@ const submissionApprovalApi = sedarApi
         },
         providesTags: ["registrationApprovals"],
       }),
-      getSingleSubmissionApproval: build.query({
-        query: (submissionApprovalId) => ({
-          url: `submission-approvals/${submissionApprovalId}`,
-          method: "GET",
-        }),
-        providesTags: (result, error, submissionApprovalId) => [
-          { type: "submissionApprovals", id: submissionApprovalId },
-          "submissionApprovals",
-        ],
-      }),
+
       approveSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
           url: `submission-approvals/${id}/approve`,
@@ -116,6 +123,7 @@ const submissionApprovalApi = sedarApi
           "submissionApprovals",
         ],
       }),
+
       rejectSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
           url: `submission-approvals/${id}/reject`,
@@ -130,6 +138,7 @@ const submissionApprovalApi = sedarApi
           "submissionApprovals",
         ],
       }),
+
       approveRejectSubmission: build.mutation({
         query: ({ id, decision, comments, reason }) => ({
           url: `submission-approvals/${id}/decision`,
@@ -152,10 +161,10 @@ const submissionApprovalApi = sedarApi
 export const {
   useGetMySubmissionApprovalsQuery,
   useLazyGetMySubmissionApprovalsQuery,
-  useGetMyRegistrationApprovalsQuery,
-  useLazyGetMyRegistrationApprovalsQuery,
   useGetSingleSubmissionApprovalQuery,
   useLazyGetSingleSubmissionApprovalQuery,
+  useGetMyRegistrationApprovalsQuery,
+  useLazyGetMyRegistrationApprovalsQuery,
   useApproveSubmissionMutation,
   useRejectSubmissionMutation,
   useApproveRejectSubmissionMutation,

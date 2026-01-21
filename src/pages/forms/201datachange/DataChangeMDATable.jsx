@@ -13,7 +13,7 @@ import {
   MenuItem,
   Chip,
   Tooltip,
-  CircularProgress,
+  Skeleton,
   useTheme,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -24,6 +24,8 @@ import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DataChangeDialog from "./DataChangeDialog";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import NoDataFound from "../../NoDataFound";
 
 const DataChangeMDATable = ({
   submissionsList,
@@ -41,13 +43,16 @@ const DataChangeMDATable = ({
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedDataChangeHistory, setSelectedDataChangeHistory] =
     React.useState(null);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [selectedSubmissionForCancel, setSelectedSubmissionForCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
 
   const getMovementTypeLabel = (movementType) => {
     return movementType || "-";
   };
 
   const getMdaReferenceNumber = (submission) => {
-    // Try to get MDA reference from different possible locations
     return (
       submission.mda_reference_number ||
       submission.mda_reference ||
@@ -106,8 +111,8 @@ const DataChangeMDATable = ({
         label: "APPROVED",
       },
       completed: {
-        color: "#1976d2",
-        bgColor: "#e3f2fd",
+        color: "#2e7d32",
+        bgColor: "#e8f5e8",
         label: "COMPLETED",
       },
       rejected: {
@@ -150,20 +155,32 @@ const DataChangeMDATable = ({
     setSelectedDataChangeHistory(null);
   };
 
-  const handleCancelClick = (submission) => {
-    if (onCancel) {
-      onCancel(submission.id);
-    }
+  const handleCancelClick = (e, submission) => {
+    e.stopPropagation();
     handleMenuClose(submission.id);
+    setSelectedSubmissionForCancel(submission);
+    setCancelRemarks("");
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelDialogClose = () => {
+    setShowCancelDialog(false);
+    setSelectedSubmissionForCancel(null);
+    setCancelRemarks("");
+  };
+
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   const canCancelSubmission = (submission) => {
-    // Check if submission can be cancelled based on status and actions
     if (submission?.actions?.can_cancel === true) {
       return true;
     }
 
-    // Additional logic: allow cancel if status is "MDA IN PROGRESS"
     const status = submission.status?.toLowerCase();
     return status === "mda in progress";
   };
@@ -181,12 +198,36 @@ const DataChangeMDATable = ({
     );
   };
 
-  const totalColumns = 7; // Including actions column
+  const getNoDataMessage = () => {
+    if (statusFilter) {
+      const statusLabels = {
+        "PENDING MDA CREATION": "pending MDA creation",
+        "MDA IN PROGRESS": "MDA in progress",
+        "MDA COMPLETED": "MDA completed",
+        "MDA CANCELLED": "MDA cancelled",
+      };
+      const statusLabel =
+        statusLabels[statusFilter] || statusFilter.toLowerCase();
+      return searchQuery
+        ? `No ${statusLabel} submissions found for "${searchQuery}"`
+        : `No ${statusLabel} submissions found`;
+    }
+    return searchQuery
+      ? `No results found for "${searchQuery}"`
+      : "No MDA submissions found";
+  };
+
+  const totalColumns = 7;
 
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+            height: submissionsList.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
@@ -208,16 +249,56 @@ const DataChangeMDATable = ({
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: submissionsList.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell
-                  colSpan={totalColumns}
-                  align="center"
-                  sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
               <TableRow>
                 <TableCell
@@ -313,8 +394,7 @@ const DataChangeMDATable = ({
                       </MenuItem>
                       <MenuItem
                         onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelClick(submission);
+                          handleCancelClick(e, submission);
                         }}
                         disabled={!canCancelSubmission(submission)}
                         sx={
@@ -330,23 +410,40 @@ const DataChangeMDATable = ({
                 </TableRow>
               ))
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  height: 0,
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={totalColumns}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No MDA submissions found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {searchQuery
-                        ? `No results for "${searchQuery}"`
-                        : statusFilter === "MDA IN PROGRESS"
-                        ? "No MDA submissions in progress"
-                        : "No MDA submissions pending creation"}
-                    </Typography>
+                  sx={{
+                    height: 0,
+                    padding: 0,
+                    border: "none",
+                    borderBottom: "none",
+                    pointerEvents: "none",
+                    position: "relative",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "62%",
+                      top: "64%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage={getNoDataMessage()} />
                   </Box>
                 </TableCell>
               </TableRow>
@@ -359,6 +456,23 @@ const DataChangeMDATable = ({
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDataChangeHistory={selectedDataChangeHistory}
+      />
+
+      <ConfirmationDialog
+        open={showCancelDialog}
+        onClose={handleCancelDialogClose}
+        action="cancel"
+        itemId={selectedSubmissionForCancel?.id}
+        itemName={selectedSubmissionForCancel?.reference_number || "N/A"}
+        module="Data Change Request"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleCancelSuccess}
       />
     </>
   );

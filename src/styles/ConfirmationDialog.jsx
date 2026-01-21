@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,6 +10,8 @@ import {
   CircularProgress,
   TextField,
 } from "@mui/material";
+import { useCancelFormSubmissionMutation } from "../features/api/approvalsetting/formSubmissionApi";
+import { useSnackbar } from "notistack";
 
 const ConfirmationDialog = ({
   open,
@@ -18,6 +20,7 @@ const ConfirmationDialog = ({
   isLoading = false,
   action = "",
   itemName = "",
+  itemId = null,
   module = "Manpower Requisition Form",
   showRemarks = false,
   remarks = "",
@@ -25,7 +28,14 @@ const ConfirmationDialog = ({
   remarksRequired = false,
   remarksLabel = "Remarks (Optional)",
   remarksPlaceholder = "Add any additional remarks...",
+  remarksMinLength = 0,
+  onSuccess = () => {},
 }) => {
+  const { enqueueSnackbar } = useSnackbar();
+  const [cancelFormSubmission, { isLoading: isCancelling }] =
+    useCancelFormSubmissionMutation();
+  const [remarksError, setRemarksError] = useState("");
+
   const getActionConfig = () => {
     switch (action) {
       case "approve":
@@ -52,12 +62,76 @@ const ConfirmationDialog = ({
   };
 
   const actionConfig = getActionConfig();
-  const hasRemarksError = remarksRequired && !remarks.trim();
+  const hasRemarksError =
+    remarksRequired && (!remarks || remarks.trim().length < remarksMinLength);
+
+  const handleRemarksChange = (value) => {
+    if (onRemarksChange) {
+      onRemarksChange(value);
+    }
+    if (remarksError) {
+      setRemarksError("");
+    }
+  };
+
+  const handleClose = () => {
+    if (!isLoading && !isCancelling) {
+      setRemarksError("");
+      onClose();
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (
+      remarksRequired &&
+      (!remarks || remarks.trim().length < remarksMinLength)
+    ) {
+      setRemarksError(
+        remarksMinLength > 0
+          ? `Remarks must be at least ${remarksMinLength} characters`
+          : "Remarks are required"
+      );
+      return;
+    }
+
+    try {
+      if (action === "cancel" && itemId) {
+        await cancelFormSubmission({
+          id: itemId,
+          reason: remarks.trim(),
+        }).unwrap();
+
+        enqueueSnackbar("Request cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        if (onSuccess && typeof onSuccess === "function") {
+          await onSuccess();
+        }
+
+        handleClose();
+      } else if (onConfirm && typeof onConfirm === "function") {
+        await onConfirm();
+      } else if (onSuccess && typeof onSuccess === "function") {
+        await onSuccess();
+      }
+    } catch (error) {
+      const errorMessage =
+        error?.data?.message || "Failed to process request. Please try again.";
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 2000,
+      });
+    }
+  };
+
+  const isProcessing = isLoading || isCancelling;
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="xs"
       fullWidth
       PaperProps={{
@@ -139,12 +213,18 @@ const ConfirmationDialog = ({
             label={remarksLabel}
             placeholder={remarksPlaceholder}
             value={remarks}
-            onChange={(e) => onRemarksChange(e.target.value)}
+            onChange={(e) => handleRemarksChange(e.target.value)}
             required={remarksRequired}
-            error={hasRemarksError}
+            error={!!remarksError || hasRemarksError}
             helperText={
-              hasRemarksError ? "Remarks are required for rejection" : ""
+              remarksError ||
+              (hasRemarksError && remarksMinLength > 0
+                ? `Remarks must be at least ${remarksMinLength} characters`
+                : hasRemarksError
+                ? "Remarks are required"
+                : `${remarks.length} characters`)
             }
+            disabled={isProcessing}
             sx={{
               marginTop: 2,
               "& .MuiOutlinedInput-root": {
@@ -162,7 +242,7 @@ const ConfirmationDialog = ({
           gap: 2,
         }}>
         <Button
-          onClick={onClose}
+          onClick={handleClose}
           variant="outlined"
           sx={{
             textTransform: "uppercase",
@@ -177,11 +257,11 @@ const ConfirmationDialog = ({
               backgroundColor: "rgba(244, 67, 54, 0.04)",
             },
           }}
-          disabled={isLoading}>
+          disabled={isProcessing}>
           CANCEL
         </Button>
         <Button
-          onClick={onConfirm}
+          onClick={handleConfirm}
           variant="contained"
           sx={{
             textTransform: "uppercase",
@@ -194,8 +274,8 @@ const ConfirmationDialog = ({
               backgroundColor: "#388e3c",
             },
           }}
-          disabled={isLoading || hasRemarksError}>
-          {isLoading ? (
+          disabled={isProcessing || hasRemarksError}>
+          {isProcessing ? (
             <CircularProgress size={20} color="inherit" />
           ) : (
             "CONFIRM"

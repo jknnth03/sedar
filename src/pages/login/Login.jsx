@@ -6,6 +6,7 @@ import {
   Button,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -73,6 +74,7 @@ const LoginPage = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [shouldFetchDashboard, setShouldFetchDashboard] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [login] = useLoginMutation();
   const logoutSnackbarShown = useRef(false);
 
@@ -103,15 +105,10 @@ const LoginPage = () => {
     }
 
     if (location.state?.loggedOut && !logoutSnackbarShown.current) {
-      enqueueSnackbar("You have successfully logged out.", {
-        variant: "info",
-        autoHideDuration: 3000,
-      });
       logoutSnackbarShown.current = true;
-
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location, navigate, enqueueSnackbar]);
+  }, [location, navigate]);
 
   useEffect(() => {
     if (shouldFetchDashboard && dashboardData && !dashboardLoading) {
@@ -128,6 +125,7 @@ const LoginPage = () => {
   };
 
   const onSubmit = async (data) => {
+    setIsLoggingIn(true);
     try {
       const res = await login(data).unwrap();
 
@@ -168,6 +166,7 @@ const LoginPage = () => {
         navigate("/");
       }
     } catch (error) {
+      setIsLoggingIn(false);
       enqueueSnackbar(error?.data?.message || "Invalid Credentials", {
         variant: "error",
         autoHideDuration: 3000,
@@ -254,6 +253,17 @@ const LoginPage = () => {
           minHeight: "700px",
           position: "relative",
           zIndex: 3,
+          animation: "fadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          "@keyframes fadeInScale": {
+            "0%": {
+              opacity: 0,
+              transform: "scale(0.9) translateY(20px)",
+            },
+            "100%": {
+              opacity: 1,
+              transform: "scale(1) translateY(0)",
+            },
+          },
         }}>
         <Box
           sx={{
@@ -335,6 +345,7 @@ const LoginPage = () => {
               placeholder={CONSTANT.FIELDS.USERNAME.placeholder}
               error={!!errors.username}
               helperText={errors.username?.message}
+              disabled={isLoggingIn}
               sx={{
                 marginBottom: "24px",
                 "& .MuiOutlinedInput-root": {
@@ -366,6 +377,7 @@ const LoginPage = () => {
               type={showPassword ? "text" : "password"}
               error={!!errors.password}
               helperText={errors.password?.message}
+              disabled={isLoggingIn}
               sx={{
                 marginBottom: "32px",
                 "& .MuiOutlinedInput-root": {
@@ -393,6 +405,7 @@ const LoginPage = () => {
                     <IconButton
                       onClick={togglePasswordVisibility}
                       edge="end"
+                      disabled={isLoggingIn}
                       sx={{ color: "rgba(56, 56, 56, 1)" }}>
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -411,6 +424,7 @@ const LoginPage = () => {
               <Button
                 type="submit"
                 variant="contained"
+                disabled={isLoggingIn}
                 sx={{
                   backgroundColor: "#213D70",
                   borderRadius: "8px",
@@ -426,8 +440,16 @@ const LoginPage = () => {
                     backgroundColor: "#1a2f5a",
                     boxShadow: "none",
                   },
+                  "&.Mui-disabled": {
+                    backgroundColor: "#213D70",
+                    opacity: 0.7,
+                  },
                 }}>
-                LOG IN
+                {isLoggingIn ? (
+                  <CircularProgress size={24} sx={{ color: "white" }} />
+                ) : (
+                  "LOG IN"
+                )}
               </Button>
             </Box>
           </form>

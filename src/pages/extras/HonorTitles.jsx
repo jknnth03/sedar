@@ -1,14 +1,11 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
-  Paper,
   Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
-  CircularProgress,
   TableRow,
   Box,
   TextField,
@@ -24,9 +21,9 @@ import {
   DialogActions,
   useTheme,
   useMediaQuery,
-  alpha,
-  Fade,
   Chip,
+  Skeleton,
+  Tooltip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArchiveIcon from "@mui/icons-material/Archive";
@@ -42,7 +39,9 @@ import {
   useGetShowHonorTitlesQuery,
 } from "../../features/api/extras/honortitlesApi";
 import HonorTitleModal from "../../components/modal/extras/HonorTitlesModal";
-import useDebounce from "../../hooks/useDebounce";
+import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
+import NoDataFound from "../../pages/NoDataFound";
+import { styles } from "../forms/manpowerform/formSubmissionStyles";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -51,16 +50,19 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
-  const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
   const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
     <Box
-      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
-      className="search-bar-container">
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       {isVerySmall ? (
         <IconButton
           onClick={() => setShowArchived(!showArchived)}
@@ -122,58 +124,21 @@ const CustomSearchBar = ({
       )}
 
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search Honor Titles..."}
+        placeholder={isVerySmall ? "Search..." : "Search honor titles..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
-        className="search-input"
         InputProps={{
           startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
-              }}
-            />
+            <SearchIcon sx={styles.searchIcon(isLoading, isVerySmall)} />
           ),
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
-          ),
-          sx: {
-            height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
+          sx: styles.searchInputProps(isLoading, isVerySmall, isMobile),
         }}
         sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
-          "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
+          ...(isVerySmall
+            ? styles.searchTextFieldVerySmall
+            : styles.searchTextField),
         }}
       />
     </Box>
@@ -196,33 +161,42 @@ const HonorTitles = () => {
   const [selectedTitle, setSelectedTitle] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
-  const debounceValue = useDebounce(searchQuery, 500);
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const queryParams = useMemo(
     () => ({
-      search: debounceValue,
+      search: debouncedSearchQuery,
       page,
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
     }),
-    [debounceValue, page, rowsPerPage, showArchived]
+    [debouncedSearchQuery, page, rowsPerPage, showArchived]
   );
 
   const {
-    data: honorTitles,
-    isLoading: queryLoading,
-    isFetching,
+    data: backendData,
+    isFetching: backendFetching,
     refetch,
     error,
-  } = useGetShowHonorTitlesQuery(queryParams);
+  } = useGetShowHonorTitlesQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+  });
 
   const [deleteHonorTitle] = useDeleteHonorTitlesMutation();
 
-  const honorTitleList = useMemo(
-    () => honorTitles?.result?.data || [],
-    [honorTitles]
+  const honorTitles = useMemo(
+    () => backendData?.result?.data || [],
+    [backendData]
   );
+  const totalCount = backendData?.result?.total || 0;
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
@@ -326,426 +300,290 @@ const HonorTitles = () => {
     );
   }, []);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState = backendFetching || isLoading;
 
   return (
-    <Box
-      sx={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        backgroundColor: "white",
-      }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: isMobile || isTablet ? "flex-start" : "center",
-          justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
-          flexDirection: isMobile || isTablet ? "column" : "row",
-          flexShrink: 0,
-          minHeight: isMobile || isTablet ? "auto" : "72px",
-          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
-          backgroundColor: "white",
-          borderBottom: "1px solid #e0e0e0",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          gap: isMobile || isTablet ? "16px" : "0",
-        }}>
+    <>
+      <Box sx={styles.mainContainer}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-            width: isMobile || isTablet ? "100%" : "auto",
-            justifyContent: "flex-start",
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
           }}>
-          <Typography className="header">
-            {isVerySmall ? "HONOR TITLES" : "HONOR TITLES"}
-          </Typography>
-
-          {isVerySmall ? (
-            <IconButton
-              onClick={handleAddTitle}
-              disabled={isLoadingState}
-              sx={{
-                backgroundColor: "rgb(33, 61, 112)",
-                color: "white",
-                width: "36px",
-                height: "36px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: "rgb(25, 45, 84)",
-                  boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                  transform: "translateY(-1px)",
-                },
-                "&:disabled": {
-                  backgroundColor: "#ccc",
-                  boxShadow: "none",
-                },
-              }}>
-              <AddIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          ) : (
-            <Fade in={!isLoadingState}>
-              <Button
-                variant="contained"
-                onClick={handleAddTitle}
-                startIcon={<AddIcon />}
-                disabled={isLoadingState}
-                className="create-button"
+          <Box
+            sx={{
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
+            }}>
+            <Box sx={styles.headerLeftSection}>
+              <Typography
+                className="header"
                 sx={{
-                  backgroundColor: "rgb(33, 61, 112)",
-                  height: isMobile ? "36px" : "38px",
-                  width: isMobile ? "auto" : "160px",
-                  minWidth: isMobile ? "100px" : "160px",
-                  padding: isMobile ? "0 16px" : "0 20px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: isMobile ? "12px" : "14px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "& .MuiButton-startIcon": {
-                    marginRight: isMobile ? "4px" : "8px",
-                  },
-                  "&:hover": {
-                    backgroundColor: "rgb(25, 45, 84)",
-                    boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
                 }}>
-                CREATE
-              </Button>
-            </Fade>
-          )}
+                HONOR TITLES
+              </Typography>
+              {isVerySmall ? (
+                <IconButton
+                  onClick={handleAddTitle}
+                  sx={{
+                    width: "36px",
+                    height: "36px",
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                    },
+                  }}>
+                  <AddIcon sx={{ fontSize: "18px" }} />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleAddTitle}
+                  startIcon={<AddIcon />}
+                  sx={{
+                    ...styles.createButton,
+                    backgroundColor: "rgb(33, 61, 112)",
+                    "&:hover": {
+                      backgroundColor: "rgb(25, 45, 84)",
+                    },
+                  }}>
+                  CREATE
+                </Button>
+              )}
+            </Box>
+          </Box>
+
+          <CustomSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={handleSearchChange}
+            showArchived={showArchived}
+            setShowArchived={handleChangeArchived}
+            isLoading={isLoadingState}
+          />
         </Box>
 
-        <CustomSearchBar
-          searchQuery={searchQuery}
-          setSearchQuery={handleSearchChange}
-          showArchived={showArchived}
-          setShowArchived={handleChangeArchived}
-          isLoading={isLoadingState}
-        />
-      </Box>
-
-      <Box
-        sx={{
-          flex: 1,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "white",
-        }}>
-        <TableContainer
-          sx={{
-            flex: 1,
-            overflow: "auto",
-            backgroundColor: isMobile ? "white" : "#fafafa",
-            "& .MuiTableCell-head": {
-              backgroundColor: "#f8f9fa",
-              fontWeight: 700,
-              fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
-              color: "rgb(33, 61, 112)",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              borderBottom: "2px solid #e0e0e0",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              height: isMobile ? "44px" : "48px",
-              padding: isMobile ? "6px 12px" : "8px 16px",
-            },
-            "& .MuiTableCell-body": {
-              fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
-              color: "#333",
-              borderBottom: "1px solid #f0f0f0",
-              padding: isMobile ? "6px 12px" : "8px 16px",
-              height: isMobile ? "48px" : "52px",
+        <Box sx={styles.tabsContainer}>
+          <TableContainer
+            sx={{
+              ...styles.tableContainerStyles,
               backgroundColor: "white",
-            },
-          }}>
-          <Table stickyHeader sx={{ minWidth: isMobile ? 600 : 1200 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  align="left"
-                  sx={{
-                    width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
-                    minWidth: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
-                  }}>
-                  ID
-                </TableCell>
-                <TableCell
-                  sx={{
-                    width: isVerySmall ? "70px" : isMobile ? "80px" : "150px",
-                    minWidth: isVerySmall
-                      ? "70px"
-                      : isMobile
-                      ? "80px"
-                      : "150px",
-                  }}>
-                  CODE
-                </TableCell>
-                <TableCell
-                  sx={{
-                    width: isMobile ? "120px" : "300px",
-                    minWidth: isMobile ? "100px" : "300px",
-                  }}>
-                  HONOR TITLE
-                </TableCell>
-                {!isMobile && (
+              "& .MuiTableBody-root .MuiTableRow-root:last-child .MuiTableCell-root":
+                {
+                  borderBottom: "none",
+                },
+            }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    align="left"
+                    sx={{ ...styles.columnStyles.id, borderBottom: "none" }}>
+                    ID
+                  </TableCell>
                   <TableCell
                     sx={{
-                      width: "100px",
-                      minWidth: "100px",
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
                     }}>
-                    STATUS
+                    CODE
                   </TableCell>
-                )}
-                <TableCell
-                  align="center"
-                  sx={{
-                    width: isMobile ? "80px" : "100px",
-                    minWidth: isMobile ? "80px" : "100px",
-                  }}>
-                  ACTIONS
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoadingState ? (
-                <TableRow>
                   <TableCell
-                    colSpan={isMobile ? 4 : 5}
-                    align="center"
-                    sx={{ py: 4 }}>
-                    <CircularProgress
-                      size={32}
-                      sx={{ color: "rgb(33, 61, 112)" }}
-                    />
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
+                    }}>
+                    HONOR TITLE
+                  </TableCell>
+                  {!isMobile && (
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.status,
+                        borderBottom: "none",
+                      }}
+                      align="center">
+                      STATUS
+                    </TableCell>
+                  )}
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.status,
+                      borderBottom: "none",
+                    }}
+                    align="center">
+                    ACTIONS
                   </TableCell>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={isMobile ? 4 : 5}
-                    align="center"
-                    sx={{ py: 4 }}>
-                    <Typography color="error">
-                      Error loading data: {error.message || "Unknown error"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : honorTitleList.length > 0 ? (
-                honorTitleList.map((title) => (
-                  <TableRow key={title.id}>
+              </TableHead>
+              <TableBody>
+                {isLoadingState ? (
+                  <>
+                    {[...Array(5)].map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell align="left">
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        {!isMobile && (
+                          <TableCell align="center">
+                            <Skeleton
+                              animation="wave"
+                              variant="rounded"
+                              width={80}
+                              height={24}
+                              sx={{ margin: "0 auto" }}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell align="center">
+                          <Skeleton
+                            animation="wave"
+                            variant="circular"
+                            width={32}
+                            height={32}
+                            sx={{ margin: "0 auto" }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
+                ) : error ? (
+                  <TableRow
+                    sx={{
+                      borderBottom: "none",
+                      "&:hover": {
+                        backgroundColor: "transparent !important",
+                        cursor: "default !important",
+                      },
+                    }}>
                     <TableCell
-                      align="left"
-                      sx={{
-                        width: isVerySmall
-                          ? "40px"
-                          : isMobile
-                          ? "50px"
-                          : "60px",
-                        minWidth: isVerySmall
-                          ? "40px"
-                          : isMobile
-                          ? "50px"
-                          : "60px",
-                      }}>
-                      {title.id}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        width: isVerySmall
-                          ? "70px"
-                          : isMobile
-                          ? "80px"
-                          : "150px",
-                        minWidth: isVerySmall
-                          ? "70px"
-                          : isMobile
-                          ? "80px"
-                          : "150px",
-                        fontSize: isVerySmall ? "10px" : "12px",
-                        color: "#666",
-                        fontFamily: "monospace",
-                        overflow: "hidden",
-                        whiteSpace: "nowrap",
-                        textOverflow: "ellipsis",
-                      }}>
-                      {title.code}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        width: isMobile ? "120px" : "300px",
-                        minWidth: isMobile ? "100px" : "300px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: 600,
-                      }}>
-                      {title.name}
-                    </TableCell>
-                    {!isMobile && (
-                      <TableCell
-                        sx={{
-                          width: "100px",
-                          minWidth: "100px",
-                        }}>
-                        {renderStatusChip(title)}
-                      </TableCell>
-                    )}
-                    <TableCell
+                      colSpan={999}
                       align="center"
                       sx={{
-                        width: isMobile ? "80px" : "100px",
-                        minWidth: isMobile ? "80px" : "100px",
+                        ...styles.noDataContainer,
+                        borderBottom: "none",
+                        "&:hover": {
+                          backgroundColor: "transparent !important",
+                        },
                       }}>
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, title)}
-                        size="small"
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          "&:hover": {
-                            backgroundColor: "rgba(33, 61, 112, 0.04)",
-                          },
-                        }}>
-                        <MoreVertIcon fontSize="small" />
-                      </IconButton>
-                      <Menu
-                        anchorEl={menuAnchor[title.id]}
-                        open={Boolean(menuAnchor[title.id])}
-                        onClose={() => handleMenuClose(title.id)}
-                        transformOrigin={{
-                          horizontal: "right",
-                          vertical: "top",
-                        }}
-                        anchorOrigin={{
-                          horizontal: "right",
-                          vertical: "bottom",
-                        }}>
-                        {!title.deleted_at && (
-                          <MenuItem
-                            onClick={() => handleEditClick(title)}
-                            sx={{
-                              fontSize: "0.875rem",
-                            }}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                            Edit
-                          </MenuItem>
-                        )}
-                        <MenuItem
-                          onClick={(e) => handleArchiveRestoreClick(title, e)}
-                          sx={{
-                            fontSize: "0.875rem",
-                            color: title.deleted_at
-                              ? theme.palette.success.main
-                              : "#d32f2f",
-                          }}>
-                          {title.deleted_at ? (
-                            <>
-                              <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveIcon
-                                fontSize="small"
-                                sx={{ mr: 1, color: "#d32f2f" }}
-                              />
-                              Archive
-                            </>
-                          )}
-                        </MenuItem>
-                      </Menu>
+                      <NoDataFound
+                        message="Error loading data"
+                        subMessage={error.message || "Unknown error"}
+                      />
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={isMobile ? 4 : 5}
-                    align="center"
+                ) : honorTitles.length > 0 ? (
+                  honorTitles.map((title) => (
+                    <TableRow key={title.id} sx={styles.tableRowHover(theme)}>
+                      <TableCell align="left">{title.id}</TableCell>
+                      <TableCell sx={styles.formNameCell}>
+                        <Tooltip title={title.code} placement="top">
+                          <span style={styles.cellContentStyles}>
+                            {title.code}
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell sx={styles.formNameCell}>
+                        <Tooltip title={title.name} placement="top">
+                          <span style={styles.cellContentStyles}>
+                            {title.name}
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                      {!isMobile && (
+                        <TableCell align="center">
+                          {renderStatusChip(title)}
+                        </TableCell>
+                      )}
+                      <TableCell align="center">
+                        <IconButton
+                          onClick={(e) => handleMenuOpen(e, title)}
+                          size="small">
+                          <MoreVertIcon />
+                        </IconButton>
+                        <Menu
+                          anchorEl={menuAnchor[title.id]}
+                          open={Boolean(menuAnchor[title.id])}
+                          onClose={() => handleMenuClose(title.id)}>
+                          {!title.deleted_at && (
+                            <MenuItem onClick={() => handleEditClick(title)}>
+                              <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                              Edit
+                            </MenuItem>
+                          )}
+                          <MenuItem
+                            onClick={(e) =>
+                              handleArchiveRestoreClick(title, e)
+                            }>
+                            {title.deleted_at ? (
+                              <>
+                                <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
+                                Restore
+                              </>
+                            ) : (
+                              <>
+                                <ArchiveIcon fontSize="small" sx={{ mr: 1 }} />
+                                Archive
+                              </>
+                            )}
+                          </MenuItem>
+                        </Menu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow
                     sx={{
-                      py: 8,
                       borderBottom: "none",
-                      color: "#666",
-                      fontSize: isMobile ? "14px" : "16px",
+                      "&:hover": {
+                        backgroundColor: "transparent !important",
+                        cursor: "default !important",
+                      },
                     }}>
-                    <Box
+                    <TableCell
+                      colSpan={999}
+                      align="center"
                       sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
+                        ...styles.noDataContainer,
+                        borderBottom: "none",
+                        "&:hover": {
+                          backgroundColor: "transparent !important",
+                        },
                       }}>
-                      <Typography variant="h6" color="text.secondary">
-                        No honor titles found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
-                          ? `No results for "${searchQuery}"`
-                          : showArchived
-                          ? "No archived honor titles"
-                          : "No active honor titles"}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      <NoDataFound
+                        message=""
+                        subMessage={
+                          searchQuery
+                            ? `No honor titles found for "${searchQuery}"`
+                            : "No honor titles available"
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        <Box
-          sx={{
-            borderTop: "1px solid #e0e0e0",
-            backgroundColor: "#f8f9fa",
-            flexShrink: 0,
-            "& .MuiTablePagination-root": {
-              color: "#666",
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  fontSize: isMobile ? "12px" : "14px",
-                  fontWeight: 500,
-                },
-              "& .MuiTablePagination-select": {
-                fontSize: isMobile ? "12px" : "14px",
-              },
-              "& .MuiIconButton-root": {
-                color: "rgb(33, 61, 112)",
-                "&:hover": {
-                  backgroundColor: "rgba(33, 61, 112, 0.04)",
-                },
-                "&.Mui-disabled": {
-                  color: "#ccc",
-                },
-              },
-            },
-          }}>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={honorTitles?.result?.total || 0}
-            rowsPerPage={rowsPerPage}
+          <CustomTablePagination
+            count={totalCount}
             page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
-            sx={{
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: isMobile ? "12px" : "24px",
-                paddingRight: isMobile ? "12px" : "24px",
-              },
-            }}
           />
         </Box>
       </Box>
@@ -764,7 +602,7 @@ const HonorTitles = () => {
             justifyContent="center"
             alignItems="center"
             mb={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
           </Box>
           <Typography
             variant="h6"
@@ -800,16 +638,14 @@ const HonorTitles = () => {
             <Button
               onClick={() => setConfirmOpen(false)}
               variant="outlined"
-              color="error"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Cancel
+              color="error">
+              No
             </Button>
             <Button
               onClick={handleArchiveRestoreConfirm}
               variant="contained"
-              color="success"
-              sx={{ borderRadius: 2, minWidth: 80 }}>
-              Confirm
+              color="success">
+              Yes
             </Button>
           </Box>
         </DialogActions>
@@ -818,10 +654,11 @@ const HonorTitles = () => {
       <HonorTitleModal
         open={modalOpen}
         handleClose={() => setModalOpen(false)}
-        selectedHonorTitle={selectedTitle}
         refetch={refetch}
+        selectedHonorTitle={selectedTitle}
+        showArchived={showArchived}
       />
-    </Box>
+    </>
   );
 };
 

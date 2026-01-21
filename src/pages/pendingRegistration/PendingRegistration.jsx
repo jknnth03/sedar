@@ -2,10 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
@@ -19,6 +15,7 @@ import {
   IconButton,
   Fade,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -27,11 +24,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import {
-  pendingRegistrationStyles,
-  StyledTabs,
-  StyledTab,
-} from "./PendingRegistrationStyles";
+
 import {
   useLazyGetSingleEmployeeQuery,
   useGetEmployeeRegistrationCountsQuery,
@@ -43,7 +36,6 @@ import PendingRegistrationForapproval from "./PendingRegistrationForapproval";
 import PendingRegistrationAwaitingresubmission from "./PendingRegistrationAwaitingresubmission";
 import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
-import PendingRegistrationModal from "../../components/modal/employee/pendingFormModal/PendingRegistrationModal";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/employeeWizardForm.jsx";
 import {
   DateFilterDialog,
@@ -52,6 +44,11 @@ import {
 import { format } from "date-fns";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../forms/manpowerform/FormSubmissionStyles.jsx";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -68,9 +65,7 @@ const TabPanel = ({ children, value, index, ...other }) => {
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box sx={pendingRegistrationStyles.tabPanel}>{children}</Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -100,7 +95,6 @@ const CustomSearchBar = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
   const isSmallerThan450 = useMediaQuery("(max-width:450px)");
   const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
@@ -121,14 +115,16 @@ const CustomSearchBar = ({
     return isVerySmall ? "DATE" : "FILTER";
   };
 
+  const iconColor = hasActiveFilters
+    ? "rgba(0, 133, 49, 1)"
+    : "rgb(33, 61, 112)";
+
   return (
     <Box
       sx={{
-        ...pendingRegistrationStyles.searchBarContainer,
-        ...(isMobile && pendingRegistrationStyles.searchBarContainerMobile),
-        ...(isTablet && pendingRegistrationStyles.searchBarContainerTablet),
-        ...(isVerySmall &&
-          pendingRegistrationStyles.searchBarContainerVerySmall),
+        ...styles.searchBarContainer,
+        ...(isMobile && styles.searchBarContainerMobile),
+        ...(isVerySmall && styles.searchBarContainerVerySmall),
       }}>
       <Tooltip title="Click here to filter by date range" arrow>
         {isSmallerThan450 ? (
@@ -136,10 +132,49 @@ const CustomSearchBar = ({
             onClick={onFilterClick}
             disabled={isLoading}
             size="small"
-            sx={pendingRegistrationStyles.filterIconButton(hasActiveFilters)}>
-            <CalendarTodayIcon
-              sx={pendingRegistrationStyles.filterIconButtonIcon}
-            />
+            sx={{
+              width: "36px",
+              height: "36px",
+              border: `1px solid ${
+                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+              }`,
+              borderRadius: "8px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.04)"
+                : "white",
+              color: iconColor,
+              position: "relative",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
+              },
+            }}>
+            <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+            {hasActiveFilters && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "-6px",
+                  right: "-6px",
+                  backgroundColor: "rgba(0, 133, 49, 1)",
+                  color: "white",
+                  borderRadius: "50%",
+                  width: "16px",
+                  height: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "10px",
+                  fontWeight: 600,
+                }}>
+                1
+              </Box>
+            )}
           </IconButton>
         ) : (
           <FormControlLabel
@@ -148,17 +183,40 @@ const CustomSearchBar = ({
                 checked={hasActiveFilters}
                 onChange={onFilterClick}
                 disabled={isLoading}
-                icon={<CalendarTodayIcon />}
-                checkedIcon={<CalendarTodayIcon />}
+                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
                 size="small"
               />
             }
             label={
-              <Box sx={pendingRegistrationStyles.filterLabelBox}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
-            sx={pendingRegistrationStyles.filterControlLabel(hasActiveFilters)}
+            sx={{
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
           />
         )}
       </Tooltip>
@@ -171,26 +229,16 @@ const CustomSearchBar = ({
         size="small"
         InputProps={{
           startAdornment: (
-            <SearchIcon
-              sx={pendingRegistrationStyles.searchIcon(isLoading, isVerySmall)}
-            />
+            <SearchIcon sx={styles.searchIcon(isLoading, isVerySmall)} />
           ),
           endAdornment: isLoading && (
-            <CircularProgress
-              size={16}
-              sx={pendingRegistrationStyles.searchProgress}
-            />
+            <CircularProgress size={16} sx={styles.searchProgress} />
           ),
-          sx: pendingRegistrationStyles.searchInputProps(
-            isLoading,
-            isVerySmall,
-            isMobile
-          ),
+          sx: styles.searchInputProps(isLoading, isVerySmall, isMobile),
         }}
         sx={{
-          ...pendingRegistrationStyles.searchTextField,
-          ...(isVerySmall &&
-            pendingRegistrationStyles.searchTextFieldVerySmall),
+          ...styles.searchTextField,
+          ...(isVerySmall && styles.searchTextFieldVerySmall),
         }}
       />
     </Box>
@@ -218,8 +266,15 @@ const ErrorDisplay = ({ error, onRetry }) => {
   };
 
   return (
-    <Box sx={pendingRegistrationStyles.errorContainer}>
-      <ErrorOutlineIcon sx={pendingRegistrationStyles.errorIcon} />
+    <Box
+      sx={{
+        p: 4,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 2,
+      }}>
+      <ErrorOutlineIcon sx={{ fontSize: 64, color: "error.main" }} />
       <Typography variant="h6" color="error" align="center">
         Error Loading Data
       </Typography>
@@ -273,9 +328,6 @@ const PendingRegistration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -391,16 +443,10 @@ const PendingRegistration = () => {
     setApiError(null);
   }, []);
 
-  const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEmployee(null);
-    setModalMode("view");
-    methods.reset();
-    setPendingEmployeeData(null);
-  }, [methods]);
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
+  const handleCloseCreateModal = useCallback(() => {
+    setCreateModalOpen(false);
+    setCreateModalMode("create");
+    setEditData(null);
   }, []);
 
   const handleRowClick = useCallback(
@@ -414,17 +460,17 @@ const PendingRegistration = () => {
         }
 
         const result = await getSingleEmployee(submittableId).unwrap();
-        setSelectedEmployee(result?.result || employee);
-        setModalMode("view");
-        setModalOpen(true);
+        setCreateModalMode("view");
+        setEditData(result?.result || employee);
+        setCreateModalOpen(true);
       } catch (error) {
         enqueueSnackbar("Failed to load employee details", {
           variant: "error",
           autoHideDuration: 3000,
         });
-        setSelectedEmployee(employee);
-        setModalMode("view");
-        setModalOpen(true);
+        setCreateModalMode("view");
+        setEditData(employee);
+        setCreateModalOpen(true);
       } finally {
         setModalLoading(false);
       }
@@ -449,7 +495,7 @@ const PendingRegistration = () => {
         autoHideDuration: 2000,
       });
 
-      handleCloseModal();
+      handleCloseCreateModal();
     } catch (error) {
       let errorMessage =
         "Failed to process employee registration. Please try again.";
@@ -468,7 +514,7 @@ const PendingRegistration = () => {
       setModalLoading(false);
       setPendingEmployeeData(null);
     }
-  }, [pendingEmployeeData, enqueueSnackbar, handleCloseModal]);
+  }, [pendingEmployeeData, enqueueSnackbar, handleCloseCreateModal]);
 
   const handleApiError = useCallback(
     (error) => {
@@ -480,7 +526,7 @@ const PendingRegistration = () => {
           autoHideDuration: 5000,
         });
       } else if (error?.status >= 500) {
-        enqueueSnackbar("Server error. Please try again later.", {
+        enqueueSnackbar("Server try again later.", {
           variant: "error",
           autoHideDuration: 5000,
         });
@@ -498,12 +544,6 @@ const PendingRegistration = () => {
     setCreateModalMode(mode);
     setEditData(data);
     setCreateModalOpen(true);
-  }, []);
-
-  const handleCloseCreateModal = useCallback(() => {
-    setCreateModalOpen(false);
-    setCreateModalMode("create");
-    setEditData(null);
   }, []);
 
   const handleCreateSubmit = useCallback(
@@ -556,6 +596,7 @@ const PendingRegistration = () => {
           queryParams={buildQueryParams({
             approval_status: "pending",
           })}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: registrationCounts?.result?.pending || 0,
@@ -571,6 +612,7 @@ const PendingRegistration = () => {
           queryParams={buildQueryParams({
             approval_status: "awaiting_resubmission",
           })}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: registrationCounts?.result?.awaiting_resubmission || 0,
@@ -586,6 +628,7 @@ const PendingRegistration = () => {
           queryParams={buildQueryParams({
             approval_status: "rejected",
           })}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: registrationCounts?.result?.rejected || 0,
@@ -601,6 +644,7 @@ const PendingRegistration = () => {
           queryParams={buildQueryParams({
             approval_status: "cancelled",
           })}
+          onRowClick={handleRowClick}
         />
       ),
       badgeCount: registrationCounts?.result?.cancelled || 0,
@@ -617,26 +661,24 @@ const PendingRegistration = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={pendingRegistrationStyles.mainContainer}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              ...pendingRegistrationStyles.headerContainer,
-              ...(isMobile && pendingRegistrationStyles.headerContainerMobile),
-              ...(isTablet && pendingRegistrationStyles.headerContainerTablet),
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
             <Box
               sx={{
-                ...pendingRegistrationStyles.headerTitle,
-                ...(isMobile && pendingRegistrationStyles.headerTitleMobile),
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
               <Typography
                 className="header"
                 sx={{
-                  ...pendingRegistrationStyles.headerTitleText,
-                  ...(isMobile &&
-                    pendingRegistrationStyles.headerTitleTextMobile),
-                  ...(isVerySmall &&
-                    pendingRegistrationStyles.headerTitleTextVerySmall),
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
                   paddingRight: "14px",
                 }}>
                 {isVerySmall ? "REGSTR" : "REGISTRATIONS"}
@@ -734,7 +776,7 @@ const PendingRegistration = () => {
             />
           </Box>
 
-          <Box sx={pendingRegistrationStyles.tabsSection}>
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
@@ -743,9 +785,8 @@ const PendingRegistration = () => {
               scrollButtons="auto"
               allowScrollButtonsMobile
               sx={{
-                ...pendingRegistrationStyles.tabsStyled,
-                ...(isVerySmall &&
-                  pendingRegistrationStyles.tabsStyledVerySmall),
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
               }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
@@ -756,20 +797,19 @@ const PendingRegistration = () => {
                         badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          ...pendingRegistrationStyles.tabBadge,
-                          ...(isVerySmall &&
-                            pendingRegistrationStyles.tabBadgeVerySmall),
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
                         {isVerySmall && tab.label.length > 12
                           ? tab.label
-                              .replace("Awaiting ", "")
-                              .replace("Resubmission", "Resub")
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
                           : tab.label}
                       </Badge>
                     ) : isVerySmall && tab.label.length > 12 ? (
                       tab.label
-                        .replace("Awaiting ", "")
-                        .replace("Resubmission", "Resub")
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
                     ) : (
                       tab.label
                     )
@@ -778,37 +818,34 @@ const PendingRegistration = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box sx={pendingRegistrationStyles.tabsContainer}>
-              {apiError && (
-                <Box sx={pendingRegistrationStyles.alertContainer}>
-                  <Alert
-                    severity="error"
-                    action={
-                      <Button
-                        color="inherit"
-                        size="small"
-                        onClick={retryApiCall}>
-                        Retry
-                      </Button>
-                    }>
-                    {apiError.status === 422
-                      ? "Invalid request parameters. Please check your filters."
-                      : "Failed to load data. Please try again."}
-                  </Alert>
-                </Box>
-              )}
+          <Box sx={styles.tabsContainer}>
+            {apiError && (
+              <Box sx={{ p: 2 }}>
+                <Alert
+                  severity="error"
+                  action={
+                    <Button color="inherit" size="small" onClick={retryApiCall}>
+                      Retry
+                    </Button>
+                  }>
+                  {apiError.status === 422
+                    ? "Invalid request parameters. Please check your filters."
+                    : "Failed to load data. Please try again."}
+                </Alert>
+              </Box>
+            )}
 
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {apiError ? (
-                    <ErrorDisplay error={apiError} onRetry={retryApiCall} />
-                  ) : (
-                    tab.component
-                  )}
-                </TabPanel>
-              ))}
-            </Box>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {apiError ? (
+                  <ErrorDisplay error={apiError} onRetry={retryApiCall} />
+                ) : (
+                  tab.component
+                )}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -827,23 +864,12 @@ const PendingRegistration = () => {
             modalLoading={modalLoading}
           />
 
-          <PendingRegistrationModal
-            open={modalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEmployee={selectedEmployee}
-            isLoading={modalLoading}
-            mode={modalMode}
-            onModeChange={handleModeChange}
-          />
-
           <EmployeeWizardForm
             open={createModalOpen}
             onClose={handleCloseCreateModal}
             mode={createModalMode}
             initialData={editData}
             onSubmit={handleCreateSubmit}
-            refetchQueries={[refetchCounts, refetchDashboard]}
           />
         </Box>
       </FormProvider>

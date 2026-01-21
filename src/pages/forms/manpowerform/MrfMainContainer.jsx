@@ -1,27 +1,19 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Fade,
   Tooltip,
-  Chip,
   CircularProgress,
+  IconButton,
+  useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -29,9 +21,20 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "./FormSubmissionStyles";
-import { useCreateFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
+import {
+  useCreateFormSubmissionMutation,
+  useCancelFormSubmissionMutation,
+} from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+import { format } from "date-fns";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+import useDebounce from "../../../hooks/useDebounce";
+
 import MrfForApproval from "./MrfForApproval";
 import MrfRejected from "./MrfRejected";
 import MrfAwaitingResubmission from "./MrfAwaitingResubmission";
@@ -40,45 +43,8 @@ import MrfReturned from "./MrfReturned";
 import MrfReceived from "./MrfReceived";
 import MrfCancelled from "./MrfCancelled";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
-import { format } from "date-fns";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
-  ({ theme }) => ({
-    textTransform: "uppercase",
-    minWidth: 0,
-    fontWeight: 600,
-    fontSize: "0.875rem",
-    marginRight: theme.spacing(1),
-    color: "#666",
-    padding: "12px 16px",
-    "&:hover": {
-      color: theme.palette.primary.main,
-      opacity: 1,
-    },
-    "&.Mui-selected": {
-      color: theme.palette.primary.main,
-      fontWeight: 700,
-    },
-    "&.Mui-focusVisible": {
-      backgroundColor: "rgba(100, 95, 228, 0.32)",
-    },
-  })
-);
+import ExportButton from "./ExportButton";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -95,141 +61,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            overflow: "hidden",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const useDebounce = (value, delay) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -240,6 +73,7 @@ const CustomSearchBar = ({
   onFilterClick,
   isLoading = false,
 }) => {
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
 
   const getFilterLabel = () => {
@@ -258,43 +92,165 @@ const CustomSearchBar = ({
     return "FILTER";
   };
 
+  const iconColor = hasActiveFilters
+    ? "rgba(0, 133, 49, 1)"
+    : "rgb(33, 61, 112)";
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+  };
+
   return (
-    <Box sx={styles.searchBarContainer}>
-      <Tooltip title="Click here to filter by date range" arrow>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={hasActiveFilters}
-              onChange={onFilterClick}
-              disabled={isLoading}
-              icon={<CalendarTodayIcon />}
-              checkedIcon={<CalendarTodayIcon />}
-              size="small"
-            />
-          }
-          label={
-            <Box sx={styles.filterLabelBox}>
-              <span>{getFilterLabel()}</span>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
+
+      {isVerySmall ? (
+        <IconButton
+          onClick={onFilterClick}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
             </Box>
-          }
-          sx={styles.filterControlLabel(hasActiveFilters)}
-        />
-      </Tooltip>
+          )}
+        </IconButton>
+      ) : (
+        <Tooltip title="Click here to filter by date range" arrow>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasActiveFilters}
+                onChange={onFilterClick}
+                disabled={isLoading}
+                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                size="small"
+              />
+            }
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <span>{getFilterLabel()}</span>
+              </Box>
+            }
+            sx={{
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
+          />
+        </Tooltip>
+      )}
 
       <TextField
-        placeholder="Search form..."
+        placeholder={isVerySmall ? "Search..." : "Search form..."}
         value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        onChange={handleSearchChange}
         disabled={isLoading}
         size="small"
         InputProps={{
-          startAdornment: <SearchIcon sx={styles.searchIcon(isLoading)} />,
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={styles.searchProgress} />
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: "20px",
+              }}
+            />
           ),
-          sx: styles.searchInputProps(isLoading),
+          endAdornment: isLoading && (
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+          ),
+          sx: {
+            height: "36px",
+            width: "320px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={styles.searchTextField}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -302,111 +258,109 @@ const CustomSearchBar = ({
 
 const MrfMainContainer = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
-  const [currentParams, setQueryParams, removeQueryParams] =
-    useRememberQueryParams();
 
-  // Fetch dashboard counts
   const { data: dashboardData } = useShowDashboardQuery();
 
-  // Extract MRF counts from dashboard
-  const mrfCounts = {
-    forApproval: dashboardData?.result?.approval?.manpower_form || 0,
-    awaitingResubmission:
-      dashboardData?.result?.requisition
-        ?.manpower_form_awaiting_for_resubmission || 0,
-    rejected: dashboardData?.result?.requisition?.manpower_form_rejected || 0,
-    forReceiving: dashboardData?.result?.receiving?.pending_mrfs || 0,
-    returned: dashboardData?.result?.requisition?.manpower_form_returned || 0,
-    received: 0, // Not in API, can be calculated or added later
-    cancelled: 0, // Not in API, can be calculated or added later
+  const [currentParams, setQueryParams] = useRememberQueryParams();
+
+  const tabMap = {
+    0: "ForApproval",
+    1: "AwaitingResubmission",
+    2: "Rejected",
+    3: "ForReceiving",
+    4: "Returned",
+    5: "Received",
+    6: "Cancelled",
   };
 
-  const tabLabels = [
-    "ForApproval",
-    "AwaitingResubmission",
-    "Rejected",
-    "ForReceiving",
-    "Returned",
-    "Received",
-    "Cancelled",
-  ];
-
-  const getTabIndexFromParam = (tabParam) => {
-    const index = tabLabels.indexOf(tabParam);
-    return index >= 0 ? index : 0;
+  const reverseTabMap = {
+    ForApproval: 0,
+    AwaitingResubmission: 1,
+    Rejected: 2,
+    ForReceiving: 3,
+    Returned: 4,
+    Received: 5,
+    Cancelled: 6,
   };
 
-  const initialTab = getTabIndexFromParam(currentParams?.tab);
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [searchQuery, setSearchQuery] = useState(currentParams?.q || "");
+  const [activeTab, setActiveTab] = useState(
+    reverseTabMap[currentParams?.tab] ?? 0
+  );
+  const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
     startDate: null,
     endDate: null,
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [formIsLoading, setFormIsLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null);
 
   const [createSubmission] = useCreateFormSubmissionMutation();
+  const [cancelFormSubmission] = useCancelFormSubmissionMutation();
 
-  const debounceValue = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  useEffect(() => {
-    if (!currentParams?.tab) {
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
+  const mrfCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.manpower || 0;
+    const requisition = dashboardData?.result?.requisition?.manpower || {};
+    const receiving = dashboardData?.result?.receiving?.manpower || 0;
+
+    return {
+      forApproval: approval,
+      awaitingResubmission: requisition.awaiting_resubmission || 0,
+      rejected: requisition.rejected || 0,
+      forReceiving: receiving,
+      returned: requisition.returned || 0,
+      received: 0,
+      cancelled: 0,
+    };
+  }, [dashboardData]);
+
+  const handleTabChange = useCallback(
+    (event, newValue) => {
+      setActiveTab(newValue);
       setQueryParams(
         {
-          tab: tabLabels[initialTab],
-          q: searchQuery || "",
+          tab: tabMap[newValue],
+          q: searchQuery,
         },
-        { retain: false }
+        { retain: true }
       );
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentParams?.tab) {
-      const tabIndex = getTabIndexFromParam(currentParams.tab);
-      setActiveTab(tabIndex);
-    }
-    if (currentParams?.q !== undefined) {
-      setSearchQuery(currentParams.q);
-    }
-  }, [currentParams?.tab, currentParams?.q]);
-
-  const formatDateForAPI = (date) => {
-    return date ? format(date, "yyyy-MM-dd") : null;
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-    setQueryParams(
-      {
-        tab: tabLabels[newValue],
-        q: searchQuery,
-      },
-      { retain: true }
-    );
-  };
+    },
+    [setQueryParams, searchQuery]
+  );
 
   const handleSearchChange = useCallback(
     (newSearchQuery) => {
       setSearchQuery(newSearchQuery);
       setQueryParams(
         {
+          tab: tabMap[activeTab],
           q: newSearchQuery,
         },
         { retain: true }
       );
     },
-    [setQueryParams]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -420,164 +374,233 @@ const MrfMainContainer = () => {
   const handleAddNew = useCallback(() => {
     setSelectedEntry(null);
     setModalMode("create");
+    methods.reset();
     setFormModalOpen(true);
-  }, []);
+  }, [methods]);
 
   const handleCloseModal = useCallback(() => {
     setFormModalOpen(false);
     setSelectedEntry(null);
     setModalMode("create");
+    setFormIsLoading(false);
     methods.reset();
-    setPendingFormData(null);
   }, [methods]);
 
   const handleModeChange = useCallback((newMode) => {
     setModalMode(newMode);
   }, []);
 
-  const handleSave = useCallback(async (formData, mode) => {
-    setPendingFormData(formData);
-    setConfirmOpen(true);
+  const handleRowClick = useCallback((entry) => {
+    setSelectedEntry({ result: entry });
+    setModalMode("view");
+    setFormModalOpen(true);
   }, []);
 
-  const handleConfirmSave = useCallback(async () => {
-    if (!pendingFormData) return;
-
-    setFormIsLoading(true);
-    setConfirmOpen(false);
-
-    try {
-      const result = await createSubmission(pendingFormData).unwrap();
-
-      enqueueSnackbar("Manpower form created successfully!", {
-        variant: "success",
-        autoHideDuration: 2000,
-      });
-
-      handleCloseModal();
-    } catch (error) {
-      let errorMessage = "Failed to create manpower form. Please try again.";
-
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
+  const handleCancel = useCallback(
+    async (entryId, cancellationReason) => {
+      if (!entryId) {
+        enqueueSnackbar("Invalid submission ID", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
       }
 
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 3000,
-      });
-    } finally {
-      setFormIsLoading(false);
-      setPendingFormData(null);
-    }
-  }, [pendingFormData, createSubmission, enqueueSnackbar, handleCloseModal]);
+      if (!cancellationReason || cancellationReason.trim().length < 10) {
+        enqueueSnackbar("Cancellation reason must be at least 10 characters", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
 
-  const handleResubmit = useCallback(
-    async (submissionId) => {
+      try {
+        await cancelFormSubmission({
+          submissionId: entryId,
+          reason: cancellationReason.trim(),
+        }).unwrap();
+
+        enqueueSnackbar("Manpower form cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error in handleCancel:", error);
+
+        let errorMessage = "Failed to cancel manpower form. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelFormSubmission, enqueueSnackbar]
+  );
+
+  const handleSave = useCallback(
+    async (formData, mode, entryId) => {
       setFormIsLoading(true);
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const result = await createSubmission(formData).unwrap();
 
-        enqueueSnackbar("Form resubmitted successfully!", {
+        enqueueSnackbar("Manpower form created successfully!", {
           variant: "success",
+          autoHideDuration: 2000,
         });
 
-        setFormModalOpen(false);
-        setSelectedEntry(null);
-        setModalMode("create");
+        handleCloseModal();
       } catch (error) {
-        enqueueSnackbar("Failed to resubmit form. Please try again.", {
+        console.error("Error in handleSave:", error);
+
+        let errorMessage = "Failed to create manpower form. Please try again.";
+
+        if (error?.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        enqueueSnackbar(errorMessage, {
           variant: "error",
+          autoHideDuration: 3000,
         });
       } finally {
         setFormIsLoading(false);
       }
     },
-    [enqueueSnackbar]
+    [createSubmission, enqueueSnackbar, handleCloseModal]
   );
 
-  const tabsData = [
-    {
-      label: "For Approval",
-      component: (
-        <MrfForApproval
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.forApproval,
-    },
-    {
-      label: "Awaiting Resubmission",
-      component: (
-        <MrfAwaitingResubmission
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.awaitingResubmission,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <MrfRejected
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.rejected,
-    },
-    {
-      label: "For Receiving",
-      component: (
-        <MrfForreceiving
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.forReceiving,
-    },
-    {
-      label: "Returned",
-      component: (
-        <MrfReturned
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.returned,
-    },
-    {
-      label: "Received",
-      component: (
-        <MrfReceived
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.received,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <MrfCancelled
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-        />
-      ),
-      badgeCount: mrfCounts.cancelled,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <MrfForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <MrfAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <MrfRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.rejected,
+      },
+      {
+        label: "FOR RECEIVING",
+        component: (
+          <MrfForreceiving
+            key="for-receiving"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.forReceiving,
+      },
+      {
+        label: "RETURNED",
+        component: (
+          <MrfReturned
+            key="returned"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.returned,
+      },
+      {
+        label: "RECEIVED",
+        component: (
+          <MrfReceived
+            key="received"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.received,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <MrfCancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: mrfCounts.cancelled,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      handleRowClick,
+      mrfCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -586,85 +609,104 @@ const MrfMainContainer = () => {
     };
   };
 
+  const isLoadingState = isLoading;
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            overflow: "hidden",
-            minWidth: 0,
-          }}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              minWidth: 0,
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
-            <Paper
-              elevation={0}
+            <Box
               sx={{
-                borderRadius: "8px 8px 0 0",
-                backgroundColor: "#ffffff",
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
-              <Box sx={styles.headerContainer}>
-                <Box sx={styles.headerLeftSection}>
-                  <Typography className="header">MANPOWER FORM</Typography>
-                  <Fade in={!isLoading}>
+              <Typography
+                className="header"
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
+                }}>
+                {isVerySmall ? "MRF" : "MANPOWER FORM"}
+              </Typography>
+
+              <Fade in={!isLoading}>
+                <Box>
+                  {isVerySmall ? (
+                    <IconButton
+                      onClick={handleAddNew}
+                      disabled={isLoading}
+                      sx={styles.createIconButton}>
+                      <AddIcon sx={{ fontSize: "18px" }} />
+                    </IconButton>
+                  ) : (
                     <Button
                       variant="contained"
                       onClick={handleAddNew}
                       startIcon={<AddIcon />}
                       disabled={isLoading}
-                      sx={styles.createButton}>
-                      CREATE
+                      sx={styles.createButtonFull(isMobile)}>
+                      {isMobile ? "CREATE" : "CREATE"}
                     </Button>
-                  </Fade>
+                  )}
                 </Box>
+              </Fade>
+            </Box>
 
-                <CustomSearchBar
-                  searchQuery={searchQuery}
-                  setSearchQuery={handleSearchChange}
-                  dateFilters={dateFilters}
-                  onFilterClick={handleFilterClick}
-                  isLoading={isLoading}
-                />
-              </Box>
-            </Paper>
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
 
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="MRF management tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount && tab.badgeCount > 0 ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
-                        variant="dot"
+                        badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          "& .MuiBadge-dot": {
-                            minWidth: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            top: "50%",
-                            right: "-12px",
-                            transform: "translateY(-50%)",
-                          },
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
-                        {tab.label}
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
+                              .replace("FOR APPROVAL", "APPROVAL")
+                              .replace("FOR RECEIVING", "RECEIVING")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
+                        .replace("FOR APPROVAL", "APPROVAL")
+                        .replace("FOR RECEIVING", "RECEIVING")
                     ) : (
                       tab.label
                     )
@@ -673,22 +715,14 @@ const MrfMainContainer = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                overflow: "hidden",
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -696,136 +730,14 @@ const MrfMainContainer = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
-          <Dialog
-            open={confirmOpen}
-            onClose={() => setConfirmOpen(false)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 3,
-                padding: 2,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-                textAlign: "center",
-              },
-            }}>
-            <DialogTitle sx={{ padding: 0, marginBottom: 2 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}>
-                <Box
-                  sx={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    backgroundColor: "#ff4400",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                  <Typography
-                    sx={{
-                      color: "white",
-                      fontSize: "30px",
-                      fontWeight: "normal",
-                    }}>
-                    ?
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(25, 45, 84)",
-                  marginBottom: 0,
-                }}>
-                Confirmation
-              </Typography>
-            </DialogTitle>
-            <DialogContent sx={{ padding: 0, textAlign: "center" }}>
-              <Typography
-                variant="body1"
-                sx={{
-                  marginBottom: 2,
-                  fontSize: "16px",
-                  color: "#333",
-                  fontWeight: 400,
-                }}>
-                Are you sure you want to create this manpower form?
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: "14px",
-                  color: "#666",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
-                New Manpower Form
-              </Typography>
-            </DialogContent>
-            <DialogActions
-              sx={{
-                justifyContent: "center",
-                padding: 0,
-                marginTop: 3,
-                gap: 2,
-              }}>
-              <Button
-                onClick={() => setConfirmOpen(false)}
-                variant="outlined"
-                sx={{
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                  borderColor: "#f44336",
-                  color: "#f44336",
-                  paddingX: 3,
-                  paddingY: 1,
-                  borderRadius: 2,
-                  "&:hover": {
-                    borderColor: "#d32f2f",
-                    backgroundColor: "rgba(244, 67, 54, 0.04)",
-                  },
-                }}
-                disabled={formIsLoading}>
-                CANCEL
-              </Button>
-              <Button
-                onClick={handleConfirmSave}
-                variant="contained"
-                sx={{
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                  backgroundColor: "#4caf50",
-                  paddingX: 3,
-                  paddingY: 1,
-                  borderRadius: 2,
-                  "&:hover": {
-                    backgroundColor: "#388e3c",
-                  },
-                }}
-                disabled={formIsLoading}>
-                {formIsLoading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  "CONFIRM"
-                )}
-              </Button>
-            </DialogActions>
-          </Dialog>
-
           <FormSubmissionModal
+            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
             open={formModalOpen}
             onClose={handleCloseModal}
             onSave={handleSave}
-            onResubmit={handleResubmit}
             selectedEntry={selectedEntry}
             isLoading={formIsLoading}
             mode={modalMode}

@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { useFormContext, Controller } from "react-hook-form";
-import { Box, FormControl, Grid, TextField, Autocomplete } from "@mui/material";
+import { Box, FormControl, TextField, Autocomplete } from "@mui/material";
 import { useLazyGetAllShowBarangaysQuery } from "../../../../../features/api/administrative/barangaysApi";
 import { useLazyGetAllShowMunicipalitiesQuery } from "../../../../../features/api/administrative/municipalitiesApi";
 import { useLazyGetAllShowProvincesQuery } from "../../../../../features/api/administrative/provincesApi";
@@ -277,311 +277,329 @@ const AddressForm = ({
       className="general-form"
       sx={{ width: "100%", maxWidth: "1200px", overflow: "0" }}>
       <EmployeeHeader getValues={getValues} selectedGeneral={employeeData} />
-      <Grid container spacing={1}>
-        <Grid item xs={12} sm={3} sx={{ minWidth: "362px", maxWidth: "362px" }}>
-          <Controller
-            name="region_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <FormControl
-                fullWidth
-                variant="outlined"
-                error={!!errors.region_id}
-                disabled={isLoading || regionsLoading || isReadOnly}>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                      handleRegionChange(item);
-                    }
-                  }}
-                  value={value || null}
-                  disabled={isLoading || isReadOnly}
-                  options={regions ?? []}
-                  loading={regionsLoading}
-                  getOptionLabel={(item) => item?.name || ""}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("regions");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={
-                        <>
-                          Region <span style={{ color: "red" }}>*</span>
-                        </>
+      <Box sx={{ px: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}>
+          <Box>
+            <Controller
+              name="region_id"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControl
+                  fullWidth
+                  variant="outlined"
+                  error={!!errors.region_id}
+                  disabled={isLoading || regionsLoading || isReadOnly}>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        onChange(item);
+                        handleRegionChange(item);
                       }
-                      error={!!errors.region_id}
-                      helperText={errors.region_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
-                />
-              </FormControl>
-            )}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={3} sx={{ minWidth: "362px", maxWidth: "362px" }}>
-          <Controller
-            name="province_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <FormControl
-                fullWidth
-                variant="outlined"
-                disabled={
-                  isLoading ||
-                  provincesLoading ||
-                  !watchedValues.region_id ||
-                  isReadOnly
-                }>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                      handleProvinceChange(item);
-                    }
-                  }}
-                  value={value || null}
-                  disabled={isLoading || isReadOnly}
-                  options={provinces ?? []}
-                  loading={provincesLoading}
-                  getOptionLabel={(item) => item?.name || ""}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("provinces");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Province (Leave blank if none)"
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
-                />
-              </FormControl>
-            )}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={3} sx={{ minWidth: "362px", maxWidth: "362px" }}>
-          <Controller
-            name="city_municipality_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <FormControl
-                fullWidth
-                variant="outlined"
-                error={!!errors.city_municipality_id}
-                disabled={
-                  isLoading ||
-                  municipalitiesLoading ||
-                  !watchedValues.region_id ||
-                  isReadOnly
-                }>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                      handleMunicipalityChange(item);
-                    }
-                  }}
-                  value={value || null}
-                  options={municipalities ?? []}
-                  loading={municipalitiesLoading}
-                  getOptionLabel={(item) => item?.name || ""}
-                  disabled={isLoading || isReadOnly}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("municipalities");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={
-                        <>
-                          City/Municipality{" "}
-                          <span style={{ color: "red" }}>*</span>
-                        </>
+                    }}
+                    value={value || null}
+                    disabled={isLoading || isReadOnly}
+                    options={regions ?? []}
+                    loading={regionsLoading}
+                    getOptionLabel={(item) => item?.name || ""}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    onFocus={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("regions");
                       }
-                      error={!!errors.city_municipality_id}
-                      helperText={errors.city_municipality_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
-                />
-              </FormControl>
-            )}
-          />
-        </Grid>
+                    }}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            Region <span style={{ color: "red" }}>*</span>
+                          </>
+                        }
+                        error={!!errors.region_id}
+                        helperText={errors.region_id?.message}
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "362px", maxWidth: "362px" }}>
-          <Controller
-            name="barangay_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <FormControl
-                fullWidth
-                variant="outlined"
-                error={!!errors.barangay_id}
-                disabled={
-                  isLoading ||
-                  barangaysLoading ||
-                  !watchedValues.city_municipality_id ||
-                  isReadOnly
-                }>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                      handleBarangayChange(item);
-                    }
-                  }}
-                  value={value || null}
-                  options={barangays ?? []}
-                  disabled={isLoading || isReadOnly}
-                  loading={barangaysLoading}
-                  getOptionLabel={(item) => item?.name || ""}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("barangays");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={
-                        <>
-                          Barangay <span style={{ color: "red" }}>*</span>
-                        </>
+          <Box>
+            <Controller
+              name="province_id"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControl
+                  fullWidth
+                  variant="outlined"
+                  disabled={
+                    isLoading ||
+                    provincesLoading ||
+                    !watchedValues.region_id ||
+                    isReadOnly
+                  }>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        onChange(item);
+                        handleProvinceChange(item);
                       }
-                      error={!!errors.barangay_id}
-                      helperText={errors.barangay_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
+                    }}
+                    value={value || null}
+                    disabled={isLoading || isReadOnly}
+                    options={provinces ?? []}
+                    loading={provincesLoading}
+                    getOptionLabel={(item) => item?.name || ""}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    onFocus={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("provinces");
+                      }
+                    }}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Province (Leave blank if none)"
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
+            />
+          </Box>
+
+          <Box>
+            <Controller
+              name="city_municipality_id"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControl
+                  fullWidth
+                  variant="outlined"
+                  error={!!errors.city_municipality_id}
+                  disabled={
+                    isLoading ||
+                    municipalitiesLoading ||
+                    !watchedValues.region_id ||
+                    isReadOnly
+                  }>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        onChange(item);
+                        handleMunicipalityChange(item);
+                      }
+                    }}
+                    value={value || null}
+                    options={municipalities ?? []}
+                    loading={municipalitiesLoading}
+                    getOptionLabel={(item) => item?.name || ""}
+                    disabled={isLoading || isReadOnly}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    onFocus={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("municipalities");
+                      }
+                    }}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            City/Municipality{" "}
+                            <span style={{ color: "red" }}>*</span>
+                          </>
+                        }
+                        error={!!errors.city_municipality_id}
+                        helperText={errors.city_municipality_id?.message}
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
+            />
+          </Box>
+
+          <Box>
+            <Controller
+              name="barangay_id"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControl
+                  fullWidth
+                  variant="outlined"
+                  error={!!errors.barangay_id}
+                  disabled={
+                    isLoading ||
+                    barangaysLoading ||
+                    !watchedValues.city_municipality_id ||
+                    isReadOnly
+                  }>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        onChange(item);
+                        handleBarangayChange(item);
+                      }
+                    }}
+                    value={value || null}
+                    options={barangays ?? []}
+                    disabled={isLoading || isReadOnly}
+                    loading={barangaysLoading}
+                    getOptionLabel={(item) => item?.name || ""}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    onFocus={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("barangays");
+                      }
+                    }}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            Barangay <span style={{ color: "red" }}>*</span>
+                          </>
+                        }
+                        error={!!errors.barangay_id}
+                        helperText={errors.barangay_id?.message}
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
+            />
+          </Box>
+
+          <Box>
+            <Controller
+              name="street"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  variant="outlined"
+                  label={
+                    <>
+                      Street Address <span style={{ color: "red" }}>*</span>
+                    </>
+                  }
+                  disabled={isLoading || isReadOnly}
+                  error={!!errors.street}
+                  helperText={errors.street?.message}
+                  InputProps={{
+                    readOnly: isReadOnly,
+                  }}
                 />
-              </FormControl>
-            )}
-          />
-        </Grid>
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} sm={6} sx={{ minWidth: "362px", maxWidth: "700px" }}>
-          <Controller
-            name="street"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                fullWidth
-                variant="outlined"
-                label="Street Address *"
-                disabled={isLoading || isReadOnly}
-                error={!!errors.street}
-                helperText={errors.street?.message}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
+          <Box>
+            <Controller
+              name="zip_code"
+              control={control}
+              render={({ field: { onChange, value, ...field } }) => (
+                <TextField
+                  {...field}
+                  value={value}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/[^0-9]/g, "");
+                    onChange(numericValue);
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  label={
+                    <>
+                      ZIP Code <span style={{ color: "red" }}>*</span>
+                    </>
+                  }
+                  disabled={isLoading || isReadOnly}
+                  error={!!errors.zip_code}
+                  helperText={errors.zip_code?.message}
+                  inputProps={{
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                  }}
+                  InputProps={{
+                    readOnly: isReadOnly,
+                  }}
+                />
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} sm={3} sx={{ minWidth: "362px", maxWidth: "362px" }}>
-          <Controller
-            name="zip_code"
-            control={control}
-            render={({ field: { onChange, value, ...field } }) => (
-              <TextField
-                {...field}
-                value={value}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/[^0-9]/g, "");
-                  onChange(numericValue);
-                }}
-                fullWidth
-                variant="outlined"
-                label="ZIP Code *"
-                disabled={isLoading || isReadOnly}
-                error={!!errors.zip_code}
-                helperText={errors.zip_code?.message}
-                inputProps={{
-                  inputMode: "numeric",
-                  pattern: "[0-9]*",
-                }}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
-
-        <Grid
-          item
-          xs={12}
-          sm={3}
-          sx={{ minWidth: "1102px", maxWidth: "1102px" }}>
-          <Controller
-            name="address_remarks"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                fullWidth
-                variant="outlined"
-                label="Address Remarks (Optional)"
-                disabled={isLoading || isReadOnly}
-                error={!!errors.address_remarks}
-                helperText={errors.address_remarks?.message}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-                multiline
-                rows={3}
-                placeholder="Additional notes or comments..."
-              />
-            )}
-          />
-        </Grid>
-      </Grid>
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Controller
+              name="address_remarks"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  variant="outlined"
+                  label="Address Remarks (Optional)"
+                  disabled={isLoading || isReadOnly}
+                  error={!!errors.address_remarks}
+                  helperText={errors.address_remarks?.message}
+                  InputProps={{
+                    readOnly: isReadOnly,
+                  }}
+                  multiline
+                  rows={3}
+                  placeholder="Additional notes or comments..."
+                />
+              )}
+            />
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

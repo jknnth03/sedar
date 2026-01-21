@@ -1,16 +1,11 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Typography,
-  TablePagination,
-  Box,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from "@mui/material";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -26,14 +21,9 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAForMDAProcessingTable from "./DAForMDAProcessingTable";
 import DADataChangeModal from "../../../components/modal/form/MDADAForm/DAChangeModal";
 import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDADAForMDAProcessing = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const MDADAForMDAProcessing = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -94,20 +84,28 @@ const MDADAForMDAProcessing = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      pagination: 1,
       approval_status: "PENDING MDA CREATION",
       search: searchQuery || "",
       view_mode: "hr",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -132,41 +130,24 @@ const MDADAForMDAProcessing = ({
     useUpdateMdaDaMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
-      const submissionIdToUse = submission.id;
-      setSelectedSubmissionId(submissionIdToUse);
+      setSelectedSubmissionId(submission.id);
       setSelectedSubmission(submission);
       setViewModalMode("view");
       setViewModalOpen(true);
@@ -174,7 +155,7 @@ const MDADAForMDAProcessing = ({
       setSelectedRowForMenu(null);
 
       try {
-        await triggerGetSubmission(submissionIdToUse);
+        await triggerGetSubmission(submission.id);
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -184,8 +165,7 @@ const MDADAForMDAProcessing = ({
 
   const handleEditSubmission = useCallback(
     async (submission) => {
-      const submissionIdToUse = submission.id;
-      setSelectedSubmissionId(submissionIdToUse);
+      setSelectedSubmissionId(submission.id);
       setSelectedSubmission(submission);
       setViewModalMode("edit");
       setViewModalOpen(true);
@@ -193,7 +173,7 @@ const MDADAForMDAProcessing = ({
       setSelectedRowForMenu(null);
 
       try {
-        await triggerGetSubmission(submissionIdToUse);
+        await triggerGetSubmission(submission.id);
       } catch (error) {
         console.error("Error fetching submission details:", error);
       }
@@ -217,8 +197,7 @@ const MDADAForMDAProcessing = ({
   }, [selectedSubmissionId, triggerGetSubmission]);
 
   const handleCreateMDA = useCallback((submission) => {
-    const submissionIdForPrefill = submission.id;
-    setMdaSubmissionId(submissionIdForPrefill);
+    setMdaSubmissionId(submission.id);
     setSelectedMdaSubmission(submission);
     setMdaModalOpen(true);
   }, []);
@@ -256,7 +235,7 @@ const MDADAForMDAProcessing = ({
     async (data, mode) => {
       try {
         if (mode === "create") {
-          const result = await createMdaDa(data).unwrap();
+          await createMdaDa(data).unwrap();
           enqueueSnackbar("MDA (DA) created successfully!", {
             variant: "success",
             autoHideDuration: 3000,
@@ -265,7 +244,7 @@ const MDADAForMDAProcessing = ({
           mdaFormMethods.reset();
           refetch();
         } else if (mode === "edit") {
-          const result = await updateMdaDa({
+          await updateMdaDa({
             id: selectedMdaSubmission.id,
             data: data,
           }).unwrap();
@@ -355,6 +334,8 @@ const MDADAForMDAProcessing = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <>
       <Box
@@ -375,7 +356,7 @@ const MDADAForMDAProcessing = ({
             backgroundColor: "white",
           }}>
           <DAForMDAProcessingTable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -392,46 +373,13 @@ const MDADAForMDAProcessing = ({
             onCancel={onCancel}
           />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
       </Box>
 

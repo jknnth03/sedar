@@ -13,26 +13,29 @@ import {
   MenuItem,
   Chip,
   Tooltip,
-  CircularProgress,
+  Skeleton,
   useTheme,
 } from "@mui/material";
+import { useSnackbar } from "notistack";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DataChangeDialog from "./DataChangeDialog";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import NoDataFound from "../../NoDataFound";
 
 const DataChangeForApprovalTable = ({
-  submissionsList,
+  submissionsList = [],
   isLoadingState,
   error,
   handleRowClick,
   handleMenuOpen,
   handleMenuClose,
-  menuAnchor,
+  menuAnchor = {},
   searchQuery,
+  statusFilter,
   forApproval = false,
   forCancelled = false,
   forReceived = false,
@@ -40,11 +43,18 @@ const DataChangeForApprovalTable = ({
   onCancel,
   forMDAProcessing = false,
   onCreateMDA,
+  refetch,
 }) => {
   const theme = useTheme();
+
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedDataChangeHistory, setSelectedDataChangeHistory] =
     React.useState(null);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [selectedSubmissionForCancel, setSelectedSubmissionForCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const getMovementTypeLabel = (movementType) => {
     return movementType || "-";
@@ -154,11 +164,19 @@ const DataChangeForApprovalTable = ({
     setSelectedDataChangeHistory(null);
   };
 
-  const handleCancelClick = (submission) => {
-    if (onCancel) {
-      onCancel(submission.id);
-    }
+  const handleCancelClick = (e, submission) => {
+    e.stopPropagation();
     handleMenuClose(submission.id);
+    setSelectedSubmissionForCancel(submission);
+    setCancelRemarks("");
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelDialogClose = () => {
+    setShowCancelDialog(false);
+    setSelectedSubmissionForCancel(null);
+    setCancelRemarks("");
+    setIsCancelling(false);
   };
 
   const canCancelSubmission = (submission) => {
@@ -178,18 +196,90 @@ const DataChangeForApprovalTable = ({
     );
   };
 
+  const filteredSubmissions = React.useMemo(() => {
+    if (!statusFilter) return submissionsList;
+    return submissionsList.filter(
+      (submission) =>
+        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+    );
+  }, [submissionsList, statusFilter]);
+
+  const getNoDataMessage = () => {
+    if (statusFilter) {
+      const statusLabels = {
+        PENDING: "pending",
+        APPROVED: "approved",
+        COMPLETED: "completed",
+        RECEIVED: "received",
+        REJECTED: "rejected",
+        CANCELLED: "cancelled",
+        "FOR APPROVAL": "for approval",
+        SUBMITTED: "submitted",
+        RESUBMITTED: "resubmitted",
+        RETURNED: "returned",
+        "AWAITING APPROVAL": "awaiting approval",
+        "PENDING MDA CREATION": "pending MDA creation",
+      };
+      const statusLabel =
+        statusLabels[statusFilter] || statusFilter.toLowerCase();
+      return searchQuery
+        ? `No ${statusLabel} data change requests found for "${searchQuery}"`
+        : `No ${statusLabel} data change requests found`;
+    }
+  };
+
   const shouldHideActionsHeader = hideActions || forCancelled || forReceived;
   const shouldShowActionsColumn =
     !shouldHideActionsHeader &&
-    submissionsList.some(
+    filteredSubmissions.some(
       (submission) => submission.status !== "PENDING MDA CREATION"
     );
   const totalColumns = shouldShowActionsColumn ? 7 : 6;
 
+  const handleConfirmCancel = async () => {
+    if (!cancelRemarks || cancelRemarks.trim().length < 10) {
+      return;
+    }
+
+    if (!selectedSubmissionForCancel?.id) {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      if (onCancel) {
+        const success = await onCancel(
+          selectedSubmissionForCancel.id,
+          cancelRemarks.trim()
+        );
+
+        if (success) {
+          handleCancelDialogClose();
+          if (refetch) {
+            await refetch();
+          }
+        } else {
+          setIsCancelling(false);
+        }
+      } else {
+        handleCancelDialogClose();
+      }
+    } catch (error) {
+      console.error("Error in handleConfirmCancel:", error);
+      setIsCancelling(false);
+    }
+  };
+
   return (
     <>
       <TableContainer sx={styles.tableContainerStyles}>
-        <Table stickyHeader sx={{ minWidth: 1200 }}>
+        <Table
+          stickyHeader
+          sx={{
+            minWidth: 1200,
+            height: filteredSubmissions.length === 0 ? "100%" : "auto",
+          }}>
           <TableHead>
             <TableRow>
               <TableCell sx={styles.columnStyles.referenceNumber}>
@@ -213,16 +303,58 @@ const DataChangeForApprovalTable = ({
               )}
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody
+            sx={{
+              height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            }}>
             {isLoadingState ? (
-              <TableRow>
-                <TableCell
-                  colSpan={totalColumns}
-                  align="center"
-                  sx={styles.loadingCell}>
-                  <CircularProgress size={32} sx={styles.loadingSpinner} />
-                </TableCell>
-              </TableRow>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                      <Skeleton animation="wave" height={20} width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton
+                        animation="wave"
+                        height={24}
+                        width={120}
+                        sx={{ borderRadius: "12px" }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Skeleton
+                        animation="wave"
+                        variant="circular"
+                        width={32}
+                        height={32}
+                        sx={{ margin: "0 auto" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell align="center">
+                        <Skeleton
+                          animation="wave"
+                          variant="circular"
+                          width={32}
+                          height={32}
+                          sx={{ margin: "0 auto" }}
+                        />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </>
             ) : error ? (
               <TableRow>
                 <TableCell
@@ -234,8 +366,8 @@ const DataChangeForApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : submissionsList.length > 0 ? (
-              submissionsList.map((submission) => (
+            ) : filteredSubmissions.length > 0 ? (
+              filteredSubmissions.map((submission) => (
                 <TableRow
                   key={submission.id}
                   onClick={() => handleRowClick(submission)}
@@ -312,10 +444,7 @@ const DataChangeForApprovalTable = ({
                             zIndex: 10000,
                           }}>
                           <MenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancelClick(submission);
-                            }}
+                            onClick={(e) => handleCancelClick(e, submission)}
                             disabled={!canCancelSubmission(submission)}
                             sx={
                               canCancelSubmission(submission)
@@ -331,22 +460,27 @@ const DataChangeForApprovalTable = ({
                 </TableRow>
               ))
             ) : (
-              <TableRow>
+              <TableRow
+                sx={{
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
                 <TableCell
-                  colSpan={totalColumns}
+                  colSpan={999}
+                  rowSpan={999}
                   align="center"
-                  sx={styles.noDataContainer}>
-                  <Box sx={styles.noDataBox}>
-                    {CONSTANT.BUTTONS.NODATA.icon}
-                    <Typography variant="h6" color="text.secondary">
-                      No data change submissions found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {searchQuery
-                        ? `No results for "${searchQuery}"`
-                        : "No submissions found"}
-                    </Typography>
-                  </Box>
+                  sx={{
+                    borderBottom: "none",
+                    height: "400px",
+                    verticalAlign: "middle",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <NoDataFound message="" subMessage={getNoDataMessage()} />
                 </TableCell>
               </TableRow>
             )}
@@ -358,6 +492,24 @@ const DataChangeForApprovalTable = ({
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDataChangeHistory={selectedDataChangeHistory}
+      />
+
+      <ConfirmationDialog
+        open={showCancelDialog}
+        onClose={handleCancelDialogClose}
+        isLoading={isCancelling}
+        action="cancel"
+        itemId={selectedSubmissionForCancel?.id}
+        itemName={selectedSubmissionForCancel?.reference_number || "N/A"}
+        module="Data Change Request"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleConfirmCancel}
       />
     </>
   );

@@ -1,28 +1,18 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -30,29 +20,25 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../forms/manpowerform/FormSubmissionStyles";
+import {
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 
 import CatOneForAssessment from "./CatOneForAssessment";
 import CatOneForApproval from "./CatOneForApproval";
 import CatOneForSubmission from "./CatOneForSubmission";
 import CatOneApproved from "./CatOneApproved";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
 import CatOneReturned from "./CatOneReturned";
-import {
-  catOneStyles,
-  styledTabsConfig,
-  styledTabConfig,
-} from "./CatOneStyles";
-
-const StyledTabs = styled(Tabs)(({ theme }) => styledTabsConfig(theme));
-
-const StyledTab = styled(Tab)(({ theme }) => styledTabConfig(theme));
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -61,153 +47,16 @@ const TabPanel = ({ children, value, index, ...other }) => {
       hidden={value !== index}
       id={`catone-tabpanel-${index}`}
       aria-labelledby={`catone-tab-${index}`}
-      style={catOneStyles.tabPanel(value, index)}
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        minWidth: 0,
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
       {...other}>
-      {value === index && <Box sx={catOneStyles.tabPanelInner}>{children}</Box>}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number?.toLowerCase().includes(query) ||
-      item.employee_name?.toLowerCase().includes(query) ||
-      item.employee_code?.toLowerCase().includes(query) ||
-      item.status?.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={catOneStyles.datePickerContainer}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -247,15 +96,55 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box sx={catOneStyles.searchContainer(isVerySmall)}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
           disabled={isLoading}
           size="small"
-          sx={catOneStyles.filterButton(hasActiveFilters)}>
-          <CalendarTodayIcon sx={catOneStyles.filterIcon} />
-          {hasActiveFilters && <Box sx={catOneStyles.filterBadge}>1</Box>}
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
+            </Box>
+          )}
         </IconButton>
       ) : (
         <Tooltip title="Click here to filter by date range" arrow>
@@ -271,11 +160,34 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box sx={catOneStyles.filterLabelBox}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
-            sx={catOneStyles.filterFormControl(hasActiveFilters)}
+            sx={{
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
           />
         </Tooltip>
       )}
@@ -288,14 +200,49 @@ const CustomSearchBar = ({
         size="small"
         InputProps={{
           startAdornment: (
-            <SearchIcon sx={catOneStyles.searchIcon(isLoading, isVerySmall)} />
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: "20px",
+              }}
+            />
           ),
           endAdornment: isLoading && (
-            <CircularProgress size={16} sx={catOneStyles.searchProgress} />
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
-          sx: catOneStyles.searchInputProps(isVerySmall, isLoading),
+          sx: {
+            height: "36px",
+            width: "320px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={catOneStyles.searchTextField(isVerySmall, isLoading)}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -347,6 +294,20 @@ const CatOne = () => {
   const [submitCatOne] = useSubmitCatOneMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const apiDateFilters = useMemo(() => {
+    const filters = {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+    console.log("apiDateFilters:", filters); // ADD THIS
+    console.log("dateFilters:", dateFilters); // ADD THIS
+    return filters;
+  }, [dateFilters]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -505,120 +466,97 @@ const CatOne = () => {
     [enqueueSnackbar, handleRefreshDetails]
   );
 
-  const tabsData = [
-    {
-      label: "For Assessment",
-      component: (
-        <CatOneForAssessment
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          data={null}
-          isLoading={false}
-          page={selectedPage}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setSelectedPage}
-          onRowsPerPageChange={setRowsPerPage}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "For Submission",
-      component: (
-        <CatOneForSubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          data={null}
-          isLoading={false}
-          page={selectedPage}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setSelectedPage}
-          onRowsPerPageChange={setRowsPerPage}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "For Approval",
-      component: (
-        <CatOneForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          data={null}
-          isLoading={false}
-          page={selectedPage}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setSelectedPage}
-          onRowsPerPageChange={setRowsPerPage}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Returned",
-      component: (
-        <CatOneReturned
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          onSave={handleModalSave}
-          onSaveAsDraft={handleModalSaveAsDraft}
-          data={null}
-          isLoading={false}
-          page={selectedPage}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setSelectedPage}
-          onRowsPerPageChange={setRowsPerPage}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Approved",
-      component: (
-        <CatOneApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-          data={null}
-          isLoading={false}
-          page={selectedPage}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setSelectedPage}
-          onRowsPerPageChange={setRowsPerPage}
-        />
-      ),
-      badgeCount: null,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR ASSESSMENT",
+        component: (
+          <CatOneForAssessment
+            key="for-assessment"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "FOR SUBMISSION",
+        component: (
+          <CatOneForSubmission
+            key="for-submission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <CatOneForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "RETURNED",
+        component: (
+          <CatOneReturned
+            key="returned"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onSave={handleModalSave}
+            onSaveAsDraft={handleModalSaveAsDraft}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "APPROVED",
+        component: (
+          <CatOneApproved
+            key="approved"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: 0,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      handleRowClick,
+      handleModalSave,
+      handleModalSaveAsDraft,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -632,47 +570,63 @@ const CatOne = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={catOneStyles.mainContainer}>
-          <Box sx={catOneStyles.innerContainer}>
-            <Box sx={catOneStyles.headerContainer(isMobile, isTablet)}>
-              <Box
-                sx={catOneStyles.titleContainer(
-                  isVerySmall,
-                  isMobile,
-                  isTablet
-                )}>
-                <Typography
-                  className="header"
-                  sx={catOneStyles.title(isVerySmall, isMobile)}>
-                  CAT 1
-                </Typography>
-              </Box>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
+        <Box sx={styles.mainContainer}>
+          <Box
+            sx={{
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
+            }}>
+            <Box
+              sx={{
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
+              }}>
+              <Typography
+                className="header"
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
+                }}>
+                CAT 1
+              </Typography>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="CAT 1 tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
                         badgeContent={tab.badgeCount}
                         color="error"
-                        sx={catOneStyles.badgeStyle}>
+                        sx={{
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
+                        }}>
                         {tab.label}
                       </Badge>
                     ) : (
@@ -683,14 +637,14 @@ const CatOne = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box sx={catOneStyles.tabsContainer}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -698,6 +652,7 @@ const CatOne = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <CatOneModal

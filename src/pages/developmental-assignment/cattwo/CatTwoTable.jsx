@@ -22,6 +22,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CancelIcon from "@mui/icons-material/Cancel";
 import { format, parseISO } from "date-fns";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
+import NoDataFound from "../../NoDataFound";
 
 const CatTwoTable = ({
   submissionsList = [],
@@ -50,6 +51,11 @@ const CatTwoTable = ({
         color: "#f57c00",
         label: "FOR APPROVAL",
       },
+      FOR_APPROVAL: {
+        bg: "#fff4e6",
+        color: "#f57c00",
+        label: "FOR APPROVAL",
+      },
       FOR_ASSESSMENT: {
         bg: "#e3f2fd",
         color: "#1976d2",
@@ -65,10 +71,32 @@ const CatTwoTable = ({
         color: "#f57c00",
         label: "PENDING APPROVAL",
       },
-      APPROVED: { bg: "#e8f5e9", color: "#2e7d32", label: "APPROVED" },
-      REJECTED: { bg: "#ffebee", color: "#d32f2f", label: "RETURNED" },
-      CANCELLED: { bg: "#f5f5f5", color: "#757575", label: "CANCELLED" },
+      APPROVED: {
+        bg: "#e8f5e9",
+        color: "#2e7d32",
+        label: "APPROVED",
+      },
+      REJECTED: {
+        bg: "#ffebee",
+        color: "#d32f2f",
+        label: "RETURNED",
+      },
+      RETURNED: {
+        bg: "#ffebee",
+        color: "#d32f2f",
+        label: "RETURNED",
+      },
+      CANCELLED: {
+        bg: "#f5f5f5",
+        color: "#757575",
+        label: "CANCELLED",
+      },
       AWAITING_RESUBMISSION: {
+        bg: "#f3e5f5",
+        color: "#9c27b0",
+        label: "FOR SUBMISSION",
+      },
+      FOR_SUBMISSION: {
         bg: "#f3e5f5",
         color: "#9c27b0",
         label: "FOR SUBMISSION",
@@ -77,6 +105,11 @@ const CatTwoTable = ({
         bg: "#e3f2fd",
         color: "#1976d2",
         label: "IN PROGRESS",
+      },
+      FINAL_COMPLETE: {
+        bg: "#e8f5e9",
+        color: "#2e7d32",
+        label: "APPROVED",
       },
       DRAFT: {
         bg: "#f5f5f5",
@@ -272,32 +305,40 @@ const CatTwoTable = ({
               );
             })
           ) : (
-            <TableRow sx={{ height: "100%" }}>
+            <TableRow
+              sx={{
+                height: "100%",
+                pointerEvents: "none",
+                "&:hover": {
+                  backgroundColor: "transparent !important",
+                  cursor: "default !important",
+                },
+              }}>
               <TableCell
-                colSpan={totalColumns}
+                colSpan={999}
+                rowSpan={999}
                 align="center"
                 sx={{
-                  ...styles.noDataContainer,
                   height: "100%",
                   verticalAlign: "middle",
                   border: "none",
+                  borderBottom: "none",
+                  padding: 0,
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
                 }}>
-                <Box sx={styles.noDataBox}>
-                  <ErrorOutlineIcon
-                    sx={{
-                      fontSize: 80,
-                      color: "#ccc",
-                      marginBottom: 2,
-                    }}
-                  />
-                  <Typography variant="h6" color="text.secondary">
-                    No CAT 2 submissions found
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {searchQuery
-                      ? `No results for "${searchQuery}"`
-                      : "No submissions found"}
-                  </Typography>
+                <Box
+                  sx={{
+                    position: "fixed",
+                    left: "62%",
+                    top: "64%",
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 1,
+                  }}>
+                  <NoDataFound message="" subMessage="" />
                 </Box>
               </TableCell>
             </TableRow>

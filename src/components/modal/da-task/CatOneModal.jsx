@@ -19,6 +19,7 @@ import {
   Edit as EditIcon,
   Send as SendIcon,
   Save as SaveIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { useFormContext } from "react-hook-form";
@@ -26,6 +27,7 @@ import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import CatOneModalFields from "./CarOneModalFields";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import CatOneModalPrinting from "./CatOneModalPrinting";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -164,6 +166,7 @@ const CatOneModal = ({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [pendingFormData, setPendingFormData] = useState(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
@@ -190,6 +193,15 @@ const CatOneModal = ({
   const isForApprovalStatus = () => {
     const status = selectedEntry?.status;
     return status === "FOR_APPROVAL";
+  };
+
+  const shouldShowPrintButton = () => {
+    const status = selectedEntry?.status;
+    return (
+      status === "APPROVED" ||
+      status === "FOR_ASSESSMENT" ||
+      status === "KICKOFF_COMPLETE"
+    );
   };
 
   const handleModeChange = (newMode) => {
@@ -250,6 +262,14 @@ const CatOneModal = ({
       }, 200);
     }
   }, [onRefreshDetails]);
+
+  const handlePrintClick = () => {
+    setShowPrintDialog(true);
+  };
+
+  const handleClosePrintDialog = () => {
+    setShowPrintDialog(false);
+  };
 
   useEffect(() => {
     if (onSuccessfulSave && typeof onSuccessfulSave === "function") {
@@ -450,18 +470,48 @@ const CatOneModal = ({
   const isProcessing = isLoading || isUpdating;
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <StyledDialogTitle>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
-            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              {getModalTitle()}
-            </Typography>
-            {currentMode === "view" && shouldShowEditButton() && (
-              <Tooltip title="EDIT FORM" arrow placement="top">
+    <>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+          <StyledDialogTitle>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
+              <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+                {getModalTitle()}
+              </Typography>
+              {currentMode === "view" && shouldShowEditButton() && (
+                <Tooltip title="EDIT FORM" arrow placement="top">
+                  <IconButton
+                    onClick={() => handleModeChange("edit")}
+                    disabled={isProcessing}
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      padding: "8px",
+                      "&:hover": {
+                        backgroundColor: !isProcessing
+                          ? "rgba(0, 136, 32, 0.08)"
+                          : "transparent",
+                        transform: !isProcessing ? "scale(1.1)" : "none",
+                        transition: "all 0.2s ease-in-out",
+                      },
+                    }}>
+                    <EditIcon
+                      sx={{
+                        fontSize: "20px",
+                        "& path": {
+                          fill: !isProcessing
+                            ? "rgba(0, 136, 32, 1)"
+                            : "rgba(0, 0, 0, 0.26)",
+                        },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {currentMode === "view" && shouldShowPrintButton() && (
                 <IconButton
-                  onClick={() => handleModeChange("edit")}
+                  onClick={handlePrintClick}
                   disabled={isProcessing}
                   size="small"
                   sx={{
@@ -469,162 +519,170 @@ const CatOneModal = ({
                     padding: "8px",
                     "&:hover": {
                       backgroundColor: !isProcessing
-                        ? "rgba(0, 136, 32, 0.08)"
+                        ? "rgba(33, 61, 112, 0.08)"
                         : "transparent",
                       transform: !isProcessing ? "scale(1.1)" : "none",
                       transition: "all 0.2s ease-in-out",
                     },
                   }}>
-                  <EditIcon
+                  <PrintIcon
                     sx={{
                       fontSize: "20px",
                       "& path": {
-                        fill: !isProcessing
-                          ? "rgba(0, 136, 32, 1)"
-                          : "rgba(0, 0, 0, 0.26)",
+                        fill: "rgb(33, 61, 112)",
                       },
                     }}
                   />
                 </IconButton>
-              </Tooltip>
-            )}
-            {currentMode === "edit" && originalMode === "view" && (
-              <Tooltip title="CANCEL EDIT">
-                <IconButton
-                  onClick={handleCancelEdit}
-                  disabled={isProcessing}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    padding: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgba(235, 0, 0, 0.08)",
-                      transform: "scale(1.1)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                  }}>
-                  <EditOffIcon
-                    sx={{
-                      fontSize: "20px",
-                      "& path": { fill: "rgba(235, 0, 0, 1)" },
-                    }}
-                  />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
-          <IconButton
-            onClick={handleClose}
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              backgroundColor: "#fff",
-              "&:hover": { backgroundColor: "#f5f5f5" },
-              transition: "all 0.2s ease-in-out",
-            }}>
-            <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
-          </IconButton>
-        </StyledDialogTitle>
-
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <StyledDialogContent>
-            <CatOneModalFields
-              isLoading={isProcessing}
-              mode={currentMode}
-              onFormDataCreate={handleFormDataCallback}
-              selectedEntry={selectedEntry}
-              formInitialized={formInitialized}
-              key={`${
-                selectedEntry?.id || "new"
-              }-${currentMode}-${formInitialized}-${
-                selectedEntry?.updated_at || ""
-              }`}
-            />
-          </StyledDialogContent>
-
-          <StyledDialogActions>
-            {currentMode === "view" && shouldShowResubmitButton() && (
-              <Button
-                onClick={handleResubmit}
-                variant="contained"
-                disabled={isProcessing}
-                startIcon={
-                  isProcessing ? <CircularProgress size={16} /> : <SendIcon />
-                }
-                sx={{
-                  backgroundColor: !isProcessing
-                    ? "rgb(33, 61, 112)"
-                    : "rgba(33, 61, 112, 0.3)",
-                  "&:hover": {
-                    backgroundColor: !isProcessing
-                      ? "rgb(25, 45, 84)"
-                      : "rgba(33, 61, 112, 0.3)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "rgba(33, 61, 112, 0.3)",
-                    color: "rgba(255, 255, 255, 0.5)",
-                  },
-                  mr: 2,
-                }}>
-                {isProcessing ? "Resubmitting..." : "Resubmit"}
-              </Button>
-            )}
-
-            {currentMode === "edit" && (
-              <>
-                {shouldShowSaveAsDraftButton() && (
-                  <DraftButton
-                    onClick={handleSaveAsDraft}
+              )}
+              {currentMode === "edit" && originalMode === "view" && (
+                <Tooltip title="CANCEL EDIT">
+                  <IconButton
+                    onClick={handleCancelEdit}
                     disabled={isProcessing}
-                    sx={{ mr: 2 }}>
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      padding: "8px",
+                      "&:hover": {
+                        backgroundColor: "rgba(235, 0, 0, 0.08)",
+                        transform: "scale(1.1)",
+                        transition: "all 0.2s ease-in-out",
+                      },
+                    }}>
+                    <EditOffIcon
+                      sx={{
+                        fontSize: "20px",
+                        "& path": { fill: "rgba(235, 0, 0, 1)" },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                backgroundColor: "#fff",
+                "&:hover": { backgroundColor: "#f5f5f5" },
+                transition: "all 0.2s ease-in-out",
+              }}>
+              <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
+            </IconButton>
+          </StyledDialogTitle>
+
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <StyledDialogContent>
+              <CatOneModalFields
+                isLoading={isProcessing}
+                mode={currentMode}
+                onFormDataCreate={handleFormDataCallback}
+                selectedEntry={selectedEntry}
+                formInitialized={formInitialized}
+                key={`${
+                  selectedEntry?.id || "new"
+                }-${currentMode}-${formInitialized}-${
+                  selectedEntry?.updated_at || ""
+                }`}
+              />
+            </StyledDialogContent>
+
+            <StyledDialogActions>
+              {currentMode === "view" && shouldShowResubmitButton() && (
+                <Button
+                  onClick={handleResubmit}
+                  variant="contained"
+                  disabled={isProcessing}
+                  startIcon={
+                    isProcessing ? <CircularProgress size={16} /> : <SendIcon />
+                  }
+                  sx={{
+                    backgroundColor: !isProcessing
+                      ? "rgb(33, 61, 112)"
+                      : "rgba(33, 61, 112, 0.3)",
+                    "&:hover": {
+                      backgroundColor: !isProcessing
+                        ? "rgb(25, 45, 84)"
+                        : "rgba(33, 61, 112, 0.3)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "rgba(33, 61, 112, 0.3)",
+                      color: "rgba(255, 255, 255, 0.5)",
+                    },
+                    mr: 2,
+                  }}>
+                  {isProcessing ? "Resubmitting..." : "Resubmit"}
+                </Button>
+              )}
+
+              {currentMode === "edit" && (
+                <>
+                  {shouldShowSaveAsDraftButton() && (
+                    <DraftButton
+                      onClick={handleSaveAsDraft}
+                      disabled={isProcessing}
+                      sx={{ mr: 2 }}>
+                      {isProcessing ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <>
+                          <SaveIcon sx={{ fontSize: 16 }} />
+                          SAVE AS DRAFT
+                        </>
+                      )}
+                    </DraftButton>
+                  )}
+                  <SubmitButton type="submit" disabled={isProcessing}>
                     {isProcessing ? (
                       <CircularProgress size={16} />
                     ) : (
                       <>
-                        <SaveIcon sx={{ fontSize: 16 }} />
-                        SAVE AS DRAFT
+                        {isForApprovalStatus() ? (
+                          <>
+                            <EditIcon sx={{ fontSize: 16 }} />
+                            UPDATE
+                          </>
+                        ) : (
+                          <>
+                            <SendIcon sx={{ fontSize: 16 }} />
+                            SUBMIT
+                          </>
+                        )}
                       </>
                     )}
-                  </DraftButton>
-                )}
-                <SubmitButton type="submit" disabled={isProcessing}>
-                  {isProcessing ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <>
-                      {isForApprovalStatus() ? (
-                        <>
-                          <EditIcon sx={{ fontSize: 16 }} />
-                          UPDATE
-                        </>
-                      ) : (
-                        <>
-                          <SendIcon sx={{ fontSize: 16 }} />
-                          SUBMIT
-                        </>
-                      )}
-                    </>
-                  )}
-                </SubmitButton>
-              </>
-            )}
-          </StyledDialogActions>
-        </form>
+                  </SubmitButton>
+                </>
+              )}
+            </StyledDialogActions>
+          </form>
 
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isUpdating}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
-          module="CAT 1"
-        />
-      </StyledDialog>
-    </LocalizationProvider>
+          <ConfirmationDialog
+            open={confirmOpen}
+            onClose={handleConfirmationCancel}
+            onConfirm={handleActionConfirm}
+            isLoading={isUpdating}
+            action={confirmAction}
+            itemName={getSubmissionDisplayName()}
+            module="CAT 1"
+          />
+        </StyledDialog>
+      </LocalizationProvider>
+
+      <Dialog
+        open={showPrintDialog}
+        onClose={handleClosePrintDialog}
+        maxWidth="lg"
+        fullWidth>
+        <DialogContent sx={{ p: 0 }}>
+          {selectedEntry && <CatOneModalPrinting data={selectedEntry} />}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

@@ -218,6 +218,29 @@ export const FromPositionFields = ({
               )}
             />
           </Grid>
+
+          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+            <Controller
+              name="from_additional_rate"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  key={`summary_from_additional_rate_${field.value}`}
+                  value={field.value || ""}
+                  label="Additional Rate From"
+                  fullWidth
+                  type="number"
+                  disabled={true}
+                  inputProps={{
+                    step: "0.01",
+                    min: "0",
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              )}
+            />
+          </Grid>
         </Grid>
       </Grid>
     );
@@ -363,6 +386,28 @@ export const FromPositionFields = ({
                   {...field}
                   value={field.value || ""}
                   label="Allowance From"
+                  fullWidth
+                  type="number"
+                  disabled={true}
+                  inputProps={{
+                    step: "0.01",
+                    min: "0",
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+            <Controller
+              name="from_additional_rate"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  value={field.value || ""}
+                  label="Additional Rate From"
                   fullWidth
                   type="number"
                   disabled={true}
@@ -568,6 +613,29 @@ export const FromPositionFields = ({
                 key={`from_allowance_${field.value}`}
                 value={field.value || ""}
                 label="Allowance From"
+                fullWidth
+                type="number"
+                disabled={true}
+                inputProps={{
+                  step: "0.01",
+                  min: "0",
+                }}
+                InputLabelProps={{ shrink: true }}
+              />
+            )}
+          />
+        </Grid>
+
+        <Grid item sx={{ width: "336px", minWidth: "336px" }}>
+          <Controller
+            name="from_additional_rate"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                key={`from_additional_rate_${field.value}`}
+                value={field.value || ""}
+                label="Additional Rate From"
                 fullWidth
                 type="number"
                 disabled={true}

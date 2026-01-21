@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
-  Grid,
   TextField,
   Typography,
   Box,
@@ -18,13 +17,18 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { sectionTitleStyles } from "./DAFormModal.styles";
-import { useGetAllPositionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import {
   useLazyGetPositionKpisQuery,
   useGetAllEmployeesDaQuery,
 } from "../../../../features/api/forms/daformApi";
+import { useGetAllEmployeeMovementSubmissionsQuery } from "../../../../features/api/approvalsetting/formSubmissionApi";
 
-const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
+const DAFormModalFields = ({
+  isCreate,
+  isReadOnly,
+  currentMode,
+  selectedEntry,
+}) => {
   const {
     control,
     watch,
@@ -34,36 +38,54 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
 
   const formValues = watch();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [selectedToPosition, setSelectedToPosition] = useState(null);
+  const [selectedMrf, setSelectedMrf] = useState(null);
   const [kpisList, setKpisList] = useState([]);
   const [shouldFetchEmployees, setShouldFetchEmployees] = useState(false);
-  const [shouldFetchPositions, setShouldFetchPositions] = useState(false);
+  const [shouldFetchMrf, setShouldFetchMrf] = useState(false);
   const [isKpisLoading, setIsKpisLoading] = useState(false);
+  const [hasSyncedMrf, setHasSyncedMrf] = useState(false);
 
   const isInitialMount = useRef(true);
   const prevModeRef = useRef(currentMode);
+  const prevSelectedMrfRef = useRef(null);
 
   const { data: employeesData, isLoading: isEmployeesLoading } =
     useGetAllEmployeesDaQuery(undefined, {
       skip: !shouldFetchEmployees,
     });
-  const { data: positionsData, isLoading: isPositionsLoading } =
-    useGetAllPositionsQuery(undefined, {
-      skip: !shouldFetchPositions,
-    });
+
+  const { data: mrfData, isLoading: isMrfLoading } =
+    useGetAllEmployeeMovementSubmissionsQuery(
+      {
+        status: "active",
+      },
+      {
+        skip: !shouldFetchMrf,
+      }
+    );
 
   const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
 
   const employees = Array.isArray(employeesData?.result?.data)
     ? employeesData.result.data
     : [];
-  const positions = Array.isArray(positionsData?.result)
-    ? positionsData.result
+
+  const mrfSubmissions = Array.isArray(mrfData?.result?.data)
+    ? mrfData.result.data
+    : Array.isArray(mrfData?.result)
+    ? mrfData.result
     : [];
+
+  useEffect(() => {
+    if (!isCreate) {
+      setShouldFetchMrf(true);
+    }
+  }, [isCreate]);
 
   useEffect(() => {
     if (!isCreate && currentMode !== prevModeRef.current) {
       isInitialMount.current = true;
+      setHasSyncedMrf(false);
       prevModeRef.current = currentMode;
     }
   }, [currentMode, isCreate]);
@@ -78,210 +100,253 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
   }, [isCreate, formValues.kpis]);
 
   useEffect(() => {
+    if (
+      !isCreate &&
+      formValues.approved_mrf_id &&
+      mrfSubmissions.length > 0 &&
+      !hasSyncedMrf
+    ) {
+      let matchingMrf = mrfSubmissions.find(
+        (mrf) => mrf.id === formValues.approved_mrf_id
+      );
+
+      if (!matchingMrf && selectedEntry) {
+        const mrfDetails =
+          selectedEntry?.mrf_details || selectedEntry?.result?.mrf_details;
+        if (mrfDetails && mrfDetails.id === formValues.approved_mrf_id) {
+          matchingMrf = {
+            id: mrfDetails.id,
+            submission_title:
+              mrfDetails.linked_mrf_title || mrfDetails.reference_number,
+          };
+        }
+      }
+
+      if (matchingMrf) {
+        setSelectedMrf(matchingMrf);
+        setHasSyncedMrf(true);
+      }
+    }
+  }, [
+    isCreate,
+    currentMode,
+    formValues.approved_mrf_id,
+    mrfSubmissions,
+    hasSyncedMrf,
+    selectedEntry,
+  ]);
+
+  useEffect(() => {
     if (selectedEmployee) {
       setValue("employee_id", selectedEmployee.id);
       setValue("employee_name", selectedEmployee.employee_name);
-      setValue("from_position_id", selectedEmployee.position_id);
-      setValue("from_position_title", selectedEmployee.position_title);
-      setValue("from_department", selectedEmployee.department || "-");
     }
   }, [selectedEmployee, setValue]);
 
   useEffect(() => {
-    const loadPositionKpis = async () => {
-      if (selectedToPosition) {
-        setValue("to_position_id", selectedToPosition.id);
-        setValue("to_position_code", selectedToPosition.code);
-        setValue("to_position_title", selectedToPosition.title.name);
+    const loadMrfData = async () => {
+      const mrfChanged =
+        prevSelectedMrfRef.current !== null &&
+        prevSelectedMrfRef.current?.id !== selectedMrf?.id;
 
-        if (selectedToPosition.charging) {
-          setValue(
-            "to_department",
-            selectedToPosition.charging.department_name || "-"
-          );
-        } else {
-          setValue("to_department", "-");
+      if (selectedMrf && (isCreate || (!isReadOnly && mrfChanged))) {
+        setValue("approved_mrf_id", selectedMrf.id);
+        setValue("mrf_reference_number", selectedMrf.submission_title || "");
+
+        setValue("employee_id", selectedMrf.employee_id || "");
+        setValue("employee_name", selectedMrf.employee_name || "");
+
+        setValue("from_position_id", selectedMrf.from_position?.id || "");
+        setValue("from_position_title", selectedMrf.from_position?.title || "");
+        setValue(
+          "from_department",
+          selectedMrf.from_position?.department || "-"
+        );
+
+        setValue("to_position_id", selectedMrf.to_position?.id || "");
+        setValue("to_position_code", "");
+        setValue("to_position_title", selectedMrf.to_position?.title || "");
+        setValue("to_department", selectedMrf.to_position?.department || "-");
+
+        if (selectedMrf.da_start_date) {
+          setValue("start_date", dayjs(selectedMrf.da_start_date));
         }
 
-        try {
-          setIsKpisLoading(true);
-          const kpisResponse = await fetchPositionKpis(
-            selectedToPosition.id
-          ).unwrap();
+        if (selectedMrf.da_end_date) {
+          setValue("end_date", dayjs(selectedMrf.da_end_date));
+        }
 
-          if (kpisResponse?.result && kpisResponse.result.length > 0) {
-            const autoFilledKpis = kpisResponse.result.map((kpi) => ({
-              source_kpi_id: kpi.id,
-              objective_id: kpi.objective_id,
-              objective_name: kpi.objective_name,
-              distribution_percentage: kpi.distribution_percentage,
-              deliverable: kpi.deliverable,
-              target_percentage: kpi.target_percentage,
-            }));
-            setKpisList(autoFilledKpis);
-            setValue("kpis", autoFilledKpis);
-          } else {
+        if (selectedMrf.to_position?.id) {
+          try {
+            setIsKpisLoading(true);
+            const kpisResponse = await fetchPositionKpis(
+              selectedMrf.to_position.id
+            ).unwrap();
+
+            if (kpisResponse?.result && kpisResponse.result.length > 0) {
+              const autoFilledKpis = kpisResponse.result.map((kpi) => ({
+                source_kpi_id: kpi.id,
+                objective_id: kpi.objective_id,
+                objective_name: kpi.objective_name,
+                distribution_percentage: kpi.distribution_percentage,
+                deliverable: kpi.deliverable,
+                target_percentage: kpi.target_percentage,
+              }));
+              setKpisList(autoFilledKpis);
+              setValue("kpis", autoFilledKpis);
+            } else {
+              setKpisList([]);
+              setValue("kpis", []);
+            }
+          } catch (error) {
             setKpisList([]);
             setValue("kpis", []);
+          } finally {
+            setIsKpisLoading(false);
           }
-        } catch (error) {
-          setKpisList([]);
-          setValue("kpis", []);
-        } finally {
-          setIsKpisLoading(false);
         }
       }
+
+      prevSelectedMrfRef.current = selectedMrf;
     };
 
-    loadPositionKpis();
-  }, [selectedToPosition, setValue, fetchPositionKpis]);
+    loadMrfData();
+  }, [selectedMrf, setValue, fetchPositionKpis, isCreate, isReadOnly]);
 
-  const handleKpiChange = (index, field, value) => {
-    const updatedKpis = kpisList.map((kpi, i) => {
-      if (i === index) {
-        return { ...kpi, [field]: value };
-      }
-      return kpi;
-    });
-
-    setKpisList(updatedKpis);
-    setValue("kpis", updatedKpis);
+  const handleMrfOpen = () => {
+    setShouldFetchMrf(true);
   };
 
   return (
-    <Grid container spacing={3} sx={{ height: "100%" }}>
-      <Grid item xs={12}>
+    <Box sx={{ height: "100%" }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           EMPLOYEE INFORMATION
         </Typography>
-        <Box
-          sx={{
-            p: 3.5,
-            borderRadius: 2,
-          }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              {isCreate ? (
+        <Box sx={{ p: 0, pb: 0, borderRadius: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}>
+            <Box>
+              {!isReadOnly ? (
                 <Autocomplete
-                  options={employees}
-                  getOptionLabel={(option) => option.employee_name}
-                  loading={isEmployeesLoading}
-                  value={selectedEmployee}
+                  options={mrfSubmissions}
+                  getOptionLabel={(option) => option.submission_title || ""}
+                  loading={isMrfLoading}
+                  value={selectedMrf}
                   onChange={(event, newValue) => {
-                    setSelectedEmployee(newValue);
+                    setSelectedMrf(newValue);
                   }}
-                  onOpen={() => setShouldFetchEmployees(true)}
+                  onOpen={handleMrfOpen}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="EMPLOYEE NAME"
-                      error={!!errors.employee_id}
-                      helperText={errors.employee_id?.message}
+                      label="MRF"
+                      fullWidth
+                      error={!!errors.approved_mrf_id}
+                      helperText={errors.approved_mrf_id?.message}
                       InputProps={{
                         ...params.InputProps,
                         endAdornment: (
                           <>
-                            {isEmployeesLoading ? (
+                            {isMrfLoading ? (
                               <CircularProgress color="inherit" size={20} />
                             ) : null}
                             {params.InputProps.endAdornment}
                           </>
                         ),
                       }}
-                      sx={{ bgcolor: "white", width: "348px" }}
+                      sx={{ bgcolor: "white" }}
                     />
                   )}
-                  disabled={isReadOnly}
-                  sx={{ width: "348px" }}
                 />
               ) : (
                 <TextField
-                  label="EMPLOYEE NAME"
-                  value={formValues.employee_name || ""}
+                  label="MRF"
+                  value={formValues.mrf_reference_number || ""}
                   disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
+                  fullWidth
+                  sx={{ bgcolor: "white" }}
                 />
               )}
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
+              <TextField
+                label="EMPLOYEE NAME"
+                value={formValues.employee_name || ""}
+                disabled
+                fullWidth
+                sx={{ bgcolor: "white" }}
+              />
+            </Box>
+
+            <Box>
               <TextField
                 label="POSITION - FROM"
                 value={formValues.from_position_title || ""}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
-              {isCreate ? (
-                <Autocomplete
-                  options={positions}
-                  getOptionLabel={(option) =>
-                    `${option.code} - ${option.title.name}`
-                  }
-                  loading={isPositionsLoading}
-                  value={selectedToPosition}
-                  onChange={(event, newValue) => {
-                    setSelectedToPosition(newValue);
-                  }}
-                  onOpen={() => setShouldFetchPositions(true)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="POSITION - TO"
-                      error={!!errors.to_position_id}
-                      helperText={errors.to_position_id?.message}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isPositionsLoading || isKpisLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                      sx={{ bgcolor: "white", width: "348px" }}
-                    />
-                  )}
-                  disabled={isReadOnly || !selectedEmployee}
-                  sx={{ width: "348px" }}
-                />
-              ) : (
-                <TextField
-                  label="POSITION - TO"
-                  value={
-                    formValues.to_position_code && formValues.to_position_title
-                      ? `${formValues.to_position_code} - ${formValues.to_position_title}`
-                      : ""
-                  }
-                  disabled
-                  sx={{ bgcolor: "white", width: "348px" }}
-                />
-              )}
-            </Grid>
+            <Box>
+              <TextField
+                label="POSITION - TO"
+                value={formValues.to_position_title || ""}
+                disabled
+                fullWidth
+                sx={{ bgcolor: "white" }}
+              />
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="DEPARTMENT - FROM"
                 value={formValues.from_department || "-"}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <TextField
                 label="DEPARTMENT - TO"
                 value={formValues.to_department || "-"}
                 disabled
-                sx={{ bgcolor: "white", width: "348px" }}
+                fullWidth
+                sx={{ bgcolor: "white" }}
               />
-            </Grid>
+            </Box>
+          </Box>
 
-            <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 3,
+              mt: 2,
+            }}>
+            <Box>
               <Controller
                 name="start_date"
                 control={control}
@@ -298,30 +363,29 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                     }
                     onChange={(date) => {
                       field.onChange(date);
-                      const endDate = watch("end_date");
-                      if (
-                        endDate &&
-                        date &&
-                        dayjs(date).isAfter(dayjs(endDate))
-                      ) {
+                      if (date) {
+                        const endDate = dayjs(date).add(6, "month");
+                        setValue("end_date", endDate);
+                      } else {
                         setValue("end_date", null);
                       }
                     }}
                     label="INCLUSIVE DATES - FROM"
-                    disabled={isReadOnly}
+                    disabled={true}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.start_date,
                         helperText: errors.start_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box>
               <Controller
                 name="end_date"
                 control={control}
@@ -349,29 +413,25 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                         : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    minDate={
-                      watch("start_date")
-                        ? dayjs(watch("start_date")).add(1, "day")
-                        : undefined
-                    }
                     label="INCLUSIVE DATES - TO"
-                    disabled={isReadOnly || !watch("start_date")}
+                    disabled={true}
                     slotProps={{
                       textField: {
+                        fullWidth: true,
                         error: !!errors.end_date,
                         helperText: errors.end_date?.message,
-                        sx: { bgcolor: "white", width: "348px" },
+                        sx: { bgcolor: "white" },
                       },
                     }}
                   />
                 )}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
-      </Grid>
+      </Box>
 
-      <Grid item xs={12}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h6" sx={sectionTitleStyles}>
           PART I - SETTING OF OBJECTIVES
         </Typography>
@@ -385,7 +445,6 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               border: "2px dashed",
               borderColor: "divider",
               minHeight: "200px",
-              width: 1140,
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
@@ -399,11 +458,7 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
             </Typography>
           </Box>
         ) : kpisList.length > 0 ? (
-          <TableContainer
-            component={Paper}
-            sx={{
-              width: 1140,
-            }}>
+          <TableContainer component={Paper} sx={{ width: "100%" }}>
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
@@ -471,29 +526,18 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
                           </Typography>
                         </Box>
                         <Box sx={{ flex: 1, textAlign: "center" }}>
-                          {!isReadOnly ? (
-                            <TextField
-                              size="small"
-                              type="number"
-                              value={kpi.target_percentage}
-                              onChange={(e) =>
-                                handleKpiChange(
-                                  index,
-                                  "target_percentage",
-                                  Number(e.target.value)
-                                )
-                              }
-                              inputProps={{
-                                min: 0,
-                                max: 100,
-                                step: "any",
-                              }}
-                              sx={{ width: "80px" }}
-                              disabled={isReadOnly}
-                            />
-                          ) : (
-                            `${kpi.target_percentage}%`
-                          )}
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={kpi.target_percentage}
+                            inputProps={{
+                              min: 0,
+                              max: 100,
+                              step: "any",
+                            }}
+                            sx={{ width: "80px" }}
+                            disabled
+                          />
                         </Box>
                       </Box>
                     </TableCell>
@@ -527,20 +571,19 @@ const DAFormModalFields = ({ isCreate, isReadOnly, currentMode }) => {
               flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
-              width: 1140,
               minHeight: "50px",
             }}>
             <Typography
               variant="body1"
               sx={{ color: "text.secondary", fontWeight: 500 }}>
-              {isCreate && !selectedToPosition
-                ? "Please select a TO Position to load KPIs"
+              {isCreate && !selectedMrf
+                ? "Please select an MRF to load KPIs"
                 : "No KPIs available"}
             </Typography>
           </Box>
         )}
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 };
 

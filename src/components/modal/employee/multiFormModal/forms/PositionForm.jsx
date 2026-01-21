@@ -11,9 +11,7 @@ import {
   Alert,
   TextField,
   FormControl,
-  Grid,
   InputAdornment,
-  FormHelperText,
   Autocomplete,
 } from "@mui/material";
 import { useLazyGetAllShowSchedulesQuery } from "../../../../../features/api/extras/schedulesApi";
@@ -239,350 +237,362 @@ const PositionForm = ({
         </Alert>
       )}
 
-      <Grid container spacing={1.2}>
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="position_title"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <TextField
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value || ""}
-                fullWidth
-                variant="outlined"
-                label={
-                  <>
-                    Position Title <span style={{ color: "red" }}>*</span>
-                  </>
-                }
-                disabled={true}
-                error={!!error}
-                helperText={error?.message || "Auto-filled from selected form"}
-                sx={{ minWidth: "360px", maxWidth: "360px" }}
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-            )}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="schedule_id"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <FormControl
-                fullWidth
-                variant="outlined"
-                error={!!error}
-                disabled={isLoading || schedulesLoading || isReadOnly}
-                sx={{ minWidth: "360px", maxWidth: "360px" }}>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                    }
-                  }}
+      <Box sx={{ px: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}>
+          <Box>
+            <Controller
+              name="position_title"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  onChange={onChange}
                   onBlur={onBlur}
-                  value={value || null}
-                  disabled={isLoading || isReadOnly}
-                  options={schedules ?? []}
-                  loading={schedulesLoading}
-                  getOptionLabel={(item) => {
-                    if (!item) return "";
-                    return (
-                      item?.name ||
-                      item?.title ||
-                      item?.schedule_name ||
-                      item?.schedule_title ||
-                      ""
-                    );
+                  value={value || ""}
+                  fullWidth
+                  variant="outlined"
+                  label={
+                    <>
+                      Position Title <span style={{ color: "red" }}>*</span>
+                    </>
+                  }
+                  disabled={true}
+                  error={!!error}
+                  helperText={
+                    error?.message || "Auto-filled from selected form"
+                  }
+                  InputProps={{
+                    readOnly: true,
                   }}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("schedules");
-                    }
-                  }}
-                  onFocus={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("schedules");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={
-                        <>
-                          Schedule <span style={{ color: "red" }}>*</span>
-                        </>
-                      }
-                      error={!!error}
-                      helperText={error?.message || ""}
-                      onBlur={params.InputProps.onBlur}
-                      onFocus={() => {
-                        params.InputProps.onFocus?.();
-                        if (!isReadOnly) {
-                          handleDropdownFocus("schedules");
-                        }
-                      }}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
                 />
-              </FormControl>
-            )}
-          />
-        </Grid>
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="job_level_id"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <FormControl
-                fullWidth
-                variant="outlined"
-                error={!!error}
-                disabled={isLoading || isReadOnly}
-                sx={{ minWidth: "360px", maxWidth: "360px" }}>
-                <Autocomplete
-                  onChange={(event, item) => {
-                    if (!isReadOnly) {
-                      onChange(item);
-                    }
-                  }}
+          <Box>
+            <Controller
+              name="schedule_id"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <FormControl
+                  fullWidth
+                  variant="outlined"
+                  error={!!error}
+                  disabled={isLoading || schedulesLoading || isReadOnly}>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        onChange(item);
+                      }
+                    }}
+                    onBlur={onBlur}
+                    value={value || null}
+                    disabled={isLoading || isReadOnly}
+                    options={schedules ?? []}
+                    loading={schedulesLoading}
+                    getOptionLabel={(item) => {
+                      if (!item) return "";
+                      return (
+                        item?.name ||
+                        item?.title ||
+                        item?.schedule_name ||
+                        item?.schedule_title ||
+                        ""
+                      );
+                    }}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    onOpen={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("schedules");
+                      }
+                    }}
+                    onFocus={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("schedules");
+                      }
+                    }}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            Schedule <span style={{ color: "red" }}>*</span>
+                          </>
+                        }
+                        error={!!error}
+                        helperText={error?.message || ""}
+                        onBlur={params.InputProps.onBlur}
+                        onFocus={() => {
+                          params.InputProps.onFocus?.();
+                          if (!isReadOnly) {
+                            handleDropdownFocus("schedules");
+                          }
+                        }}
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
+            />
+          </Box>
+
+          <Box>
+            <Controller
+              name="job_level_id"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <FormControl
+                  fullWidth
+                  variant="outlined"
+                  error={!!error}
+                  disabled={isLoading || isReadOnly}>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        onChange(item);
+                      }
+                    }}
+                    onBlur={onBlur}
+                    value={value || null}
+                    options={jobLevels ?? []}
+                    loading={jobLevelsLoading}
+                    disabled={isLoading || isReadOnly}
+                    getOptionLabel={(item) => {
+                      if (!item) return "";
+                      return (
+                        item?.label ||
+                        item?.title ||
+                        item?.name ||
+                        item?.job_level_name ||
+                        item?.level_name ||
+                        ""
+                      );
+                    }}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option.id === value.id;
+                    }}
+                    onOpen={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("jobLevels");
+                      }
+                    }}
+                    onFocus={() => {
+                      if (!isReadOnly) {
+                        handleDropdownFocus("jobLevels");
+                      }
+                    }}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            Job Level <span style={{ color: "red" }}>*</span>
+                          </>
+                        }
+                        error={!!error}
+                        helperText={error?.message || ""}
+                        onBlur={params.InputProps.onBlur}
+                        onFocus={() => {
+                          params.InputProps.onFocus?.();
+                          if (!isReadOnly) {
+                            handleDropdownFocus("jobLevels");
+                          }
+                        }}
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
+            />
+          </Box>
+
+          <Box>
+            <Controller
+              name="job_rate"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  onChange={onChange}
                   onBlur={onBlur}
-                  value={value || null}
-                  options={jobLevels ?? []}
-                  loading={jobLevelsLoading}
+                  value={value || ""}
+                  fullWidth
+                  variant="outlined"
+                  label={
+                    <>
+                      Job Rate <span style={{ color: "red" }}>*</span>
+                    </>
+                  }
                   disabled={isLoading || isReadOnly}
-                  getOptionLabel={(item) => {
-                    if (!item) return "";
-                    return (
-                      item?.label ||
-                      item?.title ||
-                      item?.name ||
-                      item?.job_level_name ||
-                      item?.level_name ||
-                      ""
-                    );
+                  error={!!error}
+                  helperText={error?.message || ""}
+                  type="number"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₱</InputAdornment>
+                    ),
+                    readOnly: isReadOnly,
                   }}
-                  isOptionEqualToValue={(option, value) => {
-                    if (!option || !value) return false;
-                    return option.id === value.id;
-                  }}
-                  onOpen={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("jobLevels");
-                    }
-                  }}
-                  onFocus={() => {
-                    if (!isReadOnly) {
-                      handleDropdownFocus("jobLevels");
-                    }
-                  }}
-                  readOnly={isReadOnly}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={
-                        <>
-                          Job Level <span style={{ color: "red" }}>*</span>
-                        </>
-                      }
-                      error={!!error}
-                      helperText={error?.message || ""}
-                      onBlur={params.InputProps.onBlur}
-                      onFocus={() => {
-                        params.InputProps.onFocus?.();
-                        if (!isReadOnly) {
-                          handleDropdownFocus("jobLevels");
-                        }
-                      }}
-                      InputProps={{
-                        ...params.InputProps,
-                        readOnly: isReadOnly,
-                      }}
-                    />
-                  )}
                 />
-              </FormControl>
-            )}
-          />
-        </Grid>
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="job_rate"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <TextField
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value || ""}
-                fullWidth
-                variant="outlined"
-                label="Job Rate *"
-                disabled={isLoading || isReadOnly}
-                error={!!error}
-                helperText={error?.message || ""}
-                type="number"
-                sx={{ minWidth: "360px", maxWidth: "360px" }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₱</InputAdornment>
-                  ),
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
+          <Box>
+            <Controller
+              name="allowance"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value || ""}
+                  fullWidth
+                  variant="outlined"
+                  label="Allowance (Optional)"
+                  disabled={isLoading || isReadOnly}
+                  error={!!error}
+                  helperText={error?.message || ""}
+                  type="number"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₱</InputAdornment>
+                    ),
+                    readOnly: isReadOnly,
+                  }}
+                />
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="allowance"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <TextField
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value || ""}
-                fullWidth
-                variant="outlined"
-                label="Allowance (Optional)"
-                disabled={isLoading || isReadOnly}
-                error={!!error}
-                helperText={error?.message || ""}
-                type="number"
-                sx={{ minWidth: "360px", maxWidth: "360px" }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₱</InputAdornment>
-                  ),
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
+          <Box>
+            <Controller
+              name="additional_rate"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value || ""}
+                  fullWidth
+                  variant="outlined"
+                  label="Additional Rate (Optional)"
+                  disabled={isLoading || isReadOnly}
+                  error={!!error}
+                  helperText={error?.message || ""}
+                  type="number"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₱</InputAdornment>
+                    ),
+                    readOnly: isReadOnly,
+                  }}
+                />
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="additional_rate"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <TextField
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value || ""}
-                fullWidth
-                variant="outlined"
-                label="Additional Rate (Optional)"
-                disabled={isLoading || isReadOnly}
-                error={!!error}
-                helperText={error?.message || ""}
-                type="number"
-                sx={{ minWidth: "360px", maxWidth: "360px" }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₱</InputAdornment>
-                  ),
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Controller
+              name="additional_rate_remarks"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value || ""}
+                  fullWidth
+                  variant="outlined"
+                  label="Additional Rate Remarks (Optional)"
+                  disabled={isLoading || isReadOnly}
+                  error={!!error}
+                  helperText={error?.message || ""}
+                  multiline
+                  rows={2}
+                  placeholder="Enter remarks for additional rate..."
+                  InputProps={{
+                    readOnly: isReadOnly,
+                  }}
+                />
+              )}
+            />
+          </Box>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="additional_rate_remarks"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <TextField
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value || ""}
-                fullWidth
-                variant="outlined"
-                label="Additional Rate Remarks (Optional)"
-                disabled={isLoading || isReadOnly}
-                error={!!error}
-                helperText={error?.message || ""}
-                multiline
-                rows={2}
-                placeholder="Enter remarks for additional rate..."
-                sx={{ minWidth: "544px", maxWidth: "544px" }}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="additional_tools"
-            control={control}
-            render={({
-              field: { onChange, value, onBlur },
-              fieldState: { error },
-            }) => (
-              <TextField
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value || ""}
-                fullWidth
-                variant="outlined"
-                label="Additional Tools (Optional)"
-                disabled={isLoading || isReadOnly}
-                error={!!error}
-                helperText={error?.message || ""}
-                multiline
-                rows={2}
-                placeholder="List additional tools or equipment..."
-                sx={{ minWidth: "544px", maxWidth: "544px" }}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-              />
-            )}
-          />
-        </Grid>
-      </Grid>
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Controller
+              name="additional_tools"
+              control={control}
+              render={({
+                field: { onChange, value, onBlur },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value || ""}
+                  fullWidth
+                  variant="outlined"
+                  label="Additional Tools (Optional)"
+                  disabled={isLoading || isReadOnly}
+                  error={!!error}
+                  helperText={error?.message || ""}
+                  multiline
+                  rows={2}
+                  placeholder="List additional tools or equipment..."
+                  InputProps={{
+                    readOnly: isReadOnly,
+                  }}
+                />
+              )}
+            />
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

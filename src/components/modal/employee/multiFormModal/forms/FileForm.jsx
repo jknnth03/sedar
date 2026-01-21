@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import React, { useEffect, useCallback } from "react";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import {
   Box,
@@ -15,10 +9,14 @@ import {
   DialogContent,
   Typography,
   IconButton,
+  Button,
 } from "@mui/material";
 import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
+  Visibility as VisibilityIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 import { useLazyGetAllCabinetsQuery } from "../../../../../features/api/extras/cabinets";
@@ -65,16 +63,18 @@ const FileForm = ({
   });
 
   const watchedFiles = watch("files");
-  const isInitialMount = useRef(true);
-  const hasInitializedData = useRef(false);
+  const isInitialMount = React.useRef(true);
+  const hasInitializedData = React.useRef(false);
 
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [fileUrl, setFileUrl] = useState(null);
-  const [currentFileId, setCurrentFileId] = useState(null);
-  const [currentFileName, setCurrentFileName] = useState("");
+  const [errorMessage, setErrorMessage] = React.useState(null);
+  const [fileViewerOpen, setFileViewerOpen] = React.useState(false);
+  const [fileUrl, setFileUrl] = React.useState(null);
+  const [currentFileId, setCurrentFileId] = React.useState(null);
+  const [currentFileName, setCurrentFileName] = React.useState("");
+  const [previewFiles, setPreviewFiles] = React.useState({});
+  const [isPreviewingNewFile, setIsPreviewingNewFile] = React.useState(false);
 
-  const [dropdownsLoaded, setDropdownsLoaded] = useState({
+  const [dropdownsLoaded, setDropdownsLoaded] = React.useState({
     fileTypes: false,
     fileCabinets: false,
   });
@@ -102,20 +102,24 @@ const FileForm = ({
     isLoading: isLoadingAttachment,
     error: attachmentError,
   } = useGetFileEmpAttachmentQuery(currentFileId, {
-    skip: !fileViewerOpen || !currentFileId || currentFileId === "undefined",
+    skip:
+      !fileViewerOpen ||
+      !currentFileId ||
+      currentFileId === "undefined" ||
+      isPreviewingNewFile,
   });
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
 
   useEffect(() => {
-    if (attachmentData) {
+    if (attachmentData && !isPreviewingNewFile) {
       const url = URL.createObjectURL(attachmentData);
       setFileUrl(url);
 
       return () => URL.revokeObjectURL(url);
     }
-  }, [attachmentData]);
+  }, [attachmentData, isPreviewingNewFile]);
 
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
@@ -170,7 +174,7 @@ const FileForm = ({
     [dropdownsLoaded, triggerFileTypes, triggerFileCabinets, mode, isViewMode]
   );
 
-  const processedFileTypes = useMemo(() => {
+  const processedFileTypes = React.useMemo(() => {
     if ((mode === "view" || isViewMode) && employeeData?.files) {
       const existingTypes = employeeData.files
         .filter((file) => file.file_type)
@@ -199,7 +203,7 @@ const FileForm = ({
     return normalizeApiData(fileTypesData);
   }, [mode, isViewMode, fileTypesData, employeeData?.files, normalizeApiData]);
 
-  const processedFileCabinets = useMemo(() => {
+  const processedFileCabinets = React.useMemo(() => {
     if ((mode === "view" || isViewMode) && employeeData?.files) {
       const existingCabinets = employeeData.files
         .filter((file) => file.file_cabinet || file.cabinet)
@@ -293,6 +297,27 @@ const FileForm = ({
     return "Unknown file";
   }, []);
 
+  const validateFile = useCallback((file) => {
+    const allowedTypes = ["application/pdf"];
+    const maxSize = 10 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        message: "Only PDF files are allowed",
+      };
+    }
+
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        message: "File size must be less than 10MB",
+      };
+    }
+
+    return { isValid: true };
+  }, []);
+
   const handleFileDownload = useCallback(
     (fileUrl, fileName) => {
       if (!fileUrl) {
@@ -317,30 +342,15 @@ const FileForm = ({
     [enqueueSnackbar]
   );
 
-  const handleFileViewerOpen = useCallback(
-    (fileId, fileName) => {
-      if (
-        fileId &&
-        fileId !== "undefined" &&
-        fileId !== "null" &&
-        fileId !== undefined &&
-        fileId !== null
-      ) {
-        setCurrentFileId(String(fileId));
-        setCurrentFileName(fileName || "attachment");
-        setFileViewerOpen(true);
-      } else {
-        enqueueSnackbar("Invalid file ID", { variant: "error" });
-      }
-    },
-    [enqueueSnackbar]
-  );
-
   const handleFileViewerClose = useCallback(() => {
     setFileViewerOpen(false);
     setCurrentFileId(null);
     setCurrentFileName("");
-  }, []);
+    setIsPreviewingNewFile(false);
+    if (fileUrl && isPreviewingNewFile) {
+      setFileUrl(null);
+    }
+  }, [fileUrl, isPreviewingNewFile]);
 
   const handleDownloadFromViewer = useCallback(() => {
     if (attachmentData) {
@@ -440,7 +450,6 @@ const FileForm = ({
       initializeEmptyForm,
       processedFileTypes,
       processedFileCabinets,
-      enqueueSnackbar,
     ]
   );
 
@@ -558,7 +567,7 @@ const FileForm = ({
     );
   }, []);
 
-  const isFormValid = useMemo(() => {
+  const isFormValid = React.useMemo(() => {
     const files = watchedFiles || [];
     return files.length > 0 && files.every(validateFileLine);
   }, [watchedFiles, validateFileLine]);
@@ -576,10 +585,14 @@ const FileForm = ({
       const file = event.target.files[0];
 
       if (file) {
-        if (file.size > 10 * 1024 * 1024) {
+        const validation = validateFile(file);
+
+        if (!validation.isValid) {
           setError(`files.${index}.file_attachment`, {
-            message: "File size must be less than 10MB",
+            message: validation.message,
           });
+          enqueueSnackbar(validation.message, { variant: "error" });
+          event.target.value = "";
           return;
         }
 
@@ -593,15 +606,33 @@ const FileForm = ({
           shouldDirty: true,
         });
 
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewFiles((prev) => ({
+          ...prev,
+          [index]: objectUrl,
+        }));
+
         clearErrors(`files.${index}.file_attachment`);
       }
+
+      event.target.value = "";
     },
-    [setValue, clearErrors, setError, isReadOnly]
+    [setValue, clearErrors, setError, isReadOnly, validateFile, enqueueSnackbar]
   );
 
   const handleRemoveFile = useCallback(
     (index) => {
       if (isReadOnly) return;
+
+      const currentFile = watchedFiles[index];
+      if (currentFile?.file_attachment instanceof File && previewFiles[index]) {
+        URL.revokeObjectURL(previewFiles[index]);
+        setPreviewFiles((prev) => {
+          const newPreviews = { ...prev };
+          delete newPreviews[index];
+          return newPreviews;
+        });
+      }
 
       setValue(`files.${index}.file_attachment`, null, {
         shouldValidate: false,
@@ -613,7 +644,7 @@ const FileForm = ({
         fileInput.value = "";
       }
     },
-    [setValue, clearErrors, isReadOnly]
+    [setValue, clearErrors, isReadOnly, watchedFiles, previewFiles]
   );
 
   const addFileLine = useCallback(() => {
@@ -640,45 +671,71 @@ const FileForm = ({
 
       const currentFiles = getValues("files") || [];
       if (currentFiles.length > 1) {
+        const fileToRemove = currentFiles[index];
+        if (
+          fileToRemove?.file_attachment instanceof File &&
+          previewFiles[index]
+        ) {
+          URL.revokeObjectURL(previewFiles[index]);
+          setPreviewFiles((prev) => {
+            const newPreviews = { ...prev };
+            delete newPreviews[index];
+            return newPreviews;
+          });
+        }
         remove(index);
       }
     },
-    [getValues, remove, isReadOnly]
+    [getValues, remove, isReadOnly, previewFiles]
   );
 
-  const validateForm = useCallback(() => {
-    const files = getValues("files") || [];
-    let hasErrors = false;
+  const handlePreviewFile = useCallback(
+    (index) => {
+      const file = watchedFiles[index];
 
-    files.forEach((line, index) => {
-      if (line.file_type_id) {
-        const fileTypeId = line.file_type_id?.id || line.file_type_id;
-        if (!fileTypeId || fileTypeId <= 0) {
-          setError(`files.${index}.file_type_id`, {
-            message: "Invalid file type",
-          });
-          hasErrors = true;
-        }
+      if (!file) {
+        enqueueSnackbar("No file to preview", { variant: "warning" });
+        return;
       }
 
-      if (line.file_cabinet_id) {
-        const fileCabinetId = line.file_cabinet_id?.id || line.file_cabinet_id;
-        if (!fileCabinetId || fileCabinetId <= 0) {
-          setError(`files.${index}.file_cabinet_id`, {
-            message: "Invalid file cabinet",
-          });
-          hasErrors = true;
+      if (file.file_attachment instanceof File) {
+        const objectUrl = previewFiles[index];
+        if (objectUrl) {
+          setFileUrl(objectUrl);
+          setCurrentFileName(file.file_attachment.name);
+          setIsPreviewingNewFile(true);
+          setFileViewerOpen(true);
+        } else {
+          enqueueSnackbar("File preview not available", { variant: "error" });
         }
+      } else if (file.original_file_id) {
+        const fileId = String(file.original_file_id);
+        const fileName = file.existing_file_name || "attachment";
+
+        if (fileId && fileId !== "undefined" && fileId !== "null") {
+          setCurrentFileId(fileId);
+          setCurrentFileName(fileName);
+          setIsPreviewingNewFile(false);
+          setFileViewerOpen(true);
+        } else {
+          enqueueSnackbar("Invalid file ID", { variant: "error" });
+        }
+      } else {
+        enqueueSnackbar("File not available for preview", {
+          variant: "warning",
+        });
       }
-    });
+    },
+    [watchedFiles, previewFiles, enqueueSnackbar]
+  );
 
-    if (hasErrors) {
-      setErrorMessage("Please fill in all required fields correctly.");
-      return false;
-    }
-
-    return true;
-  }, [getValues, setError]);
+  useEffect(() => {
+    return () => {
+      Object.values(previewFiles).forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
 
   const hasErrors = fileTypesError || fileCabinetsError;
 
@@ -741,7 +798,7 @@ const FileForm = ({
           height: "calc(90vh - 140px)",
           overflow: "hidden",
         }}>
-        {isLoadingAttachment ? (
+        {isLoadingAttachment && !isPreviewingNewFile ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -753,7 +810,7 @@ const FileForm = ({
               Loading attachment...
             </Typography>
           </Box>
-        ) : attachmentError ? (
+        ) : attachmentError && !isPreviewingNewFile ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -777,7 +834,7 @@ const FileForm = ({
               alignItems: "center",
               backgroundColor: "#f5f5f5",
             }}>
-            {attachmentData ? (
+            {fileUrl ? (
               <iframe
                 src={fileUrl}
                 width="100%"
@@ -845,7 +902,7 @@ const FileForm = ({
         handleFileChange={handleFileChange}
         handleRemoveFile={handleRemoveFile}
         handleFileDownload={handleFileDownload}
-        handleFileViewerOpen={handleFileViewerOpen}
+        handleFileViewerOpen={handlePreviewFile}
         addFileLine={addFileLine}
         removeFileLine={removeFileLine}
       />

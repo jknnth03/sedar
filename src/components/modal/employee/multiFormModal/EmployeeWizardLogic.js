@@ -1,73 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import {
-  createFlattenedEmployeeSchema,
-  getStepValidationSchema,
-} from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import { transformEmployeeData } from "./EmployeeDataTransformer.js";
-import { STEPS, triggerRefetch } from "./EmployeeWizardHelpers.js";
-
-import AddressForm from "./forms/AddressForm.jsx";
-import PositionForm from "./forms/PositionForm.jsx";
-import EmploymentTypeForm from "./forms/EmploymentTypesForm.jsx";
-import AttainmentForm from "./forms/AttainmentForm.jsx";
-import AccountForm from "./forms/AccountForm.jsx";
-import ContactForm from "./forms/ContactForm.jsx";
-import FileForm from "./forms/FileForm.jsx";
-import ReviewStep from "./forms/ReviewStep";
-import GeneralForm from "./forms/GeneralForm.jsx";
-
-export const getStepComponents = () => ({
-  0: GeneralForm,
-  1: AddressForm,
-  2: PositionForm,
-  3: EmploymentTypeForm,
-  4: AttainmentForm,
-  5: AccountForm,
-  6: ContactForm,
-  7: FileForm,
-  8: ReviewStep,
-});
-
-export const transformEmploymentTypesForAPI = (employmentTypes) => {
-  if (!employmentTypes || !Array.isArray(employmentTypes)) return [];
-
-  const formatDateForAPI = (date) => {
-    if (!date) return null;
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))
-      return date;
-
-    let dateObj = date instanceof Date ? date : new Date(date);
-    return isNaN(dateObj.getTime())
-      ? null
-      : dateObj.toISOString().split("T")[0];
-  };
-
-  return employmentTypes.map((employment) => {
-    const transformed = {
-      id:
-        employment.id &&
-        typeof employment.id === "string" &&
-        employment.id.startsWith("employment_")
-          ? null
-          : employment.id && !isNaN(parseInt(employment.id))
-          ? parseInt(employment.id)
-          : null,
-      employment_type_label: employment.employment_type_label || "",
-    };
-
-    [
-      "employment_start_date",
-      "employment_end_date",
-      "regularization_date",
-    ].forEach((field) => {
-      if (employment[field]) {
-        transformed[field] = formatDateForAPI(employment[field]);
-      }
-    });
-
-    return transformed;
-  });
-};
+import { STEPS } from "./EmployeeWizardHelpers.js";
 
 export const getFieldStep = (fieldPath) => {
   const stepFieldMap = {
@@ -293,10 +226,7 @@ export const useFormSubmission = ({
   };
 
   const processSubmission = async (data, isUpdate = false) => {
-    const fullSchema = createFlattenedEmployeeSchema();
-    await fullSchema.validate(data, { abortEarly: false });
-
-    const transformedData = transformEmployeeData(data);
+    const transformedData = transformEmployeeData(data, isUpdate);
     Object.keys(transformedData).forEach((key) => {
       if (transformedData[key] === undefined) delete transformedData[key];
     });
@@ -314,27 +244,6 @@ export const useFormSubmission = ({
     } else {
       transformedData.set("_method", "POST");
       result = await createEmployee(transformedData).unwrap();
-    }
-
-    // Refetch queries BEFORE calling onSubmitProp to ensure data is fresh
-    if (refetchQueries && Array.isArray(refetchQueries)) {
-      await Promise.all(
-        refetchQueries.map(async (query) => {
-          try {
-            if (typeof query === "function") {
-              await query();
-            } else if (query && typeof query.refetch === "function") {
-              await query.refetch();
-            }
-          } catch (error) {
-            console.error("Error refetching query:", error);
-          }
-        })
-      );
-    }
-
-    if (onRefetch) {
-      await onRefetch();
     }
 
     if (onSubmitProp) {
@@ -420,8 +329,6 @@ export const useFormSubmission = ({
 
     try {
       const currentData = getValues();
-      const fullSchema = createFlattenedEmployeeSchema();
-      await fullSchema.validate(currentData, { abortEarly: false });
       await processSubmission(currentData, true);
 
       setSubmissionResult({
@@ -471,18 +378,8 @@ export const useStepNavigation = (
   setSubmissionResult,
   isDisabled,
   isViewMode,
-  getValues
+  validateCurrentStep
 ) => {
-  const validateCurrentStep = async (stepIndex) => {
-    try {
-      const stepSchema = getStepValidationSchema(stepIndex);
-      await stepSchema.validate(getValues(), { abortEarly: false });
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const handleNext = async () => {
     if (isViewMode || isDisabled) {
       if (isViewMode) setActiveStep((prev) => prev + 1);
@@ -490,14 +387,13 @@ export const useStepNavigation = (
     }
 
     setSubmissionResult(null);
-    const stepValid = await validateCurrentStep(activeStep);
-    if (!stepValid) {
-      setSubmissionResult({
-        type: "error",
-        message: "Please fill in all required fields to continue.",
-      });
+
+    const isValid = await validateCurrentStep();
+
+    if (!isValid) {
       return;
     }
+
     setActiveStep((prev) => prev + 1);
   };
 

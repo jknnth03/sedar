@@ -100,6 +100,18 @@ export const searchBarStyles = {
       borderColor: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
     },
   }),
+  checkboxIcon: (showArchived) => ({
+    color: showArchived ? "#d32f2f" : "rgb(33, 61, 112)",
+  }),
+  searchIcon: (isLoading, isVerySmall) => ({
+    color: isLoading ? "#ccc" : "#666",
+    marginRight: 1,
+    fontSize: isVerySmall ? "18px" : "20px",
+  }),
+  inputProps: {
+    height: "36px",
+    backgroundColor: "white",
+  },
   searchTextField: (isVerySmall, isLoading) => ({
     flex: isVerySmall ? 1 : "0 0 auto",
     "& .MuiInputBase-input": {
@@ -263,4 +275,85 @@ export const contentContainerStyles = {
   display: "flex",
   flexDirection: "column",
   backgroundColor: "white",
+};
+
+export const tableCellStyles = {
+  id: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+    minWidth: isVerySmall ? "40px" : isMobile ? "50px" : "60px",
+  }),
+  code: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "70px" : isMobile ? "80px" : "100px",
+    minWidth: isVerySmall ? "70px" : isMobile ? "80px" : "100px",
+  }),
+  name: (isMobile) => ({
+    width: isMobile ? "120px" : "180px",
+    minWidth: isMobile ? "120px" : "180px",
+  }),
+  charging: (isMobile) => ({
+    width: isMobile ? "100px" : "130px",
+    minWidth: isMobile ? "100px" : "130px",
+  }),
+  coa: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
+    minWidth: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
+  }),
+  superior: (isMobile) => ({
+    width: isMobile ? "100px" : "140px",
+    minWidth: isMobile ? "100px" : "140px",
+  }),
+  req: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
+    minWidth: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
+  }),
+  payFrequency: {
+    width: "160px",
+    minWidth: "160px",
+  },
+  schedule: {
+    width: "110px",
+    minWidth: "110px",
+  },
+  team: {
+    width: "100px",
+    minWidth: "100px",
+  },
+  tools: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
+    minWidth: isVerySmall ? "50px" : isMobile ? "60px" : "70px",
+  }),
+  attachments: {
+    width: "135px",
+    minWidth: "135px",
+  },
+  status: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "70px" : isMobile ? "80px" : "90px",
+    minWidth: isVerySmall ? "70px" : isMobile ? "80px" : "90px",
+  }),
+  action: (isVerySmall, isMobile) => ({
+    width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
+    minWidth: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
+  }),
+  codeCell: (isVerySmall) => ({
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    fontSize: isVerySmall ? "10px" : "12px",
+    color: "#666",
+    fontFamily: "monospace",
+  }),
+  nameCell: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    fontWeight: 600,
+  },
+  ellipsisCell: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  iconSize: (isVerySmall) => ({
+    fontSize: isVerySmall ? "16px" : "18px",
+  }),
 };

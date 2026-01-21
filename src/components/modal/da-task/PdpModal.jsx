@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
   Box,
-  Button,
-  Typography,
   IconButton,
   CircularProgress,
   Tooltip,
   Chip,
   Alert,
+  Typography,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -22,6 +19,7 @@ import {
   Send as SendIcon,
   Save as SaveIcon,
   Person as PersonIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
@@ -30,6 +28,7 @@ import * as yup from "yup";
 import dayjs from "dayjs";
 import { useGetPdpTaskQuery } from "../../../features/api/da-task/pdpApi";
 import PdpModalFields from "./PdpModalFields";
+import PdpModalPrinting from "./PdpModalPrinting";
 import {
   StyledDialog,
   StyledDialogTitle,
@@ -85,6 +84,45 @@ const validationSchema = yup.object().shape({
 const generateTempId = (prefix) =>
   `temp-${prefix}-${Date.now()}-${Math.random()}`;
 
+const getInitialFormData = () => ({
+  development_plan_objective: "",
+  goals: [
+    {
+      id: generateTempId("goal"),
+      goal_number: 1,
+      description: "",
+      target_date: null,
+    },
+  ],
+  actions: [
+    {
+      id: generateTempId("action"),
+      goal_index: 0,
+      activity: "",
+      due_date: null,
+      expected_progress: "",
+    },
+  ],
+  resources: [
+    {
+      id: generateTempId("resource"),
+      goal_index: 0,
+      resource_item: "",
+      description: "",
+      person_in_charge: "",
+      due_date: null,
+    },
+  ],
+  coaching_sessions: [
+    {
+      id: generateTempId("session"),
+      month_label: "1st Month",
+      session_date: null,
+      commitment: "",
+    },
+  ],
+});
+
 const PdpModal = ({
   open,
   onClose,
@@ -96,13 +134,7 @@ const PdpModal = ({
   const methods = useForm({
     resolver: yupResolver(validationSchema),
     mode: "onBlur",
-    defaultValues: {
-      development_plan_objective: "",
-      goals: [],
-      actions: [],
-      resources: [],
-      coaching_sessions: [],
-    },
+    defaultValues: getInitialFormData(),
   });
 
   const {
@@ -121,6 +153,7 @@ const PdpModal = ({
   const [resourcesExpanded, setResourcesExpanded] = useState(true);
   const [coachingExpanded, setCoachingExpanded] = useState(true);
   const [hasEditedForm, setHasEditedForm] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const {
     fields: goalFields,
@@ -219,10 +252,24 @@ const PdpModal = ({
       "development_plan_objective",
       data.development_plan_objective || ""
     );
-    replaceGoals(formattedGoals);
-    replaceActions(formattedActions);
-    replaceResources(formattedResources);
-    replaceCoaching(formattedCoachingSessions);
+    replaceGoals(
+      formattedGoals.length > 0 ? formattedGoals : getInitialFormData().goals
+    );
+    replaceActions(
+      formattedActions.length > 0
+        ? formattedActions
+        : getInitialFormData().actions
+    );
+    replaceResources(
+      formattedResources.length > 0
+        ? formattedResources
+        : getInitialFormData().resources
+    );
+    replaceCoaching(
+      formattedCoachingSessions.length > 0
+        ? formattedCoachingSessions
+        : getInitialFormData().coaching_sessions
+    );
   };
 
   useEffect(() => {
@@ -232,13 +279,19 @@ const PdpModal = ({
         setOriginalMode(mode);
         loadFormData(pdpData);
       }
+    } else if (open && !pdpData) {
+      reset(getInitialFormData());
     }
   }, [open, pdpData]);
 
   const shouldEnableEditButton = () => {
     if (!pdpData) return false;
     const status = pdpData.status;
-    return status !== "APPROVED" && status !== "CANCELLED";
+    return (
+      status !== "APPROVED" &&
+      status !== "CANCELLED" &&
+      status !== "KICKOFF_COMPLETE"
+    );
   };
 
   const shouldShowSaveAsDraftButton = () => {
@@ -249,6 +302,15 @@ const PdpModal = ({
   const isForApprovalStatus = () => {
     const status = pdpData?.status;
     return status === "FOR_APPROVAL";
+  };
+
+  const shouldShowPrintButton = () => {
+    const status = pdpData?.status;
+    return (
+      status === "APPROVED" ||
+      status === "KICKOFF_COMPLETE" ||
+      status === "FOR_ASSESSMENT"
+    );
   };
 
   const handleModeChange = (newMode) => {
@@ -270,8 +332,17 @@ const PdpModal = ({
     setOriginalMode("view");
     setIsUpdating(false);
     setHasEditedForm(false);
-    reset();
+    setShowPrintDialog(false);
+    reset(getInitialFormData());
     onClose();
+  };
+
+  const handlePrintClick = () => {
+    setShowPrintDialog(true);
+  };
+
+  const handleClosePrintDialog = () => {
+    setShowPrintDialog(false);
   };
 
   const getModalTitle = () => {
@@ -477,6 +548,32 @@ const PdpModal = ({
                   </span>
                 </Tooltip>
               )}
+              {currentMode === "view" && shouldShowPrintButton() && (
+                <Tooltip title="PRINT" arrow>
+                  <IconButton
+                    onClick={handlePrintClick}
+                    disabled={isProcessing}
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      padding: "8px",
+                      "&:hover": {
+                        backgroundColor: !isProcessing
+                          ? "rgba(33, 61, 112, 0.08)"
+                          : "transparent",
+                        transform: !isProcessing ? "scale(1.1)" : "none",
+                        transition: "all 0.2s ease-in-out",
+                      },
+                    }}>
+                    <PrintIcon
+                      sx={{
+                        fontSize: "20px",
+                        color: "rgb(33, 61, 112)",
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              )}
               {currentMode === "edit" && originalMode === "view" && (
                 <Tooltip title="CANCEL EDIT">
                   <IconButton
@@ -637,6 +734,45 @@ const PdpModal = ({
             </StyledDialogActions>
           </form>
         </StyledDialog>
+
+        <Dialog
+          open={showPrintDialog}
+          onClose={handleClosePrintDialog}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              maxWidth: "1200px",
+              height: "90vh",
+            },
+          }}>
+          <Box
+            sx={{
+              position: "sticky",
+              top: 0,
+              zIndex: 1,
+              backgroundColor: "white",
+              borderBottom: "1px solid #e0e0e0",
+              p: 2,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Print PDP Form
+            </Typography>
+            <IconButton
+              onClick={handleClosePrintDialog}
+              sx={{
+                "&:hover": { backgroundColor: "#f5f5f5" },
+              }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <DialogContent sx={{ p: 0, overflow: "auto" }}>
+            {pdpData && <PdpModalPrinting data={pdpData} />}
+          </DialogContent>
+        </Dialog>
       </LocalizationProvider>
     </FormProvider>
   );

@@ -2,7 +2,6 @@ import { Box, Collapse, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import PropTypes from "prop-types";
-import NotificationBadge from "../../../config/NotificationBadge";
 
 const MenuItem = ({
   name = "",
@@ -16,85 +15,102 @@ const MenuItem = ({
   notificationCount = 0,
   showDotOnly = false,
 }) => {
-  if (sidebarOpen) {
-    return (
-      <Box
-        className={`liststyle ${className} ${active ? "active" : ""}`}
-        onClick={onClick}
-        style={{
-          cursor: "pointer",
-          paddingLeft: isChild ? "32px" : "16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-        }}>
-        <Box style={{ display: "flex", alignItems: "center" }}>
-          <Box className={`icon ${active ? "active-icon" : ""}`}>
-            {icon || <span className="sidebar__placeholder-icon">📄</span>}
-          </Box>
-          <Typography className="text">{name}</Typography>
-        </Box>
-        {notificationCount > 0 && (
-          <Box sx={{ marginRight: "8px" }}>
-            {showDotOnly ? (
-              <Box
-                sx={{
-                  backgroundColor: "#ff5252",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
-              <Box
-                sx={{
-                  backgroundColor: "#ff5252",
-                  color: "white",
-                  fontSize: isChild ? "0.6rem" : "0.65rem",
-                  height: isChild ? "16px" : "18px",
-                  minWidth: isChild ? "16px" : "18px",
-                  borderRadius: isChild ? "8px" : "9px",
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0 4px",
-                }}>
-                {notificationCount > 99 ? "99+" : notificationCount}
-              </Box>
-            )}
-          </Box>
-        )}
-      </Box>
-    );
-  }
-
   return (
     <Box
       className={`liststyle ${className} ${active ? "active" : ""}`}
       onClick={onClick}
-      style={{
+      sx={{
         cursor: "pointer",
-        paddingLeft: isChild ? "32px" : "16px",
-        position: "relative",
+        paddingLeft: isChild ? "32px" : "0px",
+        paddingRight: "0px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: sidebarOpen ? "flex-start" : "center",
+        width: "100%",
       }}>
-      <Box className={`icon ${active ? "active-icon" : ""}`}>
-        {icon || <span className="sidebar__placeholder-icon">📄</span>}
-        {notificationCount > 0 && (
+      <Box
+        className="icon-container"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          position: "relative",
+        }}>
+        <Box className={`icon ${active ? "active-icon" : ""}`}>
+          {icon || <span className="sidebar__placeholder-icon">📄</span>}
+        </Box>
+        {!sidebarOpen && notificationCount > 0 && (
           <Box
             sx={{
               position: "absolute",
-              top: "8px",
-              right: "8px",
+              top: "-2px",
+              right: "-2px",
               backgroundColor: "#ff5252",
-              width: isChild ? "6px" : "8px",
-              height: isChild ? "6px" : "8px",
+              width: "8px",
+              height: "8px",
               borderRadius: "50%",
             }}
           />
         )}
       </Box>
+
+      {sidebarOpen && (
+        <Box
+          className="label-container"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flex: 1,
+            minWidth: 0,
+            overflow: "hidden",
+            paddingRight: "16px",
+          }}>
+          <Typography
+            className="text"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              minWidth: 0,
+              marginRight: "4px",
+            }}>
+            {name}
+          </Typography>
+          {notificationCount > 0 && (
+            <Box sx={{ flexShrink: 0, marginLeft: "auto", marginRight: "4px" }}>
+              {showDotOnly ? (
+                <Box
+                  sx={{
+                    backgroundColor: "#ff5252",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    backgroundColor: "#ff5252",
+                    color: "white",
+                    fontSize: isChild ? "0.6rem" : "0.65rem",
+                    height: isChild ? "16px" : "18px",
+                    minWidth: isChild ? "16px" : "18px",
+                    borderRadius: isChild ? "8px" : "9px",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "0 4px",
+                  }}>
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };
@@ -119,6 +135,7 @@ export const MainItem = ({
   icon = null,
   sidebarOpen = false,
   notificationCount = 0,
+  onParentClick = () => {},
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,7 +187,12 @@ export const MainItem = ({
 
   const handleChildren = () => {
     if (subItem) {
-      setOpenChildren((prev) => !prev);
+      onParentClick();
+      if (sidebarOpen) {
+        setOpenChildren((prev) => !prev);
+      } else {
+        setOpenChildren(true);
+      }
     } else {
       handleNavigation(path);
     }
@@ -231,4 +253,5 @@ MainItem.propTypes = {
   icon: PropTypes.node,
   sidebarOpen: PropTypes.bool,
   notificationCount: PropTypes.number,
+  onParentClick: PropTypes.func,
 };

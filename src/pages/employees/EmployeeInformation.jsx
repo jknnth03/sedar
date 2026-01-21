@@ -1,23 +1,17 @@
 import * as React from "react";
 import Box from "@mui/material/Box";
-import Tab from "@mui/material/Tab";
-import TabContext from "@mui/lab/TabContext";
-import TabList from "@mui/lab/TabList";
-import TabPanel from "@mui/lab/TabPanel";
 import {
   Button,
   Typography,
   TextField,
   Alert,
   Snackbar,
-  Fade,
   CircularProgress,
   Badge,
   useMediaQuery,
   useTheme,
   IconButton,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import GeneralInformation from "./Generalinformation.jsx";
@@ -37,6 +31,31 @@ import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/e
 import Status from "./Statuses.jsx";
 import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js";
 import FilterDialog from "./FilterDialog.jsx";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../pages/forms/manpowerform/FormSubmissionStyles.jsx";
+
+const TabPanel = ({ children, value, index, ...other }) => {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`employee-tabpanel-${index}`}
+      aria-labelledby={`employee-tab-${index}`}
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        minWidth: 0,
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
+      {...other}>
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
+    </div>
+  );
+};
 
 const CustomSearchBar = ({
   searchQuery,
@@ -45,13 +64,15 @@ const CustomSearchBar = ({
   isLoading = false,
   activeFilterCount = 0,
 }) => {
-  const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
   return (
     <Box
-      sx={{ display: "flex", alignItems: "center", gap: isVerySmall ? 1 : 1.5 }}
-      className="search-bar-container">
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       {isVerySmall ? (
         <IconButton
           onClick={onOpenFilter}
@@ -152,7 +173,6 @@ const CustomSearchBar = ({
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
-        className="search-input"
         InputProps={{
           startAdornment: (
             <SearchIcon
@@ -168,8 +188,7 @@ const CustomSearchBar = ({
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
+            width: "320px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -213,7 +232,33 @@ function EmployeeInformation() {
 
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
-  const [value, setValue] = React.useState(currentParams?.tab ?? "1");
+  const tabMap = {
+    0: "general",
+    1: "address",
+    2: "position",
+    3: "emptype",
+    4: "attainment",
+    5: "account",
+    6: "contact",
+    7: "file",
+    8: "status",
+  };
+
+  const reverseTabMap = {
+    general: 0,
+    address: 1,
+    position: 2,
+    emptype: 3,
+    attainment: 4,
+    account: 5,
+    contact: 6,
+    file: 7,
+    status: 8,
+  };
+
+  const [activeTab, setActiveTab] = React.useState(
+    reverseTabMap[currentParams?.tab] ?? 0
+  );
   const [openModal, setOpenModal] = React.useState(false);
   const [modalMode, setModalMode] = React.useState("create");
   const [editData, setEditData] = React.useState(null);
@@ -243,8 +288,6 @@ function EmployeeInformation() {
   const { data: dashboardData, isLoading: isDashboardLoading } =
     useShowDashboardQuery();
 
-  const openMrfsCount = dashboardData?.result?.employees?.open_mrfs || 0;
-
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const activeFilterCount = React.useMemo(() => {
@@ -270,19 +313,18 @@ function EmployeeInformation() {
     return count;
   }, [filters]);
 
-  const handleChange = React.useCallback(
+  const handleTabChange = React.useCallback(
     (event, newValue) => {
+      setActiveTab(newValue);
       setQueryParams(
         {
-          tab: newValue,
+          tab: tabMap[newValue],
           q: searchQuery,
-          ...filters,
         },
         { retain: true }
       );
-      setValue(newValue);
     },
-    [setQueryParams, searchQuery, filters]
+    [setQueryParams, searchQuery]
   );
 
   const handleOpenModal = React.useCallback((mode = "create", data = null) => {
@@ -336,13 +378,13 @@ function EmployeeInformation() {
       setQueryParams(
         {
           q: newSearchQuery,
-          tab: value,
+          tab: tabMap[activeTab],
           ...filters,
         },
         { retain: true }
       );
     },
-    [setQueryParams, value, filters]
+    [setQueryParams, activeTab, filters]
   );
 
   const handleOpenFilterDialog = React.useCallback(() => {
@@ -359,14 +401,14 @@ function EmployeeInformation() {
       setQueryParams(
         {
           q: searchQuery,
-          tab: value,
+          tab: tabMap[activeTab],
           ...newFilters,
         },
         { retain: true }
       );
       setOpenFilterDialog(false);
     },
-    [setQueryParams, searchQuery, value]
+    [setQueryParams, searchQuery, activeTab]
   );
 
   const handleCloseNotification = React.useCallback((event, reason) => {
@@ -395,51 +437,73 @@ function EmployeeInformation() {
     ]
   );
 
-  const tabs = [
-    { label: "GENERAL INFORMATION", value: "1", component: GeneralInformation },
-    { label: "ADDRESS", value: "2", component: Address },
-    { label: "EMPLOYEE POSITION", value: "3", component: PositionsEmp },
-    { label: "EMPLOYMENT TYPE", value: "4", component: EmpTypes },
-    { label: "ATTAINMENT", value: "5", component: ATTAINMENTSEMP },
-    { label: "ACCOUNT", value: "6", component: ACCOUNTS },
-    { label: "CONTACT", value: "7", component: CONTACTS },
-    { label: "FILE", value: "8", component: FILES },
-    { label: "STATUS", value: "9", component: Status },
+  const tabsData = [
+    {
+      label: "GENERAL INFORMATION",
+      component: <GeneralInformation {...sharedSearchProps} />,
+    },
+    {
+      label: "ADDRESS",
+      component: <Address {...sharedSearchProps} />,
+    },
+    {
+      label: "EMPLOYEE POSITION",
+      component: <PositionsEmp {...sharedSearchProps} />,
+    },
+    {
+      label: "EMPLOYMENT TYPE",
+      component: <EmpTypes {...sharedSearchProps} />,
+    },
+    {
+      label: "ATTAINMENT",
+      component: <ATTAINMENTSEMP {...sharedSearchProps} />,
+    },
+    {
+      label: "ACCOUNT",
+      component: <ACCOUNTS {...sharedSearchProps} />,
+    },
+    {
+      label: "CONTACT",
+      component: <CONTACTS {...sharedSearchProps} />,
+    },
+    {
+      label: "FILE",
+      component: <FILES {...sharedSearchProps} />,
+    },
+    {
+      label: "STATUS",
+      component: <Status {...sharedSearchProps} />,
+    },
   ];
 
+  const a11yProps = (index) => {
+    return {
+      id: `employee-tab-${index}`,
+      "aria-controls": `employee-tabpanel-${index}`,
+    };
+  };
+
   return (
-    <Box
-      sx={{
-        width: "100%",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        backgroundColor: "#fafafa",
-      }}>
+    <Box sx={styles.mainContainer}>
       <Box
         sx={{
-          display: "flex",
-          alignItems: isMobile || isTablet ? "flex-start" : "center",
-          justifyContent: isMobile || isTablet ? "flex-start" : "space-between",
-          flexDirection: isMobile || isTablet ? "column" : "row",
-          flexShrink: 0,
-          minHeight: isMobile || isTablet ? "auto" : "72px",
-          padding: isMobile ? "12px 14px" : isTablet ? "16px" : "16px 14px",
-          backgroundColor: "white",
-          borderBottom: "1px solid #e0e0e0",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          gap: isMobile || isTablet ? "16px" : "0",
+          ...styles.headerContainer,
+          ...(isMobile && styles.headerContainerMobile),
+          ...(isTablet && styles.headerContainerTablet),
         }}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-            width: isMobile || isTablet ? "100%" : "auto",
-            justifyContent: "flex-start",
+            ...styles.headerTitle,
+            ...(isMobile && styles.headerTitleMobile),
           }}>
-          <Typography className="header">
+          <Typography
+            className="header"
+            sx={{
+              ...styles.headerTitleText,
+              ...(isMobile && styles.headerTitleTextMobile),
+              ...(isVerySmall && styles.headerTitleTextVerySmall),
+              paddingRight: "14px",
+            }}>
             {isVerySmall ? "EMPLOYEE INFO" : "EMPLOYEE INFORMATION"}
           </Typography>
         </Box>
@@ -451,6 +515,44 @@ function EmployeeInformation() {
           isLoading={isLoading}
           activeFilterCount={activeFilterCount}
         />
+      </Box>
+
+      <Box sx={styles.tabsSection}>
+        <StyledTabs
+          value={activeTab}
+          onChange={handleTabChange}
+          aria-label="employee information tabs"
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{
+            ...styles.tabsStyled,
+            ...(isVerySmall && styles.tabsStyledVerySmall),
+          }}>
+          {tabsData.map((tab, index) => (
+            <StyledTab
+              key={index}
+              label={
+                isVerySmall && tab.label.length > 12
+                  ? tab.label
+                      .replace("EMPLOYEE ", "EMP ")
+                      .replace("INFORMATION", "INFO")
+                      .replace("POSITION", "POS")
+                      .replace("EMPLOYMENT ", "EMP ")
+                  : tab.label
+              }
+              {...a11yProps(index)}
+            />
+          ))}
+        </StyledTabs>
+      </Box>
+
+      <Box sx={styles.tabsContainer}>
+        {tabsData.map((tab, index) => (
+          <TabPanel key={index} value={activeTab} index={index}>
+            {tab.component}
+          </TabPanel>
+        ))}
       </Box>
 
       <EmployeeWizardForm
@@ -467,85 +569,6 @@ function EmployeeInformation() {
         filters={filters}
         onApplyFilters={handleApplyFilters}
       />
-
-      <TabContext value={value}>
-        <Box
-          sx={{
-            flexShrink: 0,
-            minHeight: "56px",
-            backgroundColor: "white",
-            borderBottom: "1px solid #e0e0e0",
-          }}>
-          <TabList
-            onChange={handleChange}
-            aria-label="employee information tabs"
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              "& .MuiTab-root": {
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: isVerySmall ? "11px" : "13px",
-                minHeight: "56px",
-                padding: isVerySmall ? "12px 8px" : "12px 16px",
-                color: "#666",
-                transition: "all 0.2s ease-in-out",
-                "&.Mui-selected": {
-                  color: "rgb(33, 61, 112)",
-                  fontWeight: 700,
-                },
-                "&:hover": {
-                  color: "rgb(33, 61, 112)",
-                  backgroundColor: "rgba(33, 61, 112, 0.04)",
-                },
-              },
-              "& .MuiTabs-indicator": {
-                backgroundColor: "rgb(33, 61, 112)",
-                height: "3px",
-              },
-            }}>
-            {tabs.map((tab) => (
-              <Tab
-                key={tab.value}
-                label={
-                  isVerySmall && tab.label.length > 12
-                    ? tab.label
-                        .replace("EMPLOYEE ", "EMP ")
-                        .replace("INFORMATION", "INFO")
-                    : tab.label
-                }
-                value={tab.value}
-              />
-            ))}
-          </TabList>
-        </Box>
-
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          {tabs.map((tab) => {
-            const Component = tab.component;
-            return (
-              <TabPanel
-                key={tab.value}
-                value={tab.value}
-                sx={{
-                  padding: 0,
-                  flex: 1,
-                  overflow: "auto",
-                  backgroundColor: "#fafafa",
-                }}>
-                <Component {...sharedSearchProps} />
-              </TabPanel>
-            );
-          })}
-        </Box>
-      </TabContext>
 
       <Snackbar
         open={notification.open}

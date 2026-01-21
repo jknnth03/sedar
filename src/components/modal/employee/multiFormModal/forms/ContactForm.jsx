@@ -100,8 +100,18 @@ const ContactForm = ({
         setValue("email_address", selectedContacts.email_address);
       }
 
-      if (selectedContacts.contact_remarks) {
-        setValue("contact_remarks", selectedContacts.contact_remarks);
+      if (selectedContacts.mobile_number_remarks) {
+        setValue(
+          "mobile_number_remarks",
+          selectedContacts.mobile_number_remarks
+        );
+      }
+
+      if (selectedContacts.email_address_remarks) {
+        setValue(
+          "email_address_remarks",
+          selectedContacts.email_address_remarks
+        );
       }
     }
   }, [selectedContacts, mode, setValue, formatPhoneNumber]);
@@ -114,125 +124,165 @@ const ContactForm = ({
   };
 
   return (
-    <Box
-      className="contact-form"
-      sx={{ width: "100%", maxWidth: "1200px", p: 2 }}>
+    <Box sx={{ width: "100%", maxWidth: "1200px", overflow: "0" }}>
       <EmployeeHeader getValues={getValues} selectedGeneral={employeeData} />
 
-      <Grid container spacing={1.3} className="general-form__grid">
-        <Grid item xs={12} sm={6} sx={{ minWidth: "547px", maxWidth: "547px" }}>
-          <Controller
-            name="mobile_number"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label={
-                  <>
-                    Mobile Number <span style={{ color: "red" }}>*</span>
-                  </>
-                }
-                variant="outlined"
-                fullWidth
-                onChange={(e) => handlePhoneChange(field, e.target.value)}
-                disabled={isLoading || isReadOnly}
-                error={!!errors.mobile_number}
-                helperText={errors.mobile_number?.message}
-                placeholder="9xx-xxx-xxxx"
-                inputProps={{
-                  maxLength: 12,
-                  readOnly: isReadOnly,
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">+63</InputAdornment>
-                  ),
-                  readOnly: isReadOnly,
-                }}
-                className="general-form__text-field"
+      <Box sx={{ px: 2 }}>
+        <Box
+          sx={{
+            mb: 2,
+            border: "1px solid #e0e0e0",
+            borderRadius: 2,
+            p: 2,
+          }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}>
+            <Box>
+              <Controller
+                name="mobile_number"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ""}
+                    label={
+                      <>
+                        Mobile Number <span style={{ color: "red" }}>*</span>
+                      </>
+                    }
+                    variant="outlined"
+                    fullWidth
+                    onChange={(e) => handlePhoneChange(field, e.target.value)}
+                    disabled={isLoading || isReadOnly}
+                    error={!!errors.mobile_number}
+                    helperText={errors.mobile_number?.message}
+                    placeholder="9xx-xxx-xxxx"
+                    inputProps={{
+                      maxLength: 12,
+                      readOnly: isReadOnly,
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">+63</InputAdornment>
+                      ),
+                      readOnly: isReadOnly,
+                    }}
+                    className="general-form__text-field"
+                    sx={{
+                      width: "100%",
+                      "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                    }}
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} sm={6} sx={{ minWidth: "547px", maxWidth: "547px" }}>
-          <Controller
-            name="mobile_remarks"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Mobile Remarks (Optional)"
-                variant="outlined"
-                fullWidth
-                disabled={isLoading || isReadOnly}
-                placeholder="Mobile contact remarks (Optional)"
-                multiline
-                rows={1}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-                className="general-form__text-field"
+            <Box>
+              <Controller
+                name="mobile_number_remarks"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ""}
+                    label="Mobile Remarks (Optional)"
+                    variant="outlined"
+                    fullWidth
+                    disabled={isLoading || isReadOnly}
+                    placeholder="Mobile contact remarks (Optional)"
+                    multiline
+                    rows={1}
+                    InputProps={{
+                      readOnly: isReadOnly,
+                    }}
+                    className="general-form__text-field"
+                    sx={{
+                      width: "100%",
+                      "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                    }}
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} sm={6} sx={{ minWidth: "547px", maxWidth: "547px" }}>
-          <Controller
-            name="email_address"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label={
-                  <>
-                    Email Address <span style={{ color: "red" }}>*</span>
-                  </>
-                }
-                variant="outlined"
-                fullWidth
-                disabled={isLoading || isReadOnly}
-                error={!!errors.email_address}
-                helperText={errors.email_address?.message}
-                placeholder="Enter email address"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailIcon />
-                    </InputAdornment>
-                  ),
-                  readOnly: isReadOnly,
-                }}
-                className="general-form__text-field"
+            <Box>
+              <Controller
+                name="email_address"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ""}
+                    label={
+                      <>
+                        Email Address <span style={{ color: "red" }}>*</span>
+                      </>
+                    }
+                    variant="outlined"
+                    fullWidth
+                    disabled={isLoading || isReadOnly}
+                    error={!!errors.email_address}
+                    helperText={errors.email_address?.message}
+                    placeholder="Enter email address"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <EmailIcon />
+                        </InputAdornment>
+                      ),
+                      readOnly: isReadOnly,
+                    }}
+                    className="general-form__text-field"
+                    sx={{
+                      width: "100%",
+                      "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                    }}
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} sm={6} sx={{ minWidth: "547px", maxWidth: "547px" }}>
-          <Controller
-            name="email_remarks"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Email Remarks (Optional)"
-                variant="outlined"
-                fullWidth
-                disabled={isLoading || isReadOnly}
-                placeholder="Email contact remarks (Optional)"
-                multiline
-                rows={1}
-                InputProps={{
-                  readOnly: isReadOnly,
-                }}
-                className="general-form__text-field"
+            <Box>
+              <Controller
+                name="email_address_remarks"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ""}
+                    label="Email Remarks (Optional)"
+                    variant="outlined"
+                    fullWidth
+                    disabled={isLoading || isReadOnly}
+                    placeholder="Email contact remarks (Optional)"
+                    multiline
+                    rows={1}
+                    InputProps={{
+                      readOnly: isReadOnly,
+                    }}
+                    className="general-form__text-field"
+                    sx={{
+                      width: "100%",
+                      "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                    }}
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
-      </Grid>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

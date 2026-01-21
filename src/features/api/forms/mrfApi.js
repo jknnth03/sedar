@@ -55,6 +55,45 @@ const mrfApi = sedarApi
         providesTags: ["mrfSubmissions"],
       }),
 
+      getAllMrfSubmissions: build.query({
+        query: (params = {}) => {
+          const { search, status, approval_status, ...otherParams } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", "false");
+
+          if (status) {
+            queryParams.append("status", status);
+          }
+
+          if (approval_status) {
+            queryParams.append("approval_status", approval_status);
+          }
+
+          if (search && search.trim() !== "") {
+            queryParams.append("search", search.trim());
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = queryString
+            ? `mrf/open?${queryString}`
+            : "mrf/open?pagination=false";
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["mrfSubmissions"],
+      }),
+
       getSingleMrfSubmission: build.query({
         query: (mrfSubmissionId) => ({
           url: `me/mrf-submissions/${mrfSubmissionId}`,
@@ -267,11 +306,12 @@ const mrfApi = sedarApi
       }),
 
       cancelMrfSubmission: build.mutation({
-        query: (submissionId) => ({
+        query: ({ submissionId, reason }) => ({
           url: `form-submissions/${submissionId}/cancel`,
           method: "POST",
+          body: { reason },
         }),
-        invalidatesTags: (result, error, submissionId) => [
+        invalidatesTags: (result, error, { submissionId }) => [
           { type: "mrfSubmissions", id: submissionId },
           "mrfSubmissions",
         ],
@@ -282,6 +322,8 @@ const mrfApi = sedarApi
 export const {
   useGetMrfSubmissionsQuery,
   useLazyGetMrfSubmissionsQuery,
+  useGetAllMrfSubmissionsQuery,
+  useLazyGetAllMrfSubmissionsQuery,
   useGetSingleMrfSubmissionQuery,
   useLazyGetSingleMrfSubmissionQuery,
   useGetMrfSubmissionAttachmentQuery,

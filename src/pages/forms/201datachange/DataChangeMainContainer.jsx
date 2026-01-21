@@ -1,28 +1,19 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Fade,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -30,7 +21,11 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "../manpowerform/FormSubmissionStyles";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
 import {
   useCreateDataChangeSubmissionMutation,
   useUpdateDataChangeSubmissionMutation,
@@ -38,7 +33,7 @@ import {
 } from "../../../features/api/forms/datachangeApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
@@ -50,43 +45,8 @@ import DataChangeCancelled from "./DataChangeCancelled";
 import DataChangeModal from "../../../components/modal/form/DataChange/DataChangeModal";
 import DataChangeForMDAProcessing from "./DataChangeForMDAProcessing";
 import DataChangeMDAInProgress from "./DataChangeMDAInProgress";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
-  ({ theme }) => ({
-    textTransform: "uppercase",
-    minWidth: 0,
-    fontWeight: 600,
-    fontSize: "0.875rem",
-    marginRight: theme.spacing(1),
-    color: "#666",
-    padding: "12px 16px",
-    "&:hover": {
-      color: theme.palette.primary.main,
-      opacity: 1,
-    },
-    "&.Mui-selected": {
-      color: theme.palette.primary.main,
-      fontWeight: 700,
-    },
-    "&.Mui-focusVisible": {
-      backgroundColor: "rgba(100, 95, 228, 0.32)",
-    },
-  })
-);
+import ExportButton from "./ExportButton";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -97,167 +57,14 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`datachange-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number.toLowerCase().includes(query) ||
-      item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query) ||
-      item.action_type.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -297,12 +104,9 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: isVerySmall ? 1 : 1.5,
-      }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
+
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
@@ -366,42 +170,31 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
             sx={{
               margin: 0,
-              border: `1px solid ${
-                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-              }`,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
               borderRadius: "8px",
               paddingLeft: "8px",
               paddingRight: "12px",
               height: "36px",
               backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.04)"
+                ? "rgba(76, 175, 80, 0.04)"
                 : "white",
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 backgroundColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 0.08)"
+                  ? "rgba(76, 175, 80, 0.08)"
                   : "#f5f5f5",
-                borderColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
               },
               "& .MuiFormControlLabel-label": {
                 fontSize: "12px",
                 fontWeight: 600,
-                color: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
                 letterSpacing: "0.5px",
               },
             }}
@@ -421,20 +214,16 @@ const CustomSearchBar = ({
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
+                fontSize: "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
-            <CircularProgress
-              size={16}
-              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
-            />
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
+            width: "320px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -457,9 +246,8 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
+            fontSize: "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -478,21 +266,9 @@ const DataChangeMainContainer = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
-  const [currentParams, setQueryParams] = useRememberQueryParams();
-
   const { data: dashboardData } = useShowDashboardQuery();
-  const dataChangeCounts = {
-    forApproval: dashboardData?.result?.requisition?.data_change_approval || 0,
-    awaitingResubmission:
-      dashboardData?.result?.requisition?.data_change_awaiting_resubmission ||
-      0,
-    rejected: dashboardData?.result?.requisition?.data_change_rejected || 0,
-    cancelled: 0,
-    forMDAProcessing:
-      dashboardData?.result?.requisition?.data_change_for_mda_processing || 0,
-    mdaForApproval: dashboardData?.result?.approval?.mda_approval || 0,
-    completed: 0,
-  };
+
+  const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
     0: "ForApproval",
@@ -500,7 +276,7 @@ const DataChangeMainContainer = () => {
     2: "Rejected",
     3: "Cancelled",
     4: "ForMDAProcessing",
-    5: "MDAForApproval",
+    5: "MDAInProgress",
     6: "Completed",
   };
 
@@ -510,7 +286,7 @@ const DataChangeMainContainer = () => {
     Rejected: 2,
     Cancelled: 3,
     ForMDAProcessing: 4,
-    MDAForApproval: 5,
+    MDAInProgress: 5,
     Completed: 6,
   };
 
@@ -537,6 +313,31 @@ const DataChangeMainContainer = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
+  const dataChangeCounts = {
+    forApproval: dashboardData?.result?.approval?.data_change?.form || 0,
+    awaitingResubmission:
+      dashboardData?.result?.requisition?.data_change?.awaiting_resubmission ||
+      0,
+    rejected: dashboardData?.result?.requisition?.data_change?.rejected || 0,
+    cancelled: 0,
+    forMDAProcessing:
+      dashboardData?.result?.requisition?.mda?.data_change
+        ?.pending_mda_creation || 0,
+    mdaInProgress: dashboardData?.result?.approval?.data_change?.mda || 0,
+    completed: 0,
+  };
+
   const handleTabChange = useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
@@ -548,7 +349,7 @@ const DataChangeMainContainer = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery]
   );
 
   const handleSearchChange = useCallback(
@@ -562,7 +363,7 @@ const DataChangeMainContainer = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -592,13 +393,6 @@ const DataChangeMainContainer = () => {
     setModalMode(newMode);
   }, []);
 
-  const handleRefreshDetails = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-  }, []);
-
   const handleRowClick = useCallback((entry) => {
     setSelectedEntry({ result: entry });
     setModalMode("view");
@@ -606,20 +400,39 @@ const DataChangeMainContainer = () => {
   }, []);
 
   const handleCancel = useCallback(
-    async (entryId, cancellationReason = "") => {
-      try {
-        await cancelDataChangeSubmission(entryId).unwrap();
+    async (entryId, cancellationReason) => {
+      if (!entryId) {
+        enqueueSnackbar("Invalid submission ID", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
 
-        enqueueSnackbar("201 data change cancelled successfully!", {
+      if (!cancellationReason || cancellationReason.trim().length < 10) {
+        enqueueSnackbar("Cancellation reason must be at least 10 characters", {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return false;
+      }
+
+      try {
+        await cancelDataChangeSubmission({
+          submissionId: entryId,
+          reason: cancellationReason.trim(),
+        }).unwrap();
+
+        enqueueSnackbar("Data change cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
-        handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage =
-          "Failed to cancel 201 data change. Please try again.";
+        console.error("Error in handleCancel:", error);
+
+        let errorMessage = "Failed to cancel data change. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -635,7 +448,7 @@ const DataChangeMainContainer = () => {
         return false;
       }
     },
-    [cancelDataChangeSubmission, enqueueSnackbar, handleRefreshDetails]
+    [cancelDataChangeSubmission, enqueueSnackbar]
   );
 
   const handleResubmit = useCallback(
@@ -643,17 +456,15 @@ const DataChangeMainContainer = () => {
       try {
         await resubmitDataChangeSubmission(entryId).unwrap();
 
-        enqueueSnackbar("201 data change resubmitted successfully!", {
+        enqueueSnackbar("Data change resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
 
-        handleRefreshDetails();
         handleCloseModal();
         return true;
       } catch (error) {
-        let errorMessage =
-          "Failed to resubmit 201 data change. Please try again.";
+        let errorMessage = "Failed to resubmit data change. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -669,12 +480,7 @@ const DataChangeMainContainer = () => {
         return false;
       }
     },
-    [
-      resubmitDataChangeSubmission,
-      enqueueSnackbar,
-      handleRefreshDetails,
-      handleCloseModal,
-    ]
+    [resubmitDataChangeSubmission, enqueueSnackbar, handleCloseModal]
   );
 
   const handleSave = useCallback(
@@ -694,26 +500,27 @@ const DataChangeMainContainer = () => {
             data: formData,
           }).unwrap();
 
-          enqueueSnackbar("201 data change updated successfully!", {
+          enqueueSnackbar("Data change updated successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         } else {
           result = await createDataChangeSubmission(formData).unwrap();
 
-          enqueueSnackbar("201 data change created successfully!", {
+          enqueueSnackbar("Data change created successfully!", {
             variant: "success",
             autoHideDuration: 2000,
           });
         }
 
         handleCloseModal();
-        handleRefreshDetails();
       } catch (error) {
+        console.error("Error in handleSave:", error);
+
         let errorMessage =
           mode === "edit"
-            ? "Failed to update 201 data change. Please try again."
-            : "Failed to create 201 data change. Please try again.";
+            ? "Failed to update data change. Please try again."
+            : "Failed to create data change. Please try again.";
 
         if (error?.data?.message) {
           errorMessage = error.data.message;
@@ -734,123 +541,126 @@ const DataChangeMainContainer = () => {
       updateDataChangeSubmission,
       enqueueSnackbar,
       handleCloseModal,
-      handleRefreshDetails,
     ]
   );
 
-  const tabsData = [
-    {
-      label: "For Approval",
-      component: (
-        <DataChangeForapproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.forApproval,
-    },
-    {
-      label: "Awaiting Resubmission",
-      component: (
-        <DataChangeAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.awaitingResubmission,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <DataChangeRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.rejected,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <DataChangeCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.cancelled,
-    },
-    {
-      label: "For MDA Processing",
-      component: (
-        <DataChangeForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.forMDAProcessing,
-    },
-    {
-      label: "MDA In Progress",
-      component: (
-        <DataChangeMDAInProgress
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.mdaForApproval,
-    },
-    {
-      label: "Completed",
-      component: (
-        <DataChangeCompleted
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: dataChangeCounts.completed,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <DataChangeForapproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <DataChangeAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <DataChangeRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.rejected,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <DataChangeCancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.cancelled,
+      },
+      {
+        label: "FOR MDA PROCESSING",
+        component: (
+          <DataChangeForMDAProcessing
+            key="for-mda-processing"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.forMDAProcessing,
+      },
+      {
+        label: "MDA IN PROGRESS",
+        component: (
+          <DataChangeMDAInProgress
+            key="mda-in-progress"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.mdaInProgress,
+      },
+      {
+        label: "COMPLETED",
+        component: (
+          <DataChangeCompleted
+            key="completed"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+          />
+        ),
+        badgeCount: dataChangeCounts.completed,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      handleRowClick,
+      dataChangeCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -864,83 +674,36 @@ const DataChangeMainContainer = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
             <Box
               sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
-              <Box
+              <Typography
+                className="header"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                  width: isMobile || isTablet ? "100%" : "auto",
-                  justifyContent: "flex-start",
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
                 }}>
-                <Typography
-                  className="header"
-                  sx={{
-                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                    fontWeight: 500,
-                    color: "rgb(33, 61, 112)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  {isVerySmall ? "DATA CHANGE" : "201 DATA CHANGE"}
-                </Typography>
-                <Fade in={!isLoadingState}>
+                {isVerySmall ? "DATA CHANGE" : "201 DATA CHANGE"}
+              </Typography>
+
+              <Fade in={!isLoading}>
+                <Box>
                   {isVerySmall ? (
                     <IconButton
                       onClick={handleAddNew}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
+                      disabled={isLoading}
+                      sx={styles.createIconButton}>
                       <AddIcon sx={{ fontSize: "18px" }} />
                     </IconButton>
                   ) : (
@@ -948,71 +711,62 @@ const DataChangeMainContainer = () => {
                       variant="contained"
                       onClick={handleAddNew}
                       startIcon={<AddIcon />}
-                      disabled={isLoadingState}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "160px",
-                        minWidth: isMobile ? "120px" : "160px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      {isMobile ? "NEW" : "NEW ENTRY"}
+                      disabled={isLoading}
+                      sx={styles.createButtonFull(isMobile)}>
+                      {isMobile ? "CREATE" : "CREATE"}
                     </Button>
                   )}
-                </Fade>
-              </Box>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
+                </Box>
+              </Fade>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="MDA submissions tabs"
+              aria-label="201 data change tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
                     tab.badgeCount > 0 ? (
                       <Badge
-                        variant="dot"
+                        badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          "& .MuiBadge-dot": {
-                            minWidth: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            padding: 0,
-                            top: "8px",
-                            right: "-10px",
-                          },
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
-                        {tab.label}
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
+                              .replace("FOR MDA PROCESSING", "MDA PROC")
+                              .replace("MDA IN PROGRESS", "MDA PROG")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
+                        .replace("FOR MDA PROCESSING", "MDA PROC")
+                        .replace("MDA IN PROGRESS", "MDA PROG")
                     ) : (
                       tab.label
                     )
@@ -1021,21 +775,14 @@ const DataChangeMainContainer = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -1043,19 +790,20 @@ const DataChangeMainContainer = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <DataChangeModal
+            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
             open={modalOpen}
             onClose={handleCloseModal}
+            onSave={handleSave}
+            selectedEntry={selectedEntry}
+            isLoading={modalLoading}
             mode={modalMode}
             onModeChange={handleModeChange}
-            selectedEntry={selectedEntry}
-            onSave={handleSave}
             onCancel={handleCancel}
             onResubmit={handleResubmit}
-            isLoading={modalLoading}
-            methods={methods}
           />
         </Box>
       </FormProvider>

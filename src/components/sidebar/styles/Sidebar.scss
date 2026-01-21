@@ -1,11 +1,11 @@
 @use "../../../styles/mixins.scss" as mx;
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
 
 .sidebar-drawer {
   height: 100vh;
   overflow: auto;
 
   @include mx.sm {
-    // On mobile (768px and below), show as overlay when opened
     position: fixed;
     top: 0;
     left: 0;
@@ -18,9 +18,6 @@
     }
   }
 
-  // Removed @include mx.lm to stop hiding at 930px
-  // Now it will only hide at 768px via @include mx.sm
-
   .MuiDrawer-paper {
     box-sizing: border-box;
     position: unset;
@@ -30,12 +27,11 @@
     @include mx.sm {
       position: fixed;
       height: 100vh;
-      width: 280px;
+      width: 300px;
     }
   }
 }
 
-// Mobile overlay backdrop
 .mobile-sidebar-backdrop {
   display: none;
 
@@ -61,32 +57,31 @@
 
 .mainbox {
   height: 100vh;
-  transition: width 0.5s ease;
   overflow-x: hidden;
   position: relative;
-  background-color: rgb(255, 0, 0);
+  background-color: rgb(255, 255, 255);
   z-index: 1000;
-  padding-left: 10px;
-  padding-right: 10px;
   display: flex;
   flex-direction: column;
 
   &.open {
-    width: 300px;
+    width: 340px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   &.closed {
-    width: 90px;
+    width: 80px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
-  // Force display flex above 768px to override lm breakpoint
   @media (min-width: 769px) {
     display: flex !important;
   }
 
   @include mx.sm {
-    // On mobile, sidebar becomes an overlay
-    width: 280px !important;
+    width: 300px !important;
     position: fixed;
     top: 0;
     left: 0;
@@ -94,6 +89,8 @@
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    padding-left: 10px;
+    padding-right: 10px;
 
     &.mobile-open {
       transform: translateX(0);
@@ -105,19 +102,29 @@
   }
 }
 
-.logo-container {
+.sidebar__logo-container {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0px;
+  padding: 40px 17px;
+  flex-shrink: 0;
+}
+
+.mainbox.open .sidebar__logo-container {
+  justify-content: flex-start;
+  padding-left: 14px;
+}
+
+.mainbox.closed .sidebar__logo-container {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .sidebar__logo {
   width: 120px;
   position: relative;
-  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  margin-left: 18px;
-  margin-top: 34px;
-  margin-bottom: 38px;
+  margin-left: 12px;
 
   @include mx.sm {
     width: 100px;
@@ -125,12 +132,21 @@
   }
 }
 
+.mainbox.closed .sidebar__logo {
+  display: none;
+}
+
 .sidebar__logo2 {
   width: 40px;
-  margin-top: 34px;
-  margin-left: 16px;
-  margin-bottom: 44px;
-  transition: all 0.3s ease-in-out;
+}
+
+.mainbox.open .sidebar__logo2 {
+  margin-left: 0;
+}
+
+.mainbox.closed .sidebar__logo2 {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .liststyle {
@@ -141,12 +157,19 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 10px;
+  padding-left: 0px;
+  overflow: hidden;
+}
+
+.mainbox.closed .liststyle {
+  justify-content: center;
+  padding-left: 0px;
 }
 
 .main-item {
   color: rgb(33, 61, 112);
   background-color: white;
+  padding-left: 8px !important;
 
   &:not(.active):hover {
     background-color: rgb(233, 246, 255);
@@ -163,9 +186,15 @@
   }
 }
 
+.mainbox.closed .main-item {
+  padding-left: 0 !important;
+  justify-content: center;
+}
+
 .sub-item {
   color: rgb(55, 75, 115);
   background-color: white;
+  padding-left: 32px !important;
 
   &:not(.active):hover {
     background-color: rgb(233, 246, 255);
@@ -185,19 +214,26 @@
 .icon {
   color: rgb(33, 61, 112) !important;
   margin-right: 8px;
-  margin-left: -12px;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mainbox.open .icon {
-  margin-left: 0;
+  margin-left: 6px;
   margin-right: 8px;
 }
 
-// Mobile: always show full icons and text
+.mainbox.closed .icon {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
 @include mx.sm {
   .mainbox .icon {
-    margin-left: 0;
-    margin-right: 8px;
+    margin-left: 4px;
+    margin-right: 2px;
   }
 }
 
@@ -208,7 +244,6 @@
 .text {
   margin-top: 10px;
   margin-bottom: 10px;
-  transition: visibility 0.3s ease-in-out;
 
   @include mx.sm {
     visibility: visible !important;
@@ -217,28 +252,32 @@
 
 .main-item-wrapper {
   margin-bottom: 4px;
+  padding-left: 0px;
+  padding-right: 0px;
+  overflow: hidden;
 }
 
 .sidebar-content {
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 110px);
   padding-bottom: 10px;
 }
 
 .sidebar_footer {
-  margin-top: 15px;
+  margin-top: 10px;
   width: 100%;
-  height: 90px;
+  height: 70px;
   background-color: #ffffff;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 15px 0;
+  padding: 10px 0;
   flex-shrink: 0;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -251,9 +290,9 @@
 }
 
 .footer__logo {
-  width: 60px;
+  width: 40px;
   height: auto;
-  transition: all 0.3s ease-in-out;
+  margin-bottom: 6px;
 }
 
 .mainbox.closed .footer__logo {
@@ -263,45 +302,32 @@
   display: block;
 }
 
-.mainbox.closed .liststyle {
-  justify-content: center;
-  padding-left: 0;
-}
-
 .mainbox.closed .sidebar_footer span {
   display: none;
   font-size: 1px;
 }
 
-.sidebar_footer span {
-  font-size: 12px;
-  color: #555;
+.footer-text {
+  font-family: "Roboto", sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: rgb(33, 61, 112);
   line-height: 1.2;
   text-align: center;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
 
   @include mx.sm {
     display: block !important;
-    font-size: 12px !important;
+    font-size: 9px !important;
   }
 }
 
 .sidebar_footer span:not(:last-child) {
-  margin-bottom: 5px;
+  margin-bottom: 2px;
 }
 
-// Mobile close button styles - add this to your existing Sidebar.scss file
-
 .mobile-close-button {
-  // Only show on mobile devices (768px and below)
-  @include mx.sm {
-    display: block;
-  }
-
-  // Hide on desktop
-  @media (min-width: 769px) {
-    display: none !important;
-  }
+  display: none !important;
 
   .MuiIconButton-root {
     width: 32px;
@@ -317,6 +343,7 @@
     }
   }
 }
+
 .desktop-sidebar-override.sidebar-drawer {
   display: block !important;
 }

@@ -1,4 +1,41 @@
-import { alpha } from "@mui/material";
+import { alpha, styled } from "@mui/material";
+import { Tabs, Tab } from "@mui/material";
+
+export const StyledTabs = styled(Tabs)(({ theme }) => ({
+  backgroundColor: "#ffffff",
+  borderRadius: "0",
+  minHeight: 48,
+  "& .MuiTabs-indicator": {
+    backgroundColor: theme.palette.primary.main,
+    height: 3,
+  },
+  "& .MuiTabs-flexContainer": {
+    paddingLeft: 0,
+    paddingRight: 0,
+  },
+}));
+
+export const StyledTab = styled(Tab)(({ theme }) => ({
+  textTransform: "uppercase",
+  fontWeight: 600,
+  fontSize: "0.875rem",
+  minHeight: 48,
+  paddingTop: 8,
+  paddingBottom: 8,
+  paddingLeft: 20,
+  paddingRight: 20,
+  color: theme.palette.text.secondary,
+  "&.Mui-selected": {
+    color: theme.palette.primary.main,
+  },
+  "&:hover": {
+    color: theme.palette.primary.main,
+    backgroundColor: "rgba(33, 61, 112, 0.04)",
+  },
+  transition: theme.transitions.create(["color", "background-color"], {
+    duration: theme.transitions.duration.standard,
+  }),
+}));
 
 export const styles = {
   mainContainer: {
@@ -6,27 +43,126 @@ export const styles = {
     height: "100vh",
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
     backgroundColor: "#fafafa",
+    overflow: "hidden",
+    minWidth: 0,
+  },
+
+  contentContainer: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    minWidth: 0,
   },
 
   headerContainer: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    flexDirection: "row",
     flexShrink: 0,
     minHeight: "72px",
-    padding: "16px 14px",
+    padding: "12px 14px",
     backgroundColor: "white",
-    borderBottom: "1px solid #e0e0e0",
     boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+    gap: "0",
+  },
+
+  headerContainerMobile: {
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    flexDirection: "column",
+    minHeight: "auto",
+    padding: "12px 14px",
+    gap: "16px",
+  },
+
+  headerContainerTablet: {
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    flexDirection: "column",
+    minHeight: "auto",
+    padding: "16px",
+    gap: "16px",
+  },
+
+  headerTitle: {
+    display: "flex",
+    alignItems: "center",
+    width: "auto",
+    justifyContent: "flex-start",
+  },
+
+  headerTitleMobile: {
+    width: "100%",
+  },
+
+  headerTitleText: {
+    fontSize: "24px",
+    fontWeight: 500,
+    color: "rgb(33, 61, 112)",
+    letterSpacing: "0.5px",
+  },
+
+  headerTitleTextMobile: {
+    fontSize: "20px",
+  },
+
+  headerTitleTextVerySmall: {
+    fontSize: "18px",
   },
 
   headerLeftSection: {
     display: "flex",
     alignItems: "center",
-    gap: 1.4,
+    gap: 1,
   },
+
+  createIconButton: {
+    backgroundColor: "rgb(33, 61, 112)",
+    color: "white",
+    width: "36px",
+    height: "36px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+      transform: "translateY(-1px)",
+    },
+    "&:disabled": {
+      backgroundColor: "#ccc",
+      boxShadow: "none",
+    },
+  },
+
+  createButtonFull: (isMobile) => ({
+    backgroundColor: "rgb(33, 61, 112)",
+    height: isMobile ? "36px" : "38px",
+    width: isMobile ? "auto" : "140px",
+    minWidth: isMobile ? "100px" : "140px",
+    padding: isMobile ? "0 16px" : "0 20px",
+    textTransform: "none",
+    fontWeight: 600,
+    fontSize: isMobile ? "12px" : "14px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+    transition: "all 0.2s ease-in-out",
+    "& .MuiButton-startIcon": {
+      marginRight: isMobile ? "4px" : "8px",
+    },
+    "&:hover": {
+      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+      transform: "translateY(-1px)",
+    },
+    "&:disabled": {
+      backgroundColor: "#ccc",
+      boxShadow: "none",
+    },
+  }),
 
   createButton: {
     backgroundColor: "rgb(33, 61, 112)",
@@ -49,27 +185,98 @@ export const styles = {
     },
   },
 
-  contentContainer: {
-    flex: 1,
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
+  tabsSection: {
+    flexShrink: 0,
+    minHeight: "48px",
     backgroundColor: "white",
   },
 
+  tabsContainer: {
+    flex: 1,
+    overflow: "hidden",
+    minWidth: 0,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  tabsStyled: {
+    "& .MuiTab-root": {
+      textTransform: "none",
+      fontWeight: 600,
+      fontSize: "13px",
+      minHeight: "56px",
+      padding: "12px 16px",
+      color: "#666",
+      transition: "all 0.2s ease-in-out",
+      "&.Mui-selected": {
+        color: "rgb(33, 61, 112)",
+        fontWeight: 700,
+      },
+      "&:hover": {
+        color: "rgb(33, 61, 112)",
+        backgroundColor: "rgba(33, 61, 112, 0.04)",
+      },
+    },
+    "& .MuiTabs-indicator": {
+      backgroundColor: "rgb(33, 61, 112)",
+      height: "3px",
+    },
+  },
+
+  tabsStyledVerySmall: {
+    "& .MuiTab-root": {
+      fontSize: "11px",
+      padding: "12px 8px",
+    },
+  },
+
+  tabPanel: {
+    height: "100%",
+    overflow: "hidden",
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  tabBadge: {
+    "& .MuiBadge-badge": {
+      fontSize: "11px",
+      minWidth: "18px",
+      height: "18px",
+      borderRadius: "50%",
+      top: -2,
+      right: -6,
+    },
+  },
+
+  tabBadgeVerySmall: {
+    "& .MuiBadge-badge": {
+      fontSize: "10px",
+      minWidth: "16px",
+      height: "16px",
+    },
+  },
+
   paginationContainer: {
-    borderTop: "1px solid #e0e0e0",
     backgroundColor: "#f8f9fa",
     flexShrink: 0,
+    display: "flex",
+    justifyContent: "center",
     "& .MuiTablePagination-root": {
-      color: "#666",
+      color: "rgb(33, 61, 112)",
       "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
         {
           fontSize: "14px",
           fontWeight: 500,
+          color: "rgb(33, 61, 112)",
         },
       "& .MuiTablePagination-select": {
         fontSize: "14px",
+        color: "rgb(33, 61, 112)",
+      },
+      "& .MuiSelect-icon": {
+        color: "rgb(33, 61, 112)",
       },
       "& .MuiIconButton-root": {
         color: "rgb(33, 61, 112)",
@@ -82,22 +289,26 @@ export const styles = {
       },
     },
     "& .MuiTablePagination-toolbar": {
+      justifyContent: "center",
       paddingLeft: "24px",
       paddingRight: "24px",
+    },
+    "& .MuiTablePagination-spacer": {
+      display: "none",
     },
   },
 
   filterDialog: {
-    borderRadius: 2,
-    minHeight: "350px",
-    width: "400px",
-    maxWidth: "400px",
+    borderRadius: 3,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
   },
 
   filterDialogTitle: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    padding: 0,
+    marginBottom: 1,
   },
 
   filterDialogTitleLeft: {
@@ -107,24 +318,23 @@ export const styles = {
   },
 
   filterIcon: {
-    color: "rgb(33, 61, 112)",
+    fontSize: 20,
+    color: "primary.main",
   },
 
   filterDialogTitleText: {
-    fontWeight: "bold",
-    color: "rgb(33, 61, 112)",
+    fontWeight: 600,
+    fontSize: "18px",
+    color: "text.primary",
   },
 
   selectAllButton: {
-    textTransform: "none",
-    minWidth: "100px",
-    height: "32px",
-    borderColor: "rgb(33, 61, 112)",
-    color: "rgb(33, 61, 112)",
-    "&:hover": {
-      borderColor: "rgb(25, 45, 84)",
-      backgroundColor: "rgba(33, 61, 112, 0.04)",
-    },
+    textTransform: "uppercase",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    padding: "4px 12px",
+    borderRadius: 2,
+    minWidth: "auto",
   },
 
   unselectAllButton: {
@@ -196,18 +406,28 @@ export const styles = {
   },
 
   cancelButton: {
-    textTransform: "none",
+    textTransform: "uppercase",
+    fontWeight: 600,
+    color: "text.secondary",
+    borderColor: "divider",
+    paddingX: 3,
+    paddingY: 1,
     borderRadius: 2,
-    minWidth: 80,
+    "&:hover": {
+      borderColor: "text.secondary",
+      backgroundColor: "action.hover",
+    },
   },
 
   applyFiltersButton: {
-    backgroundColor: "rgb(33, 61, 112)",
-    textTransform: "none",
+    textTransform: "uppercase",
+    fontWeight: 600,
+    paddingX: 3,
+    paddingY: 1,
     borderRadius: 2,
-    minWidth: 80,
+    boxShadow: "none",
     "&:hover": {
-      backgroundColor: "rgb(25, 45, 84)",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
     },
   },
 
@@ -215,25 +435,65 @@ export const styles = {
     display: "flex",
     alignItems: "center",
     gap: 1.5,
+    width: "auto",
+    justifyContent: "flex-start",
+  },
+
+  searchBarContainerMobile: {
+    width: "100%",
+    justifyContent: "flex-end",
+    gap: 1.5,
+  },
+
+  searchBarContainerTablet: {
+    width: "100%",
+    justifyContent: "flex-end",
+    gap: 1.5,
+  },
+
+  searchBarContainerVerySmall: {
+    gap: 1,
+  },
+
+  filterIconButton: (hasActiveFilters) => ({
+    width: "36px",
+    height: "36px",
+    border: `1px solid ${hasActiveFilters ? "#1976d2" : "#ccc"}`,
+    borderRadius: "8px",
+    backgroundColor: hasActiveFilters ? "rgba(25, 118, 210, 0.04)" : "white",
+    color: hasActiveFilters ? "#1976d2" : "#666",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      backgroundColor: hasActiveFilters
+        ? "rgba(25, 118, 210, 0.08)"
+        : "#f5f5f5",
+      borderColor: hasActiveFilters ? "#1976d2" : "rgb(33, 61, 112)",
+    },
+  }),
+
+  filterIconButtonIcon: {
+    fontSize: "18px",
   },
 
   filterControlLabel: (hasActiveFilters) => ({
     margin: 0,
-    border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+    border: `1px solid ${hasActiveFilters ? "#1976d2" : "#ccc"}`,
     borderRadius: "8px",
     paddingLeft: "8px",
     paddingRight: "12px",
     height: "36px",
-    backgroundColor: hasActiveFilters ? "rgba(76, 175, 80, 0.04)" : "white",
+    backgroundColor: hasActiveFilters ? "rgba(25, 118, 210, 0.04)" : "white",
     transition: "all 0.2s ease-in-out",
     "&:hover": {
-      backgroundColor: hasActiveFilters ? "rgba(76, 175, 80, 0.08)" : "#f5f5f5",
-      borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+      backgroundColor: hasActiveFilters
+        ? "rgba(25, 118, 210, 0.08)"
+        : "#f5f5f5",
+      borderColor: hasActiveFilters ? "#1976d2" : "rgb(33, 61, 112)",
     },
     "& .MuiFormControlLabel-label": {
       fontSize: "12px",
       fontWeight: 600,
-      color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+      color: hasActiveFilters ? "#1976d2" : "#666",
       letterSpacing: "0.5px",
     },
   }),
@@ -241,7 +501,10 @@ export const styles = {
   filterLabelBox: {
     display: "flex",
     alignItems: "center",
-    gap: 0.5,
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
   },
 
   filterCountChip: {
@@ -256,6 +519,7 @@ export const styles = {
   },
 
   searchTextField: {
+    flex: "0 0 auto",
     "& .MuiInputBase-input": {
       fontSize: "14px",
       "&::placeholder": {
@@ -264,9 +528,20 @@ export const styles = {
     },
   },
 
-  searchInputProps: (isLoading) => ({
+  searchTextFieldVerySmall: {
+    flex: 1,
+    "& .MuiInputBase-input": {
+      fontSize: "13px",
+      "&::placeholder": {
+        opacity: 0.7,
+      },
+    },
+  },
+
+  searchInputProps: (isLoading, isVerySmall, isMobile) => ({
     height: "36px",
-    width: "320px",
+    width: isVerySmall ? "100%" : isMobile ? "280px" : "320px",
+    minWidth: isVerySmall ? "160px" : "200px",
     backgroundColor: "white",
     transition: "all 0.2s ease-in-out",
     "& .MuiOutlinedInput-root": {
@@ -288,13 +563,14 @@ export const styles = {
     },
   }),
 
-  searchIcon: (isLoading) => ({
-    color: isLoading ? "#ccc" : "#666",
+  searchIcon: (isLoading, isVerySmall) => ({
+    color: isLoading ? "action.disabled" : "action.active",
+    fontSize: isVerySmall ? "18px" : "20px",
     marginRight: 1,
-    fontSize: "20px",
   }),
 
   searchProgress: {
+    color: "primary.main",
     marginLeft: 1,
   },
 
@@ -358,19 +634,19 @@ export const styles = {
   tableContainerStyles: {
     flex: 1,
     overflow: "auto",
-    backgroundColor: "#fafafa",
+    backgroundColor: "#white",
     "& .MuiTableCell-head": {
-      backgroundColor: "#f8f9fa",
+      backgroundColor: "white",
       fontWeight: 700,
       fontSize: "18px",
       color: "rgb(33, 61, 112)",
       textTransform: "uppercase",
       letterSpacing: "0.5px",
-      borderBottom: "2px solid #e0e0e0",
+      borderBottom: "none",
       position: "sticky",
       top: 0,
       zIndex: 10,
-      height: "48px",
+      height: "60px",
       padding: "8px 16px",
       whiteSpace: "nowrap",
     },
@@ -384,13 +660,17 @@ export const styles = {
     },
     "& .MuiTableRow-root": {
       transition: "background-color 0.2s ease-in-out",
-      "&:hover": {
-        backgroundColor: "#f8f9fa",
-        cursor: "pointer",
-        "& .MuiTableCell-root": {
-          backgroundColor: "transparent",
-        },
+    },
+    "& .MuiTableBody-root .MuiTableRow-root:hover": {
+      backgroundColor: "#f8f9fa",
+      cursor: "pointer",
+      "& .MuiTableCell-root": {
+        backgroundColor: "transparent",
       },
+    },
+    "& .MuiTableHead-root .MuiTableRow-root:hover": {
+      backgroundColor: "transparent",
+      cursor: "default",
     },
   },
 

@@ -167,6 +167,7 @@ export const sectionTitleStyles = {
   fontSize: "1rem",
   letterSpacing: "0.5px",
   textTransform: "uppercase",
+  paddingBottom: 1,
 };
 
 export const infoSectionContainerStyles = {
@@ -248,4 +249,15 @@ export const loadingContainerStyles = {
   justifyContent: "center",
   minHeight: "400px",
   gap: 2,
+};
+
+export const dateGridContainerStyles = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: 3,
+  mb: 2,
+  "@media (max-width: 900px)": {
+    gridTemplateColumns: "1fr",
+    gap: 2,
+  },
 };

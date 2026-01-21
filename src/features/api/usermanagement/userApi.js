@@ -25,8 +25,6 @@ const userApi = sedarApi
           },
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllUsers):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: response.result.data };
@@ -80,7 +78,6 @@ const userApi = sedarApi
           method: "GET",
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getShowUser):", response);
           if (response.result) {
             return {
               data: response.result.data || [],
@@ -94,6 +91,37 @@ const userApi = sedarApi
         },
         providesTags: ["users"],
       }),
+      getPendingRequests: build.query({
+        query: (params = {}) => ({
+          url: `pending-requests?pagination=${params.pagination || 1}&page=${
+            params.page || 1
+          }&per_page=${params.per_page || 10}&status=${
+            params.status || "active"
+          }&search=${params.searchQuery || ""}`,
+          method: "GET",
+        }),
+        transformResponse: (response) => {
+          if (response.result) {
+            return {
+              data: response.result.data || [],
+              totalCount:
+                response.result.total_count || response.result.total || 0,
+              currentPage: response.result.current_page,
+              lastPage: response.result.last_page,
+            };
+          }
+          return { data: [], totalCount: 0 };
+        },
+        providesTags: ["users"],
+      }),
+      updatePendingRequest: build.mutation({
+        query: ({ id, ...body }) => ({
+          url: `pending-requests/${id}`,
+          method: "PATCH",
+          body,
+        }),
+        invalidatesTags: ["users"],
+      }),
       getAllApprovers: build.query({
         query: () => ({
           url: "users",
@@ -106,8 +134,6 @@ const userApi = sedarApi
           },
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllApprovers):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: { data: response.result.data } };
@@ -142,8 +168,6 @@ const userApi = sedarApi
           },
         }),
         transformResponse: (response) => {
-          console.log("Raw API Response (getAllReceivers):", response);
-
           if (response && response.result) {
             if (response.result.data && Array.isArray(response.result.data)) {
               return { result: { data: response.result.data } };
@@ -172,11 +196,14 @@ const userApi = sedarApi
 export const {
   useGetSingleUserQuery,
   useGetEmployeeIdNumbersQuery,
+  useLazyGetAllUsersQuery,
   useGetAllUsersQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
   useGetShowUserQuery,
+  useGetPendingRequestsQuery,
+  useUpdatePendingRequestMutation,
   useGetAllApproversQuery,
   useGetAllReceiversQuery,
 } = userApi;

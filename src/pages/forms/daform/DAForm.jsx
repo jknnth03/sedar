@@ -1,28 +1,19 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Fade,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -30,10 +21,12 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "../manpowerform/FormSubmissionStyles";
-import { daFormStyles } from "./DAFormStyles";
-
-import { format, parseISO, isWithinInterval } from "date-fns";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
+import { format } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 
@@ -50,42 +43,8 @@ import {
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormForMDAProcessing from "./DAFormForMDAProcessing";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+import ExportButton from "./ExportButton";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -94,153 +53,206 @@ const TabPanel = ({ children, value, index, ...other }) => {
       hidden={value !== index}
       id={`daform-tabpanel-${index}`}
       aria-labelledby={`daform-tab-${index}`}
-      style={daFormStyles.tabPanelContainer(value, index)}
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        minWidth: 0,
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
       {...other}>
-      {value === index && <Box sx={daFormStyles.tabPanelInner}>{children}</Box>}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
 
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number.toLowerCase().includes(query) ||
-      item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query) ||
-      item.action_type.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
+const CustomSearchBar = ({
+  searchQuery,
+  setSearchQuery,
   dateFilters,
-  onDateFiltersChange,
+  onFilterClick,
+  isLoading = false,
 }) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
 
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
+  const getFilterLabel = () => {
+    if (dateFilters.startDate && dateFilters.endDate) {
+      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
+        dateFilters.endDate,
+        "MMM dd"
+      )}`;
+    }
+    if (dateFilters.startDate) {
+      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+    }
+    if (dateFilters.endDate) {
+      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+    }
+    return "FILTER";
   };
 
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
+  const iconColor = hasActiveFilters
+    ? "rgba(0, 133, 49, 1)"
+    : "rgb(33, 61, 112)";
 
-  const hasFilters = tempStartDate || tempEndDate;
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+  };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <ExportButton isLoading={isLoading} />
 
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={daFormStyles.datePickerContainer}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
+      {isVerySmall ? (
+        <IconButton
+          onClick={onFilterClick}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
+            </Box>
+          )}
+        </IconButton>
+      ) : (
+        <Tooltip title="Click here to filter by date range" arrow>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasActiveFilters}
+                onChange={onFilterClick}
+                disabled={isLoading}
+                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                size="small"
+              />
+            }
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <span>{getFilterLabel()}</span>
+              </Box>
+            }
+            sx={{
+              margin: 0,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(76, 175, 80, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(76, 175, 80, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
+          />
+        </Tooltip>
+      )}
 
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
+      <TextField
+        placeholder={isVerySmall ? "Search..." : "Search DA Form..."}
+        value={searchQuery}
+        onChange={handleSearchChange}
+        disabled={isLoading}
+        size="small"
+        InputProps={{
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: "20px",
+              }}
+            />
+          ),
+          endAdornment: isLoading && (
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+          ),
+          sx: {
+            height: "36px",
+            width: "320px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
+        }}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
+      />
+    </Box>
   );
 };
 
@@ -295,14 +307,32 @@ const DAForm = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const daCounts = {
-    forApproval: dashboardData?.result?.approval?.da_approval || 0,
-    awaitingResubmission: 0,
-    rejected: 0,
-    cancelled: 0,
-    forMDAProcessing: 0,
-    mdaInProgress: 0,
-  };
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
+
+  const daCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.da?.form || 0;
+    const requisition = dashboardData?.result?.requisition?.da || {};
+    const mda = dashboardData?.result?.requisition?.mda?.da || {};
+    const hrProcessing = dashboardData?.result?.hr_processing?.da_mda || 0;
+
+    return {
+      forApproval: approval,
+      awaitingResubmission: requisition.awaiting_resubmission || 0,
+      rejected: requisition.rejected || 0,
+      cancelled: 0,
+      forMDAProcessing: mda.pending_mda_creation || 0,
+      mdaInProgress: hrProcessing,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -447,97 +477,99 @@ const DAForm = () => {
     [createDASubmission, updateDASubmission, enqueueSnackbar, handleCloseModal]
   );
 
-  const tabsData = [
-    {
-      label: "For Approval",
-      component: (
-        <DAFormForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: daCounts.forApproval,
-    },
-    {
-      label: "Awaiting Resubmission",
-      component: (
-        <DAFormAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: daCounts.awaitingResubmission,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <DAFormRejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: daCounts.rejected,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <DAFormCancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: daCounts.cancelled,
-    },
-    {
-      label: "For MDA Processing",
-      component: (
-        <DAFormForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: daCounts.forMDAProcessing,
-    },
-    {
-      label: "MDA In Progress",
-      component: (
-        <DAFormMDAForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: daCounts.mdaInProgress,
-    },
-  ];
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <DAFormForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: daCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <DAFormAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: daCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <DAFormRejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: daCounts.rejected,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <DAFormCancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: daCounts.cancelled,
+      },
+      {
+        label: "FOR MDA PROCESSING",
+        component: (
+          <DAFormForMDAProcessing
+            key="for-mda-processing"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+      },
+      {
+        label: "MDA IN PROGRESS",
+        component: (
+          <DAFormMDAForApproval
+            key="mda-in-progress"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      daCounts,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -547,149 +579,144 @@ const DAForm = () => {
   };
 
   const isLoadingState = isLoading;
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
-
-  const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
-    }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
-    }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
-    }
-    return "FILTER";
-  };
-
-  const iconColor = hasActiveFilters
-    ? "rgba(0, 133, 49, 1)"
-    : "rgb(33, 61, 112)";
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box sx={daFormStyles.mainContainer}>
-          <Box sx={daFormStyles.innerContainer}>
-            <Box sx={daFormStyles.headerContainer(isMobile, isTablet)}>
-              <Box
-                sx={daFormStyles.headerLeftSection(
-                  isMobile,
-                  isTablet,
-                  isVerySmall
-                )}>
-                <Typography
-                  className="header"
-                  sx={daFormStyles.headerTitle(isVerySmall, isMobile)}>
-                  {isVerySmall ? "DA" : "DA Form"}
-                </Typography>
+        <Box sx={styles.mainContainer}>
+          <Box
+            sx={{
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
+            }}>
+            <Box
+              sx={{
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
+              }}>
+              <Typography
+                className="header"
+                sx={{
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
+                }}>
+                {isVerySmall ? "DA" : "DA FORM"}
+              </Typography>
 
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddNew}
-                  disabled={isLoadingState}
-                  sx={daFormStyles.createButton(isVerySmall, isLoadingState)}>
-                  {isVerySmall ? "" : "Create"}
-                </Button>
-              </Box>
-
-              <Box sx={daFormStyles.headerRightSection(isVerySmall)}>
-                {isVerySmall ? (
-                  <IconButton
-                    onClick={handleFilterClick}
-                    disabled={isLoadingState}
-                    size="small"
-                    sx={daFormStyles.filterIconButton(
-                      hasActiveFilters,
-                      iconColor
-                    )}>
-                    <CalendarTodayIcon sx={daFormStyles.filterIcon} />
-                    {hasActiveFilters && (
-                      <Box sx={daFormStyles.filterBadge}>1</Box>
-                    )}
-                  </IconButton>
-                ) : (
-                  <Tooltip title="Click here to filter by date range" arrow>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={hasActiveFilters}
-                          onChange={handleFilterClick}
-                          disabled={isLoadingState}
-                          icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
-                          checkedIcon={
-                            <CalendarTodayIcon sx={{ color: iconColor }} />
-                          }
-                          size="small"
-                        />
-                      }
-                      label={
-                        <Box sx={daFormStyles.filterLabelBox}>
-                          <span>{getFilterLabel()}</span>
-                        </Box>
-                      }
-                      sx={daFormStyles.filterCheckboxLabel(hasActiveFilters)}
-                    />
-                  </Tooltip>
-                )}
-
-                <TextField
-                  placeholder={isVerySmall ? "Search..." : "Search DA Form..."}
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  disabled={isLoadingState}
-                  size="small"
-                  InputProps={{
-                    startAdornment: (
-                      <SearchIcon
-                        sx={daFormStyles.searchIcon(
-                          isLoadingState,
-                          isVerySmall
-                        )}
-                      />
-                    ),
-                    endAdornment: isLoadingState && (
-                      <CircularProgress
-                        size={16}
-                        sx={daFormStyles.searchLoader}
-                      />
-                    ),
-                    sx: daFormStyles.searchInputProps(
-                      isLoadingState,
-                      isVerySmall
-                    ),
-                  }}
-                  sx={daFormStyles.searchField(isVerySmall)}
-                />
-              </Box>
+              <Fade in={!isLoading}>
+                <Box>
+                  {isVerySmall ? (
+                    <IconButton
+                      onClick={handleAddNew}
+                      disabled={isLoading}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        color: "white",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      <AddIcon sx={{ fontSize: "18px" }} />
+                    </IconButton>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleAddNew}
+                      startIcon={<AddIcon />}
+                      disabled={isLoading}
+                      sx={{
+                        backgroundColor: "rgb(33, 61, 112)",
+                        height: isMobile ? "36px" : "38px",
+                        width: isMobile ? "auto" : "140px",
+                        minWidth: isMobile ? "100px" : "140px",
+                        padding: isMobile ? "0 16px" : "0 20px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "12px" : "14px",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+                        transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          marginRight: isMobile ? "4px" : "8px",
+                        },
+                        "&:hover": {
+                          backgroundColor: "rgb(25, 45, 84)",
+                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+                          transform: "translateY(-1px)",
+                        },
+                        "&:disabled": {
+                          backgroundColor: "#ccc",
+                          boxShadow: "none",
+                        },
+                      }}>
+                      CREATE
+                    </Button>
+                  )}
+                </Box>
+              </Fade>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={dateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="DA Form submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
                     tab.badgeCount > 0 ? (
                       <Badge
-                        variant="dot"
+                        badgeContent={tab.badgeCount}
                         color="error"
-                        anchorOrigin={{
-                          vertical: "top",
-                          horizontal: "right",
-                        }}
-                        sx={daFormStyles.tabBadge}>
-                        {tab.label}
+                        sx={{
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
+                        }}>
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
+                              .replace("FOR MDA PROCESSING", "MDA PROC")
+                              .replace("MDA IN PROGRESS", "MDA PROG")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
+                        .replace("FOR MDA PROCESSING", "MDA PROC")
+                        .replace("MDA IN PROGRESS", "MDA PROG")
                     ) : (
                       tab.label
                     )
@@ -698,14 +725,14 @@ const DAForm = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box sx={daFormStyles.contentContainer}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -713,6 +740,7 @@ const DAForm = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <DAFormModal

@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const daMdaApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -16,6 +17,7 @@ const daMdaApprovalApi = sedarApi
             search,
             approval_status = "pending",
             type = "da",
+            stage = "initial",
             ...otherParams
           } = params;
 
@@ -27,6 +29,7 @@ const daMdaApprovalApi = sedarApi
           queryParams.append("status", status);
           queryParams.append("approval_status", approval_status);
           queryParams.append("type", type);
+          queryParams.append("stage", stage);
 
           if (search && search.trim() !== "") {
             queryParams.append("search", search.trim());
@@ -55,7 +58,10 @@ const daMdaApprovalApi = sedarApi
           url: `me/mda-approvals/${id}`,
           method: "GET",
         }),
-        providesTags: (result, error, id) => [{ type: "daMdaApprovals", id }],
+        providesTags: (result, error, id) => [
+          { type: "daMdaApprovals", id },
+          "daMdaApprovals",
+        ],
       }),
       approveDaMdaSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -70,6 +76,16 @@ const daMdaApprovalApi = sedarApi
           { type: "daMdaApprovals", id },
           "daMdaApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve DA MDA submission:", err);
+          }
+        },
       }),
       rejectDaMdaSubmission: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -84,6 +100,16 @@ const daMdaApprovalApi = sedarApi
           { type: "daMdaApprovals", id },
           "daMdaApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject DA MDA submission:", err);
+          }
+        },
       }),
     }),
   });

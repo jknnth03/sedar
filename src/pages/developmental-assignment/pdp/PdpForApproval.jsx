@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -7,22 +7,14 @@ import {
   useGetPdpListQuery,
   useSubmitPdpMutation,
 } from "../../../features/api/da-task/pdpApi";
+import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import PdpTable from "./PdpTable";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 
 const PdpForApproval = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  setQueryParams,
-  currentParams,
-  data,
-  isLoading: externalIsLoading,
-  page: externalPage,
-  rowsPerPage: externalRowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
   onRowClick,
   onApprove: onApproveFromParent,
   onReject: onRejectFromParent,
@@ -30,14 +22,14 @@ const PdpForApproval = ({
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [page, setPage] = useState(
-    externalPage || parseInt(currentParams?.page) || 1
-  );
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    externalRowsPerPage || parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10
   );
+
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -53,24 +45,27 @@ const PdpForApproval = ({
     },
   });
 
-  useEffect(() => {
-    if (externalPage !== undefined) {
-      setPage(externalPage);
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "FOR_APPROVAL",
+      search: searchQuery || "",
+    };
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
     }
-  }, [externalPage]);
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    if (externalRowsPerPage !== undefined) {
-      setRowsPerPage(externalRowsPerPage);
-    }
-  }, [externalRowsPerPage]);
-
-  useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
-    if (onPageChange) {
-      onPageChange(newPage);
-    }
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -79,90 +74,28 @@ const PdpForApproval = ({
     isFetching,
     refetch,
     error,
-  } = useGetPdpListQuery(
-    {
-      pagination: 1,
-      page: page,
-      per_page: rowsPerPage,
-      status: "FOR_APPROVAL",
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: false,
-    }
-  );
+  } = useGetPdpListQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
 
   const [submitPdp] = useSubmitPdpMutation();
 
   const submissionsData = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return [];
+    if (!taskData?.result) return [];
 
-    const result = dataSource.result;
+    const result = taskData.result;
 
     if (result.data && Array.isArray(result.data)) {
-      return result.data.filter(
-        (item) =>
-          item.status === "FOR_APPROVAL" ||
-          item.status === "PENDING_APPROVAL" ||
-          item.status === "PENDING_VALIDATION"
-      );
+      return result.data;
     }
 
     if (Array.isArray(result)) {
-      return result.filter(
-        (item) =>
-          item.status === "FOR_APPROVAL" ||
-          item.status === "PENDING_APPROVAL" ||
-          item.status === "PENDING_VALIDATION"
-      );
-    }
-
-    if (
-      result.status === "FOR_APPROVAL" ||
-      result.status === "PENDING_APPROVAL" ||
-      result.status === "PENDING_VALIDATION"
-    ) {
-      return [result];
+      return result;
     }
 
     return [];
-  }, [data, taskData]);
-
-  const filteredSubmissions = useMemo(() => {
-    let filtered = submissionsData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const totalCount = useMemo(() => {
-    const dataSource = data || taskData;
-    if (!dataSource?.result) return 0;
-
-    if (dataSource.result.total !== undefined) {
-      return dataSource.result.total;
-    }
-
-    return filteredSubmissions.length;
-  }, [data, taskData, filteredSubmissions]);
+  }, [taskData]);
 
   const handleRowClick = useCallback(
     (submission) => {
@@ -176,7 +109,6 @@ const PdpForApproval = ({
   const handleViewSubmission = useCallback(
     (submission) => {
       setMenuAnchor({});
-      setSelectedRowForMenu(null);
       if (onRowClick) {
         onRowClick(submission);
       }
@@ -186,9 +118,7 @@ const PdpForApproval = ({
 
   const handleApproveSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("approve");
@@ -200,14 +130,12 @@ const PdpForApproval = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar]
   );
 
   const handleRejectSubmission = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsData.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("reject");
@@ -219,7 +147,7 @@ const PdpForApproval = ({
         });
       }
     },
-    [filteredSubmissions, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar]
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -229,25 +157,20 @@ const PdpForApproval = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
     (event, newPage) => {
       const targetPage = newPage + 1;
       setPage(targetPage);
-      if (onPageChange) {
-        onPageChange(targetPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
@@ -255,7 +178,7 @@ const PdpForApproval = ({
         );
       }
     },
-    [onPageChange, setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, queryParams]
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -264,16 +187,10 @@ const PdpForApproval = ({
       const newPage = 1;
       setRowsPerPage(newRowsPerPage);
       setPage(newPage);
-      if (onRowsPerPageChange) {
-        onRowsPerPageChange(newRowsPerPage);
-      }
-      if (onPageChange) {
-        onPageChange(newPage);
-      }
       if (setQueryParams) {
         setQueryParams(
           {
-            ...currentParams,
+            ...queryParams,
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
@@ -281,7 +198,7 @@ const PdpForApproval = ({
         );
       }
     },
-    [onPageChange, onRowsPerPageChange, setQueryParams, currentParams]
+    [setQueryParams, queryParams]
   );
 
   const handleActionConfirm = async () => {
@@ -347,100 +264,56 @@ const PdpForApproval = ({
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
-  const isLoadingState =
-    externalIsLoading !== undefined
-      ? externalIsLoading
-      : queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching || isLoading;
+
+  const totalCount = taskData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <PdpTable
-            submissionsList={filteredSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            handleViewSubmission={handleViewSubmission}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            selectedFilters={[]}
-            showArchived={false}
-            hideStatusColumn={false}
-            forApproval={true}
-            onApprove={handleApproveSubmission}
-            onReject={handleRejectSubmission}
-          />
+        <PdpTable
+          submissionsList={submissionsData}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          handleViewSubmission={handleViewSubmission}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          selectedFilters={[]}
+          showArchived={false}
+          hideStatusColumn={false}
+          forApproval={true}
+          onApprove={handleApproveSubmission}
+          onReject={handleRejectSubmission}
+        />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isLoading}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
-          module="PDP Submission"
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+        module="PDP Submission"
+      />
     </FormProvider>
   );
 };

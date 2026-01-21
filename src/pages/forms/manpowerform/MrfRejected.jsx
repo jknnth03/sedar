@@ -1,30 +1,28 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { styles } from "../manpowerform/FormSubmissionStyles";
 import {
   useGetMrfSubmissionsQuery,
   useCreateMrfSubmissionMutation,
   useUpdateMrfSubmissionMutation,
   useGetSingleMrfSubmissionQuery,
   useResubmitMrfSubmissionMutation,
-  useCancelMrfSubmissionMutation,
 } from "../../../features/api/forms/mrfApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const MrfRejected = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
   setQueryParams,
   currentParams,
+  onCancel,
 }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
@@ -36,7 +34,6 @@ const MrfRejected = ({
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -62,19 +59,29 @@ const MrfRejected = ({
     },
   });
 
-  const queryParams = useMemo(() => {
-    return {
-      page: 1,
-      per_page: 10,
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      page: page,
+      per_page: rowsPerPage,
       status: "active",
-      pagination: true,
+      pagination: 1,
       approval_status: "REJECTED",
+      search: searchQuery || "",
     };
-  }, []);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -83,10 +90,12 @@ const MrfRejected = ({
     isFetching,
     refetch,
     error,
-  } = useGetMrfSubmissionsQuery(queryParams, {
+  } = useGetMrfSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const {
     data: submissionDetails,
@@ -100,52 +109,23 @@ const MrfRejected = ({
   const [createMrfSubmission] = useCreateMrfSubmissionMutation();
   const [updateMrfSubmission] = useUpdateMrfSubmissionMutation();
   const [resubmitMrfSubmission] = useResubmitMrfSubmissionMutation();
-  const [cancelMrfSubmission] = useCancelMrfSubmissionMutation();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = submissionsData?.result?.total || 0;
 
   const handleRowClick = useCallback((submission) => {
     setModalMode("view");
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalOpen(true);
   }, []);
 
   const handleUpdateSubmission = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalMode("edit");
     setModalOpen(true);
   }, []);
@@ -153,29 +133,13 @@ const MrfRejected = ({
   const handleResubmitSubmission = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalMode("resubmit");
     setModalOpen(true);
   }, []);
 
-  const handleCancelSubmission = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
@@ -230,6 +194,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } catch (error) {
         const errorMessage =
@@ -243,6 +208,7 @@ const MrfRejected = ({
     },
     [
       refetch,
+      refetchDashboard,
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
@@ -258,12 +224,10 @@ const MrfRejected = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -309,25 +273,22 @@ const MrfRejected = ({
   }, []);
 
   const handleActionConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelMrfSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("MRF submission cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (confirmAction === "create" && pendingFormData) {
+      if (confirmAction === "create" && pendingFormData) {
         await createMrfSubmission(pendingFormData).unwrap();
+
         enqueueSnackbar("MRF submission created successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } else if (
         confirmAction === "update" &&
@@ -336,7 +297,7 @@ const MrfRejected = ({
       ) {
         await updateMrfSubmission({
           id: selectedSubmissionForAction.id,
-          data: pendingFormData,
+          body: pendingFormData,
         }).unwrap();
 
         enqueueSnackbar("MRF submission updated successfully!", {
@@ -344,6 +305,7 @@ const MrfRejected = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } else if (
         confirmAction === "resubmit" &&
@@ -354,11 +316,13 @@ const MrfRejected = ({
           id: selectedSubmissionForAction.id,
           data: pendingFormData,
         }).unwrap();
+
         enqueueSnackbar("MRF submission resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
         if (modalSuccessHandler) {
           modalSuccessHandler();
@@ -389,10 +353,10 @@ const MrfRejected = ({
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
+    const name =
       selectedSubmissionForAction?.reference_number ||
       "Manpower Requisition Form";
-    return submissionForAction;
+    return name;
   }, [selectedSubmissionForAction]);
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -401,100 +365,58 @@ const MrfRejected = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <MrfTable
-            submissionsList={paginatedSubmissions}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            hideActions={false}
-            onCancel={handleCancelSubmission}
-            onUpdate={handleUpdateSubmission}
-            onResubmit={handleResubmitSubmission}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <FormSubmissionModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          mode={modalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails?.result || submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onSave={handleModalSave}
-          onResubmit={handleModalSave}
-          onRefreshDetails={handleRefreshDetails}
-          onSuccessfulSave={handleModalSuccessCallback}
+        <MrfTable
+          submissionsList={filteredSubmissions}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          hideActions={false}
+          onCancel={handleCancelSubmission}
+          onUpdate={handleUpdateSubmission}
+          onResubmit={handleResubmitSubmission}
+          refetch={refetch}
         />
 
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isLoading}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <FormSubmissionModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails?.result || submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onSave={handleModalSave}
+        onResubmit={handleModalSave}
+        onRefreshDetails={handleRefreshDetails}
+        onSuccessfulSave={handleModalSuccessCallback}
+      />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+      />
     </FormProvider>
   );
 };

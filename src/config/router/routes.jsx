@@ -34,8 +34,8 @@ import EMPLOYEEINFORMATION from "../../pages/employees/EmployeeInformation.jsx";
 import ONERDF from "../../pages/masterlist/one-rdf/oneRdf.jsx";
 import ApprovalFlow from "../../pages/approver/ApprovalFlow.jsx";
 import ApprovalForm from "../../pages/approver/ApprovalForm.jsx";
-import SubmissionApproval from "../../pages/approvals/submissionApproval/SubmissionApproval.jsx";
-import PendingForms from "../../pages/receiving/PendingForms.jsx";
+import SubmissionApproval from "../../pages/approvals/mrfApproval/SubmissionApproval.jsx";
+import MrfReceiving from "../../pages/receiving/mrf/MrfReceiving.jsx";
 import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistration.jsx";
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
@@ -66,6 +66,24 @@ import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
 import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
 import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
+import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
+import Redirect from "../../pages/login/Redirect.jsx";
+import CatOneTemplate from "../../pages/assessment-templates/CatOneTemplate.jsx";
+import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx";
+import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
+import DaRecommendationApproval from "../../pages/approvals/da-recommendation/DaRecommendationApproval.jsx";
+import EVALUATIONFORM from "../../pages/forms/evaluation/EvaluationForm.jsx";
+import MDARecommendation from "../../pages/forms/mdarecommendation/MDARecommendation.jsx";
+import MdaRecommendationApproval from "../../pages/approvals/mdaRecommendation/MDARecommendationApproval.jsx";
+import EvaluationApproval from "../../pages/approvals/evaluationApproval/EvaluationApproval.jsx";
+import EvaluationRecommendation from "../../pages/forms/evaluationRecommendation/EvaluationRecommendation.jsx";
+import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
+import MDAEvaluationRecommendation from "../../pages/forms/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
+import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
+import BiAnnualPerformance from "../../pages/forms/biAnnualPerformance/BiAnnualPerformance.jsx";
+import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.jsx";
+import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualApproval.jsx";
+import Nationalities from "../../pages/extras/Nationalities.jsx";
 
 export const ROUTES = [
   {
@@ -77,6 +95,11 @@ export const ROUTES = [
     path: CONSTANT.PAGES.LOGIN.path,
     element: <Login />,
     id: "LOGIN",
+  },
+  {
+    path: "/redirect",
+    element: <Redirect />,
+    id: "REDIRECT",
   },
   {
     path: CONSTANT.PAGES.CHANGEPASS.path,
@@ -129,6 +152,42 @@ export const ROUTES = [
         },
       },
       {
+        id: "ASSESSMENTTEMPLATES.CATONETEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.CATONETEMPLATE.path}`,
+        element: <CatOneTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.CATONETEMPLATE.permissionId,
+        },
+      },
+      {
+        id: "ASSESSMENTTEMPLATES.CATTWOTEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.CATTWOTEMPLATE.path}`,
+        element: <CatTwoTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.CATTWOTEMPLATE.permissionId,
+        },
+      },
+      {
+        id: "ASSESSMENTTEMPLATES.PDPTEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.PDPTEMPLATE.path}`,
+        element: <PdpTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.PDPTEMPLATE.permissionId,
+        },
+      },
+      {
+        id: "ASSESSMENTTEMPLATES.BIANNUALTEMPLATE",
+        path: `${MODULES.ASSESSMENTTEMPLATES.path}/${MODULES.ASSESSMENTTEMPLATES.children.BIANNUALTEMPLATE.path}`,
+        element: <BiAnnualTemplate />,
+        handle: {
+          permission:
+            MODULES.ASSESSMENTTEMPLATES.children.BIANNUALTEMPLATE.permissionId,
+        },
+      },
+      {
         id: "REQUEST.MRFMAINCONTAINER",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MRFMAINCONTAINER.path}`,
         element: <MrfMainContainer />,
@@ -178,11 +237,53 @@ export const ROUTES = [
         },
       },
       {
+        id: "REQUEST.MDARECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDARECOMMENDATION.path}`,
+        element: <MDARecommendation />,
+        handle: {
+          permission: MODULES.REQUEST.children.MDARECOMMENDATION.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.MDAEVALUATIONRECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDAEVALUATIONRECOMMENDATION.path}`,
+        element: <MDAEvaluationRecommendation />,
+        handle: {
+          permission:
+            MODULES.REQUEST.children.MDAEVALUATIONRECOMMENDATION.permissionId,
+        },
+      },
+      {
         id: "REQUEST.PENDINGREGISTRATION",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.PENDINGREGISTRATION.path}`,
         element: <PENDINGREGISTRATION />,
         handle: {
           permission: MODULES.REQUEST.children.PENDINGREGISTRATION.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.EVALUATIONFORM",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.EVALUATIONFORM.path}`,
+        element: <EVALUATIONFORM />,
+        handle: {
+          permission: MODULES.REQUEST.children.EVALUATIONFORM.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.EVALUATIONRECOMMENDATION",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.path}`,
+        element: <EvaluationRecommendation />,
+        handle: {
+          permission:
+            MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.permissionId,
+        },
+      },
+      {
+        id: "REQUEST.BIANNUALPERFORMANCE",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.BIANNUALPERFORMANCE.path}`,
+        element: <BiAnnualPerformance />,
+        handle: {
+          permission: MODULES.REQUEST.children.BIANNUALPERFORMANCE.permissionId,
         },
       },
       {
@@ -280,14 +381,60 @@ export const ROUTES = [
           permission: MODULES.APPROVING.children.DAFORMAPPROVAL.permissionId,
         },
       },
-      // {
-      //   id: "APPROVING.DARECOMMENDATION",
-      //   path: `${MODULES.APPROVING.path}/darecommendation`,
-      //   element: <DARecommendation />,
-      //   handle: {
-      //     permission: "APPROVING.DARECOMMENDATION",
-      //   },
-      // },
+      {
+        id: "APPROVING.DARECOMMENDATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.path}`,
+        element: <DaRecommendationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.EVALUATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATIONAPPROVAL.path}`,
+        element: <EvaluationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.EVALUATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.EVALUATIONRECOMMENDATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL.path}`,
+        element: <EvaluationRecommendationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL
+              .permissionId,
+        },
+      },
+      {
+        id: "APPROVING.MDAEVALUATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDAEVALUATIONAPPROVAL.path}`,
+        element: <MDAEvaluationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.MDAEVALUATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.MDARECOMMENDATIONAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.path}`,
+        element: <MdaRecommendationApproval />,
+        handle: {
+          permission:
+            MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.BIANNUALAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.BIANNUALAPPROVAL.path}`,
+        element: <BiAnnualApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.BIANNUALAPPROVAL.permissionId,
+        },
+      },
       {
         id: "APPROVING.CATONEAPPROVAL",
         path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.CATONEAPPROVAL.path}`,
@@ -315,9 +462,17 @@ export const ROUTES = [
       {
         id: "RECEIVING.PENDINGFORMS",
         path: `${MODULES.RECEIVING.path}/${MODULES.RECEIVING.children.PENDINGFORMS.path}`,
-        element: <PendingForms />,
+        element: <MrfReceiving />,
         handle: {
           permission: MODULES.RECEIVING.children.PENDINGFORMS.permissionId,
+        },
+      },
+      {
+        id: "RECEIVING.DAFORMRECEIVING",
+        path: `${MODULES.RECEIVING.path}/${MODULES.RECEIVING.children.DAFORMRECEIVING.path}`,
+        element: <DaFormReceiving />,
+        handle: {
+          permission: MODULES.RECEIVING.children.DAFORMRECEIVING.permissionId,
         },
       },
       {
@@ -465,6 +620,14 @@ export const ROUTES = [
         element: <HonorTitles />,
         handle: {
           permission: MODULES.EXTRAS.children.HONORTITLES.permissionId,
+        },
+      },
+      {
+        id: "EXTRAS.NATIONALITIES",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.NATIONALITIES.path}`,
+        element: <Nationalities />,
+        handle: {
+          permission: MODULES.EXTRAS.children.NATIONALITIES.permissionId,
         },
       },
       {

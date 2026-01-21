@@ -1,28 +1,18 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
@@ -30,55 +20,25 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../forms/manpowerform/FormSubmissionStyles";
+import {
   useSaveCatTwoAsDraftMutation,
   useSubmitCatTwoMutation,
 } from "../../../features/api/da-task/catTwoApi";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 import CatTwoForAssessment from "./CatTwoForAssessment";
 import CatTwoForSubmission from "./CatTwoForSubmission";
 import CatTwoForApproval from "./CatTwoForApproval";
 import CatTwoReturned from "./CatTwoReturned";
 import CatTwoApproved from "./CatTwoApproved";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -89,167 +49,14 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`cattwo-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number?.toLowerCase().includes(query) ||
-      item.employee_name?.toLowerCase().includes(query) ||
-      item.employee_code?.toLowerCase().includes(query) ||
-      item.status?.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -261,20 +68,17 @@ const CustomSearchBar = ({
   isLoading = false,
 }) => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
+  const hasActiveFilters = dateFilters.start_date || dateFilters.end_date;
 
   const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
+    if (dateFilters.start_date && dateFilters.end_date) {
+      return `${dateFilters.start_date} - ${dateFilters.end_date}`;
     }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+    if (dateFilters.start_date) {
+      return `From ${dateFilters.start_date}`;
     }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+    if (dateFilters.end_date) {
+      return `Until ${dateFilters.end_date}`;
     }
     return "FILTER";
   };
@@ -289,12 +93,7 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: isVerySmall ? 1 : 1.5,
-      }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
@@ -358,42 +157,31 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
             sx={{
               margin: 0,
-              border: `1px solid ${
-                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-              }`,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
               borderRadius: "8px",
               paddingLeft: "8px",
               paddingRight: "12px",
               height: "36px",
               backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.04)"
+                ? "rgba(76, 175, 80, 0.04)"
                 : "white",
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 backgroundColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 0.08)"
+                  ? "rgba(76, 175, 80, 0.08)"
                   : "#f5f5f5",
-                borderColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
               },
               "& .MuiFormControlLabel-label": {
                 fontSize: "12px",
                 fontWeight: 600,
-                color: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
                 letterSpacing: "0.5px",
               },
             }}
@@ -413,20 +201,16 @@ const CustomSearchBar = ({
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
+                fontSize: "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
-            <CircularProgress
-              size={16}
-              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
-            />
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
+            width: "320px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -449,9 +233,8 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
+            fontSize: "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -500,11 +283,26 @@ const CatTwo = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [modalMode, setModalMode] = useState("create");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [confirmItemName, setConfirmItemName] = useState("");
 
   const [saveCatTwoAsDraft] = useSaveCatTwoAsDraftMutation();
   const [submitCatTwo] = useSubmitCatTwoMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -558,75 +356,145 @@ const CatTwo = () => {
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedEntry(null);
+    setPendingFormData(null);
+    setConfirmAction(null);
   }, []);
 
-  const handleModalSave = useCallback(
-    async (formData, mode, entryId) => {
-      try {
-        await submitCatTwo({
-          taskId: entryId,
-          ...formData,
-        }).unwrap();
-        enqueueSnackbar("CAT 2 submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to submit CAT 2. Please try again.";
+  const handleModalSave = useCallback(async (formData, mode, entryId) => {
+    setPendingFormData({ formData, mode, entryId });
+    setConfirmAction("submit");
+    setConfirmOpen(true);
+    return false;
+  }, []);
 
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
+  const handleSaveAsDraft = useCallback(async (data, entryId) => {
+    setPendingFormData({ data, entryId });
+    setConfirmAction("draft");
+    setConfirmOpen(true);
+    return false;
+  }, []);
 
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-        return false;
-      }
+  const handleConfirmationRequest = useCallback(
+    (action, itemName, formData) => {
+      setConfirmAction(action);
+      setConfirmItemName(itemName);
+      setPendingFormData(formData);
+      setConfirmOpen(true);
     },
-    [submitCatTwo, enqueueSnackbar, handleRefreshDetails]
+    []
   );
 
-  const handleSaveAsDraft = useCallback(
-    async (data, entryId) => {
-      try {
+  const handleActionConfirm = async () => {
+    if (!confirmAction || !pendingFormData) return;
+
+    setIsLoading(true);
+
+    try {
+      if (confirmAction === "draft") {
         await saveCatTwoAsDraft({
-          taskId: entryId,
-          ...data,
+          taskId: pendingFormData.entryId || pendingFormData.taskId,
+          ...(pendingFormData.data || pendingFormData.formData),
         }).unwrap();
         enqueueSnackbar("CAT 2 saved as draft successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        handleRefreshDetails();
-        setModalOpen(false);
-        setSelectedEntry(null);
-        return true;
-      } catch (error) {
-        let errorMessage = "Failed to save draft. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
+      } else if (confirmAction === "submit") {
+        await submitCatTwo({
+          taskId: pendingFormData.entryId || pendingFormData.taskId,
+          ...(pendingFormData.data || pendingFormData.formData),
+        }).unwrap();
+        enqueueSnackbar("CAT 2 submitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
         });
-        return false;
+      } else if (confirmAction === "update") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 updated successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "approve") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 approved successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "reject") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 rejected successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "resubmit") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...(pendingFormData.data || pendingFormData.formData),
+        }).unwrap();
+        enqueueSnackbar("CAT 2 resubmitted successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "cancel") {
+        enqueueSnackbar("CAT 2 cancelled successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+      } else if (confirmAction === "assess") {
+        await submitCatTwo({
+          taskId: pendingFormData.taskId,
+          ...pendingFormData.data,
+        }).unwrap();
+        enqueueSnackbar("CAT 2 assessed successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
       }
-    },
-    [saveCatTwoAsDraft, enqueueSnackbar, handleRefreshDetails]
-  );
+
+      handleRefreshDetails();
+      setModalOpen(false);
+      setSelectedEntry(null);
+
+      if (pendingFormData.onSuccess) {
+        pendingFormData.onSuccess();
+      }
+    } catch (error) {
+      let errorMessage = `Failed to ${confirmAction}. Please try again.`;
+
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+    } finally {
+      setConfirmOpen(false);
+      setPendingFormData(null);
+      setConfirmAction(null);
+      setConfirmItemName("");
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setPendingFormData(null);
+    setConfirmAction(null);
+    setConfirmItemName("");
+  }, []);
 
   const handleResubmit = useCallback(
     async (entryId) => {
@@ -682,88 +550,97 @@ const CatTwo = () => {
     [enqueueSnackbar, handleRefreshDetails]
   );
 
-  const tabsData = [
-    {
-      label: "For Assessment",
-      component: (
-        <CatTwoForAssessment
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "For Submission",
-      component: (
-        <CatTwoForSubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "For Approval",
-      component: (
-        <CatTwoForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Returned",
-      component: (
-        <CatTwoReturned
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-    {
-      label: "Approved",
-      component: (
-        <CatTwoApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: null,
-    },
-  ];
+  const getSubmissionDisplayName = useCallback(() => {
+    if (confirmItemName) return confirmItemName;
+    return selectedEntry?.reference_number || "CAT 2 Submission";
+  }, [selectedEntry, confirmItemName]);
+
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR ASSESSMENT",
+        component: (
+          <CatTwoForAssessment
+            key="for-assessment"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onConfirmationRequest={handleConfirmationRequest}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "FOR SUBMISSION",
+        component: (
+          <CatTwoForSubmission
+            key="for-submission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onConfirmationRequest={handleConfirmationRequest}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <CatTwoForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onConfirmationRequest={handleConfirmationRequest}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "RETURNED",
+        component: (
+          <CatTwoReturned
+            key="returned"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onConfirmationRequest={handleConfirmationRequest}
+          />
+        ),
+        badgeCount: 0,
+      },
+      {
+        label: "APPROVED",
+        component: (
+          <CatTwoApproved
+            key="approved"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            onCancel={handleCancel}
+            onRowClick={handleRowClick}
+            onConfirmationRequest={handleConfirmationRequest}
+          />
+        ),
+        badgeCount: 0,
+      },
+    ],
+    [
+      debouncedSearchQuery,
+      apiDateFilters,
+      currentParams,
+      handleCancel,
+      handleRowClick,
+      handleConfirmationRequest,
+    ]
+  );
 
   const a11yProps = (index) => {
     return {
@@ -777,83 +654,62 @@ const CatTwo = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
             <Box
               sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
               <Typography
                 className="header"
                 sx={{
-                  fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                  fontWeight: 500,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
                 }}>
                 CAT 2
               </Typography>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={apiDateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="CAT 2 tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount ? (
+                    tab.badgeCount > 0 ? (
                       <Badge
                         badgeContent={tab.badgeCount}
                         color="error"
                         sx={{
-                          "& .MuiBadge-badge": {
-                            fontSize: "0.75rem",
-                            minWidth: 18,
-                            height: 18,
-                          },
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
                         {tab.label}
                       </Badge>
@@ -865,21 +721,14 @@ const CatTwo = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -887,6 +736,7 @@ const CatTwo = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
+            styles={styles}
           />
 
           <CatTwoModal
@@ -900,6 +750,16 @@ const CatTwo = () => {
             mode={modalMode}
             onModeChange={setModalMode}
             onRefreshDetails={handleRefreshDetails}
+          />
+
+          <ConfirmationDialog
+            open={confirmOpen}
+            onClose={handleConfirmationCancel}
+            onConfirm={handleActionConfirm}
+            isLoading={isLoading}
+            action={confirmAction}
+            itemName={getSubmissionDisplayName()}
+            module="CAT 2 Assessment"
           />
         </Box>
       </FormProvider>

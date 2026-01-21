@@ -171,16 +171,15 @@ const DataChangeModal = ({
 
   const shouldShowResubmitButton = () => {
     const status = selectedEntry?.result?.status;
-    return (
-      status !== "COMPLETED" &&
-      status !== "CANCELLED" &&
-      status !== "APPROVED" &&
-      status !== "PENDING MDA CREATION"
-    );
+    return currentMode === "view" && status === "AWAITING RESUBMISSION";
   };
 
   const shouldShowCreateMDAButton = () => {
     return selectedEntry?.result?.status === "PENDING MDA CREATION";
+  };
+
+  const shouldEnableCreateMDAButton = () => {
+    return selectedEntry?.result?.actions?.can_create_mda === true;
   };
 
   const shouldShowPrintButton = () => {
@@ -393,6 +392,7 @@ const DataChangeModal = ({
         movement_type_id: null,
         effective_date: null,
         to_position_id: null,
+        approved_mrf_id: null,
         to_job_rate: null,
         justification: "",
         remarks: "",
@@ -413,6 +413,7 @@ const DataChangeModal = ({
       const submittable = selectedEntry.result?.submittable;
       const submittedBy = selectedEntry.result?.submitted_by;
       const employee = selectedEntry.result?.employee || submittable?.employee;
+      const mrfDetails = selectedEntry.result?.mrf_details || {};
 
       if (submittable) {
         const employeeInfo = employee || submittedBy || {};
@@ -456,6 +457,16 @@ const DataChangeModal = ({
                 name: submittable.to_position.title?.name || "Unknown Position",
               }
             : null,
+          approved_mrf_id:
+            submittable.approved_mrf || mrfDetails.id
+              ? {
+                  id: submittable.approved_mrf?.id || mrfDetails.id,
+                  submission_title:
+                    submittable.approved_mrf?.submission_title ||
+                    mrfDetails.linked_mrf_title ||
+                    "",
+                }
+              : null,
           to_job_rate: submittable.to_job_rate || "",
           justification: submittable.justification || "",
           remarks: submittable.remarks || "",
@@ -641,17 +652,23 @@ const DataChangeModal = ({
                 <Button
                   onClick={handleCreateMDAClick}
                   variant="contained"
-                  disabled={isProcessing}
+                  disabled={!shouldEnableCreateMDAButton() || isProcessing}
                   startIcon={
                     isProcessing ? <CircularProgress size={16} /> : <AddIcon />
                   }
                   sx={{
-                    backgroundColor: "#4CAF50",
+                    backgroundColor:
+                      shouldEnableCreateMDAButton() && !isProcessing
+                        ? "#4CAF50"
+                        : "rgba(76, 175, 80, 0.3)",
                     color: "white",
                     fontWeight: 600,
                     textTransform: "uppercase",
                     "&:hover": {
-                      backgroundColor: "#45a049",
+                      backgroundColor:
+                        shouldEnableCreateMDAButton() && !isProcessing
+                          ? "#45a049"
+                          : "rgba(76, 175, 80, 0.3)",
                     },
                     "&:disabled": {
                       backgroundColor: "rgba(76, 175, 80, 0.3)",

@@ -1,11 +1,5 @@
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -17,17 +11,10 @@ import {
 import MDAForApprovalTable from "./MDAForApprovalTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDAFormModal from "../../../components/modal/form/MDAForm/MDAFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDAAwaitingResubmission = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-}) => {
+const MDAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -44,26 +31,32 @@ const MDAAwaitingResubmission = ({
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
 
-  const cancelInProgressRef = useRef(false);
-
   const methods = useForm({
     defaultValues: {},
   });
 
   const [updateMdaSubmission] = useUpdateMdaMutation();
   const [resubmitMdaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelMdaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
       approval_status: "AWAITING RESUBMISSION",
-      pagination: true,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -89,8 +82,20 @@ const MDAAwaitingResubmission = ({
     refetchOnMountOrArgChange: true,
   });
 
-  const submissionsList = useMemo(() => {
-    return submissionsData?.result?.data || [];
+  const filteredSubmissions = useMemo(() => {
+    if (!submissionsData?.result) return [];
+
+    const result = submissionsData.result;
+
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
+    }
+
+    if (Array.isArray(result)) {
+      return result;
+    }
+
+    return [];
   }, [submissionsData]);
 
   const handleRowClick = useCallback((submission) => {
@@ -120,7 +125,7 @@ const MDAAwaitingResubmission = ({
         console.log("Saving MDA submission:", formData, mode);
 
         if (mode === "edit" && selectedSubmissionId) {
-          await updateMdaSubmission({
+          const response = await updateMdaSubmission({
             id: selectedSubmissionId,
             data: formData,
           }).unwrap();
@@ -177,53 +182,14 @@ const MDAAwaitingResubmission = ({
             autoHideDuration: 2000,
           }
         );
-        throw error;
       }
     },
     [resubmitMdaSubmission, enqueueSnackbar, refetchDetails, refetch]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      if (cancelInProgressRef.current) return;
-
-      cancelInProgressRef.current = true;
-
-      try {
-        console.log("Cancelling MDA submission:", submissionId);
-
-        await cancelMdaSubmission(submissionId).unwrap();
-
-        enqueueSnackbar("MDA submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        await refetch();
-
-        return true;
-      } catch (error) {
-        console.error("Error cancelling MDA submission:", error);
-
-        let errorMessage = "Failed to cancel MDA submission";
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-
-        return false;
-      } finally {
-        cancelInProgressRef.current = false;
-      }
-    },
-    [cancelMdaSubmission, enqueueSnackbar, refetch]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -302,7 +268,7 @@ const MDAAwaitingResubmission = ({
             backgroundColor: "white",
           }}>
           <MDAForApprovalTable
-            submissionsList={submissionsList}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -310,50 +276,17 @@ const MDAAwaitingResubmission = ({
             handleMenuClose={handleMenuClose}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            forApproval={false}
-            onCancel={handleCancel}
+            statusFilter="AWAITING RESUBMISSION"
+            onCancel={handleCancelSubmission}
           />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
 
         <MDAFormModal

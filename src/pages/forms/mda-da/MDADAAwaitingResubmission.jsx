@@ -1,23 +1,19 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
   useGetMdaDaSubmissionsQuery,
   useLazyGetSingleMdaDaSubmissionQuery,
+  useResubmitFormSubmissionMutation,
 } from "../../../features/api/forms/mdaDaApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDADATable from "./MDADATable";
 import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
 
-const MDADAAwaitingResubmission = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const MDADAAwaitingResubmission = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -77,20 +73,28 @@ const MDADAAwaitingResubmission = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      pagination: 1,
       approval_status: "AWAITING RESUBMISSION",
       search: searchQuery || "",
       type: "da",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -109,37 +113,49 @@ const MDADAAwaitingResubmission = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleMdaDaSubmissionQuery();
 
+  const [resubmitFormSubmission, { isLoading: isResubmitting }] =
+    useResubmitFormSubmissionMutation();
+
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
+    return [];
+  }, [submissionsData]);
 
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const handleResubmit = useCallback(
+    async (submissionId) => {
+      try {
+        await resubmitFormSubmission(submissionId).unwrap();
+        enqueueSnackbar("MDA (DA) resubmitted successfully!", {
+          variant: "success",
+          autoHideDuration: 3000,
+        });
+        refetch();
+        return Promise.resolve();
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to resubmit MDA (DA). Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+        return Promise.reject(error);
+      }
+    },
+    [resubmitFormSubmission, refetch, enqueueSnackbar]
+  );
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -189,6 +205,10 @@ const MDADAAwaitingResubmission = ({
       triggerGetSubmission(selectedSubmissionId);
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
+
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -249,6 +269,8 @@ const MDADAAwaitingResubmission = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <>
       <Box
@@ -269,7 +291,7 @@ const MDADAAwaitingResubmission = ({
             backgroundColor: "white",
           }}>
           <MDADATable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -278,50 +300,17 @@ const MDADAAwaitingResubmission = ({
             handleEditSubmission={handleEditSubmission}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            onCancel={onCancel}
-            onRefetch={refetch}
+            statusFilter="AWAITING_RESUBMISSION"
+            onCancel={handleCancelSubmission}
           />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
       </Box>
 
@@ -335,6 +324,7 @@ const MDADAAwaitingResubmission = ({
           selectedEntry={submissionDetails}
           isLoading={modalLoading || detailsLoading}
           onRefreshDetails={handleRefreshDetails}
+          onResubmit={handleResubmit}
         />
       </FormProvider>
     </>

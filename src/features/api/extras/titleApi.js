@@ -49,6 +49,7 @@ const titlesApi = sedarApi
 export const {
   usePostTitlesMutation,
   useGetShowTitlesQuery,
+  useLazyGetAllShowTitlesQuery,
   useGetAllShowTitlesQuery,
   useUpdateTitlesMutation,
   useDeleteTitlesMutation,

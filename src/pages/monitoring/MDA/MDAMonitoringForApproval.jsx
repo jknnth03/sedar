@@ -43,8 +43,7 @@ const MDAMonitoringForApproval = ({
     return {
       page,
       per_page: rowsPerPage,
-      status: "active",
-      approval_status: "pending",
+      status: "PENDING",
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);

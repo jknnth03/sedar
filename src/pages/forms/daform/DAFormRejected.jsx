@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -7,63 +7,67 @@ import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
   useUpdateDaMutation,
+  useResubmitDaMutation,
 } from "../../../features/api/forms/daformApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormTable from "./DAFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const DAFormRejected = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
+  setQueryParams,
+  currentParams,
 }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [queryParams, setQueryParams] = useRememberQueryParams();
-
-  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
   const [pendingFormData, setPendingFormData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [modalSuccessHandler, setModalSuccessHandler] = useState(null);
+
+  const handleModalSuccessCallback = useCallback((successHandler) => {
+    setModalSuccessHandler(() => successHandler);
+  }, []);
 
   const methods = useForm({
     defaultValues: {},
   });
 
-  const [updateDaSubmission] = useUpdateDaMutation();
-  const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
-
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
+      pagination: 1,
       approval_status: "REJECTED",
-      pagination: true,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -80,6 +84,8 @@ const DAFormRejected = ({
     skip: false,
   });
 
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
+
   const {
     data: submissionDetails,
     isLoading: detailsLoading,
@@ -89,58 +95,39 @@ const DAFormRejected = ({
     refetchOnMountOrArgChange: true,
   });
 
+  const [updateDaSubmission] = useUpdateDaMutation();
+  const [resubmitDaSubmission] = useResubmitDaMutation();
+  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
+
   const submissionsList = useMemo(() => {
     const data = submissionsData?.result?.data || [];
     return data;
   }, [submissionsData]);
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   const handleRowClick = useCallback((submission) => {
+    setModalMode("view");
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
-    setModalMode("view");
     setModalOpen(true);
   }, []);
 
-  useEffect(() => {
-    if (submissionDetails?.result && modalOpen) {
-      setSelectedEntry(submissionDetails.result);
-    }
-  }, [submissionDetails, modalOpen]);
-
-  const handleModalClose = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEntry(null);
-    setSelectedSubmissionId(null);
-    setModalMode("view");
+  const handleUpdateSubmission = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("edit");
+    setModalOpen(true);
   }, []);
 
-  const handleSave = useCallback(
-    async (formData, mode) => {
-      if (mode === "edit" && selectedSubmissionId) {
-        const submission =
-          submissionDetails?.result ||
-          submissionsList.find((sub) => sub.id === selectedSubmissionId);
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(formData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
-      }
-    },
-    [selectedSubmissionId, submissionDetails, submissionsList]
-  );
+  const handleResubmitSubmission = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("resubmit");
+    setModalOpen(true);
+  }, []);
 
-  const handleResubmit = useCallback(
-    async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      setSelectedSubmissionForAction(submission);
-      setConfirmAction("resubmit");
-      setConfirmOpen(true);
-    },
-    [submissionsList]
-  );
-
-  const handleCancel = useCallback(
+  const handleCancelSubmission = useCallback(
     async (submissionId) => {
       const submission = submissionsList.find((sub) => sub.id === submissionId);
       if (submission) {
@@ -157,6 +144,130 @@ const DAFormRejected = ({
     [submissionsList, enqueueSnackbar]
   );
 
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
+    setSelectedSubmissionId(null);
+    setModalLoading(false);
+    setModalMode("view");
+  }, []);
+
+  const handleRefreshDetails = useCallback(() => {
+    if (selectedSubmissionId && refetchDetails) {
+      refetchDetails();
+    }
+  }, [selectedSubmissionId, refetchDetails]);
+
+  const handleModalSave = useCallback(
+    async (submissionData, mode, submissionId) => {
+      if (mode === "edit") {
+        const submission =
+          submissionDetails?.result ||
+          submissionsList.find((sub) => sub.id === submissionId);
+
+        setSelectedSubmissionForAction(submission);
+        setPendingFormData(submissionData);
+        setConfirmAction("update");
+        setConfirmOpen(true);
+        return;
+      }
+
+      if (mode === "resubmit") {
+        const submission =
+          submissionDetails?.result ||
+          submissionsList.find((sub) => sub.id === submissionId);
+
+        setSelectedSubmissionForAction(submission);
+        setPendingFormData(submissionData);
+        setConfirmAction("resubmit");
+        setConfirmOpen(true);
+        return;
+      }
+
+      try {
+        await resubmitDaSubmission(submissionData).unwrap();
+        enqueueSnackbar("Submission processed successfully!", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+        refetchDashboard();
+        handleModalClose();
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to save submission. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [
+      refetch,
+      refetchDashboard,
+      enqueueSnackbar,
+      handleModalClose,
+      submissionDetails,
+      submissionsList,
+      resubmitDaSubmission,
+    ]
+  );
+
+  const handleMenuOpen = useCallback((event, submission) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setMenuAnchor((prev) => ({
+      ...prev,
+      [submission.id]: event.currentTarget,
+    }));
+  }, []);
+
+  const handleMenuClose = useCallback((submissionId) => {
+    setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
+  }, []);
+
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      const targetPage = newPage + 1;
+      setPage(targetPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...currentParams,
+            page: targetPage,
+            rowsPerPage: rowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, rowsPerPage, currentParams]
+  );
+
+  const handleRowsPerPageChange = useCallback(
+    (event) => {
+      const newRowsPerPage = parseInt(event.target.value, 10);
+      const newPage = 1;
+      setRowsPerPage(newRowsPerPage);
+      setPage(newPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...currentParams,
+            page: newPage,
+            rowsPerPage: newRowsPerPage,
+          },
+          { retain: false }
+        );
+      }
+    },
+    [setQueryParams, currentParams]
+  );
+
+  const handleModeChange = useCallback((newMode) => {
+    setModalMode(newMode);
+  }, []);
+
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
 
@@ -165,35 +276,48 @@ const DAFormRejected = ({
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
         await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully", {
+        enqueueSnackbar("DA Form submission cancelled successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
       } else if (
         confirmAction === "update" &&
         pendingFormData &&
-        selectedSubmissionId
+        selectedSubmissionForAction
       ) {
         await updateDaSubmission({
-          id: selectedSubmissionId,
+          id: selectedSubmissionForAction.id,
           data: pendingFormData,
         }).unwrap();
-        enqueueSnackbar("DA Form submission updated successfully", {
+
+        enqueueSnackbar("DA Form submission updated successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        await refetchDetails();
-        await refetch();
+        refetch();
+        refetchDashboard();
         handleModalClose();
-      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission resubmitted successfully", {
+      } else if (
+        confirmAction === "resubmit" &&
+        pendingFormData &&
+        selectedSubmissionForAction
+      ) {
+        await resubmitDaSubmission({
+          id: selectedSubmissionForAction.id,
+          data: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("DA Form submission resubmitted successfully!", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        await refetchDetails();
-        await refetch();
+        refetch();
+        refetchDashboard();
+        handleModalClose();
+        if (modalSuccessHandler) {
+          modalSuccessHandler();
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -225,157 +349,63 @@ const DAFormRejected = ({
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
-  const handleMenuOpen = useCallback((event, submission) => {
-    event.stopPropagation();
-    event.preventDefault();
-    setMenuAnchor((prev) => ({
-      ...prev,
-      [submission.id]: event.currentTarget,
-    }));
-    setSelectedRowForMenu(submission);
-  }, []);
-
-  const handleMenuClose = useCallback((submissionId) => {
-    setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
-  }, []);
-
-  const handlePageChange = useCallback(
-    (event, newPage) => {
-      const targetPage = newPage + 1;
-      setPage(targetPage);
-      if (setQueryParams) {
-        setQueryParams(
-          {
-            ...queryParams,
-            page: targetPage,
-            rowsPerPage: rowsPerPage,
-          },
-          { retain: false }
-        );
-      }
-    },
-    [setQueryParams, rowsPerPage, queryParams]
-  );
-
-  const handleRowsPerPageChange = useCallback(
-    (event) => {
-      const newRowsPerPage = parseInt(event.target.value, 10);
-      const newPage = 1;
-      setRowsPerPage(newRowsPerPage);
-      setPage(newPage);
-      if (setQueryParams) {
-        setQueryParams(
-          {
-            ...queryParams,
-            page: newPage,
-            rowsPerPage: newRowsPerPage,
-          },
-          { retain: false }
-        );
-      }
-    },
-    [setQueryParams, queryParams]
-  );
-
   const isLoadingState = queryLoading || isFetching || isLoading;
-
-  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DAFormTable
-            submissionsList={submissionsList}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            statusFilter="REJECTED"
-            onCancel={handleCancel}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <DAFormModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          onSave={handleSave}
-          onResubmit={handleResubmit}
-          selectedEntry={selectedEntry}
-          isLoading={detailsLoading}
-          mode={modalMode}
-          submissionId={selectedSubmissionId}
+        <DAFormTable
+          submissionsList={submissionsList}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          hideActions={false}
+          onCancel={handleCancelSubmission}
+          onUpdate={handleUpdateSubmission}
+          onResubmit={handleResubmitSubmission}
         />
 
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isLoading}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <DAFormModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        mode={modalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails?.result || submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onSave={handleModalSave}
+        onResubmit={handleModalSave}
+        onRefreshDetails={handleRefreshDetails}
+        onSuccessfulSave={handleModalSuccessCallback}
+      />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+      />
     </FormProvider>
   );
 };

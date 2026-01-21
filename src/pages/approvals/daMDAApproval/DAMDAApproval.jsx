@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-
 import {
   Paper,
   Typography,
@@ -17,8 +16,15 @@ import {
   alpha,
   Chip,
   useMediaQuery,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  Badge,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -30,8 +36,34 @@ import {
 } from "../../../features/api/approving/daMDAApproval.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../submissionApproval/SubmissionApprovalStyles.jsx";
+import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import DAMDAApprovalDialog from "./DAMDAApprovalDialog.jsx";
+import NoDataFound from "../../NoDataFound";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../forms/manpowerform/FormSubmissionStyles";
+
+const TabPanel = ({ children, value, index, ...other }) => {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`da-mda-approval-tabpanel-${index}`}
+      aria-labelledby={`da-mda-approval-tab-${index}`}
+      style={{
+        height: "100%",
+        overflow: "hidden",
+        minWidth: 0,
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
+      {...other}>
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
+    </div>
+  );
+};
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -53,13 +85,16 @@ const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
   isLoading = false,
-  styles,
 }) => {
-  const theme = useTheme();
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       <TextField
         placeholder={isVerySmall ? "Search..." : "Search DA MDA Approvals..."}
         value={searchQuery}
@@ -118,18 +153,356 @@ const CustomSearchBar = ({
   );
 };
 
+const DAMDAApprovalTable = ({
+  approvalStatus,
+  searchQuery,
+  isMobile,
+  isVerySmall,
+  onRowClick,
+  renderStatusChip,
+}) => {
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const debounceValue = useDebounce(searchQuery, 500);
+
+  const queryParams = useMemo(() => {
+    const params = {
+      page,
+      per_page: rowsPerPage,
+      status: "active",
+      approval_status: approvalStatus,
+      pagination: 1,
+      type: "da",
+    };
+
+    if (debounceValue && debounceValue.trim() !== "") {
+      params.search = debounceValue.trim();
+    }
+
+    return params;
+  }, [debounceValue, page, rowsPerPage, approvalStatus]);
+
+  const {
+    data: daMdaApprovalsData,
+    isLoading: queryLoading,
+    isFetching,
+    error,
+  } = useGetMyDaMdaApprovalsQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
+
+  const daMdaApprovalsList = useMemo(
+    () => daMdaApprovalsData?.result?.data || [],
+    [daMdaApprovalsData]
+  );
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const isLoadingState = queryLoading || isFetching;
+
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "white",
+      }}>
+      <TableContainer
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          "& .MuiTableCell-head": {
+            backgroundColor: "white",
+            fontWeight: 700,
+            fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
+            color: "rgb(33, 61, 112)",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            borderBottom: "none",
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            height: isMobile ? "44px" : "48px",
+            padding: isMobile ? "6px 12px" : "8px 16px",
+          },
+          "& .MuiTableCell-body": {
+            fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
+            color: "#333",
+            borderBottom: "1px solid #f0f0f0",
+            padding: isMobile ? "6px 12px" : "8px 16px",
+            height: isMobile ? "48px" : "52px",
+          },
+          "& .MuiTableRow-root": {
+            transition: "background-color 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: "#f8f9fa",
+            },
+          },
+        }}>
+        <Table
+          stickyHeader
+          sx={{
+            height: daMdaApprovalsList.length === 0 ? "100%" : "auto",
+          }}>
+          <TableHead>
+            <TableRow>
+              <TableCell
+                sx={{
+                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
+                  minWidth: isVerySmall
+                    ? "120px"
+                    : isMobile
+                    ? "150px"
+                    : "180px",
+                }}>
+                {isVerySmall ? "REF #" : "REFERENCE NO."}
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: isVerySmall ? "150px" : isMobile ? "200px" : "250px",
+                  minWidth: isVerySmall
+                    ? "150px"
+                    : isMobile
+                    ? "200px"
+                    : "250px",
+                }}>
+                EMPLOYEE NAME
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
+                  minWidth: isVerySmall
+                    ? "150px"
+                    : isMobile
+                    ? "180px"
+                    : "220px",
+                }}>
+                {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
+                  minWidth: isVerySmall
+                    ? "150px"
+                    : isMobile
+                    ? "180px"
+                    : "220px",
+                }}>
+                {isVerySmall ? "REQ BY" : "REQUESTED BY"}
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: isVerySmall ? "120px" : isMobile ? "140px" : "170px",
+                  minWidth: isVerySmall
+                    ? "120px"
+                    : isMobile
+                    ? "140px"
+                    : "170px",
+                }}>
+                {isVerySmall ? "DATE" : "DATE CREATED"}
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody
+            sx={{
+              height: daMdaApprovalsList.length === 0 ? "100%" : "auto",
+            }}>
+            {isLoadingState ? (
+              <TableRow sx={{ height: "100%" }}>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
+                  <CircularProgress
+                    size={32}
+                    sx={{ color: "rgb(33, 61, 112)" }}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow sx={{ height: "100%" }}>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
+                  <Typography
+                    color="error"
+                    sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
+                    Error loading data: {error.message || "Unknown error"}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : daMdaApprovalsList.length > 0 ? (
+              daMdaApprovalsList.map((approval) => {
+                return (
+                  <TableRow
+                    key={approval.id}
+                    onClick={() => onRowClick(approval)}
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: "#f8f9fa",
+                      },
+                    }}>
+                    <TableCell
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: 600,
+                      }}>
+                      {approval.reference_number || "-"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {approval.employee_name || "-"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {approval.movement_type || "-"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {approval.requested_by || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {approval.created_at
+                        ? dayjs(approval.created_at).format(
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                          )
+                        : "-"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow
+                sx={{
+                  height: "100%",
+                  pointerEvents: "none",
+                  "&:hover": {
+                    backgroundColor: "transparent !important",
+                    cursor: "default !important",
+                  },
+                }}>
+                <TableCell
+                  colSpan={999}
+                  rowSpan={999}
+                  align="center"
+                  sx={{
+                    height: "100%",
+                    verticalAlign: "middle",
+                    border: "none",
+                    borderBottom: "none",
+                    padding: 0,
+                    pointerEvents: "none",
+                    "&:hover": {
+                      backgroundColor: "transparent !important",
+                      cursor: "default !important",
+                    },
+                  }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      left: "56%",
+                      top: "60%",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}>
+                    <NoDataFound message="" subMessage="" />
+                  </Box>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Box
+        sx={{
+          borderTop: "1px solid #e0e0e0",
+          backgroundColor: "#f8f9fa",
+          flexShrink: 0,
+          "& .MuiTablePagination-root": {
+            color: "#666",
+            "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+              {
+                fontSize: isMobile ? "12px" : "14px",
+                fontWeight: 500,
+              },
+            "& .MuiTablePagination-select": {
+              fontSize: isMobile ? "12px" : "14px",
+            },
+            "& .MuiIconButton-root": {
+              color: "rgb(33, 61, 112)",
+              "&:hover": {
+                backgroundColor: "rgba(33, 61, 112, 0.04)",
+              },
+              "&.Mui-disabled": {
+                color: "#ccc",
+              },
+            },
+          },
+        }}>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50, 100]}
+          component="div"
+          count={daMdaApprovalsData?.result?.total || 0}
+          rowsPerPage={rowsPerPage}
+          page={Math.max(0, page - 1)}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          sx={{
+            "& .MuiTablePagination-toolbar": {
+              paddingLeft: isMobile ? "16px" : "24px",
+              paddingRight: isMobile ? "16px" : "24px",
+              minHeight: isMobile ? "48px" : "52px",
+            },
+          }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
 const DAMDAApproval = () => {
   const theme = useTheme();
-  const styles = createSubmissionApprovalStyles(theme);
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
   const isVerySmall = useMediaQuery("(max-width:369px)");
 
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const customStyles = useMemo(
+    () =>
+      createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
+    [theme, isMobile, isTablet, isVerySmall]
+  );
+
+  const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedApprovalId, setSelectedApprovalId] = useState(null);
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
@@ -142,54 +515,23 @@ const DAMDAApproval = () => {
     },
   });
 
-  const debounceValue = useDebounce(searchQuery, 500);
-
   const [approveDaMdaSubmission, { isLoading: approveLoading }] =
     useApproveDaMdaSubmissionMutation();
   const [rejectDaMdaSubmission, { isLoading: rejectLoading }] =
     useRejectDaMdaSubmissionMutation();
-
-  const queryParams = useMemo(() => {
-    const params = {
-      page,
-      per_page: rowsPerPage,
-      status: "active",
-      approval_status: "pending",
-      pagination: 1,
-      type: "da",
-    };
-
-    if (debounceValue && debounceValue.trim() !== "") {
-      params.search = debounceValue.trim();
-    }
-
-    return params;
-  }, [debounceValue, page, rowsPerPage]);
-
-  const {
-    data: daMdaApprovalsData,
-    isLoading: queryLoading,
-    isFetching,
-    refetch,
-    error,
-  } = useGetMyDaMdaApprovalsQuery(queryParams, {
-    refetchOnMountOrArgChange: true,
-    skip: false,
-  });
 
   const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
     useGetDaMdaApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
 
-  const daMdaApprovalsList = useMemo(
-    () => daMdaApprovalsData?.result?.data || [],
-    [daMdaApprovalsData]
-  );
+  const handleTabChange = useCallback((event, newValue) => {
+    setActiveTab(newValue);
+    setSearchQuery("");
+  }, []);
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
-    setPage(1);
   }, []);
 
   const handleRowClick = useCallback((approval) => {
@@ -198,15 +540,6 @@ const DAMDAApproval = () => {
       open: true,
       submission: approval,
     });
-  }, []);
-
-  const handlePageChange = useCallback((event, newPage) => {
-    setPage(newPage + 1);
-  }, []);
-
-  const handleRowsPerPageChange = useCallback((event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
   }, []);
 
   const handleApprove = useCallback(
@@ -225,14 +558,13 @@ const DAMDAApproval = () => {
         });
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
-        refetch();
       } catch (error) {
         enqueueSnackbar(error?.data?.message || "Failed to approve DA MDA", {
           variant: "error",
         });
       }
     },
-    [detailsDialog, approveDaMdaSubmission, enqueueSnackbar, refetch]
+    [detailsDialog, approveDaMdaSubmission, enqueueSnackbar]
   );
 
   const handleReject = useCallback(
@@ -251,14 +583,13 @@ const DAMDAApproval = () => {
         });
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
-        refetch();
       } catch (error) {
         enqueueSnackbar(error?.data?.message || "Failed to return DA MDA", {
           variant: "error",
         });
       }
     },
-    [detailsDialog, rejectDaMdaSubmission, enqueueSnackbar, refetch]
+    [detailsDialog, rejectDaMdaSubmission, enqueueSnackbar]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -273,364 +604,115 @@ const DAMDAApproval = () => {
         <Chip
           label={status.toUpperCase()}
           size="small"
-          sx={styles.statusChip(status)}
+          sx={customStyles.statusChip(status)}
         />
       );
     },
-    [styles]
+    [customStyles]
   );
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const tabsData = [
+    {
+      label: "FOR APPROVAL",
+      approvalStatus: "pending",
+      badgeCount: 0,
+    },
+    {
+      label: "APPROVED",
+      approvalStatus: "approved",
+      badgeCount: 0,
+    },
+  ];
+
+  const a11yProps = (index) => {
+    return {
+      id: `da-mda-approval-tab-${index}`,
+      "aria-controls": `da-mda-approval-tabpanel-${index}`,
+    };
+  };
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "white",
-        }}>
+      <Box sx={styles.mainContainer}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: isMobile || isTablet ? "flex-start" : "center",
-            justifyContent:
-              isMobile || isTablet ? "flex-start" : "space-between",
-            flexDirection: isMobile || isTablet ? "column" : "row",
-            flexShrink: 0,
-            minHeight: isMobile || isTablet ? "auto" : "60px",
-            padding: isMobile ? "12px 14px" : isTablet ? "16px" : "12px 16px",
-            backgroundColor: "white",
-            borderBottom: "1px solid #e0e0e0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            gap: isMobile || isTablet ? "16px" : "0",
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
           }}>
           <Box
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-              width: isMobile || isTablet ? "100%" : "auto",
-              justifyContent: "flex-start",
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
             }}>
-            <Typography className="header">DA MDA APPROVAL</Typography>
+            <Typography
+              className="header"
+              sx={{
+                ...styles.headerTitleText,
+                ...(isMobile && styles.headerTitleTextMobile),
+                ...(isVerySmall && styles.headerTitleTextVerySmall),
+                paddingRight: "14px",
+              }}>
+              {isVerySmall ? "DA MDA" : "DA MDA APPROVAL"}
+            </Typography>
           </Box>
 
           <CustomSearchBar
             searchQuery={searchQuery}
             setSearchQuery={handleSearchChange}
-            isLoading={isLoadingState}
-            styles={styles}
+            isLoading={false}
           />
         </Box>
 
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <TableContainer
+        <Box sx={styles.tabsSection}>
+          <StyledTabs
+            value={activeTab}
+            onChange={handleTabChange}
+            aria-label="DA MDA Approval tabs"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
-              flex: 1,
-              overflow: "auto",
-              "& .MuiTableCell-head": {
-                backgroundColor: "#f8f9fa",
-                fontWeight: 700,
-                fontSize: isVerySmall ? "14px" : isMobile ? "16px" : "18px",
-                color: "rgb(33, 61, 112)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                borderBottom: "2px solid #e0e0e0",
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-                height: isMobile ? "44px" : "48px",
-                padding: isMobile ? "6px 12px" : "8px 16px",
-              },
-              "& .MuiTableCell-body": {
-                fontSize: isVerySmall ? "12px" : isMobile ? "14px" : "16px",
-                color: "#333",
-                borderBottom: "1px solid #f0f0f0",
-                padding: isMobile ? "6px 12px" : "8px 16px",
-                height: isMobile ? "48px" : "52px",
-              },
-              "& .MuiTableRow-root": {
-                transition: "background-color 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: "#f8f9fa",
-                },
-              },
+              ...styles.tabsStyled,
+              ...(isVerySmall && styles.tabsStyledVerySmall),
             }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    align="left"
-                    sx={{
-                      width: isVerySmall ? "60px" : isMobile ? "70px" : "80px",
-                      minWidth: isVerySmall
-                        ? "60px"
-                        : isMobile
-                        ? "70px"
-                        : "80px",
-                    }}>
-                    ID
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isVerySmall
-                        ? "120px"
-                        : isMobile
-                        ? "150px"
-                        : "180px",
-                      minWidth: isVerySmall
-                        ? "120px"
-                        : isMobile
-                        ? "150px"
-                        : "180px",
-                    }}>
-                    {isVerySmall ? "REF #" : "REFERENCE NO."}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isVerySmall
-                        ? "150px"
-                        : isMobile
-                        ? "200px"
-                        : "250px",
-                      minWidth: isVerySmall
-                        ? "150px"
-                        : isMobile
-                        ? "200px"
-                        : "250px",
-                    }}>
-                    EMPLOYEE NAME
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isVerySmall
-                        ? "120px"
-                        : isMobile
-                        ? "180px"
-                        : "220px",
-                      minWidth: isVerySmall
-                        ? "120px"
-                        : isMobile
-                        ? "180px"
-                        : "220px",
-                    }}>
-                    {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: isVerySmall
-                        ? "150px"
-                        : isMobile
-                        ? "200px"
-                        : "250px",
-                      minWidth: isVerySmall
-                        ? "150px"
-                        : isMobile
-                        ? "200px"
-                        : "250px",
-                    }}>
-                    {isVerySmall ? "REQ BY" : "REQUESTED BY"}
-                  </TableCell>
-                  {!isMobile && (
-                    <TableCell
-                      align="center"
+            {tabsData.map((tab, index) => (
+              <StyledTab
+                key={index}
+                label={
+                  tab.badgeCount > 0 ? (
+                    <Badge
+                      badgeContent={tab.badgeCount}
+                      color="error"
                       sx={{
-                        width: "120px",
-                        minWidth: "120px",
+                        ...styles.tabBadge,
+                        ...(isVerySmall && styles.tabBadgeVerySmall),
                       }}>
-                      STATUS
-                    </TableCell>
-                  )}
-                  <TableCell
-                    sx={{
-                      width: isVerySmall
-                        ? "120px"
-                        : isMobile
-                        ? "140px"
-                        : "170px",
-                      minWidth: isVerySmall
-                        ? "120px"
-                        : isMobile
-                        ? "140px"
-                        : "170px",
-                    }}>
-                    {isVerySmall ? "DATE" : "DATE CREATED"}
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {isLoadingState ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isMobile ? 6 : 7}
-                      align="center"
-                      sx={{ py: 4 }}>
-                      <CircularProgress
-                        size={32}
-                        sx={{ color: "rgb(33, 61, 112)" }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isMobile ? 6 : 7}
-                      align="center"
-                      sx={{ py: 4 }}>
-                      <Typography
-                        color="error"
-                        sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
-                        Error loading data: {error.message || "Unknown error"}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : daMdaApprovalsList.length > 0 ? (
-                  daMdaApprovalsList.map((approval) => {
-                    return (
-                      <TableRow
-                        key={approval.id}
-                        onClick={() => handleRowClick(approval)}
-                        sx={{
-                          cursor: "pointer",
-                          "&:hover": {
-                            backgroundColor: "#f8f9fa",
-                          },
-                        }}>
-                        <TableCell align="left">{approval.id}</TableCell>
-                        <TableCell
-                          sx={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>
-                          {approval.reference_number || "-"}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            fontWeight: 600,
-                          }}>
-                          {approval.employee_name || "-"}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>
-                          {approval.movement_type || "-"}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>
-                          {approval.requested_by || "-"}
-                        </TableCell>
-                        {!isMobile && (
-                          <TableCell align="center">
-                            {renderStatusChip(approval)}
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          {approval.created_at
-                            ? dayjs(approval.created_at).format(
-                                isVerySmall ? "M/D/YY" : "MMM D, YYYY"
-                              )
-                            : "-"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={isMobile ? 6 : 7}
-                      align="center"
-                      sx={{
-                        py: 8,
-                        color: "#666",
-                        fontSize: isMobile ? "14px" : "16px",
-                      }}>
-                      <Box sx={styles.emptyStateBox}>
-                        {CONSTANT.BUTTONS.NODATA.icon}
-                        <Typography
-                          variant="h6"
-                          color="text.secondary"
-                          sx={{ fontSize: isVerySmall ? "14px" : "16px" }}>
-                          No DA MDA submissions found
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontSize: isVerySmall ? "12px" : "14px" }}>
-                          {searchQuery
-                            ? `No results for "${searchQuery}"`
-                            : "No pending submissions found"}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      {tab.label}
+                    </Badge>
+                  ) : (
+                    tab.label
+                  )
+                }
+                {...a11yProps(index)}
+              />
+            ))}
+          </StyledTabs>
+        </Box>
 
-          <Box
-            sx={{
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: isMobile ? "12px" : "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: isMobile ? "12px" : "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={daMdaApprovalsData?.result?.total || 0}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              sx={{
-                "& .MuiTablePagination-toolbar": {
-                  paddingLeft: isMobile ? "12px" : "24px",
-                  paddingRight: isMobile ? "12px" : "24px",
-                },
-              }}
-            />
-          </Box>
+        <Box sx={styles.tabsContainer}>
+          {tabsData.map((tab, index) => (
+            <TabPanel key={index} value={activeTab} index={index}>
+              <DAMDAApprovalTable
+                approvalStatus={tab.approvalStatus}
+                searchQuery={searchQuery}
+                isMobile={isMobile}
+                isVerySmall={isVerySmall}
+                onRowClick={handleRowClick}
+                renderStatusChip={renderStatusChip}
+              />
+            </TabPanel>
+          ))}
         </Box>
 
         <DAMDAApprovalDialog
@@ -639,8 +721,9 @@ const DAMDAApproval = () => {
           approval={selectedApprovalData?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReject={handleReject}
-          isLoading={approveLoading || rejectLoading || selectedApprovalLoading}
-          styles={styles}
+          isLoading={approveLoading || rejectLoading}
+          isLoadingData={selectedApprovalLoading}
+          styles={customStyles}
         />
       </Box>
     </FormProvider>

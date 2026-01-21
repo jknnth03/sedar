@@ -1,8 +1,4 @@
 import moment from "moment";
-import {
-  getStepValidationSchema,
-  validateEmploymentTypes,
-} from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 
 export const STEPS = [
   "General Info",
@@ -15,34 +11,6 @@ export const STEPS = [
   "Files",
   "Review",
 ];
-
-export const STEP_VALIDATIONS = {
-  0: [
-    "first_name",
-    "last_name",
-    "prefix",
-    "id_number",
-    "birth_date",
-    "gender",
-    "civil_status",
-    "religion",
-  ],
-  1: [
-    "region_id",
-    "province_id",
-    "city_municipality_id",
-    "barangay_id",
-    "street",
-    "zip_code",
-  ],
-  2: ["position_id", "job_rate", "schedule_id", "job_level_id"],
-  3: ["employment_types"],
-  4: ["attainment_id", "program_id", "degree_id"],
-  5: ["sss_number", "pag_ibig_number", "philhealth_number", "tin_number"],
-  6: ["email_address", "mobile_number"],
-  7: [],
-  8: [],
-};
 
 const formatDateForForm = (dateValue) => {
   if (!dateValue) return "";
@@ -293,7 +261,7 @@ export const initializeFormData = (initialData) => {
     pag_ibig_number: initialData?.account?.pag_ibig_number || "",
     philhealth_number: initialData?.account?.philhealth_number || "",
     tin_number: initialData?.account?.tin_number || "",
-    bank_id: initialData?.account?.bank || null,
+    bank: initialData?.account?.bank || null,
     bank_account_number: initialData?.account?.bank_account_number || "",
 
     email_address: initialData?.contacts?.email_address || "",
@@ -384,56 +352,9 @@ export const handleStartDateChange = (
   }
 };
 
-export const validateCurrentStep = async (stepIndex, getValues) => {
+export const validateStep = async (activeStep, trigger) => {
   try {
-    const stepSchema = getStepValidationSchema(stepIndex);
-    const currentValues = getValues();
-
-    await stepSchema.validate(currentValues, { abortEarly: false });
-    return { isValid: true };
-  } catch (error) {
-    console.error(`Step ${stepIndex} validation error:`, error);
-
-    let errorMessage = "Please fill in all required fields before continuing.";
-
-    if (error.inner && error.inner.length > 0) {
-      const fieldErrors = error.inner.map((err) => err.message);
-      errorMessage = fieldErrors.join("; ");
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
-    return {
-      isValid: false,
-      error: errorMessage,
-      errors: error.inner || [],
-    };
-  }
-};
-
-export const validateStep = async (activeStep, trigger, getValues) => {
-  const fieldsToValidate = STEP_VALIDATIONS[activeStep] || [];
-
-  if (fieldsToValidate.length === 0) {
-    return { isValid: true };
-  }
-
-  try {
-    if (activeStep === 3) {
-      const employmentTypes = getValues("employment_types") || [];
-      const validationResult = validateEmploymentTypes(employmentTypes);
-
-      if (validationResult) {
-        return {
-          isValid: false,
-          error: validationResult,
-        };
-      }
-
-      return { isValid: true };
-    }
-
-    const isValid = await trigger(fieldsToValidate);
+    const isValid = await trigger();
     return { isValid };
   } catch (error) {
     return { isValid: false, error: error.message };
@@ -565,9 +486,7 @@ export const triggerRefetch = async (onRefetch, refetchQueries) => {
       });
       await Promise.all(refetchPromises);
     }
-  } catch (error) {
-    console.error("Error refetching data:", error);
-  }
+  } catch (error) {}
 };
 
 export const transformEmploymentTypesForAPI = (employmentTypes) => {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Typography, Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -10,14 +10,9 @@ import {
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MDADATable from "./MDADATable";
 import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const MDADARejected = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
+const MDADARejected = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -31,12 +26,10 @@ const MDADARejected = ({
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewModalMode, setViewModalMode] = useState("view");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
 
   const [modalLoading, setModalLoading] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const viewFormMethods = useForm({
     defaultValues: {
@@ -77,20 +70,28 @@ const MDADARejected = ({
   });
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
+      pagination: 1,
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      pagination: 1,
       approval_status: "REJECTED",
       search: searchQuery || "",
       type: "da",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
-    const newPage = 1;
-    setPage(newPage);
+    setPage(1);
   }, [searchQuery, dateFilters]);
 
   const {
@@ -110,41 +111,24 @@ const MDADARejected = ({
   ] = useLazyGetSingleMdaDaSubmissionQuery();
 
   const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+    if (!submissionsData?.result) return [];
 
-    let filtered = rawData;
+    const result = submissionsData.result;
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
     }
 
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
+    if (Array.isArray(result)) {
+      return result;
     }
 
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+    return [];
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
       setSelectedSubmissionId(submission.id);
-      setSelectedSubmission(submission);
       setViewModalMode("view");
       setViewModalOpen(true);
       setMenuAnchor({});
@@ -189,6 +173,10 @@ const MDADARejected = ({
       triggerGetSubmission(selectedSubmissionId);
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
+
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -247,10 +235,12 @@ const MDADARejected = ({
     setViewModalMode(newMode);
   }, []);
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching;
+
+  const totalCount = submissionsData?.result?.total || 0;
 
   return (
-    <>
+    <FormProvider {...viewFormMethods}>
       <Box
         sx={{
           width: "100%",
@@ -269,7 +259,7 @@ const MDADARejected = ({
             backgroundColor: "white",
           }}>
           <MDADATable
-            submissionsList={paginatedSubmissions}
+            submissionsList={filteredSubmissions}
             isLoadingState={isLoadingState}
             error={error}
             handleRowClick={handleRowClick}
@@ -278,66 +268,31 @@ const MDADARejected = ({
             handleEditSubmission={handleEditSubmission}
             menuAnchor={menuAnchor}
             searchQuery={searchQuery}
-            onCancel={onCancel}
-            onRefetch={refetch}
+            statusFilter="REJECTED"
+            onCancel={handleCancelSubmission}
           />
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={filteredSubmissions.length}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
       </Box>
 
-      <FormProvider {...viewFormMethods}>
-        <MDADAModal
-          open={viewModalOpen}
-          onClose={handleViewModalClose}
-          submissionId={selectedSubmissionId}
-          mode={viewModalMode}
-          onModeChange={handleModeChange}
-          selectedEntry={submissionDetails}
-          isLoading={modalLoading || detailsLoading}
-          onRefreshDetails={handleRefreshDetails}
-        />
-      </FormProvider>
-    </>
+      <MDADAModal
+        open={viewModalOpen}
+        onClose={handleViewModalClose}
+        submissionId={selectedSubmissionId}
+        mode={viewModalMode}
+        onModeChange={handleModeChange}
+        selectedEntry={submissionDetails}
+        isLoading={modalLoading || detailsLoading}
+        onRefreshDetails={handleRefreshDetails}
+      />
+    </FormProvider>
   );
 };
 

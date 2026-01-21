@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const daFormApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -9,12 +10,12 @@ const daFormApprovalApi = sedarApi
       getMyDaApprovals: build.query({
         query: (params = {}) => {
           const {
-            pagination = true,
+            pagination = 1,
             page = 1,
             per_page = 10,
             status = "active",
-            search,
-            approval_status = "pending",
+            approval_status = "",
+            search = "",
             ...otherParams
           } = params;
 
@@ -36,13 +37,8 @@ const daFormApprovalApi = sedarApi
             }
           });
 
-          const queryString = queryParams.toString();
-          const url = queryString
-            ? `me/da-approvals?${queryString}`
-            : "me/da-approvals";
-
           return {
-            url,
+            url: `me/da-form-approvals?${queryParams.toString()}`,
             method: "GET",
           };
         },
@@ -53,35 +49,58 @@ const daFormApprovalApi = sedarApi
           url: `me/da-approvals/${id}`,
           method: "GET",
         }),
-        providesTags: (result, error, id) => [{ type: "daFormApprovals", id }],
+        providesTags: (result, error, id) => [
+          { type: "daFormApprovals", id },
+          "daFormApprovals",
+        ],
       }),
-      approveDaForm: build.mutation({
-        query: ({ id, comments, reason }) => ({
-          url: `submission-approvals/${id}/approve`,
+      approveDaSubmission: build.mutation({
+        query: ({ submissionId, comments, reason }) => ({
+          url: `submission-approvals/${submissionId}/approve`,
           method: "POST",
           body: {
             comments,
             reason,
           },
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "daFormApprovals", id },
+        invalidatesTags: (result, error, { submissionId }) => [
+          { type: "daFormApprovals", id: submissionId },
           "daFormApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve DA submission:", err);
+          }
+        },
       }),
-      rejectDaForm: build.mutation({
-        query: ({ id, comments, reason }) => ({
-          url: `submission-approvals/${id}/reject`,
+      rejectDaSubmission: build.mutation({
+        query: ({ submissionId, comments, reason }) => ({
+          url: `submission-approvals/${submissionId}/reject`,
           method: "POST",
           body: {
             comments,
             reason,
           },
         }),
-        invalidatesTags: (result, error, { id }) => [
-          { type: "daFormApprovals", id },
+        invalidatesTags: (result, error, { submissionId }) => [
+          { type: "daFormApprovals", id: submissionId },
           "daFormApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject DA submission:", err);
+          }
+        },
       }),
     }),
   });
@@ -91,8 +110,8 @@ export const {
   useLazyGetMyDaApprovalsQuery,
   useGetDaApprovalByIdQuery,
   useLazyGetDaApprovalByIdQuery,
-  useApproveDaFormMutation,
-  useRejectDaFormMutation,
+  useApproveDaSubmissionMutation,
+  useRejectDaSubmissionMutation,
 } = daFormApprovalApi;
 
 export default daFormApprovalApi;

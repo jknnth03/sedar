@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const dataChangeApprovalApi = sedarApi
   .enhanceEndpoints({
@@ -70,6 +71,16 @@ const dataChangeApprovalApi = sedarApi
           { type: "dataChangeApprovals", id },
           "dataChangeApprovals",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to approve data change:", err);
+          }
+        },
       }),
       rejectDataChange: build.mutation({
         query: ({ id, comments, reason }) => ({
@@ -84,6 +95,17 @@ const dataChangeApprovalApi = sedarApi
           { type: "dataChangeApprovals", id },
           "dataChangeApprovals",
         ],
+
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to reject data change:", err);
+          }
+        },
       }),
     }),
   });

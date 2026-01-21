@@ -27,7 +27,7 @@ const generalApi = sedarApi
           search = "",
           pagination = 1,
           status = "all",
-          employment_status,
+          employment_status = "ACTIVE",
           employee_name,
           team_name,
           id_number,
@@ -45,12 +45,12 @@ const generalApi = sedarApi
             status,
           });
 
-          if (search && search.trim()) {
-            params.append("search", search);
-          }
-
           if (employment_status) {
             params.append("employment_status", employment_status);
+          }
+
+          if (search && search.trim()) {
+            params.append("search", search);
           }
 
           if (employee_name) {
@@ -95,7 +95,7 @@ const generalApi = sedarApi
       }),
       getAllGenerals: build.query({
         query: () => ({
-          url: `employees/general-info?pagination=none`,
+          url: `employees/general-info?pagination=none&status=all&employment_status=ACTIVE`,
         }),
         providesTags: ["general"],
       }),

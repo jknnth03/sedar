@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const formSubmissionApi = sedarApi
   .enhanceEndpoints({
@@ -109,6 +110,122 @@ const formSubmissionApi = sedarApi
         providesTags: ["mrfSubmissions"],
       }),
 
+      getAllEmployeeMovementSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = true,
+            page = 1,
+            per_page = 10,
+            status,
+            approval_status,
+            search,
+            start_date,
+            end_date,
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination.toString());
+          queryParams.append("page", page.toString());
+          queryParams.append("per_page", per_page.toString());
+          queryParams.append("form_type", "da");
+
+          if (status) {
+            queryParams.append("status", status);
+          }
+
+          if (approval_status) {
+            queryParams.append("approval_status", approval_status);
+          }
+
+          if (search && search.trim() !== "") {
+            queryParams.append("search", search.trim());
+          }
+
+          if (start_date) {
+            queryParams.append("start_date", start_date);
+          }
+
+          if (end_date) {
+            queryParams.append("end_date", end_date);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = `mrf/open?${queryString}`;
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["mrfSubmissions"],
+      }),
+
+      getEmployeeMovementSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            pagination = true,
+            page = 1,
+            per_page = 10,
+            status,
+            approval_status,
+            search,
+            start_date,
+            end_date,
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("pagination", pagination.toString());
+          queryParams.append("page", page.toString());
+          queryParams.append("per_page", per_page.toString());
+          queryParams.append("form_type", "da");
+
+          if (status) {
+            queryParams.append("status", status);
+          }
+
+          if (approval_status) {
+            queryParams.append("approval_status", approval_status);
+          }
+
+          if (search && search.trim() !== "") {
+            queryParams.append("search", search.trim());
+          }
+
+          if (start_date) {
+            queryParams.append("start_date", start_date);
+          }
+
+          if (end_date) {
+            queryParams.append("end_date", end_date);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = `me/mrf-submissions?${queryString}`;
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["mrfSubmissions"],
+      }),
+
       getSingleFormSubmission: build.query({
         query: (formSubmissionId) => ({
           url: `form-submissions/${formSubmissionId}`,
@@ -174,6 +291,46 @@ const formSubmissionApi = sedarApi
         providesTags: ["approvalForms"],
       }),
 
+      exportSubmissions: build.query({
+        query: (params = {}) => {
+          const {
+            form_code = "mrf",
+            start_date,
+            end_date,
+            ...otherParams
+          } = params;
+
+          const queryParams = new URLSearchParams();
+
+          queryParams.append("form_code", form_code);
+
+          if (start_date) {
+            queryParams.append("start_date", start_date);
+          }
+
+          if (end_date) {
+            queryParams.append("end_date", end_date);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = queryString
+            ? `reports/submissions/export?${queryString}`
+            : "reports/submissions/export";
+
+          return {
+            url,
+            method: "GET",
+            responseHandler: (response) => response.blob(),
+          };
+        },
+      }),
+
       createFormSubmission: build.mutation({
         query: (body) => ({
           url: "form-submissions",
@@ -181,6 +338,16 @@ const formSubmissionApi = sedarApi
           body,
         }),
         invalidatesTags: ["formSubmissions", "mrfSubmissions"],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to create form submission:", err);
+          }
+        },
       }),
 
       updateFormSubmission: build.mutation({
@@ -241,6 +408,16 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to update form submission:", err);
+          }
+        },
       }),
 
       resubmitFormSubmission: build.mutation({
@@ -253,18 +430,39 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to resubmit form submission:", err);
+          }
+        },
       }),
 
       cancelFormSubmission: build.mutation({
-        query: (submissionId) => ({
-          url: `form-submissions/${submissionId}/cancel`,
+        query: ({ id, reason }) => ({
+          url: `form-submissions/${id}/cancel`,
           method: "POST",
+          body: { reason },
         }),
-        invalidatesTags: (result, error, submissionId) => [
-          { type: "formSubmissions", id: submissionId },
+        invalidatesTags: (result, error, { id }) => [
+          { type: "formSubmissions", id },
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to cancel form submission:", err);
+          }
+        },
       }),
 
       deleteFormSubmission: build.mutation({
@@ -277,6 +475,16 @@ const formSubmissionApi = sedarApi
           "formSubmissions",
           "mrfSubmissions",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to delete form submission:", err);
+          }
+        },
       }),
     }),
   });
@@ -285,6 +493,10 @@ export const {
   useGetFormSubmissionsQuery,
   useGetMrfSubmissionsQuery,
   useLazyGetMrfSubmissionsQuery,
+  useGetAllEmployeeMovementSubmissionsQuery,
+  useLazyGetAllEmployeeMovementSubmissionsQuery,
+  useGetEmployeeMovementSubmissionsQuery,
+  useLazyGetEmployeeMovementSubmissionsQuery,
   useGetMrfSubmissionsCountsQuery,
   useLazyGetMrfSubmissionsCountsQuery,
   useGetSingleFormSubmissionQuery,
@@ -293,6 +505,8 @@ export const {
   useLazyGetFormSubmissionAttachmentQuery,
   useGetAllApprovalFormsQuery,
   useLazyGetAllApprovalFormsQuery,
+  useExportSubmissionsQuery,
+  useLazyExportSubmissionsQuery,
   useResubmitFormSubmissionMutation,
   useCreateFormSubmissionMutation,
   useUpdateFormSubmissionMutation,

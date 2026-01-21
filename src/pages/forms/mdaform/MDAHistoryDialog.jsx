@@ -460,28 +460,23 @@ const MDAHistoryDialog = ({
           </Box>
 
           <Box sx={{ pl: 2 }}>
-            {selectedMdaHistory.activity_log
-              .slice()
-              .reverse()
-              .map((activity, index) => (
-                <Box
-                  key={activity.id || index}
-                  sx={{
-                    mb:
-                      index === selectedMdaHistory.activity_log.length - 1
-                        ? 0
-                        : 2,
-                  }}>
-                  <TimelineStep
-                    activity={activity}
-                    index={index}
-                    isLast={
-                      index === selectedMdaHistory.activity_log.length - 1
-                    }
-                    isCompleted={true}
-                  />
-                </Box>
-              ))}
+            {selectedMdaHistory.activity_log.map((activity, index) => (
+              <Box
+                key={activity.id || index}
+                sx={{
+                  mb:
+                    index === selectedMdaHistory.activity_log.length - 1
+                      ? 0
+                      : 2,
+                }}>
+                <TimelineStep
+                  activity={activity}
+                  index={index}
+                  isLast={index === selectedMdaHistory.activity_log.length - 1}
+                  isCompleted={true}
+                />
+              </Box>
+            ))}
           </Box>
         </Box>
 

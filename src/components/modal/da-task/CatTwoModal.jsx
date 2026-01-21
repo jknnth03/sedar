@@ -10,6 +10,7 @@ import {
   IconButton,
   CircularProgress,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -19,12 +20,15 @@ import {
   Edit as EditIcon,
   Send as SendIcon,
   Save as SaveIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { useFormContext } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import CatTwoModalFields from "./CatTwoModalFields";
+import CatTwoModalPrinting from "./CatTwoModalPrinting";
+import { useGetCatTwoScoreQuery } from "../../../features/api/da-task/catTwoApi";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -150,8 +154,7 @@ const CatTwoModal = ({
   onRefreshDetails,
   onSuccessfulSave,
 }) => {
-  const { handleSubmit, reset, trigger, setValue, getValues, formState } =
-    useFormContext();
+  const { handleSubmit, reset, trigger, setValue } = useFormContext();
 
   const [getFormDataForSubmission, setGetFormDataForSubmission] =
     useState(null);
@@ -160,19 +163,24 @@ const CatTwoModal = ({
   const [formInitialized, setFormInitialized] = useState(false);
   const [lastEntryId, setLastEntryId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [currentEntryId, setCurrentEntryId] = useState(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
-  useEffect(() => {
-    if (open && selectedEntry?.id) {
-      setEditingEntryId(selectedEntry.id);
+  const { data: scoreData, isLoading: isLoadingScore } = useGetCatTwoScoreQuery(
+    selectedEntry?.id,
+    {
+      skip: !selectedEntry?.id || !open,
     }
-  }, [open, selectedEntry?.id]);
+  );
+
+  const totalScore = scoreData?.result?.total_score;
 
   const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
     if (
       status === "APPROVED" ||
       status === "CANCELLED" ||
+      status === "KICKOFF_COMPLETE" ||
       status === "FINAL_COMPLETE"
     ) {
       return false;
@@ -193,6 +201,15 @@ const CatTwoModal = ({
   const isForApprovalStatus = () => {
     const status = selectedEntry?.status;
     return status === "FOR_APPROVAL";
+  };
+
+  const shouldShowPrintButton = () => {
+    const status = selectedEntry?.status;
+    return (
+      status === "APPROVED" ||
+      status === "KICKOFF_COMPLETE" ||
+      status === "FINAL_COMPLETE"
+    );
   };
 
   const handleModeChange = (newMode) => {
@@ -219,7 +236,7 @@ const CatTwoModal = ({
     setFormInitialized(false);
     setLastEntryId(null);
     setIsUpdating(false);
-    setEditingEntryId(null);
+    setCurrentEntryId(null);
     setGetFormDataForSubmission(null);
     reset();
     onClose();
@@ -251,58 +268,61 @@ const CatTwoModal = ({
     }
   }, [onRefreshDetails]);
 
+  const handlePrintClick = () => {
+    setShowPrintDialog(true);
+  };
+
+  const handleClosePrintDialog = () => {
+    setShowPrintDialog(false);
+  };
+
   useEffect(() => {
     if (onSuccessfulSave && typeof onSuccessfulSave === "function") {
       onSuccessfulSave(handleSuccessfulSaveComplete);
     }
   }, [onSuccessfulSave, handleSuccessfulSaveComplete]);
 
-  const onSubmit = async (formValues) => {
-    try {
-      setIsUpdating(true);
+  useEffect(() => {
+    if (selectedEntry?.id) {
+      setCurrentEntryId(selectedEntry.id);
+    }
+  }, [selectedEntry?.id]);
 
+  const onSubmit = async (data) => {
+    if (isUpdating) {
+      return;
+    }
+
+    try {
       const isFormValid = await trigger();
       if (!isFormValid) {
-        console.error("Form validation failed");
-        console.error("Form Errors:", formState.errors);
-        alert("Please check all required fields");
-        setIsUpdating(false);
         return;
       }
 
       if (!getFormDataForSubmission) {
-        console.error("Form data function not available");
         alert("Form data function not available. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const formData = getFormDataForSubmission();
-
       if (!formData) {
-        console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
-      const entryIdToUse = editingEntryId || selectedEntry?.id;
+      const entryIdToUse = selectedEntry?.id;
 
       if (!entryIdToUse) {
-        console.error("No entry ID available");
         alert("Entry ID is missing. Please try again.");
-        setIsUpdating(false);
         return;
       }
+
+      setIsUpdating(true);
 
       if (onSave) {
         await onSave(formData, currentMode, entryIdToUse);
-      } else {
-        console.error("onSave function not provided");
       }
     } catch (error) {
-      console.error("Submit error:", error);
-      console.error("Error stack:", error.stack);
       alert("An error occurred while submitting the form. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -310,22 +330,26 @@ const CatTwoModal = ({
   };
 
   const handleSaveAsDraft = async () => {
-    try {
-      setIsUpdating(true);
+    if (isUpdating) {
+      return;
+    }
 
+    try {
       if (!getFormDataForSubmission) {
-        console.error("Form data function not available");
         alert("Form data function not available. Please try again.");
-        setIsUpdating(false);
         return;
       }
 
       const formData = getFormDataForSubmission();
-
       if (!formData) {
-        console.error("Failed to create form data");
         alert("Failed to create form data. Please try again.");
-        setIsUpdating(false);
+        return;
+      }
+
+      const entryIdToUse = selectedEntry?.id;
+
+      if (!entryIdToUse) {
+        alert("Entry ID is missing. Please try again.");
         return;
       }
 
@@ -334,13 +358,12 @@ const CatTwoModal = ({
         action: "save_draft",
       };
 
-      const entryIdToUse = editingEntryId || selectedEntry?.id;
+      setIsUpdating(true);
 
       if (onSaveAsDraft) {
         await onSaveAsDraft(draftData, entryIdToUse);
       }
     } catch (error) {
-      console.error("Save draft error:", error);
       alert("An error occurred while saving as draft. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -348,22 +371,23 @@ const CatTwoModal = ({
   };
 
   const handleResubmit = async () => {
-    const entryId = selectedEntry?.id;
+    if (isUpdating) {
+      return;
+    }
 
-    if (entryId && onResubmit) {
+    const entryIdToUse = selectedEntry?.id;
+    if (entryIdToUse && onResubmit) {
+      setIsUpdating(true);
       try {
-        setIsUpdating(true);
-        const success = await onResubmit(entryId);
-        if (success) {
-          setFormInitialized(false);
-          if (onRefreshDetails) {
-            setTimeout(() => {
-              onRefreshDetails();
-            }, 200);
-          }
+        await onResubmit(entryIdToUse);
+        setFormInitialized(false);
+        if (onRefreshDetails) {
+          setTimeout(() => {
+            onRefreshDetails();
+          }, 200);
         }
       } catch (error) {
-        console.error("Resubmit error:", error);
+        alert("An error occurred. Please try again.");
       } finally {
         setIsUpdating(false);
       }
@@ -413,18 +437,67 @@ const CatTwoModal = ({
   const isProcessing = isLoading || isUpdating;
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <StyledDialogTitle>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
-            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              {getModalTitle()}
-            </Typography>
-            {currentMode === "view" && shouldShowEditButton() && (
-              <Tooltip title="EDIT FORM" arrow placement="top">
+    <>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+          <StyledDialogTitle>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
+              <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+                {getModalTitle()}
+              </Typography>
+              {currentMode === "view" && shouldShowEditButton() && (
+                <Tooltip title="EDIT FORM" arrow placement="top">
+                  <IconButton
+                    onClick={() => handleModeChange("edit")}
+                    disabled={isProcessing}
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      padding: "8px",
+                      "&:hover": {
+                        backgroundColor: !isProcessing
+                          ? "rgba(0, 136, 32, 0.08)"
+                          : "transparent",
+                        transform: !isProcessing ? "scale(1.1)" : "none",
+                        transition: "all 0.2s ease-in-out",
+                      },
+                    }}>
+                    <EditIcon
+                      sx={{
+                        fontSize: "20px",
+                        "& path": {
+                          fill: !isProcessing
+                            ? "rgba(0, 136, 32, 1)"
+                            : "rgba(0, 0, 0, 0.26)",
+                        },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {currentMode === "view" && totalScore !== undefined && (
+                <Chip
+                  label={`Total Score: ${totalScore}%`}
+                  sx={{
+                    ml: 1,
+                    backgroundColor: "rgb(33, 61, 112)",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "0.875rem",
+                    height: "32px",
+                    "& .MuiChip-label": {
+                      px: 2,
+                    },
+                  }}
+                />
+              )}
+              {currentMode === "view" && isLoadingScore && (
+                <CircularProgress size={20} sx={{ ml: 1 }} />
+              )}
+              {currentMode === "view" && shouldShowPrintButton() && (
                 <IconButton
-                  onClick={() => handleModeChange("edit")}
+                  onClick={handlePrintClick}
                   disabled={isProcessing}
                   size="small"
                   sx={{
@@ -432,152 +505,160 @@ const CatTwoModal = ({
                     padding: "8px",
                     "&:hover": {
                       backgroundColor: !isProcessing
-                        ? "rgba(0, 136, 32, 0.08)"
+                        ? "rgba(33, 61, 112, 0.08)"
                         : "transparent",
                       transform: !isProcessing ? "scale(1.1)" : "none",
                       transition: "all 0.2s ease-in-out",
                     },
                   }}>
-                  <EditIcon
+                  <PrintIcon
                     sx={{
                       fontSize: "20px",
                       "& path": {
-                        fill: !isProcessing
-                          ? "rgba(0, 136, 32, 1)"
-                          : "rgba(0, 0, 0, 0.26)",
+                        fill: "rgb(33, 61, 112)",
                       },
                     }}
                   />
                 </IconButton>
-              </Tooltip>
-            )}
-            {currentMode === "edit" && originalMode === "view" && (
-              <Tooltip title="CANCEL EDIT">
-                <IconButton
-                  onClick={handleCancelEdit}
-                  disabled={isProcessing}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    padding: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgba(235, 0, 0, 0.08)",
-                      transform: "scale(1.1)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                  }}>
-                  <EditOffIcon
-                    sx={{
-                      fontSize: "20px",
-                      "& path": { fill: "rgba(235, 0, 0, 1)" },
-                    }}
-                  />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
-          <IconButton
-            onClick={handleClose}
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              backgroundColor: "#fff",
-              "&:hover": { backgroundColor: "#f5f5f5" },
-              transition: "all 0.2s ease-in-out",
-            }}>
-            <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
-          </IconButton>
-        </StyledDialogTitle>
-
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <StyledDialogContent>
-            <CatTwoModalFields
-              isLoading={isProcessing}
-              mode={currentMode}
-              onFormDataCreate={handleFormDataCallback}
-              selectedEntry={selectedEntry}
-              formInitialized={formInitialized}
-              key={`${
-                selectedEntry?.id || "new"
-              }-${currentMode}-${formInitialized}-${
-                selectedEntry?.updated_at || ""
-              }`}
-            />
-          </StyledDialogContent>
-
-          <StyledDialogActions>
-            {currentMode === "view" && shouldShowResubmitButton() && (
-              <Button
-                onClick={handleResubmit}
-                variant="contained"
-                disabled={isProcessing}
-                startIcon={
-                  isProcessing ? <CircularProgress size={16} /> : <SendIcon />
-                }
-                sx={{
-                  backgroundColor: !isProcessing
-                    ? "rgb(33, 61, 112)"
-                    : "rgba(33, 61, 112, 0.3)",
-                  "&:hover": {
-                    backgroundColor: !isProcessing
-                      ? "rgb(25, 45, 84)"
-                      : "rgba(33, 61, 112, 0.3)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "rgba(33, 61, 112, 0.3)",
-                    color: "rgba(255, 255, 255, 0.5)",
-                  },
-                  mr: 2,
-                }}>
-                {isProcessing ? "Resubmitting..." : "Resubmit"}
-              </Button>
-            )}
-
-            {currentMode === "edit" && (
-              <>
-                {shouldShowSaveAsDraftButton() && (
-                  <DraftButton
-                    onClick={handleSaveAsDraft}
+              )}
+              {currentMode === "edit" && originalMode === "view" && (
+                <Tooltip title="CANCEL EDIT">
+                  <IconButton
+                    onClick={handleCancelEdit}
                     disabled={isProcessing}
-                    sx={{ mr: 2 }}>
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      padding: "8px",
+                      "&:hover": {
+                        backgroundColor: "rgba(235, 0, 0, 0.08)",
+                        transform: "scale(1.1)",
+                        transition: "all 0.2s ease-in-out",
+                      },
+                    }}>
+                    <EditOffIcon
+                      sx={{
+                        fontSize: "20px",
+                        "& path": { fill: "rgba(235, 0, 0, 1)" },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                backgroundColor: "#fff",
+                "&:hover": { backgroundColor: "#f5f5f5" },
+                transition: "all 0.2s ease-in-out",
+              }}>
+              <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
+            </IconButton>
+          </StyledDialogTitle>
+
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <StyledDialogContent>
+              <CatTwoModalFields
+                isLoading={isProcessing}
+                mode={currentMode}
+                onFormDataCreate={handleFormDataCallback}
+                selectedEntry={selectedEntry}
+                formInitialized={formInitialized}
+                key={`${
+                  selectedEntry?.id || "new"
+                }-${currentMode}-${formInitialized}-${
+                  selectedEntry?.updated_at || ""
+                }`}
+              />
+            </StyledDialogContent>
+
+            <StyledDialogActions>
+              {currentMode === "view" && shouldShowResubmitButton() && (
+                <Button
+                  onClick={handleResubmit}
+                  variant="contained"
+                  disabled={isProcessing}
+                  startIcon={
+                    isProcessing ? <CircularProgress size={16} /> : <SendIcon />
+                  }
+                  sx={{
+                    backgroundColor: !isProcessing
+                      ? "rgb(33, 61, 112)"
+                      : "rgba(33, 61, 112, 0.3)",
+                    "&:hover": {
+                      backgroundColor: !isProcessing
+                        ? "rgb(25, 45, 84)"
+                        : "rgba(33, 61, 112, 0.3)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "rgba(33, 61, 112, 0.3)",
+                      color: "rgba(255, 255, 255, 0.5)",
+                    },
+                    mr: 2,
+                  }}>
+                  {isProcessing ? "Resubmitting..." : "Resubmit"}
+                </Button>
+              )}
+
+              {currentMode === "edit" && (
+                <>
+                  {shouldShowSaveAsDraftButton() && (
+                    <DraftButton
+                      onClick={handleSaveAsDraft}
+                      disabled={isProcessing}
+                      sx={{ mr: 2 }}>
+                      {isProcessing ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <>
+                          <SaveIcon sx={{ fontSize: 16 }} />
+                          SAVE AS DRAFT
+                        </>
+                      )}
+                    </DraftButton>
+                  )}
+                  <SubmitButton type="submit" disabled={isProcessing}>
                     {isProcessing ? (
                       <CircularProgress size={16} />
                     ) : (
                       <>
-                        <SaveIcon sx={{ fontSize: 16 }} />
-                        SAVE AS DRAFT
+                        {isForApprovalStatus() ? (
+                          <>
+                            <EditIcon sx={{ fontSize: 16 }} />
+                            UPDATE
+                          </>
+                        ) : (
+                          <>
+                            <SendIcon sx={{ fontSize: 16 }} />
+                            SUBMIT
+                          </>
+                        )}
                       </>
                     )}
-                  </DraftButton>
-                )}
-                <SubmitButton type="submit" disabled={isProcessing}>
-                  {isProcessing ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <>
-                      {isForApprovalStatus() ? (
-                        <>
-                          <EditIcon sx={{ fontSize: 16 }} />
-                          UPDATE
-                        </>
-                      ) : (
-                        <>
-                          <SendIcon sx={{ fontSize: 16 }} />
-                          SUBMIT
-                        </>
-                      )}
-                    </>
-                  )}
-                </SubmitButton>
-              </>
-            )}
-          </StyledDialogActions>
-        </form>
-      </StyledDialog>
-    </LocalizationProvider>
+                  </SubmitButton>
+                </>
+              )}
+            </StyledDialogActions>
+          </form>
+        </StyledDialog>
+      </LocalizationProvider>
+
+      <Dialog
+        open={showPrintDialog}
+        onClose={handleClosePrintDialog}
+        maxWidth="lg"
+        fullWidth>
+        <DialogContent sx={{ p: 0 }}>
+          {selectedEntry && <CatTwoModalPrinting data={selectedEntry} />}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

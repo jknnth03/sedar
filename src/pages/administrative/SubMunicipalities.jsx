@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Typography,
   Table,
@@ -6,8 +6,6 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
-  CircularProgress,
   TableRow,
   Button,
   Box,
@@ -16,6 +14,9 @@ import {
   FormControlLabel,
   Fade,
   Tooltip,
+  useMediaQuery,
+  useTheme,
+  Skeleton,
 } from "@mui/material";
 import { useSnackbar } from "notistack";
 import SearchIcon from "@mui/icons-material/Search";
@@ -29,6 +30,9 @@ import {
 } from "../../features/api/administrative/subMunicipalitiesApi";
 import { useGetSubmunicipalitiesQuery } from "../../features/api/masterlist/onerdfApi";
 import { CONSTANT } from "../../config";
+import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
+import NoDataFound from "../../pages/NoDataFound";
+import { styles } from "../forms/manpowerform/formSubmissionStyles";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -37,11 +41,18 @@ const CustomSearchBar = ({
   setShowArchived,
   isLoading = false,
 }) => {
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+  const isMobile = useMediaQuery("(max-width:600px)");
   const iconColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
   const labelColor = showArchived ? "#d32f2f" : "rgb(33, 61, 112)";
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
       <FormControlLabel
         control={
           <Checkbox
@@ -79,55 +90,21 @@ const CustomSearchBar = ({
       />
 
       <TextField
-        placeholder="Search Sub Municipalities..."
+        placeholder={isVerySmall ? "Search..." : "Search sub municipalities..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
         size="small"
         InputProps={{
           startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: "20px",
-              }}
-            />
+            <SearchIcon sx={styles.searchIcon(isLoading, isVerySmall)} />
           ),
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
-          ),
-          sx: {
-            height: "36px",
-            width: "320px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
+          sx: styles.searchInputProps(isLoading, isVerySmall, isMobile),
         }}
         sx={{
-          "& .MuiInputBase-input": {
-            fontSize: "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
+          ...(isVerySmall
+            ? styles.searchTextFieldVerySmall
+            : styles.searchTextField),
         }}
       />
     </Box>
@@ -135,46 +112,71 @@ const CustomSearchBar = ({
 };
 
 const SubMunicipalities = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const status = showArchived ? "inactive" : "active";
 
   const { data: onerdfData, isFetching: onerdfFetching } =
     useGetSubmunicipalitiesQuery();
 
+  const queryParams = useMemo(
+    () => ({
+      search: debouncedSearchQuery,
+      page,
+      per_page: rowsPerPage,
+      status,
+    }),
+    [debouncedSearchQuery, page, rowsPerPage, status]
+  );
+
   const {
     data: subMunicipalitiesData,
     refetch: refetchSubMunicipalities,
     isFetching: fetchingSubMunicipalities,
-  } = useGetShowSubMunicipalitiesQuery(
-    { page, per_page: rowsPerPage, search: searchQuery, status },
-    {
-      refetchOnMountOrArgChange: true,
-      onQueryStarted: () => setIsSearching(true),
-      onSettled: () => setIsSearching(false),
-    }
-  );
+  } = useGetShowSubMunicipalitiesQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+  });
 
   const [postSubMunicipalities, { isLoading: syncing }] =
     usePostSubMunicipalitiesMutation();
 
-  const subMunicipalities = useMemo(() => {
-    return subMunicipalitiesData?.result?.data || [];
-  }, [subMunicipalitiesData]);
+  const subMunicipalities = useMemo(
+    () => subMunicipalitiesData?.result?.data || [],
+    [subMunicipalitiesData]
+  );
+  const totalCount = subMunicipalitiesData?.result?.total || 0;
+
+  const handleSearchChange = useCallback((newSearchQuery) => {
+    setSearchQuery(newSearchQuery);
+    setPage(1);
+  }, []);
 
   const onSync = async () => {
     try {
       const response = await postSubMunicipalities({ ...onerdfData });
 
       if (response.error) {
-        enqueueSnackbar(
-          `Sync failed: ${response.error?.data?.message || "Unknown error"}`,
-          { variant: "error" }
-        );
+        enqueueSnackbar(`Sync failed: ${response.error.data?.message}`, {
+          variant: "error",
+        });
       } else {
         enqueueSnackbar("Successfully synced!", { variant: "success" });
         refetchSubMunicipalities();
@@ -184,182 +186,184 @@ const SubMunicipalities = () => {
     }
   };
 
-  const isLoadingState =
-    onerdfFetching || fetchingSubMunicipalities || isSearching || syncing;
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage + 1);
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(1);
+  }, []);
+
+  const isLoadingState = onerdfFetching || fetchingSubMunicipalities || syncing;
 
   return (
     <>
-      <Box
-        sx={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
-        }}>
+      <Box sx={styles.mainContainer}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-            minHeight: "72px",
-            padding: "16px 14px",
-            backgroundColor: "white",
-            borderBottom: "1px solid #e0e0e0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
           }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.4 }}>
-            <Typography className="header">SUB MUNICIPALITIES</Typography>
-            <Fade in={!isLoadingState}>
-              <Button
-                variant="contained"
-                onClick={onSync}
-                startIcon={<SyncIcon />}
-                disabled={isLoadingState}
+          <Box
+            sx={{
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
+            }}>
+            <Box sx={styles.headerLeftSection}>
+              <Typography
+                className="header"
                 sx={{
-                  backgroundColor: "#4caf50",
-                  height: "38px",
-                  width: "120px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(76, 175, 80, 0.2)",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: "#45a049",
-                    boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:disabled": {
-                    backgroundColor: "#ccc",
-                    boxShadow: "none",
-                  },
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
                 }}>
-                SYNC
-              </Button>
-            </Fade>
+                SUB MUNICIPALITIES
+              </Typography>
+              {isVerySmall ? (
+                <IconButton
+                  onClick={onSync}
+                  disabled={isLoadingState}
+                  sx={{
+                    width: "36px",
+                    height: "36px",
+                    backgroundColor: "#4caf50",
+                    color: "white",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      backgroundColor: "#45a049",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                    },
+                  }}>
+                  <SyncIcon sx={{ fontSize: "18px" }} />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={onSync}
+                  startIcon={<SyncIcon />}
+                  disabled={isLoadingState}
+                  sx={{
+                    ...styles.createButton,
+                    backgroundColor: "#4caf50",
+                    "&:hover": {
+                      backgroundColor: "#45a049",
+                    },
+                  }}>
+                  SYNC
+                </Button>
+              )}
+            </Box>
           </Box>
 
           <CustomSearchBar
             searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
+            setSearchQuery={handleSearchChange}
             showArchived={showArchived}
             setShowArchived={setShowArchived}
             isLoading={isLoadingState}
           />
         </Box>
 
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
+        <Box sx={styles.tabsContainer}>
           <TableContainer
             sx={{
-              flex: 1,
-              overflow: "auto",
-              backgroundColor: "#fafafa",
-              "& .MuiTableCell-head": {
-                backgroundColor: "#f8f9fa",
-                fontWeight: 700,
-                fontSize: "18px",
-                color: "rgb(33, 61, 112)",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                borderBottom: "2px solid #e0e0e0",
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-                height: "48px",
-                padding: "8px 16px",
-              },
-              "& .MuiTableCell-body": {
-                fontSize: "16px",
-                color: "#333",
-                borderBottom: "1px solid #f0f0f0",
-                padding: "8px 16px",
-                height: "52px",
-                backgroundColor: "white",
-              },
-              "& .MuiTableRow-root": {
-                transition: "background-color 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: "#f8f9fa",
-                  cursor: "pointer",
-                  "& .MuiTableCell-root": {
-                    backgroundColor: "transparent",
-                  },
+              ...styles.tableContainerStyles,
+              backgroundColor: "white",
+              "& .MuiTableBody-root .MuiTableRow-root:last-child .MuiTableCell-root":
+                {
+                  borderBottom: "none",
                 },
-              },
             }}>
-            <Table stickyHeader sx={{ tableLayout: "fixed", width: "100%" }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell align="left" sx={{ width: "8%" }}>
+                  <TableCell
+                    align="left"
+                    sx={{ ...styles.columnStyles.id, borderBottom: "none" }}>
                     ID
                   </TableCell>
-                  <TableCell sx={{ width: "25%" }}>PSGC CODE</TableCell>
-                  <TableCell sx={{ width: "35%" }}>SUB MUNICIPALITY</TableCell>
-                  <TableCell sx={{ width: "32%" }}>MUNICIPALITY</TableCell>
+                  {!isVerySmall && (
+                    <TableCell
+                      sx={{
+                        ...styles.columnStyles.formName,
+                        borderBottom: "none",
+                      }}>
+                      PSGC CODE
+                    </TableCell>
+                  )}
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
+                    }}>
+                    SUB MUNICIPALITY
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
+                    }}>
+                    MUNICIPALITY
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {isLoadingState ? (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                      <CircularProgress
-                        size={32}
-                        sx={{ color: "rgb(33, 61, 112)" }}
-                      />
-                    </TableCell>
-                  </TableRow>
+                  <>
+                    {[...Array(5)].map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell align="left">
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        {!isVerySmall && (
+                          <TableCell>
+                            <Skeleton animation="wave" height={30} />
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton animation="wave" height={30} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
                 ) : subMunicipalities.length > 0 ? (
                   subMunicipalities.map((subMunicipality) => (
-                    <TableRow key={subMunicipality.id}>
+                    <TableRow
+                      key={subMunicipality.id}
+                      sx={styles.tableRowHover(theme)}>
                       <TableCell align="left">{subMunicipality.id}</TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontWeight: 600,
-                        }}>
-                        <Tooltip
-                          title={subMunicipality.psgc_id}
-                          placement="top">
-                          <span>{subMunicipality.psgc_id}</span>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontWeight: 600,
-                        }}>
+                      {!isVerySmall && (
+                        <TableCell sx={styles.formNameCell}>
+                          <Tooltip
+                            title={subMunicipality.psgc_id}
+                            placement="top">
+                            <span style={styles.cellContentStyles}>
+                              {subMunicipality.psgc_id}
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                      )}
+                      <TableCell sx={styles.formNameCell}>
                         <Tooltip title={subMunicipality.name} placement="top">
-                          <span>{subMunicipality.name}</span>
+                          <span style={styles.cellContentStyles}>
+                            {subMunicipality.name}
+                          </span>
                         </Tooltip>
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontWeight: 600,
-                        }}>
+                      <TableCell sx={styles.formNameCell}>
                         <Tooltip
                           title={
                             subMunicipality.city_municipality?.name || "N/A"
                           }
                           placement="top">
-                          <span>
+                          <span style={styles.cellContentStyles}>
                             {subMunicipality.city_municipality?.name || "N/A"}
                           </span>
                         </Tooltip>
@@ -367,35 +371,34 @@ const SubMunicipalities = () => {
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow>
+                  <TableRow
+                    sx={{
+                      borderBottom: "none",
+                      "&:hover": {
+                        backgroundColor: "transparent !important",
+                        cursor: "default !important",
+                      },
+                    }}>
                     <TableCell
-                      colSpan={4}
+                      colSpan={999}
                       align="center"
                       sx={{
-                        py: 8,
+                        ...styles.noDataContainer,
                         borderBottom: "none",
-                        color: "#666",
-                        fontSize: "16px",
+                        "&:hover": {
+                          backgroundColor: "transparent !important",
+                        },
                       }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 2,
-                        }}>
-                        {CONSTANT.BUTTONS.NODATA.icon}
-                        <Typography variant="h6" color="text.secondary">
-                          No sub municipalities found
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {searchQuery
-                            ? `No results for "${searchQuery}"`
+                      <NoDataFound
+                        message=""
+                        subMessage={
+                          searchQuery
+                            ? `No sub municipalities found for "${searchQuery}"`
                             : showArchived
                             ? "No archived sub municipalities"
-                            : "No active sub municipalities"}
-                        </Typography>
-                      </Box>
+                            : "No sub municipalities available"
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 )}
@@ -403,51 +406,13 @@ const SubMunicipalities = () => {
             </Table>
           </TableContainer>
 
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={subMunicipalitiesData?.result?.total || 0}
-              rowsPerPage={rowsPerPage}
-              page={page - 1}
-              onPageChange={(e, newPage) => setPage(newPage + 1)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(1);
-              }}
-              sx={{
-                "& .MuiTablePagination-toolbar": {
-                  paddingLeft: "24px",
-                  paddingRight: "24px",
-                },
-              }}
-            />
-          </Box>
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
         </Box>
       </Box>
     </>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
@@ -11,20 +11,11 @@ import {
 import DAFormTable from "./DAFormTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import {
-  useResubmitFormSubmissionMutation,
-  useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
-const DAFormForApproval = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
-  const theme = useTheme();
+const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -37,7 +28,6 @@ const DAFormForApproval = ({
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
-  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
   const [modalMode, setModalMode] = useState("view");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -52,10 +42,9 @@ const DAFormForApproval = ({
 
   const [updateDaSubmission] = useUpdateDaMutation();
   const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
-  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
@@ -63,7 +52,16 @@ const DAFormForApproval = ({
       pagination: true,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -97,7 +95,6 @@ const DAFormForApproval = ({
   const handleRowClick = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
     setMenuAnchor({});
-    setSelectedRowForMenu(null);
     setModalMode("view");
     setModalOpen(true);
   }, []);
@@ -140,22 +137,9 @@ const DAFormForApproval = ({
     [submissionsList]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [submissionsList, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -163,14 +147,7 @@ const DAFormForApproval = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Form submission cancelled successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        refetch();
-      } else if (
+      if (
         confirmAction === "update" &&
         pendingFormData &&
         selectedSubmissionId
@@ -232,12 +209,10 @@ const DAFormForApproval = ({
       ...prev,
       [submission.id]: event.currentTarget,
     }));
-    setSelectedRowForMenu(submission);
   }, []);
 
   const handleMenuClose = useCallback((submissionId) => {
     setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
-    setSelectedRowForMenu(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -286,96 +261,53 @@ const DAFormForApproval = ({
     <FormProvider {...methods}>
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          flex: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
+          backgroundColor: "white",
         }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "white",
-          }}>
-          <DAFormTable
-            submissionsList={submissionsList}
-            isLoadingState={isLoadingState}
-            error={error}
-            handleRowClick={handleRowClick}
-            handleMenuOpen={handleMenuOpen}
-            handleMenuClose={handleMenuClose}
-            menuAnchor={menuAnchor}
-            searchQuery={searchQuery}
-            statusFilter="PENDING"
-            onCancel={handleCancel}
-          />
-
-          <Box
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#f8f9fa",
-              flexShrink: 0,
-              "& .MuiTablePagination-root": {
-                color: "#666",
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                  {
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  },
-                "& .MuiTablePagination-select": {
-                  fontSize: "14px",
-                },
-                "& .MuiIconButton-root": {
-                  color: "rgb(33, 61, 112)",
-                  "&:hover": {
-                    backgroundColor: "rgba(33, 61, 112, 0.04)",
-                  },
-                  "&.Mui-disabled": {
-                    color: "#ccc",
-                  },
-                },
-              },
-              "& .MuiTablePagination-toolbar": {
-                paddingLeft: "24px",
-                paddingRight: "24px",
-              },
-            }}>
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50, 100]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={Math.max(0, page - 1)}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </Box>
-        </Box>
-
-        <DAFormModal
-          open={modalOpen}
-          onClose={handleModalClose}
-          onSave={handleSave}
-          onResubmit={handleResubmit}
-          selectedEntry={selectedEntry}
-          isLoading={detailsLoading}
-          mode={modalMode}
-          submissionId={selectedSubmissionId}
+        <DAFormTable
+          submissionsList={submissionsList}
+          isLoadingState={isLoadingState}
+          error={error}
+          handleRowClick={handleRowClick}
+          handleMenuOpen={handleMenuOpen}
+          handleMenuClose={handleMenuClose}
+          menuAnchor={menuAnchor}
+          searchQuery={searchQuery}
+          statusFilter="PENDING"
+          onCancel={handleCancelSubmission}
         />
 
-        <ConfirmationDialog
-          open={confirmOpen}
-          onClose={handleConfirmationCancel}
-          onConfirm={handleActionConfirm}
-          isLoading={isLoading}
-          action={confirmAction}
-          itemName={getSubmissionDisplayName()}
+        <CustomTablePagination
+          count={totalCount}
+          page={Math.max(0, page - 1)}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Box>
+
+      <DAFormModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        onSave={handleSave}
+        onResubmit={handleResubmit}
+        selectedEntry={selectedEntry}
+        isLoading={detailsLoading}
+        mode={modalMode}
+        submissionId={selectedSubmissionId}
+      />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+      />
     </FormProvider>
   );
 };

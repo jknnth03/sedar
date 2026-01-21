@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
@@ -28,7 +28,7 @@ import {
 import { useSelector } from "react-redux";
 import "./Employee.scss";
 
-import { createFlattenedEmployeeSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
+import { getStepValidationSchema } from "../../../../schema/employees/FlattenedEmployeeSchema.js";
 import {
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
@@ -85,9 +85,7 @@ const EmployeeWizardForm = ({
           const perms = roleData.accessPermissions || [];
           setHasEnableEditPermission(perms.includes("Enable Edit"));
           return;
-        } catch (error) {
-          console.error("Error parsing user role:", error);
-        }
+        } catch (error) {}
       }
 
       const reduxPerms =
@@ -137,7 +135,6 @@ const EmployeeWizardForm = ({
   const isDisabled = isSubmitting || blockAllInteractions;
   const canEdit = hasEnableEditPermission;
 
-  // Check if employee status is INACTIVE
   const isEmployeeInactive =
     initialData?.status === "INACTIVE" ||
     initialData?.general_info?.status === "INACTIVE";
@@ -145,8 +142,8 @@ const EmployeeWizardForm = ({
 
   const methods = useForm({
     defaultValues: getDefaultValues({ mode, initialData }),
-    resolver: yupResolver(createFlattenedEmployeeSchema()),
-    mode: "onSubmit",
+    mode: "onChange",
+    reValidateMode: "onChange",
     shouldUnregister: false,
   });
 
@@ -158,6 +155,7 @@ const EmployeeWizardForm = ({
     clearErrors,
     getValues,
     setError,
+    trigger,
     formState: { errors },
   } = methods;
 
@@ -167,6 +165,69 @@ const EmployeeWizardForm = ({
     resetState();
     if (onClose) onClose();
   };
+
+  const collectAttainmentData = useCallback(() => {
+    const formValues = getValues();
+
+    const hasAttainmentData =
+      formValues.program_id &&
+      formValues.degree_id &&
+      formValues.honor_title_id &&
+      formValues.attainment_id;
+
+    if (hasAttainmentData) {
+      const attainmentEntry = {
+        program_id: formValues.program_id,
+        program: formValues.program_id,
+        degree_id: formValues.degree_id,
+        degree: formValues.degree_id,
+        honor_title_id: formValues.honor_title_id,
+        honor_title: formValues.honor_title_id,
+        attainment_id: formValues.attainment_id,
+        attainment: formValues.attainment_id,
+        academic_year_from: formValues.academic_year_from,
+        academic_year_to: formValues.academic_year_to,
+        gpa: formValues.gpa,
+        institution: formValues.institution,
+        attainment_remarks: formValues.attainment_remarks,
+        attainment_attachment: formValues.attainment_attachment,
+        attachment_filename:
+          formValues.attachment_filename ||
+          formValues.existing_attachment_filename,
+        attainment_attachment_filename:
+          formValues.attachment_filename ||
+          formValues.existing_attachment_filename,
+        existing_attachment_filename: formValues.existing_attachment_filename,
+        existing_attachment_url: formValues.existing_attachment_url,
+        attachment_url: formValues.existing_attachment_url,
+        id: formValues.id,
+      };
+
+      setValue("attainments", [attainmentEntry], { shouldValidate: false });
+    }
+  }, [getValues, setValue]);
+
+  const validateCurrentStep = useCallback(async () => {
+    try {
+      const formData = getValues();
+      const stepSchema = getStepValidationSchema(activeStep, currentMode);
+      await stepSchema.validate(formData, {
+        abortEarly: false,
+        context: { mode: currentMode },
+      });
+      return true;
+    } catch (err) {
+      if (err.inner) {
+        err.inner.forEach((error) => {
+          setError(error.path, {
+            type: "manual",
+            message: error.message,
+          });
+        });
+      }
+      return false;
+    }
+  }, [activeStep, currentMode, getValues, setError]);
 
   const { onSubmit, handleUpdateAtStep, onError } = useFormSubmission({
     isDisabled,
@@ -194,7 +255,39 @@ const EmployeeWizardForm = ({
     setSubmissionResult,
     isDisabled,
     isViewMode,
-    getValues
+    validateCurrentStep
+  );
+
+  const enhancedHandleNext = useCallback(async () => {
+    if (isDisabled) return;
+
+    if (activeStep === 4) {
+      collectAttainmentData();
+    }
+
+    const isValid = await validateCurrentStep();
+    if (isValid) {
+      handleNext();
+    }
+  }, [
+    isDisabled,
+    activeStep,
+    collectAttainmentData,
+    validateCurrentStep,
+    handleNext,
+  ]);
+
+  const enhancedHandleStepClick = useCallback(
+    (stepIndex) => {
+      if (!isViewMode || isDisabled) return;
+
+      if (activeStep === 4 && stepIndex !== 4) {
+        collectAttainmentData();
+      }
+
+      handleStepClick(stepIndex);
+    },
+    [isViewMode, isDisabled, activeStep, collectAttainmentData, handleStepClick]
   );
 
   useEffect(() => {
@@ -257,6 +350,12 @@ const EmployeeWizardForm = ({
 
     return () => subscription.unsubscribe();
   }, [watch, handleEmploymentTypeChange, isFormInitialized, isDisabled]);
+
+  useEffect(() => {
+    if (activeStep !== 7) {
+      clearErrors("files");
+    }
+  }, [activeStep, clearErrors]);
 
   const handleEditClick = () => {
     if (isDisabled || !canEditEmployee) return;
@@ -488,7 +587,7 @@ const EmployeeWizardForm = ({
                       isViewMode && !isDisabled ? { opacity: 0.7 } : {},
                     opacity: isDisabled ? 0.6 : 1,
                   }}
-                  onClick={() => handleStepClick(index)}
+                  onClick={() => enhancedHandleStepClick(index)}
                   StepIconComponent={renderStepIcon}>
                   {label}
                 </StepLabel>
@@ -550,7 +649,7 @@ const EmployeeWizardForm = ({
         hasErrors={hasErrors}
         handleUpdateAtStep={handleUpdateAtStep}
         handleBack={handleBack}
-        handleNext={handleNext}
+        handleNext={enhancedHandleNext}
         handleClose={handleClose}
         handleSubmit={handleSubmit}
         onSubmit={onSubmit}

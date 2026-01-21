@@ -41,8 +41,7 @@ const MDAMonitoringRejected = ({
     return {
       page,
       per_page: rowsPerPage,
-      status: "active",
-      approval_status: "rejected",
+      status: "REJECTED",
       search: searchQuery || "",
     };
   }, [page, rowsPerPage, searchQuery]);

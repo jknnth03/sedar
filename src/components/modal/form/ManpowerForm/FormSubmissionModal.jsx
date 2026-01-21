@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import {
   Dialog,
@@ -34,37 +34,11 @@ import {
   shouldEnableEditButton,
   shouldEnableResubmitButton,
   shouldShowResubmitButton,
-  isAdditionalManpower,
-  isReplacementDueToEmployeeMovement,
-  populateFormWithEntry,
   buildCreatePayload,
   buildEditPayload,
   buildResubmitPayload,
   safeRenderText,
 } from "./formSubmissionUtils";
-import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
-
-const ErrorDialog = ({ open, message, onClose }) => {
-  if (!open) return null;
-
-  return (
-    <Box sx={modalStyles.errorDialogOverlay}>
-      <Box sx={modalStyles.errorDialogBox}>
-        <IconButton onClick={onClose} sx={modalStyles.errorDialogCloseButton}>
-          <CloseIcon sx={modalStyles.errorDialogCloseIcon} />
-        </IconButton>
-        <Box sx={modalStyles.errorDialogContent}>
-          <Box sx={modalStyles.errorDialogIconContainer}>
-            <Typography sx={modalStyles.errorDialogIconText}>!</Typography>
-          </Box>
-          <Typography variant="body1" sx={modalStyles.errorDialogMessage}>
-            {typeof message === "string" ? message : "An error occurred"}
-          </Typography>
-        </Box>
-      </Box>
-    </Box>
-  );
-};
 
 const FormContent = ({
   onSave,
@@ -74,9 +48,7 @@ const FormContent = ({
   mode,
   onClose,
   onModeChange,
-  reset,
   backendErrors = {},
-  resetKey,
 }) => {
   const {
     formState: { errors },
@@ -86,51 +58,27 @@ const FormContent = ({
     trigger,
     setError,
     getValues,
+    reset,
   } = useFormContext();
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
-  const [apiError, setApiError] = useState(null);
-  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
 
   const watchedRequisitionType = watch("requisition_type_id");
-  const watchedPositionId = watch("position_id");
 
   useEffect(() => {
-    setSelectedFile(null);
     setCurrentMode(mode);
     setOriginalMode(mode);
-    setApiError(null);
-    setShowErrorDialog(false);
-  }, [resetKey, mode]);
+  }, [mode, selectedEntry]);
 
-  const initializeForm = () => {
+  useEffect(() => {
     if (currentMode === "create") {
       reset(formSubmissionDefaultValues);
       setSelectedFile(null);
     }
-  };
-
-  useEffect(() => {
-    setCurrentMode(mode);
-    setOriginalMode(mode);
-  }, [mode]);
-
-  useEffect(() => {
-    if (currentMode === "create") {
-      initializeForm();
-    } else if (
-      (currentMode === "view" || currentMode === "edit") &&
-      selectedEntry
-    ) {
-      populateFormWithEntry(selectedEntry, setValue);
-    }
-  }, [currentMode, selectedEntry]);
+  }, [currentMode, reset]);
 
   useEffect(() => {
     if (backendErrors && Object.keys(backendErrors).length > 0) {
@@ -157,7 +105,6 @@ const FormContent = ({
     if (newMode === "edit" && selectedEntry) {
       setSelectedFile(null);
       setValue("manpower_form_attachment", null, { shouldValidate: false });
-      populateFormWithEntry(selectedEntry, setValue);
     }
   };
 
@@ -166,27 +113,14 @@ const FormContent = ({
     if (onModeChange) {
       onModeChange(originalMode);
     }
-    if (selectedEntry) {
-      populateFormWithEntry(selectedEntry, setValue);
-    }
   };
 
   const handleClose = () => {
     setCurrentMode("create");
     setOriginalMode("create");
     setSelectedFile(null);
-    setConfirmOpen(false);
-    setConfirmAction(null);
-    setPendingFormData(null);
-    if (reset) {
-      reset();
-    }
+    reset(formSubmissionDefaultValues);
     onClose();
-  };
-
-  const handleErrorDialogClose = () => {
-    setShowErrorDialog(false);
-    handleClose();
   };
 
   const getModalTitle = () => {
@@ -207,121 +141,71 @@ const FormContent = ({
   const isEditMode = currentMode === "edit";
   const isViewMode = currentMode === "view";
 
-  useEffect(() => {
-    if (isAdditionalManpower(watchedRequisitionType)) {
-      setValue("employee_to_be_replaced_id", null);
-    }
-  }, [watchedRequisitionType, setValue]);
-
   const handleFileChange = (file) => {
     setSelectedFile(file);
     setValue("manpower_form_attachment", file);
-  };
-
-  const onSubmit = async (data) => {
-    try {
-      const isValid = await trigger();
-      if (!isValid) return;
-
-      if (currentMode === "create") {
-        const payload = buildCreatePayload(
-          data,
-          currentMode,
-          selectedFile,
-          watchedRequisitionType
-        );
-        setPendingFormData(payload);
-        setConfirmAction("create");
-        setConfirmOpen(true);
-      } else if (currentMode === "edit" && selectedEntry?.id) {
-        const payload = buildEditPayload(
-          data,
-          selectedEntry,
-          selectedFile,
-          watchedRequisitionType
-        );
-        setPendingFormData(payload);
-        setConfirmAction("update");
-        setConfirmOpen(true);
-      }
-    } catch (error) {
-      console.error("Form submission error:", error);
-    }
   };
 
   const handleResubmit = async () => {
     const isValid = await trigger();
 
     if (isValid) {
-      const data = getValues();
-      const submissionId = selectedEntry?.id || selectedEntry?.submittable?.id;
-      const resubmitData = buildResubmitPayload(data, watchedRequisitionType);
-
-      setPendingFormData(resubmitData);
-      setConfirmAction("resubmit");
-      setConfirmOpen(true);
-    }
-  };
-
-  const handleActionConfirm = async () => {
-    if (!confirmAction || !pendingFormData) return;
-
-    setIsUpdating(true);
-
-    try {
-      if (confirmAction === "create") {
-        if (onSave) {
-          await onSave(pendingFormData, currentMode);
-        }
-      } else if (confirmAction === "update") {
-        if (onSave) {
-          await onSave(pendingFormData, currentMode);
-        }
-      } else if (confirmAction === "resubmit") {
+      setIsUpdating(true);
+      try {
+        const data = getValues();
+        const resubmitData = buildResubmitPayload(data, watchedRequisitionType);
         const submissionId =
           selectedEntry?.id || selectedEntry?.submittable?.id;
-        if (onResubmit && submissionId) {
-          await onResubmit(pendingFormData, "resubmit", submissionId);
-        }
-      }
-    } catch (error) {
-      console.error("Action confirmation error:", error);
-    } finally {
-      setConfirmOpen(false);
-      setPendingFormData(null);
-      setConfirmAction(null);
-      setIsUpdating(false);
-    }
-  };
 
-  const handleConfirmationCancel = () => {
-    setConfirmOpen(false);
-    setPendingFormData(null);
-    setConfirmAction(null);
+        if (onResubmit && submissionId) {
+          await onResubmit(resubmitData, "resubmit", submissionId);
+        }
+      } finally {
+        setIsUpdating(false);
+      }
+    }
   };
 
   const handleSaveClick = async () => {
     const isValid = await trigger();
-
     if (isValid) {
-      handleSubmit(onSubmit)();
-    }
-  };
+      setIsUpdating(true);
+      try {
+        const data = getValues();
 
-  const getSubmissionDisplayName = () => {
-    return selectedEntry?.reference_number || "New Manpower Form";
+        if (currentMode === "create") {
+          const payload = buildCreatePayload(
+            data,
+            currentMode,
+            selectedFile,
+            watchedRequisitionType
+          );
+
+          if (onSave) {
+            await onSave(payload, currentMode);
+          }
+        } else if (currentMode === "edit" && selectedEntry?.id) {
+          const payload = buildEditPayload(
+            data,
+            selectedEntry,
+            selectedFile,
+            watchedRequisitionType
+          );
+
+          if (onSave) {
+            await onSave(payload, currentMode, selectedEntry.id);
+          }
+        }
+      } finally {
+        setIsUpdating(false);
+      }
+    }
   };
 
   const isProcessing = isLoading || isUpdating;
 
   return (
     <>
-      <ErrorDialog
-        open={showErrorDialog}
-        message={apiError}
-        onClose={handleErrorDialogClose}
-      />
-
       <DialogTitle sx={modalStyles.dialogTitle}>
         <Box sx={modalStyles.titleContainer}>
           <AssignmentIcon sx={modalStyles.titleIcon} />
@@ -383,12 +267,10 @@ const FormContent = ({
         )}
 
         <FormSubmissionFields
-          key={resetKey}
           mode={currentMode}
           selectedEntry={selectedEntry}
           onFileChange={handleFileChange}
           selectedFile={selectedFile}
-          resetTrigger={resetKey}
         />
       </DialogContent>
 
@@ -447,16 +329,6 @@ const FormContent = ({
           </Box>
         )}
       </DialogActions>
-
-      <ConfirmationDialog
-        open={confirmOpen}
-        onClose={handleConfirmationCancel}
-        onConfirm={handleActionConfirm}
-        isLoading={isUpdating}
-        action={confirmAction}
-        itemName={getSubmissionDisplayName()}
-        module="Manpower Form"
-      />
     </>
   );
 };
@@ -472,9 +344,6 @@ const FormSubmissionModal = ({
   onModeChange,
   backendErrors = {},
 }) => {
-  const [resetKey, setResetKey] = useState(0);
-  const prevOpenRef = useRef(open);
-
   const hasExistingFile =
     selectedEntry?.submittable?.manpower_attachment_filename ||
     selectedEntry?.data?.manpower_attachment_filename ||
@@ -490,21 +359,10 @@ const FormSubmissionModal = ({
   });
 
   useEffect(() => {
-    if (prevOpenRef.current !== open) {
-      if (open) {
-        if (mode === "create") {
-          methods.reset(formSubmissionDefaultValues);
-        }
-        setResetKey(Date.now());
-      } else {
-        setTimeout(() => {
-          methods.reset(formSubmissionDefaultValues);
-          setResetKey(Date.now());
-        }, 100);
-      }
-      prevOpenRef.current = open;
+    if (!open) {
+      methods.reset(formSubmissionDefaultValues);
     }
-  }, [open, methods, mode]);
+  }, [open, methods]);
 
   const handleClose = () => {
     methods.reset(formSubmissionDefaultValues);
@@ -512,11 +370,6 @@ const FormSubmissionModal = ({
   };
 
   const handleModeChange = (newMode) => {
-    if (newMode === "create") {
-      methods.reset(formSubmissionDefaultValues);
-      setResetKey((prev) => prev + 1);
-    }
-
     if (onModeChange) {
       onModeChange(newMode);
     }
@@ -553,9 +406,7 @@ const FormSubmissionModal = ({
             mode={mode}
             onClose={handleClose}
             onModeChange={handleModeChange}
-            reset={methods.reset}
             backendErrors={backendErrors}
-            resetKey={resetKey}
           />
         </FormProvider>
       </Dialog>

@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   TextField,
-  Grid,
   Typography,
   IconButton,
   FormControl,
@@ -24,6 +23,7 @@ import { useGetAllApprovalFormsQuery } from "../../../../features/api/approvalse
 import { useGetAllPositionsQuery } from "../../../../features/api/employee/mainApi";
 import { useLazyGetAllDataChangeEmployeeQuery } from "../../../../features/api/forms/datachangeApi";
 import { useGetAllMovementTypesQuery } from "../../../../features/api/extras/movementTypesApi";
+import { useGetAllMrfSubmissionsQuery } from "../../../../features/api/forms/mrfApi";
 import DataChangeAttachmentFields from "./DataChangeAttachmentFields";
 import {
   UploadBox,
@@ -60,6 +60,7 @@ const DataChangeModalFields = ({
   } = useFormContext();
 
   const watchedEmployee = watch("employee_id");
+  const watchedMovementType = watch("movement_type_id");
 
   const shouldLoadDropdowns = mode === "create" || mode === "edit";
 
@@ -68,6 +69,7 @@ const DataChangeModalFields = ({
     employees: false,
     movementTypes: false,
     positions: false,
+    mrfSubmissions: false,
   });
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [editModeEmployees, setEditModeEmployees] = useState([]);
@@ -95,6 +97,15 @@ const DataChangeModalFields = ({
       { skip: !shouldLoadDropdowns || !dropdownsLoaded.positions }
     );
 
+  const { data: mrfSubmissionsData, isLoading: mrfSubmissionsLoading } =
+    useGetAllMrfSubmissionsQuery(
+      {
+        status: "active",
+        approval_status: "approved",
+      },
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.mrfSubmissions }
+    );
+
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -117,10 +128,43 @@ const DataChangeModalFields = ({
     () => normalizeApiData(movementTypesData),
     [movementTypesData, normalizeApiData]
   );
+
   const positions = useMemo(
     () => normalizeApiData(positionsData),
     [positionsData, normalizeApiData]
   );
+
+  const mrfSubmissions = useMemo(
+    () => normalizeApiData(mrfSubmissionsData),
+    [mrfSubmissionsData, normalizeApiData]
+  );
+
+  const excludedMovementTypes = [
+    "Position Alignment",
+    "Merit Increase",
+    "Re-evaluation of Existing Job",
+    "Upgrading",
+  ];
+
+  const showMrfField = useMemo(() => {
+    const movementTypeName =
+      watchedMovementType?.name || watchedMovementType?.type_name;
+
+    if (!movementTypeName) return false;
+
+    const isExcluded = excludedMovementTypes.some(
+      (excludedType) =>
+        excludedType.toLowerCase() === movementTypeName.toLowerCase()
+    );
+
+    return !isExcluded;
+  }, [watchedMovementType]);
+
+  useEffect(() => {
+    if (!showMrfField) {
+      setValue("approved_mrf_id", null, { shouldValidate: false });
+    }
+  }, [showMrfField, setValue]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
@@ -183,7 +227,7 @@ const DataChangeModalFields = ({
     formData.append("form_id", 4);
 
     if (values.employee_id?.id) {
-      formData.append("employee_id", values.employee_id.id); 
+      formData.append("employee_id", values.employee_id.id);
     }
 
     if (values.movement_type_id?.id) {
@@ -197,6 +241,10 @@ const DataChangeModalFields = ({
 
     if (values.to_position_id?.id) {
       formData.append("to_position_id", values.to_position_id.id);
+    }
+
+    if (values.approved_mrf_id?.id && showMrfField) {
+      formData.append("approved_mrf_id", values.approved_mrf_id.id);
     }
 
     if (values.attachments && Array.isArray(values.attachments)) {
@@ -215,7 +263,7 @@ const DataChangeModalFields = ({
     }
 
     return formData;
-  }, [getValues]);
+  }, [getValues, showMrfField]);
 
   useEffect(() => {
     if (onFormDataCreate) {
@@ -257,167 +305,185 @@ const DataChangeModalFields = ({
     <Box>
       {(watchedEmployee && watchedEmployee.employee_name) ||
       isLoadingEmployeeData ? (
-        <Box sx={{ marginLeft: 2.1 }}>
-          <Grid container spacing={0}>
-            <Grid item xs={12} md={6}>
-              <Box
+        <Box sx={{ mb: 3, px: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              "@media (min-width: 750px)": {
+                gridTemplateColumns: "repeat(2, 1fr)",
+              },
+              gap: 2,
+            }}>
+            <Box
+              sx={{
+                padding: 2,
+                border: "none",
+                borderRadius: "4px",
+              }}>
+              <Typography
+                variant="subtitle2"
                 sx={{
-                  padding: 2,
-                  border: "none",
-                  borderRadius: "4px",
-                  width: "403px",
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}>
+                DEPARTMENT
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton
+                  variant="text"
+                  width="70%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                    marginBottom: 2.5,
                   }}>
-                  DEPARTMENT
+                  {displayDepartment}
                 </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="70%"
-                    height={24}
-                    sx={{ marginBottom: 2.5 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2.5,
-                    }}>
-                    {displayDepartment}
-                  </Typography>
-                )}
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  SCHEDULE
-                </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton variant="text" width="60%" height={24} />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                    }}>
-                    {displaySchedule}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box
+              )}
+              <Typography
+                variant="subtitle2"
                 sx={{
-                  padding: 2,
-                  border: "none",
-                  borderRadius: "4px",
-                  width: "403px",
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}>
+                SCHEDULE
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="text" width="60%" height={24} />
+              ) : (
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
                   }}>
-                  POSITION FROM
+                  {displaySchedule}
                 </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="85%"
-                    height={24}
-                    sx={{ marginBottom: 2.5 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2.5,
-                    }}>
-                    {displayPositionFrom}
-                  </Typography>
-                )}
+              )}
+            </Box>
 
+            <Box
+              sx={{
+                padding: 2,
+                border: "none",
+                borderRadius: "4px",
+              }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}>
+                POSITION FROM
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton
+                  variant="text"
+                  width="85%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   sx={{
-                    fontWeight: "bold",
-                    color: "rgb(33, 61, 112)",
-                    marginBottom: 1.5,
-                    fontSize: "11px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                    marginBottom: 2.5,
                   }}>
-                  SUB UNIT
+                  {displayPositionFrom}
                 </Typography>
-                {isLoadingEmployeeData ? (
-                  <Skeleton
-                    variant="text"
-                    width="65%"
-                    height={24}
-                    sx={{ marginBottom: 2.5 }}
-                  />
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: "#1a1a1a",
-                      marginBottom: 2.5,
-                    }}>
-                    {displaySubUnit}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
+              )}
+
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: "bold",
+                  color: "rgb(33, 61, 112)",
+                  marginBottom: 1.5,
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}>
+                SUB UNIT
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton
+                  variant="text"
+                  width="65%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: "#1a1a1a",
+                    marginBottom: 2.5,
+                  }}>
+                  {displaySubUnit}
+                </Typography>
+              )}
+            </Box>
+          </Box>
         </Box>
       ) : null}
 
       <Box sx={containerStyles.main}>
-        <Grid container spacing={2}>
-          <Controller
-            name="form_id"
-            control={control}
-            render={({ field }) => (
-              <input type="hidden" {...field} value={field.value?.id || 4} />
-            )}
-          />
+        <Controller
+          name="form_id"
+          control={control}
+          render={({ field }) => (
+            <input type="hidden" {...field} value={field.value?.id || 4} />
+          )}
+        />
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr",
+              md: "repeat(2, 1fr)",
+            },
+            "@media (min-width: 750px)": {
+              gridTemplateColumns: "repeat(2, 1fr)",
+            },
+            gap: 2,
+          }}>
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -494,9 +560,9 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -568,9 +634,9 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -601,9 +667,9 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={6} sx={gridItemStyles.xs12sm6}>
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -697,16 +763,96 @@ const DataChangeModalFields = ({
                 )}
               />
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sx={gridItemStyles.attachmentFullWidth}>
+          {showMrfField && (
+            <Box sx={{ gridColumn: "1 / -1" }}>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="rounded" width="100%" height={56} />
+              ) : (
+                <Controller
+                  name="approved_mrf_id"
+                  control={control}
+                  rules={{ required: showMrfField ? "MRF is required" : false }}
+                  render={({ field: { onChange, value } }) => (
+                    <FormControl fullWidth error={!!errors.approved_mrf_id}>
+                      {isReadOnly ? (
+                        <TextField
+                          label="MRF"
+                          value={value?.submission_title || ""}
+                          fullWidth
+                          disabled
+                          sx={textFieldStyles.outlinedInput}
+                        />
+                      ) : (
+                        <Autocomplete
+                          value={value || null}
+                          onChange={(event, item) => onChange(item)}
+                          options={mrfSubmissions}
+                          loading={mrfSubmissionsLoading}
+                          getOptionLabel={(item) => {
+                            return item?.submission_title || "";
+                          }}
+                          isOptionEqualToValue={(option, value) =>
+                            option?.id === value?.id
+                          }
+                          onOpen={() => handleDropdownFocus("mrfSubmissions")}
+                          disabled={isLoading}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={
+                                <span>
+                                  MRF <span style={labelWithRequired}>*</span>
+                                </span>
+                              }
+                              error={!!errors.approved_mrf_id}
+                              helperText={errors.approved_mrf_id?.message}
+                              fullWidth
+                              sx={textFieldStyles.outlinedInput}
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {mrfSubmissionsLoading && (
+                                      <CircularProgress
+                                        color="inherit"
+                                        size={20}
+                                      />
+                                    )}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
+                          )}
+                          noOptionsText={
+                            mrfSubmissionsLoading
+                              ? "Loading MRF submissions..."
+                              : "No MRF submissions found"
+                          }
+                          renderOption={(props, option) => (
+                            <li {...props} key={option.id}>
+                              {option?.submission_title || ""}
+                            </li>
+                          )}
+                        />
+                      )}
+                    </FormControl>
+                  )}
+                />
+              )}
+            </Box>
+          )}
+
+          <Box sx={{ gridColumn: "1 / -1" }}>
             <DataChangeAttachmentFields
               isLoading={isLoading}
               mode={mode}
               selectedEntry={selectedEntry}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

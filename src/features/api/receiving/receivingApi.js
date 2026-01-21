@@ -1,4 +1,5 @@
 import { sedarApi } from "..";
+import dashboardApi from "../usermanagement/dashboardApi";
 
 const receivingApi = sedarApi
   .enhanceEndpoints({ addTagTypes: ["receiving"] })
@@ -104,6 +105,16 @@ const receivingApi = sedarApi
           { type: "receiving", id },
           "receiving",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to receive submission:", err);
+          }
+        },
       }),
 
       returnSubmission: build.mutation({
@@ -119,6 +130,16 @@ const receivingApi = sedarApi
           { type: "receiving", id },
           "receiving",
         ],
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+            );
+          } catch (err) {
+            console.error("Failed to return submission:", err);
+          }
+        },
       }),
     }),
   });

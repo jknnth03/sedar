@@ -1,9 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
   useTheme,
   Typography,
   TextField,
@@ -15,8 +12,11 @@ import {
   DialogActions,
   Tooltip,
   Button,
+  Badge,
+  IconButton,
+  useMediaQuery,
+  CircularProgress,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -31,68 +31,11 @@ import MRFMonitoringForReceiving from "./MRFMonitoringForReceiving";
 import MRFMonitoringReturned from "./MRFMonitoringReturned";
 import MRFMonitoringReceived from "./MRFMonitoringReceived";
 import MRFMonitoringCancelled from "./MRFMonitoringCancelled";
-import { styles } from "../../../pages/forms/manpowerform/FormSubmissionStyles";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
-
-const DialogClose = styled(Button)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.75rem",
-  padding: "8px 16px",
-  color: theme.palette.text.secondary,
-  borderColor: theme.palette.text.secondary,
-  "&:hover": {
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
-    borderColor: theme.palette.text.secondary,
-  },
-}));
-
-const DialogApply = styled(Button)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.75rem",
-  padding: "8px 16px",
-  backgroundColor: theme.palette.primary.main,
-  color: "#ffffff",
-  "&:hover": {
-    backgroundColor: theme.palette.primary.dark,
-  },
-}));
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../../../pages/forms/manpowerform/FormSubmissionStyles";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -109,19 +52,7 @@ const TabPanel = ({ children, value, index, ...other }) => {
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            overflow: "hidden",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
   );
 };
@@ -188,6 +119,14 @@ const DateFilterDialog = ({
               FILTER BY DATE
             </Typography>
           </Box>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleClear}
+            disabled={!hasFilters}
+            sx={styles.selectAllButton}>
+            Clear All
+          </Button>
         </Box>
       </DialogTitle>
 
@@ -220,18 +159,18 @@ const DateFilterDialog = ({
       <DialogActions sx={styles.filterDialogActions}>
         <Box sx={styles.dialogActionsContainer}>
           <Box sx={styles.dialogButtonsContainer}>
-            <DialogClose
+            <Button
               onClick={onClose}
               variant="outlined"
               sx={styles.cancelButton}>
               CANCEL
-            </DialogClose>
-            <DialogApply
+            </Button>
+            <Button
               onClick={handleApply}
               variant="contained"
               sx={styles.applyFiltersButton}>
               APPLY FILTERS
-            </DialogApply>
+            </Button>
           </Box>
         </Box>
       </DialogActions>
@@ -244,7 +183,9 @@ const CustomSearchBar = ({
   setSearchQuery,
   dateFilters,
   onFilterClick,
+  isLoading = false,
 }) => {
+  const isVerySmall = useMediaQuery("(max-width:369px)");
   const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
 
   const getFilterLabel = () => {
@@ -263,38 +204,184 @@ const CustomSearchBar = ({
     return "FILTER";
   };
 
+  const iconColor = hasActiveFilters
+    ? "rgba(0, 133, 49, 1)"
+    : "rgb(33, 61, 112)";
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+  };
+
   return (
-    <Box sx={styles.searchBarContainer}>
-      <Tooltip title="Click here to filter by date range" arrow>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={hasActiveFilters}
-              onChange={onFilterClick}
-              icon={<CalendarTodayIcon />}
-              checkedIcon={<CalendarTodayIcon />}
-              size="small"
-            />
-          }
-          label={
-            <Box sx={styles.filterLabelBox}>
-              <span>{getFilterLabel()}</span>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: isVerySmall ? 1 : 1.5,
+      }}>
+      {isVerySmall ? (
+        <IconButton
+          onClick={onFilterClick}
+          disabled={isLoading}
+          size="small"
+          sx={{
+            width: "36px",
+            height: "36px",
+            border: `1px solid ${
+              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+            }`,
+            borderRadius: "8px",
+            backgroundColor: hasActiveFilters
+              ? "rgba(0, 133, 49, 0.04)"
+              : "white",
+            color: iconColor,
+            position: "relative",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.08)"
+                : "#f5f5f5",
+              borderColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 1)"
+                : "rgb(33, 61, 112)",
+            },
+          }}>
+          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          {hasActiveFilters && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-6px",
+                right: "-6px",
+                backgroundColor: "rgba(0, 133, 49, 1)",
+                color: "white",
+                borderRadius: "50%",
+                width: "16px",
+                height: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+              1
             </Box>
-          }
-          sx={styles.filterControlLabel(hasActiveFilters)}
-        />
-      </Tooltip>
+          )}
+        </IconButton>
+      ) : (
+        <Tooltip title="Click here to filter by date range" arrow>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasActiveFilters}
+                onChange={onFilterClick}
+                disabled={isLoading}
+                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                size="small"
+              />
+            }
+            label={
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}>
+                <span>{getFilterLabel()}</span>
+              </Box>
+            }
+            sx={{
+              margin: 0,
+              border: `1px solid ${
+                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+              }`,
+              borderRadius: "8px",
+              paddingLeft: "8px",
+              paddingRight: "12px",
+              height: "36px",
+              backgroundColor: hasActiveFilters
+                ? "rgba(0, 133, 49, 0.04)"
+                : "white",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                backgroundColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 0.08)"
+                  : "#f5f5f5",
+                borderColor: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
+              },
+              "& .MuiFormControlLabel-label": {
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasActiveFilters
+                  ? "rgba(0, 133, 49, 1)"
+                  : "rgb(33, 61, 112)",
+                letterSpacing: "0.5px",
+              },
+            }}
+          />
+        </Tooltip>
+      )}
 
       <TextField
-        placeholder="Search form..."
+        placeholder={isVerySmall ? "Search..." : "Search form..."}
         value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        onChange={handleSearchChange}
+        disabled={isLoading}
         size="small"
         InputProps={{
-          startAdornment: <SearchIcon sx={styles.searchIcon(false)} />,
-          sx: styles.searchInputProps(false),
+          startAdornment: (
+            <SearchIcon
+              sx={{
+                color: isLoading ? "#ccc" : "#666",
+                marginRight: 1,
+                fontSize: isVerySmall ? "18px" : "20px",
+              }}
+            />
+          ),
+          endAdornment: isLoading && (
+            <CircularProgress
+              size={16}
+              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
+            />
+          ),
+          sx: {
+            height: "36px",
+            width: isVerySmall ? "100%" : "320px",
+            minWidth: isVerySmall ? "160px" : "200px",
+            backgroundColor: "white",
+            transition: "all 0.2s ease-in-out",
+            "& .MuiOutlinedInput-root": {
+              height: "36px",
+              "& fieldset": {
+                borderColor: "#ccc",
+                transition: "border-color 0.2s ease-in-out",
+              },
+              "&:hover fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "rgb(33, 61, 112)",
+                borderWidth: "2px",
+              },
+              "&.Mui-disabled": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+          },
         }}
-        sx={styles.searchTextField}
+        sx={{
+          flex: isVerySmall ? 1 : "0 0 auto",
+          "& .MuiInputBase-input": {
+            fontSize: isVerySmall ? "13px" : "14px",
+            "&::placeholder": {
+              opacity: 0.7,
+            },
+          },
+        }}
       />
     </Box>
   );
@@ -302,6 +389,10 @@ const CustomSearchBar = ({
 
 const MRFMonitoring = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+  const isVerySmall = useMediaQuery("(max-width:369px)");
+
   const [currentParams, setQueryParams, removeQueryParams] =
     useRememberQueryParams();
 
@@ -328,6 +419,7 @@ const MRFMonitoring = () => {
     endDate: null,
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const debounceValue = useDebounce(searchQuery, 500);
 
@@ -391,7 +483,7 @@ const MRFMonitoring = () => {
 
   const tabsData = [
     {
-      label: "For Approval",
+      label: "FOR APPROVAL",
       component: (
         <MRFMonitoringForApproval
           searchQuery={debounceValue}
@@ -399,9 +491,10 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
     {
-      label: "Awaiting Resubmission",
+      label: "AWAITING RESUBMISSION",
       component: (
         <MRFMonitoringAwaitingResubmission
           searchQuery={debounceValue}
@@ -409,9 +502,10 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
     {
-      label: "Rejected",
+      label: "REJECTED",
       component: (
         <MRFMonitoringRejected
           searchQuery={debounceValue}
@@ -419,9 +513,10 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
     {
-      label: "For Receiving",
+      label: "FOR RECEIVING",
       component: (
         <MRFMonitoringForReceiving
           searchQuery={debounceValue}
@@ -429,9 +524,10 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
     {
-      label: "Returned",
+      label: "RETURNED",
       component: (
         <MRFMonitoringReturned
           searchQuery={debounceValue}
@@ -439,9 +535,10 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
     {
-      label: "Received",
+      label: "RECEIVED",
       component: (
         <MRFMonitoringReceived
           searchQuery={debounceValue}
@@ -449,9 +546,10 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
     {
-      label: "Cancelled",
+      label: "CANCELLED",
       component: (
         <MRFMonitoringCancelled
           searchQuery={debounceValue}
@@ -459,6 +557,7 @@ const MRFMonitoring = () => {
           endDate={formatDateForAPI(dateFilters.endDate)}
         />
       ),
+      badgeCount: null,
     },
   ];
 
@@ -469,75 +568,85 @@ const MRFMonitoring = () => {
     };
   };
 
+  const isLoadingState = isLoading;
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box
-        sx={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "#fafafa",
-          overflow: "hidden",
-          minWidth: 0,
-        }}>
+      <Box sx={styles.mainContainer}>
         <Box
           sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            minWidth: 0,
+            ...styles.headerContainer,
+            ...(isMobile && styles.headerContainerMobile),
+            ...(isTablet && styles.headerContainerTablet),
           }}>
-          <Paper
-            elevation={0}
+          <Box
             sx={{
-              borderRadius: "8px 8px 0 0",
-              backgroundColor: "#ffffff",
+              ...styles.headerTitle,
+              ...(isMobile && styles.headerTitleMobile),
             }}>
-            <Box sx={styles.headerContainer}>
-              <Box sx={styles.headerLeftSection}>
-                <Typography className="header">
-                  MANPOWER FORM MONITORING
-                </Typography>
-              </Box>
+            <Typography
+              className="header"
+              sx={{
+                ...styles.headerTitleText,
+                ...(isMobile && styles.headerTitleTextMobile),
+                ...(isVerySmall && styles.headerTitleTextVerySmall),
+                paddingRight: "14px",
+              }}>
+              {isVerySmall ? "MRF MONITORING" : "MANPOWER FORM MONITORING"}
+            </Typography>
+          </Box>
 
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-              />
-            </Box>
-          </Paper>
+          <CustomSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={handleSearchChange}
+            dateFilters={dateFilters}
+            onFilterClick={handleFilterClick}
+            isLoading={isLoadingState}
+          />
+        </Box>
 
+        <Box sx={styles.tabsSection}>
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
             aria-label="MRF monitoring tabs"
             variant="scrollable"
             scrollButtons="auto"
-            allowScrollButtonsMobile>
-            {tabsData.map((tab, index) => (
-              <StyledTab key={index} label={tab.label} {...a11yProps(index)} />
-            ))}
-          </StyledTabs>
-
-          <Box
+            allowScrollButtonsMobile
             sx={{
-              flex: 1,
-              overflow: "hidden",
-              minWidth: 0,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
+              ...styles.tabsStyled,
+              ...(isVerySmall && styles.tabsStyledVerySmall),
             }}>
             {tabsData.map((tab, index) => (
-              <TabPanel key={index} value={activeTab} index={index}>
-                {tab.component}
-              </TabPanel>
+              <StyledTab
+                key={index}
+                label={
+                  tab.badgeCount ? (
+                    <Badge
+                      badgeContent={tab.badgeCount}
+                      color="error"
+                      sx={{
+                        ...styles.tabBadge,
+                        ...(isVerySmall && styles.tabBadgeVerySmall),
+                      }}>
+                      {tab.label}
+                    </Badge>
+                  ) : (
+                    tab.label
+                  )
+                }
+                {...a11yProps(index)}
+              />
             ))}
-          </Box>
+          </StyledTabs>
+        </Box>
+
+        <Box sx={styles.tabsContainer}>
+          {tabsData.map((tab, index) => (
+            <TabPanel key={index} value={activeTab} index={index}>
+              {tab.component}
+            </TabPanel>
+          ))}
         </Box>
 
         <DateFilterDialog

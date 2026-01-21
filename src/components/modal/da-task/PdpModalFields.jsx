@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Button,
@@ -54,6 +54,15 @@ const PdpModalFields = ({
   setCoachingExpanded,
   errors,
 }) => {
+  useEffect(() => {
+    if (goalFields.length > actionFields.length && !isViewMode) {
+      const newActionsNeeded = goalFields.length - actionFields.length;
+      for (let i = 0; i < newActionsNeeded; i++) {
+        handleAddAction();
+      }
+    }
+  }, [goalFields.length, actionFields.length, handleAddAction, isViewMode]);
+
   return (
     <>
       <Box

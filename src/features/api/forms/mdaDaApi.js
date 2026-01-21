@@ -96,6 +96,32 @@ const mdaDaApi = sedarApi
         ],
       }),
 
+      resubmitFormSubmission: build.mutation({
+        query: (id) => ({
+          url: `form-submissions/${id}/resubmit`,
+          method: "POST",
+        }),
+        invalidatesTags: (result, error, id) => [
+          { type: "mdaDaSubmissions", id },
+          { type: "daSubmissions", id },
+          "mdaDaSubmissions",
+          "daSubmissions",
+        ],
+      }),
+
+      cancelFormSubmission: build.mutation({
+        query: (id) => ({
+          url: `form-submissions/${id}/cancel`,
+          method: "POST",
+        }),
+        invalidatesTags: (result, error, id) => [
+          { type: "mdaDaSubmissions", id },
+          { type: "daSubmissions", id },
+          "mdaDaSubmissions",
+          "daSubmissions",
+        ],
+      }),
+
       getDaSubmissions: build.query({
         query: (params = {}) => {
           const {
@@ -244,6 +270,8 @@ export const {
   useLazyGetMdaDaPrefillQuery,
   useCreateMdaDaMutation,
   useUpdateMdaDaMutation,
+  useResubmitFormSubmissionMutation,
+  useCancelFormSubmissionMutation,
   useGetDaSubmissionsQuery,
   useLazyGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,

@@ -49,6 +49,7 @@ const toolsApi = sedarApi
 export const {
   usePostToolsMutation,
   useGetShowToolsQuery,
+  useLazyGetAllShowToolsQuery,
   useGetAllShowToolsQuery,
   useUpdateToolsMutation,
   useDeleteToolsMutation,

@@ -1,10 +1,6 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
-  useTheme,
   Badge,
   Typography,
   Button,
@@ -15,22 +11,25 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Fade,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
+  Fade,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { styles } from "../manpowerform/FormSubmissionStyles";
+import {
+  styles,
+  StyledTabs,
+  StyledTab,
+} from "../manpowerform/FormSubmissionStyles";
 
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
@@ -42,49 +41,9 @@ import MDARejected from "./MDADARejected";
 import MDADAAwaitingResubmission from "./MDADAAwaitingResubmission";
 import MDADAApproved from "./MDADAApproved";
 import MDADACancelled from "./MDADACancelled";
-import MDADAModal from "../../../components/modal/form/MDADAForm/MDADAModal";
-import {
-  useCreateMdaDaMutation,
-  useUpdateMdaDaMutation,
-} from "../../../features/api/forms/mdaDaApi";
 import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: "#ffffff",
-  borderRadius: "0",
-  minHeight: 48,
-  "& .MuiTabs-indicator": {
-    backgroundColor: theme.palette.primary.main,
-    height: 3,
-  },
-  "& .MuiTabs-flexContainer": {
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "uppercase",
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  minHeight: 48,
-  paddingTop: 12,
-  paddingBottom: 12,
-  paddingLeft: 20,
-  paddingRight: 20,
-  color: theme.palette.text.secondary,
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: "rgba(33, 61, 112, 0.04)",
-  },
-  transition: theme.transitions.create(["color", "background-color"], {
-    duration: theme.transitions.duration.standard,
-  }),
-}));
+import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -95,167 +54,14 @@ const TabPanel = ({ children, value, index, ...other }) => {
       aria-labelledby={`mdada-tab-${index}`}
       style={{
         height: "100%",
+        overflow: "hidden",
         minWidth: 0,
         display: value === index ? "flex" : "none",
         flexDirection: "column",
       }}
       {...other}>
-      {value === index && (
-        <Box
-          sx={{
-            height: "100%",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
     </div>
-  );
-};
-
-const filterDataByDate = (data, startDate, endDate) => {
-  if (!startDate && !endDate) return data;
-
-  return data.filter((item) => {
-    const createdAt = parseISO(item.created_at);
-
-    if (startDate && endDate) {
-      return isWithinInterval(createdAt, {
-        start: startDate,
-        end: new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1),
-      });
-    }
-
-    if (startDate) {
-      return createdAt >= startDate;
-    }
-
-    if (endDate) {
-      return createdAt <= new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1);
-    }
-
-    return true;
-  });
-};
-
-const filterDataBySearch = (data, searchQuery) => {
-  if (!searchQuery.trim()) return data;
-
-  const query = searchQuery.toLowerCase();
-  return data.filter(
-    (item) =>
-      item.reference_number.toLowerCase().includes(query) ||
-      item.employee_name.toLowerCase().includes(query) ||
-      item.employee_code.toLowerCase().includes(query) ||
-      item.action_type.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
   );
 };
 
@@ -267,20 +73,17 @@ const CustomSearchBar = ({
   isLoading = false,
 }) => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
+  const hasActiveFilters = dateFilters.start_date || dateFilters.end_date;
 
   const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
+    if (dateFilters.start_date && dateFilters.end_date) {
+      return `${dateFilters.start_date} - ${dateFilters.end_date}`;
     }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+    if (dateFilters.start_date) {
+      return `From ${dateFilters.start_date}`;
     }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+    if (dateFilters.end_date) {
+      return `Until ${dateFilters.end_date}`;
     }
     return "FILTER";
   };
@@ -295,12 +98,7 @@ const CustomSearchBar = ({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: isVerySmall ? 1 : 1.5,
-      }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       {isVerySmall ? (
         <IconButton
           onClick={onFilterClick}
@@ -364,42 +162,31 @@ const CustomSearchBar = ({
               />
             }
             label={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>{getFilterLabel()}</span>
               </Box>
             }
             sx={{
               margin: 0,
-              border: `1px solid ${
-                hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-              }`,
+              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
               borderRadius: "8px",
               paddingLeft: "8px",
               paddingRight: "12px",
               height: "36px",
               backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.04)"
+                ? "rgba(76, 175, 80, 0.04)"
                 : "white",
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 backgroundColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 0.08)"
+                  ? "rgba(76, 175, 80, 0.08)"
                   : "#f5f5f5",
-                borderColor: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
               },
               "& .MuiFormControlLabel-label": {
                 fontSize: "12px",
                 fontWeight: 600,
-                color: hasActiveFilters
-                  ? "rgba(0, 133, 49, 1)"
-                  : "rgb(33, 61, 112)",
+                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
                 letterSpacing: "0.5px",
               },
             }}
@@ -419,20 +206,16 @@ const CustomSearchBar = ({
               sx={{
                 color: isLoading ? "#ccc" : "#666",
                 marginRight: 1,
-                fontSize: isVerySmall ? "18px" : "20px",
+                fontSize: "20px",
               }}
             />
           ),
           endAdornment: isLoading && (
-            <CircularProgress
-              size={16}
-              sx={{ marginLeft: 1, color: "rgb(33, 61, 112)" }}
-            />
+            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
           ),
           sx: {
             height: "36px",
-            width: isVerySmall ? "100%" : "320px",
-            minWidth: isVerySmall ? "160px" : "200px",
+            width: "320px",
             backgroundColor: "white",
             transition: "all 0.2s ease-in-out",
             "& .MuiOutlinedInput-root": {
@@ -455,9 +238,8 @@ const CustomSearchBar = ({
           },
         }}
         sx={{
-          flex: isVerySmall ? 1 : "0 0 auto",
           "& .MuiInputBase-input": {
-            fontSize: isVerySmall ? "13px" : "14px",
+            fontSize: "14px",
             "&::placeholder": {
               opacity: 0.7,
             },
@@ -508,16 +290,21 @@ const MDADA = () => {
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create");
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
 
-  const [createMDADASubmission] = useCreateMdaDaMutation();
-  const [updateMDADASubmission] = useUpdateMdaDaMutation();
   const [cancelMDADASubmission] = useCancelFormSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const apiDateFilters = useMemo(() => {
+    return {
+      start_date: dateFilters.startDate
+        ? format(dateFilters.startDate, "yyyy-MM-dd")
+        : undefined,
+      end_date: dateFilters.endDate
+        ? format(dateFilters.endDate, "yyyy-MM-dd")
+        : undefined,
+    };
+  }, [dateFilters]);
 
   const mdaDaCounts = {
     forMDAProcessing: 0,
@@ -539,7 +326,7 @@ const MDADA = () => {
         { retain: true }
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap]
   );
 
   const handleSearchChange = useCallback(
@@ -553,7 +340,7 @@ const MDADA = () => {
         { retain: true }
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab, tabMap]
   );
 
   const handleFilterClick = useCallback(() => {
@@ -562,25 +349,6 @@ const MDADA = () => {
 
   const handleDateFiltersChange = useCallback((newDateFilters) => {
     setDateFilters(newDateFilters);
-  }, []);
-
-  const handleAddNew = useCallback(() => {
-    setSelectedEntry(null);
-    setModalMode("create");
-    methods.reset();
-    setModalOpen(true);
-  }, [methods]);
-
-  const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalLoading(false);
-    methods.reset();
-  }, [methods]);
-
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
   }, []);
 
   const handleCancel = useCallback(
@@ -618,156 +386,101 @@ const MDADA = () => {
     [cancelMDADASubmission, enqueueSnackbar]
   );
 
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      setModalLoading(true);
-
-      try {
-        let result;
-
-        if (mode === "edit") {
-          if (!entryId) {
-            throw new Error("Entry ID is required for updating");
-          }
-
-          result = await updateMDADASubmission({
-            id: entryId,
-            data: formData,
-          }).unwrap();
-
-          enqueueSnackbar("MDADA updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        } else {
-          result = await createMDADASubmission(formData).unwrap();
-
-          enqueueSnackbar("MDADA created successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        }
-
-        handleCloseModal();
-      } catch (error) {
-        let errorMessage =
-          mode === "edit"
-            ? "Failed to update MDADA. Please try again."
-            : "Failed to create MDADA. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
+  const tabsData = useMemo(
+    () => [
+      {
+        label: "FOR MDA PROCESSING",
+        component: (
+          <MDADAForMDAProcessing
+            key="for-mda-processing"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.forMDAProcessing,
+      },
+      {
+        label: "FOR APPROVAL",
+        component: (
+          <MDADAForApproval
+            key="for-approval"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.forApproval,
+      },
+      {
+        label: "AWAITING RESUBMISSION",
+        component: (
+          <MDADAAwaitingResubmission
+            key="awaiting-resubmission"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.awaitingResubmission,
+      },
+      {
+        label: "REJECTED",
+        component: (
+          <MDARejected
+            key="rejected"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.rejected,
+      },
+      {
+        label: "APPROVED",
+        component: (
+          <MDADAApproved
+            key="approved"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+            onCancel={handleCancel}
+          />
+        ),
+        badgeCount: mdaDaCounts.approved,
+      },
+      {
+        label: "CANCELLED",
+        component: (
+          <MDADACancelled
+            key="cancelled"
+            searchQuery={debouncedSearchQuery}
+            dateFilters={apiDateFilters}
+            setQueryParams={setQueryParams}
+            currentParams={currentParams}
+          />
+        ),
+        badgeCount: mdaDaCounts.cancelled,
+      },
+    ],
     [
-      createMDADASubmission,
-      updateMDADASubmission,
-      enqueueSnackbar,
-      handleCloseModal,
+      debouncedSearchQuery,
+      apiDateFilters,
+      setQueryParams,
+      currentParams,
+      handleCancel,
+      mdaDaCounts,
     ]
   );
-
-  const tabsData = [
-    {
-      label: "For MDA Processing",
-      component: (
-        <MDADAForMDAProcessing
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.forMDAProcessing,
-    },
-    {
-      label: "For Approval",
-      component: (
-        <MDADAForApproval
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.forApproval,
-    },
-    {
-      label: "Awaiting Resubmission",
-      component: (
-        <MDADAAwaitingResubmission
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.awaitingResubmission,
-    },
-    {
-      label: "Rejected",
-      component: (
-        <MDARejected
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.rejected,
-    },
-    {
-      label: "Approved",
-      component: (
-        <MDADAApproved
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-          onCancel={handleCancel}
-        />
-      ),
-      badgeCount: mdaDaCounts.approved,
-    },
-    {
-      label: "Cancelled",
-      component: (
-        <MDADACancelled
-          searchQuery={debouncedSearchQuery}
-          dateFilters={dateFilters}
-          filterDataByDate={filterDataByDate}
-          filterDataBySearch={filterDataBySearch}
-          setQueryParams={setQueryParams}
-          currentParams={currentParams}
-        />
-      ),
-      badgeCount: mdaDaCounts.cancelled,
-    },
-  ];
 
   const a11yProps = (index) => {
     return {
@@ -781,102 +494,75 @@ const MDADA = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <FormProvider {...methods}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#fafafa",
-            minWidth: 0,
-          }}>
+        <Box sx={styles.mainContainer}>
           <Box
             sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
+              ...styles.headerContainer,
+              ...(isMobile && styles.headerContainerMobile),
+              ...(isTablet && styles.headerContainerTablet),
             }}>
             <Box
               sx={{
-                display: "flex",
-                alignItems: isMobile || isTablet ? "flex-start" : "center",
-                justifyContent:
-                  isMobile || isTablet ? "flex-start" : "space-between",
-                flexDirection: isMobile || isTablet ? "column" : "row",
-                flexShrink: 0,
-                minHeight: isMobile || isTablet ? "auto" : "72px",
-                padding: isMobile
-                  ? "12px 14px"
-                  : isTablet
-                  ? "16px"
-                  : "16px 14px",
-                backgroundColor: "white",
-                borderBottom: "1px solid #e0e0e0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                gap: isMobile || isTablet ? "16px" : "0",
+                ...styles.headerTitle,
+                ...(isMobile && styles.headerTitleMobile),
               }}>
-              <Box
+              <Typography
+                className="header"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isVerySmall ? 1 : isMobile || isTablet ? 2 : 1.4,
-                  width: isMobile || isTablet ? "100%" : "auto",
-                  justifyContent: "flex-start",
+                  ...styles.headerTitleText,
+                  ...(isMobile && styles.headerTitleTextMobile),
+                  ...(isVerySmall && styles.headerTitleTextVerySmall),
+                  paddingRight: "14px",
                 }}>
-                <Typography
-                  className="header"
-                  sx={{
-                    fontSize: isVerySmall ? "18px" : isMobile ? "20px" : "24px",
-                    fontWeight: 500,
-                    color: "rgb(33, 61, 112)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}>
-                  {isVerySmall ? "MDADA" : "MDA (For DA)"}
-                </Typography>
-              </Box>
-
-              <CustomSearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                dateFilters={dateFilters}
-                onFilterClick={handleFilterClick}
-                isLoading={isLoadingState}
-              />
+                {isVerySmall ? "MDA (DA)" : "MASTER DATA AUTHORITY (DA)"}
+              </Typography>
             </Box>
 
+            <CustomSearchBar
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              dateFilters={apiDateFilters}
+              onFilterClick={handleFilterClick}
+              isLoading={isLoadingState}
+            />
+          </Box>
+
+          <Box sx={styles.tabsSection}>
             <StyledTabs
               value={activeTab}
               onChange={handleTabChange}
               aria-label="MDADA submissions tabs"
               variant="scrollable"
               scrollButtons="auto"
-              allowScrollButtonsMobile>
+              allowScrollButtonsMobile
+              sx={{
+                ...styles.tabsStyled,
+                ...(isVerySmall && styles.tabsStyledVerySmall),
+              }}>
               {tabsData.map((tab, index) => (
                 <StyledTab
                   key={index}
                   label={
                     tab.badgeCount > 0 ? (
                       <Badge
-                        variant="dot"
+                        badgeContent={tab.badgeCount}
                         color="error"
-                        anchorOrigin={{
-                          vertical: "top",
-                          horizontal: "right",
-                        }}
                         sx={{
-                          "& .MuiBadge-badge": {
-                            minWidth: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            padding: 0,
-                            top: "8px",
-                            right: "-10px",
-                          },
+                          ...styles.tabBadge,
+                          ...(isVerySmall && styles.tabBadgeVerySmall),
                         }}>
-                        {tab.label}
+                        {isVerySmall && tab.label.length > 12
+                          ? tab.label
+                              .replace("AWAITING ", "")
+                              .replace("RESUBMISSION", "RESUB")
+                              .replace("FOR MDA PROCESSING", "MDA PROC")
+                          : tab.label}
                       </Badge>
+                    ) : isVerySmall && tab.label.length > 12 ? (
+                      tab.label
+                        .replace("AWAITING ", "")
+                        .replace("RESUBMISSION", "RESUB")
+                        .replace("FOR MDA PROCESSING", "MDA PROC")
                     ) : (
                       tab.label
                     )
@@ -885,21 +571,14 @@ const MDADA = () => {
                 />
               ))}
             </StyledTabs>
+          </Box>
 
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              {tabsData.map((tab, index) => (
-                <TabPanel key={index} value={activeTab} index={index}>
-                  {tab.component}
-                </TabPanel>
-              ))}
-            </Box>
+          <Box sx={styles.tabsContainer}>
+            {tabsData.map((tab, index) => (
+              <TabPanel key={index} value={activeTab} index={index}>
+                {tab.component}
+              </TabPanel>
+            ))}
           </Box>
 
           <DateFilterDialog
@@ -907,17 +586,7 @@ const MDADA = () => {
             onClose={() => setFilterDialogOpen(false)}
             dateFilters={dateFilters}
             onDateFiltersChange={handleDateFiltersChange}
-          />
-
-          <MDADAModal
-            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
-            open={modalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEntry={selectedEntry}
-            isLoading={modalLoading}
-            mode={modalMode}
-            onModeChange={handleModeChange}
+            styles={styles}
           />
         </Box>
       </FormProvider>
