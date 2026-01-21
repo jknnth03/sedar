@@ -1,20 +1,21 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Typography, TablePagination, Box, useTheme } from "@mui/material";
+import { Box, TablePagination } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
   useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
+} from "../../../../features/api/forms/daformApi";
 import DAFormTable from "./DAFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
 import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
+} from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
 const DAFormCompleted = ({
   searchQuery,

@@ -16,9 +16,9 @@ import {
 } from "@mui/material";
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
-import { styles } from "../manpowerform/FormSubmissionStyles";
+import { styles } from "../../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
-import NoDataFound from "../../NoDataFound";
+import NoDataFound from "../../../NoDataFound";
 
 const DARecommendationTable = ({
   submissionsList,

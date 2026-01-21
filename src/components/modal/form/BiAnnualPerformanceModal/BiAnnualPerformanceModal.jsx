@@ -32,7 +32,10 @@ import {
 import { biAnnualPerformanceSchema } from "./BiAnnualPerformanceSchema";
 import * as styles from "../DAForm/DAFormModal.styles";
 import BiAnnualPrintingDialog from "./BiAnnualPrintingDialog";
-import { useLazyPrintPerformanceEvaluationQuery } from "../../../../features/api/forms/biAnnualPerformanceApi";
+import {
+  useLazyPrintPerformanceEvaluationQuery,
+  useLazyGetPerformanceEvaluationPrefillQuery,
+} from "../../../../features/api/forms/biAnnualPerformanceApi";
 
 const BiAnnualPerformanceModal = ({
   open = false,
@@ -59,6 +62,7 @@ const BiAnnualPerformanceModal = ({
 
   const [fetchPrintData, { isLoading: isPrintDataLoading }] =
     useLazyPrintPerformanceEvaluationQuery();
+  const [fetchPrefillData] = useLazyGetPerformanceEvaluationPrefillQuery();
 
   const prevOpenRef = useRef(open);
   const prevModeRef = useRef(mode);
@@ -124,6 +128,18 @@ const BiAnnualPerformanceModal = ({
       if ((mode === "view" || mode === "edit") && selectedEntry) {
         setCurrentMode(mode);
         setOriginalMode(mode);
+
+        // PRE-LOAD prefill data before setting form data
+        const submittable =
+          selectedEntry.submittable || selectedEntry.result?.submittable;
+        if (submittable?.employee_id) {
+          try {
+            await fetchPrefillData({ employee_id: submittable.employee_id });
+          } catch (error) {
+            console.error("Error preloading prefill data:", error);
+          }
+        }
+
         const formData = getViewEditModeFormData(selectedEntry);
         reset(formData);
         setTimeout(() => {
@@ -136,7 +152,15 @@ const BiAnnualPerformanceModal = ({
     };
 
     initializeForm();
-  }, [open, mode, hasInitialized, selectedEntry, reset, clearErrors]);
+  }, [
+    open,
+    mode,
+    hasInitialized,
+    selectedEntry,
+    reset,
+    clearErrors,
+    fetchPrefillData,
+  ]);
 
   useEffect(() => {
     if (

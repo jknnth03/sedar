@@ -388,21 +388,32 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <CloudSyncIcon sx={iconStyles.child} />,
           notificationCount: counts.dataChangeTotal,
         },
-        DAFORM: {
-          name: "DA Form",
-          permissionId: "REQUEST.DAFORM",
-          displayName: "DA Form",
-          path: "daform",
+        DEVELOPMENTALASSIGNMENTFORM: {
+          name: "Developmental Assignment Form",
+          permissionId: "REQUEST.DEVELOPMENTALASSIGNMENTFORM",
+          displayName: "Developmental Assignment Form",
+          path: "developmentalassignmentform",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-          notificationCount: counts.daTotal,
-        },
-        DARECOMMENDATION: {
-          name: "DA Recommendation",
-          permissionId: "REQUEST.DARECOMMENDATION",
-          displayName: "DA Recommendation",
-          path: "darecommendation",
-          icon: <RecommendIcon sx={iconStyles.child} />,
-          notificationCount: counts.daRecommendationTotal,
+          notificationCount: counts.daFormTotal || 0,
+          children: {
+            DAFORM: {
+              name: "DA Form",
+              permissionId: "REQUEST.DEVELOPMENTALASSIGNMENTFORM.DAFORM",
+              displayName: "DA Form",
+              path: "daform",
+              icon: <DescriptionIcon sx={iconStyles.child} />,
+              notificationCount: counts.daFormApprovals || 0,
+            },
+            DARECOMMENDATION: {
+              name: "DA Recommendation",
+              permissionId:
+                "REQUEST.DEVELOPMENTALASSIGNMENTFORM.DARECOMMENDATION",
+              displayName: "DA Recommendation",
+              path: "darecommendation",
+              icon: <RecommendIcon sx={iconStyles.child} />,
+              notificationCount: counts.daRecommendationApprovals || 0,
+            },
+          },
         },
         MASTERDATAAUTHORITY: {
           name: "MDA (For Data Change)",
@@ -426,7 +437,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (For Recommendation)",
           path: "mdarecommendation",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-
           notificationCount: 0,
         },
         MDAEVALUATIONRECOMMENDATION: {
@@ -451,7 +461,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Form",
           path: "evaluationform",
           icon: <RateReviewIcon sx={iconStyles.child} />,
-          notificationCount: counts.probationaryTotal,
+          notificationCount: counts.evaluationFormTotal || 0,
         },
         EVALUATIONRECOMMENDATION: {
           name: "Evaluation Recommendation",
@@ -459,7 +469,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Evaluation Recommendation",
           path: "evaluationrecommendation",
           icon: <RecommendIcon sx={iconStyles.child} />,
-          notificationCount: counts.probationaryRecommendationTotal,
+          notificationCount: counts.evaluationRecommendationTotal || 0,
         },
         BIANNUALPERFORMANCE: {
           name: "Bi-Annual Performance",

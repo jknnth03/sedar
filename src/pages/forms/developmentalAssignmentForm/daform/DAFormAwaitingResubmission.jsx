@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
@@ -11,7 +11,7 @@ import {
 } from "../../../features/api/forms/daformApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import DAFormTable from "./DAFormTable";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
+import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 

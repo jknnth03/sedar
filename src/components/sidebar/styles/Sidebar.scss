@@ -159,6 +159,7 @@
   justify-content: flex-start;
   padding-left: 0px;
   overflow: hidden;
+  min-height: 50px;
 }
 
 .mainbox.closed .liststyle {
@@ -169,7 +170,6 @@
 .main-item {
   color: rgb(33, 61, 112);
   background-color: white;
-  padding-left: 8px !important;
 
   &:not(.active):hover {
     background-color: rgb(233, 246, 255);
@@ -187,42 +187,56 @@
 }
 
 .mainbox.closed .main-item {
-  padding-left: 0 !important;
   justify-content: center;
 }
 
 .sub-item {
   color: rgb(55, 75, 115);
   background-color: white;
-  padding-left: 32px !important;
+  height: 50px;
+  border-radius: 3px;
+  margin: 2px 0;
+  transition: all 0.2s ease;
 
   &:not(.active):hover {
-    background-color: rgb(233, 246, 255);
-    color: rgb(55, 75, 115);
+    background-color: rgb(240, 248, 255);
+    color: rgb(33, 61, 112);
+    transform: translateX(2px);
   }
 
   &.active {
-    background-color: rgba(33, 61, 112, 0.15);
+    background-color: rgba(33, 61, 112, 0.12);
     color: rgb(33, 61, 112);
+    font-weight: 500;
 
     .icon {
       color: rgb(33, 61, 112) !important;
     }
   }
+
+  .icon {
+    font-size: 22px;
+  }
+
+  .text {
+    font-size: 0.95rem;
+    font-weight: 400;
+  }
 }
 
 .icon {
   color: rgb(33, 61, 112) !important;
-  margin-right: 8px;
+  margin-right: 12px;
   margin-left: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 22px;
 }
 
 .mainbox.open .icon {
-  margin-left: 6px;
-  margin-right: 8px;
+  margin-left: 8px;
+  margin-right: 12px;
 }
 
 .mainbox.closed .icon {
@@ -244,6 +258,8 @@
 .text {
   margin-top: 10px;
   margin-bottom: 10px;
+  font-size: 0.95rem;
+  font-weight: 400;
 
   @include mx.sm {
     visibility: visible !important;
@@ -366,4 +382,8 @@
   .desktop-sidebar-override.sidebar-drawer {
     display: none !important;
   }
+}
+
+.MuiCollapse-root {
+  margin-left: 0;
 }

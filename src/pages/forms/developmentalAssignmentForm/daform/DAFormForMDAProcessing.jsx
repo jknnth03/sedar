@@ -2,20 +2,20 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
   useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
+} from "../../../../features/api/forms/daformApi";
 import DAFormTable from "./DAFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
 import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+} from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
+import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
 
 const DAFormMDAProcessing = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();

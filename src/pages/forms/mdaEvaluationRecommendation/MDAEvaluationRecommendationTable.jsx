@@ -22,7 +22,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import DAFormHistoryDialog from "../daform/DAFormHistoryDialog";
+import DAFormHistoryDialog from "../developmentalAssignmentForm/daform/DAFormHistoryDialog";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
 

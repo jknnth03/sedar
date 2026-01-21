@@ -1,28 +1,20 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
-  useLazyGetSingleDaSubmissionQuery,
-  useCancelDaSubmissionMutation,
-  useResubmitDaSubmissionMutation,
-} from "../../../features/api/forms/daRecommentdationApi";
-import DARecommendationTable from "./DARecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+  useGetSingleDaSubmissionQuery,
+  useUpdateDaMutation,
+} from "../../../../features/api/forms/daformApi";
+import DAFormTable from "./DAFormTable";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
+import { useResubmitFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const DARecommendationCancelled = ({
-  searchQuery,
-  dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
-  onCancel,
-}) => {
-  const theme = useTheme();
+const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -32,6 +24,7 @@ const DARecommendationCancelled = ({
     parseInt(queryParams?.rowsPerPage) || 10
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
@@ -39,25 +32,35 @@ const DARecommendationCancelled = ({
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalLoading, setModalLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
   });
 
-  const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
-  const [cancelDaSubmission] = useCancelDaSubmissionMutation();
+  const [updateDaSubmission] = useUpdateDaMutation();
+  const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
-    return {
+    const params = {
       page: page,
       per_page: rowsPerPage,
-      status: "CANCELLED",
-      pagination: 1,
+      status: "active",
+      approval_status: "PENDING",
+      pagination: true,
       search: searchQuery || "",
     };
-  }, [page, rowsPerPage, searchQuery]);
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -74,103 +77,68 @@ const DARecommendationCancelled = ({
     skip: false,
   });
 
-  const [
-    triggerGetSubmission,
-    { data: submissionDetails, isLoading: detailsLoading },
-  ] = useLazyGetSingleDaSubmissionQuery();
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetSingleDaSubmissionQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
+  });
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
+  }, [submissionsData]);
 
-    let filtered = rawData;
+  const handleRowClick = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("view");
+    setModalOpen(true);
+  }, []);
 
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
+  useEffect(() => {
+    if (submissionDetails?.result && modalOpen) {
+      setSelectedEntry(submissionDetails.result);
     }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
-
-  const handleRowClick = useCallback(
-    async (submission) => {
-      setSelectedSubmissionId(submission.id);
-      setModalMode("view");
-      setModalOpen(true);
-      setMenuAnchor({});
-
-      try {
-        await triggerGetSubmission(submission.id);
-      } catch (error) {
-        console.error("Error fetching submission details:", error);
-      }
-    },
-    [triggerGetSubmission]
-  );
+  }, [submissionDetails, modalOpen]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
+    setSelectedEntry(null);
     setSelectedSubmissionId(null);
-    setModalLoading(false);
     setModalMode("view");
-    methods.reset();
-  }, [methods]);
+  }, []);
 
-  const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId) {
-      triggerGetSubmission(selectedSubmissionId);
-    }
-  }, [selectedSubmissionId, triggerGetSubmission]);
+  const handleSave = useCallback(
+    async (formData, mode) => {
+      if (mode === "edit" && selectedSubmissionId) {
+        const submission =
+          submissionDetails?.result ||
+          submissionsList.find((sub) => sub.id === selectedSubmissionId);
+        setSelectedSubmissionForAction(submission);
+        setPendingFormData(formData);
+        setConfirmAction("update");
+        setConfirmOpen(true);
+      }
+    },
+    [selectedSubmissionId, submissionDetails, submissionsList]
+  );
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [filteredSubmissions]
+    [submissionsList]
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      const submission = filteredSubmissions.find(
-        (sub) => sub.id === submissionId
-      );
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [filteredSubmissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -178,26 +146,35 @@ const DARecommendationCancelled = ({
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Recommendation cancelled successfully", {
+      if (
+        confirmAction === "update" &&
+        pendingFormData &&
+        selectedSubmissionId
+      ) {
+        await updateDaSubmission({
+          id: selectedSubmissionId,
+          data: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("DA Form submission updated successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        refetch();
+        await refetchDetails();
+        await refetch();
+        handleModalClose();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
-        enqueueSnackbar("DA Recommendation resubmitted successfully", {
+        enqueueSnackbar("DA Form submission resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        await handleRefreshDetails();
+        await refetchDetails();
         await refetch();
       }
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} recommendation. Please try again.`;
+        `Failed to ${confirmAction} submission. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -206,6 +183,7 @@ const DARecommendationCancelled = ({
       setConfirmOpen(false);
       setSelectedSubmissionForAction(null);
       setConfirmAction(null);
+      setPendingFormData(null);
       setIsLoading(false);
     }
   };
@@ -214,11 +192,12 @@ const DARecommendationCancelled = ({
     setConfirmOpen(false);
     setSelectedSubmissionForAction(null);
     setConfirmAction(null);
+    setPendingFormData(null);
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "DA Recommendation";
+      selectedSubmissionForAction?.reference_number || "DA Form";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
@@ -275,6 +254,8 @@ const DARecommendationCancelled = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const totalCount = submissionsData?.result?.total || 0;
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -285,8 +266,8 @@ const DARecommendationCancelled = ({
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <DARecommendationTable
-          submissionsList={paginatedSubmissions}
+        <DAFormTable
+          submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -294,12 +275,12 @@ const DARecommendationCancelled = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="CANCELLED"
-          onCancel={handleCancel}
+          statusFilter="PENDING"
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
@@ -307,12 +288,13 @@ const DARecommendationCancelled = ({
         />
       </Box>
 
-      <DARecommendationModal
+      <DAFormModal
         open={modalOpen}
         onClose={handleModalClose}
+        onSave={handleSave}
         onResubmit={handleResubmit}
-        selectedEntry={submissionDetails}
-        isLoading={modalLoading || detailsLoading}
+        selectedEntry={selectedEntry}
+        isLoading={detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />
@@ -329,4 +311,4 @@ const DARecommendationCancelled = ({
   );
 };
 
-export default DARecommendationCancelled;
+export default DAFormForApproval;

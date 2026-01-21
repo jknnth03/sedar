@@ -48,12 +48,14 @@ const BiAnnualPerformanceModalFields = ({
       { skip: !selectedEmployeeId }
     );
 
+  // Load KPIs in VIEW mode
   useEffect(() => {
     if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
       setKpisList(formValues.kpis);
     }
   }, [isCreate, formValues.kpis]);
 
+  // Load Competency Assessment in VIEW mode
   useEffect(() => {
     if (!isCreate && formValues.competency_assessment) {
       const compAssessment = formValues.competency_assessment;
@@ -110,11 +112,13 @@ const BiAnnualPerformanceModalFields = ({
     }
   }, [isCreate, formValues.competency_assessment]);
 
+  // Handle prefill data in CREATE mode
   useEffect(() => {
     if (prefillData?.result && isCreate) {
       if (prefillData.result.employee) {
         const empData = prefillData.result.employee;
-        setValue("employee_code", empData.id_number);
+        // Use 'code' field for ID number (e.g., "RDFFLFI-11841")
+        setValue("employee_code", empData.code || empData.id_number || "");
         setValue("employee_name", empData.full_name);
         setValue("position_title", empData.position_title);
       }
@@ -175,6 +179,7 @@ const BiAnnualPerformanceModalFields = ({
     }
   }, [prefillData, setValue, isCreate]);
 
+  // Load rating scales for VIEW/EDIT modes
   useEffect(() => {
     if (prefillData?.result && !isCreate) {
       if (prefillData.result.competency_template?.rating_scale) {
@@ -188,7 +193,8 @@ const BiAnnualPerformanceModalFields = ({
     if (newValue) {
       setValue("employee_id", newValue.id);
       setValue("employee_name", newValue.employee_name || newValue.full_name);
-      setValue("employee_code", "");
+      // Use 'code' field for ID number
+      setValue("employee_code", newValue.code || newValue.id_number || "");
       setValue(
         "position_title",
         newValue.position_title || newValue.position?.title?.name

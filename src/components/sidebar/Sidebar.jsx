@@ -25,17 +25,33 @@ const Sidebar = ({
 
   const { modules, isLoading, error } = useEnhancedModules();
 
+  const checkPermissions = (item) => {
+    if (item.children) {
+      const permittedChildren = Object.values(item.children)
+        .map((child) => checkPermissions(child))
+        .filter(Boolean);
+
+      if (permittedChildren.length > 0) {
+        return { ...item, children: permittedChildren };
+      }
+    } else if (
+      accessUserPermission?.includes(item.permissionId) &&
+      item.permissionId !== "EMPLOYEES.ENABLEEDIT"
+    ) {
+      return item;
+    }
+    return null;
+  };
+
   const getPermittedModules = () => {
     if (!modules) return [];
 
     return Object.values(modules)
       .map((MODULE) => {
         if (MODULE.children) {
-          const permittedChildren = Object.values(MODULE.children).filter(
-            (CHILD) =>
-              accessUserPermission?.includes(CHILD.permissionId) &&
-              CHILD.permissionId !== "EMPLOYEES.ENABLEEDIT"
-          );
+          const permittedChildren = Object.values(MODULE.children)
+            .map((child) => checkPermissions(child))
+            .filter(Boolean);
 
           if (permittedChildren.length > 0) {
             return { ...MODULE, children: permittedChildren };
@@ -168,6 +184,7 @@ const Sidebar = ({
                   sidebarOpen={open}
                   notificationCount={item.notificationCount || 0}
                   onParentClick={() => handleParentItemClick(!!item.children)}
+                  level={0}
                 />
               </div>
             ))}
@@ -260,11 +277,12 @@ const Sidebar = ({
                   icon={item.icon}
                   sidebarOpen={true}
                   notificationCount={item.notificationCount || 0}
-                  onNavigate={() => {
+                  onParentClick={() => {
                     if (!item.children || item.children.length === 0) {
                       onCloseMobile();
                     }
                   }}
+                  level={0}
                 />
               </div>
             ))}

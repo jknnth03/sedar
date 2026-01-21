@@ -1,20 +1,20 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
-import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
+import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
 import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
-  useUpdateDaMutation,
   useResubmitDaMutation,
+  useUpdateDaMutation,
 } from "../../../features/api/forms/daformApi";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import DAFormTable from "./DAFormTable";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import "../../../pages/GeneralStyle.scss";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import DAFormTable from "./DAFormTable";
 
 const DAFormRejected = ({
   searchQuery,
@@ -26,7 +26,7 @@ const DAFormRejected = ({
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -141,7 +141,7 @@ const DAFormRejected = ({
         });
       }
     },
-    [submissionsList, enqueueSnackbar]
+    [submissionsList, enqueueSnackbar],
   );
 
   const handleModalClose = useCallback(() => {
@@ -210,7 +210,7 @@ const DAFormRejected = ({
       submissionDetails,
       submissionsList,
       resubmitDaSubmission,
-    ]
+    ],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -237,11 +237,11 @@ const DAFormRejected = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -257,11 +257,11 @@ const DAFormRejected = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, currentParams],
   );
 
   const handleModeChange = useCallback((newMode) => {

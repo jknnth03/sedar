@@ -2,25 +2,20 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
   useCancelDaSubmissionMutation,
   useResubmitDaSubmissionMutation,
-} from "../../../features/api/forms/daRecommentdationApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+} from "../../../../features/api/forms/daRecommentdationApi";
 import DARecommendationTable from "./DARecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const DARecommendationMDAInProgress = ({
-  searchQuery,
-  dateFilters,
-  onCancel,
-}) => {
+const DARecommendationCompleted = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -48,14 +43,12 @@ const DARecommendationMDAInProgress = ({
   const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
 
-  const { refetch: refetchDashboard } = useShowDashboardQuery();
-
   const apiQueryParams = useMemo(() => {
     const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "FINAL MDA IN PROGRESS",
+      approval_status: "COMPLETED",
       pagination: 1,
       search: searchQuery || "",
     };
@@ -90,8 +83,9 @@ const DARecommendationMDAInProgress = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleDaSubmissionQuery();
 
-  const submissions = useMemo(() => {
-    return submissionsData?.result?.data || [];
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
   }, [submissionsData]);
 
   const totalCount = useMemo(() => {
@@ -130,17 +124,17 @@ const DARecommendationMDAInProgress = ({
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = submissions.find((sub) => sub.id === submissionId);
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissions]
+    [submissionsList]
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      const submission = submissions.find((sub) => sub.id === submissionId);
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -152,7 +146,7 @@ const DARecommendationMDAInProgress = ({
         });
       }
     },
-    [submissions, enqueueSnackbar]
+    [submissionsList, enqueueSnackbar]
   );
 
   const handleActionConfirm = async () => {
@@ -168,7 +162,6 @@ const DARecommendationMDAInProgress = ({
           autoHideDuration: 2000,
         });
         refetch();
-        refetchDashboard();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Recommendation resubmitted successfully", {
@@ -177,7 +170,6 @@ const DARecommendationMDAInProgress = ({
         });
         await handleRefreshDetails();
         await refetch();
-        await refetchDashboard();
       }
     } catch (error) {
       const errorMessage =
@@ -271,7 +263,7 @@ const DARecommendationMDAInProgress = ({
           backgroundColor: "white",
         }}>
         <DARecommendationTable
-          submissionsList={submissions}
+          submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -279,7 +271,7 @@ const DARecommendationMDAInProgress = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="FINAL MDA IN PROGRESS"
+          statusFilter="COMPLETED"
           onCancel={handleCancel}
         />
 
@@ -314,4 +306,4 @@ const DARecommendationMDAInProgress = ({
   );
 };
 
-export default DARecommendationMDAInProgress;
+export default DARecommendationCompleted;

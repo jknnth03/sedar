@@ -1,24 +1,25 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
-import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import {
+  useCancelDaSubmissionMutation,
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
-  useUpdateDaSubmissionMutation,
-  useSubmitDaRecommendationMutation,
   useResubmitDaSubmissionMutation,
-  useCancelDaSubmissionMutation,
-} from "../../../features/api/forms/daRecommentdationApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import DARecommendationTable from "./DARecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+} from "../../../../features/api/forms/daRecommentdationApi";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import "../../../../pages/GeneralStyle.scss";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
+import DARecommendationTable from "./DARecommendationTable";
 
-const DAForRecommendation = ({ searchQuery, dateFilters }) => {
+const DARecommendationForMDAProcessing = ({
+  searchQuery,
+  dateFilters,
+  onCancel,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -26,7 +27,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -43,18 +44,17 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
     defaultValues: {},
   });
 
-  const { refetch: refetchDashboard } = useShowDashboardQuery();
-
-  const [submitDaRecommendation] = useSubmitDaRecommendationMutation();
   const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const apiQueryParams = useMemo(() => {
     const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "FOR RECOMMENDATION",
+      approval_status: "PENDING FINAL MDA",
       pagination: 1,
       search: searchQuery || "",
     };
@@ -89,9 +89,12 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleDaSubmissionQuery();
 
-  const submissionsList = useMemo(() => {
-    const data = submissionsData?.result?.data || [];
-    return data;
+  const submissions = useMemo(() => {
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
+
+  const totalCount = useMemo(() => {
+    return submissionsData?.result?.total || 0;
   }, [submissionsData]);
 
   const handleRowClick = useCallback(
@@ -107,7 +110,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -124,56 +127,19 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
-  const handleSubmitForRecommendation = useCallback(
-    async (formattedData, entryId) => {
-      setModalLoading(true);
-      try {
-        await submitDaRecommendation({
-          id: entryId,
-          body: formattedData,
-        }).unwrap();
-
-        enqueueSnackbar("DA Recommendation submitted successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleModalClose();
-        await refetch();
-        await refetchDashboard();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to submit recommendation. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      submitDaRecommendation,
-      enqueueSnackbar,
-      handleModalClose,
-      refetch,
-      refetchDashboard,
-    ]
-  );
-
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      const submission = submissions.find((sub) => sub.id === submissionId);
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissionsList]
+    [submissions],
   );
 
   const handleCancel = useCallback(
     async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      const submission = submissions.find((sub) => sub.id === submissionId);
       if (submission) {
         setSelectedSubmissionForAction(submission);
         setConfirmAction("cancel");
@@ -185,7 +151,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         });
       }
     },
-    [submissionsList, enqueueSnackbar]
+    [submissions, enqueueSnackbar],
   );
 
   const handleActionConfirm = async () => {
@@ -264,11 +230,11 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -284,16 +250,14 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
-
-  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
@@ -306,7 +270,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
           backgroundColor: "white",
         }}>
         <DARecommendationTable
-          submissionsList={submissionsList}
+          submissionsList={submissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -314,7 +278,7 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="FOR RECOMMENDATION"
+          statusFilter="PENDING FINAL MDA"
           onCancel={handleCancel}
         />
 
@@ -331,7 +295,6 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
-        onSubmit={handleSubmitForRecommendation}
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
@@ -345,10 +308,9 @@ const DAForRecommendation = ({ searchQuery, dateFilters }) => {
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
-        module="DA Recommendation"
       />
     </FormProvider>
   );
 };
 
-export default DAForRecommendation;
+export default DARecommendationForMDAProcessing;

@@ -53,6 +53,28 @@ export default function RolesModal({
 
   const isLoading = adding || updating;
 
+  const flattenChildren = (children, level = 1) => {
+    const result = [];
+
+    Object.values(children).forEach((child) => {
+      const hasChildren = !!child.children;
+
+      result.push({
+        name: child.displayName || child.name,
+        permission: child.permissionId,
+        icon: child.icon,
+        level: level,
+        hasChildren: hasChildren,
+      });
+
+      if (child.children) {
+        result.push(...flattenChildren(child.children, level + 1));
+      }
+    });
+
+    return result;
+  };
+
   const createHierarchicalPermissions = () => {
     const grouped = {};
 
@@ -60,16 +82,7 @@ export default function RolesModal({
       const module = modules[moduleKey];
 
       if (module.children) {
-        const childPermissions = [];
-
-        Object.keys(module.children).forEach((childKey) => {
-          const child = module.children[childKey];
-          childPermissions.push({
-            name: child.displayName || child.name,
-            permission: child.permissionId,
-            icon: child.icon,
-          });
-        });
+        const childPermissions = flattenChildren(module.children);
 
         if (childPermissions.length > 0) {
           grouped[module.name] = {
@@ -100,6 +113,13 @@ export default function RolesModal({
 
   const hierarchicalPermissions = createHierarchicalPermissions();
 
+  const getAllPermissions = () => {
+    return Object.values(hierarchicalPermissions).flatMap((group) => [
+      ...(group.parent.permission ? [group.parent.permission] : []),
+      ...group.children.map((child) => child.permission),
+    ]);
+  };
+
   useEffect(() => {
     if (open) {
       if (selectedRole) {
@@ -107,14 +127,7 @@ export default function RolesModal({
         const permissions = selectedRole.access_permissions || [];
         setSelectedPermissions(permissions);
 
-        const totalPermissions = Object.values(hierarchicalPermissions).reduce(
-          (total, group) => {
-            return (
-              total + group.children.length + (group.parent.permission ? 1 : 0)
-            );
-          },
-          0
-        );
+        const totalPermissions = getAllPermissions().length;
         setSelectAll(permissions.length === totalPermissions);
 
         if (isViewMode) {
@@ -134,18 +147,11 @@ export default function RolesModal({
   }, [open, selectedRole, isViewMode]);
 
   useEffect(() => {
-    const totalPermissions = Object.values(hierarchicalPermissions).reduce(
-      (total, group) => {
-        return (
-          total + group.children.length + (group.parent.permission ? 1 : 0)
-        );
-      },
-      0
-    );
+    const totalPermissions = getAllPermissions().length;
     setSelectAll(
       selectedPermissions.length === totalPermissions && totalPermissions > 0
     );
-  }, [selectedPermissions, hierarchicalPermissions]);
+  }, [selectedPermissions]);
 
   const handlePermissionChange = (permissionValue) => {
     if (isViewMode) return;
@@ -208,12 +214,7 @@ export default function RolesModal({
       setSelectedPermissions([]);
       setExpandedPanels(new Set());
     } else {
-      const allPermissions = Object.values(hierarchicalPermissions).flatMap(
-        (group) => [
-          ...(group.parent.permission ? [group.parent.permission] : []),
-          ...group.children.map((child) => child.permission),
-        ]
-      );
+      const allPermissions = getAllPermissions();
       setSelectedPermissions(allPermissions);
 
       const allPanelNames = Object.keys(hierarchicalPermissions).filter(
@@ -318,15 +319,76 @@ export default function RolesModal({
     return selectedRole ? "EDIT ROLE" : "CREATE NEW ROLE";
   };
 
+  const renderChildItem = (child) => {
+    const paddingLeft = child.level * 32;
+
+    return (
+      <Grid item xs={12} sm={6} key={child.permission}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            minHeight: "40px",
+            paddingLeft: `${paddingLeft}px`,
+            border: "1px solid #e0e0e0",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            backgroundColor: child.level > 1 ? "#f9f9f9" : "#fff",
+            transition: "all 0.2s",
+            "&:hover": {
+              backgroundColor: "#f5f5f5",
+              borderColor: "#bbb",
+            },
+          }}>
+          <Checkbox
+            sx={{
+              color: "#ccc",
+              padding: "4px",
+              marginRight: "8px",
+              "&.Mui-checked": {
+                color: "#FF4500",
+              },
+            }}
+            checked={isPermissionSelected(child.permission)}
+            onChange={() => handlePermissionChange(child.permission)}
+            disabled={isLoading || isViewMode}
+          />
+          <Box display="flex" alignItems="center" gap={1.5} flex={1}>
+            {React.cloneElement(child.icon, {
+              sx: {
+                color: "rgb(33, 61, 112)",
+                fontSize: "18px",
+                flexShrink: 0,
+              },
+            })}
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: child.level > 1 ? "13px" : "14px",
+                color: "#333",
+                fontWeight: child.hasChildren ? 600 : 400,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
+              {child.name}
+            </Typography>
+          </Box>
+        </Box>
+      </Grid>
+    );
+  };
+
   return (
     <Dialog
       open={open}
       onClose={handleCloseModal}
+      maxWidth="lg"
+      fullWidth
       PaperProps={{
         sx: {
-          height: "80vh",
-          width: "100%",
-          maxWidth: "900px",
+          height: "85vh",
+          maxHeight: "85vh",
         },
       }}>
       <DialogTitle
@@ -372,8 +434,12 @@ export default function RolesModal({
       </DialogTitle>
 
       <DialogContent
-        sx={{ backgroundColor: isViewMode ? "#fafafa" : "#fff", pt: 2 }}>
-        <Box minWidth={500}>
+        sx={{
+          backgroundColor: isViewMode ? "#fafafa" : "#fff",
+          pt: 2,
+          overflowY: "auto",
+        }}>
+        <Box>
           {errorMessage && !isViewMode && (
             <Alert severity="error" sx={{ marginTop: 1, marginBottom: 2 }}>
               {errorMessage}
@@ -381,8 +447,6 @@ export default function RolesModal({
           )}
 
           <Grid container spacing={2}>
-            <Grid item xs={12}></Grid>
-
             <Grid item xs={12}>
               <Paper
                 sx={{
@@ -576,78 +640,15 @@ export default function RolesModal({
                         </AccordionSummary>
 
                         <AccordionDetails
-                          sx={{ padding: "16px", backgroundColor: "#fff" }}>
-                          <Box
-                            sx={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
-                              gap: 0,
-                              alignItems: "start",
-                            }}>
-                            {group.children.map((child) => (
-                              <Box
-                                key={child.permission}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  minHeight: "48px",
-                                  width: "100%",
-                                }}>
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      sx={{
-                                        color: "#ccc",
-                                        marginLeft: 3,
-                                        padding: "6px",
-                                        "&.Mui-checked": {
-                                          color: "#FF4500",
-                                        },
-                                      }}
-                                      checked={isPermissionSelected(
-                                        child.permission
-                                      )}
-                                      onChange={() =>
-                                        handlePermissionChange(child.permission)
-                                      }
-                                      disabled={isLoading || isViewMode}
-                                    />
-                                  }
-                                  label={
-                                    <Box
-                                      display="flex"
-                                      alignItems="center"
-                                      gap={2}
-                                      ml={2}>
-                                      {React.cloneElement(child.icon, {
-                                        sx: {
-                                          color: "rgb(33, 61, 112)",
-                                          fontSize: "20px",
-                                          flexShrink: 0,
-                                        },
-                                      })}
-                                      <Typography
-                                        variant="body2"
-                                        sx={{
-                                          lineHeight: "1.3",
-                                          fontSize: "14px",
-                                          whiteSpace: "nowrap",
-                                          color: "#333",
-                                        }}>
-                                        {child.name}
-                                      </Typography>
-                                    </Box>
-                                  }
-                                  sx={{
-                                    ml: 5,
-                                    width: "100%",
-                                    margin: 0,
-                                    alignItems: "center",
-                                  }}
-                                />
-                              </Box>
-                            ))}
-                          </Box>
+                          sx={{
+                            padding: "16px",
+                            backgroundColor: "#fafafa",
+                          }}>
+                          <Grid container spacing={1.5}>
+                            {group.children.map((child) =>
+                              renderChildItem(child)
+                            )}
+                          </Grid>
                         </AccordionDetails>
                       </Accordion>
                     )

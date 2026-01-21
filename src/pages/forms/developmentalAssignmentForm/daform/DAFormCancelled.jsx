@@ -2,20 +2,22 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
   useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
+} from "../../../../features/api/forms/daformApi";
 import DAFormTable from "./DAFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import { useResubmitFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
+import {
+  useResubmitFormSubmissionMutation,
+  useCancelFormSubmissionMutation,
+} from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
+const DAFormCancelled = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
@@ -29,12 +31,6 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
-    useState(null);
-  const [pendingFormData, setPendingFormData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
@@ -42,13 +38,14 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [updateDaSubmission] = useUpdateDaMutation();
   const [resubmitDaSubmission] = useResubmitFormSubmissionMutation();
+  const [cancelDaSubmission] = useCancelFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     const params = {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "PENDING",
+      approval_status: "CANCELLED",
       pagination: true,
       search: searchQuery || "",
     };
@@ -114,93 +111,93 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
 
   const handleSave = useCallback(
     async (formData, mode) => {
-      if (mode === "edit" && selectedSubmissionId) {
-        const submission =
-          submissionDetails?.result ||
-          submissionsList.find((sub) => sub.id === selectedSubmissionId);
-        setSelectedSubmissionForAction(submission);
-        setPendingFormData(formData);
-        setConfirmAction("update");
-        setConfirmOpen(true);
+      try {
+        if (mode === "edit" && selectedSubmissionId) {
+          await updateDaSubmission({
+            id: selectedSubmissionId,
+            data: formData,
+          }).unwrap();
+
+          enqueueSnackbar("DA Form submission updated successfully", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+
+          await refetchDetails();
+          await refetch();
+          handleModalClose();
+        }
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to update DA Form submission";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
       }
     },
-    [selectedSubmissionId, submissionDetails, submissionsList]
+    [
+      selectedSubmissionId,
+      updateDaSubmission,
+      enqueueSnackbar,
+      refetchDetails,
+      refetch,
+      handleModalClose,
+    ]
   );
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = submissionsList.find((sub) => sub.id === submissionId);
-      setSelectedSubmissionForAction(submission);
-      setConfirmAction("resubmit");
-      setConfirmOpen(true);
-    },
-    [submissionsList]
-  );
+      try {
+        await resubmitDaSubmission(submissionId).unwrap();
 
-  const handleCancelSubmission = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const handleActionConfirm = async () => {
-    if (!confirmAction) return;
-
-    setIsLoading(true);
-
-    try {
-      if (
-        confirmAction === "update" &&
-        pendingFormData &&
-        selectedSubmissionId
-      ) {
-        await updateDaSubmission({
-          id: selectedSubmissionId,
-          data: pendingFormData,
-        }).unwrap();
-        enqueueSnackbar("DA Form submission updated successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        await refetchDetails();
-        await refetch();
-        handleModalClose();
-      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitDaSubmission(selectedSubmissionForAction.id).unwrap();
         enqueueSnackbar("DA Form submission resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
+
         await refetchDetails();
         await refetch();
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message || "Failed to resubmit DA Form submission";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
       }
-    } catch (error) {
-      const errorMessage =
-        error?.data?.message ||
-        `Failed to ${confirmAction} submission. Please try again.`;
-      enqueueSnackbar(errorMessage, {
-        variant: "error",
-        autoHideDuration: 2000,
-      });
-    } finally {
-      setConfirmOpen(false);
-      setSelectedSubmissionForAction(null);
-      setConfirmAction(null);
-      setPendingFormData(null);
-      setIsLoading(false);
-    }
-  };
+    },
+    [resubmitDaSubmission, enqueueSnackbar, refetchDetails, refetch]
+  );
 
-  const handleConfirmationCancel = useCallback(() => {
-    setConfirmOpen(false);
-    setSelectedSubmissionForAction(null);
-    setConfirmAction(null);
-    setPendingFormData(null);
-  }, []);
+  const handleCancel = useCallback(
+    async (submissionId) => {
+      try {
+        await cancelDaSubmission(submissionId).unwrap();
 
-  const getSubmissionDisplayName = useCallback(() => {
-    const submissionForAction =
-      selectedSubmissionForAction?.reference_number || "DA Form";
-    return submissionForAction;
-  }, [selectedSubmissionForAction]);
+        enqueueSnackbar("DA Form submission cancelled successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+
+        await refetch();
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to cancel DA Form submission";
+
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+
+        return false;
+      }
+    },
+    [cancelDaSubmission, enqueueSnackbar, refetch]
+  );
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -253,7 +250,7 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
     [setQueryParams, queryParams]
   );
 
-  const isLoadingState = queryLoading || isFetching || isLoading;
+  const isLoadingState = queryLoading || isFetching;
 
   const totalCount = submissionsData?.result?.total || 0;
 
@@ -276,8 +273,8 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="PENDING"
-          onCancel={handleCancelSubmission}
+          statusFilter="CANCELLED"
+          onCancel={handleCancel}
         />
 
         <CustomTablePagination
@@ -299,17 +296,8 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />
-
-      <ConfirmationDialog
-        open={confirmOpen}
-        onClose={handleConfirmationCancel}
-        onConfirm={handleActionConfirm}
-        isLoading={isLoading}
-        action={confirmAction}
-        itemName={getSubmissionDisplayName()}
-      />
     </FormProvider>
   );
 };
 
-export default DAFormForApproval;
+export default DAFormCancelled;

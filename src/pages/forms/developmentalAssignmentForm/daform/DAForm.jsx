@@ -1,50 +1,51 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import AddIcon from "@mui/icons-material/Add";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import SearchIcon from "@mui/icons-material/Search";
 import {
-  Box,
   Badge,
-  Typography,
+  Box,
   Button,
-  TextField,
   Checkbox,
-  FormControlLabel,
-  Fade,
-  Tooltip,
   CircularProgress,
+  Fade,
+  FormControlLabel,
   IconButton,
+  TextField,
+  Tooltip,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import SearchIcon from "@mui/icons-material/Search";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
-import { FormProvider, useForm } from "react-hook-form";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useSnackbar } from "notistack";
-import {
-  styles,
-  StyledTabs,
-  StyledTab,
-} from "../manpowerform/FormSubmissionStyles";
-import { format } from "date-fns";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../hooks/useDebounce";
+import { useCallback, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 
-import DAFormForApproval from "./DAFormForApproval";
-import DAFormAwaitingResubmission from "./DAFormAwaitingResubmission";
-import DAFormRejected from "./DAFormRejected";
-import DAFormMDAForApproval from "./DAFormMDAForApproval";
-import DAFormCancelled from "./DAFormCancelled";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
+import { format } from "date-fns";
+import useDebounce from "../../../../hooks/useDebounce";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+
+import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
+import { useCancelFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
 import {
   useCreateDaMutation,
   useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+} from "../../../../features/api/forms/daformApi";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
+import DateFilterDialog from "../../../zzzreusable/DateFilterDialog";
+import {
+  StyledTab,
+  StyledTabs,
+  styles,
+} from "../../manpowerform/formSubmissionStyles";
+import DAFormAwaitingResubmission from "./DAFormAwaitingResubmission";
+import DAFormCancelled from "./DAFormCancelled";
+import DAFormForApproval from "./DAFormForApproval";
 import DAFormForMDAProcessing from "./DAFormForMDAProcessing";
+import DAFormMDAForApproval from "./DAFormMDAForApproval";
+import DAFormRejected from "./DAFormRejected";
 import ExportButton from "./ExportButton";
-import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -80,7 +81,7 @@ const CustomSearchBar = ({
     if (dateFilters.startDate && dateFilters.endDate) {
       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
         dateFilters.endDate,
-        "MMM dd"
+        "MMM dd",
       )}`;
     }
     if (dateFilters.startDate) {
@@ -287,7 +288,7 @@ const DAForm = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -342,10 +343,10 @@ const DAForm = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery],
   );
 
   const handleSearchChange = useCallback(
@@ -356,10 +357,10 @@ const DAForm = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -420,7 +421,7 @@ const DAForm = () => {
         return false;
       }
     },
-    [cancelDASubmission, enqueueSnackbar]
+    [cancelDASubmission, enqueueSnackbar],
   );
 
   const handleSave = useCallback(
@@ -474,7 +475,7 @@ const DAForm = () => {
         setModalLoading(false);
       }
     },
-    [createDASubmission, updateDASubmission, enqueueSnackbar, handleCloseModal]
+    [createDASubmission, updateDASubmission, enqueueSnackbar, handleCloseModal],
   );
 
   const tabsData = useMemo(
@@ -568,7 +569,7 @@ const DAForm = () => {
       currentParams,
       handleCancel,
       daCounts,
-    ]
+    ],
   );
 
   const a11yProps = (index) => {

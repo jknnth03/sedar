@@ -40,7 +40,7 @@ import PENDINGREGISTRATION from "../../pages/pendingRegistration/PendingRegistra
 import RegistrationApproval from "../../pages/approvals/registrationApproval/RegistrationApproval.jsx";
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
-import DAForm from "../../pages/forms/daform/DAForm.jsx";
+import DAForm from "../../pages/forms/developmentalAssignmentForm/daform/DAForm.jsx";
 import KPI from "../../pages/evaluation/Kpi.jsx";
 import Evaluation from "../../pages/evaluation/Evaluation.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
@@ -65,7 +65,7 @@ import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
 import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
 import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
-import DARecommendation from "../../pages/forms/darecommendation/DARecommendation.jsx";
+import DARecommendation from "../../pages/forms/developmentalAssignmentForm/darecommendation/DARecommendation.jsx";
 import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
 import Redirect from "../../pages/login/Redirect.jsx";
 import CatOneTemplate from "../../pages/assessment-templates/CatOneTemplate.jsx";
@@ -84,6 +84,7 @@ import BiAnnualPerformance from "../../pages/forms/biAnnualPerformance/BiAnnualP
 import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.jsx";
 import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualApproval.jsx";
 import Nationalities from "../../pages/extras/Nationalities.jsx";
+import DevelopmentalAssignmentForm from "../../pages/forms/developmentalAssignmentForm/DevelopmentAssignmentForm.jsx";
 
 export const ROUTES = [
   {
@@ -196,20 +197,35 @@ export const ROUTES = [
         },
       },
       {
-        id: "REQUEST.DAFORM",
-        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DAFORM.path}`,
-        element: <DAForm />,
+        id: "REQUEST.DEVELOPMENTALASSIGNMENTFORM",
+        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DEVELOPMENTALASSIGNMENTFORM.path}`,
+        element: <DevelopmentalAssignmentForm />,
         handle: {
-          permission: MODULES.REQUEST.children.DAFORM.permissionId,
+          permission:
+            MODULES.REQUEST.children.DEVELOPMENTALASSIGNMENTFORM.permissionId,
         },
-      },
-      {
-        id: "REQUEST.DARECOMMENDATION",
-        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.DARECOMMENDATION.path}`,
-        element: <DARecommendation />,
-        handle: {
-          permission: MODULES.REQUEST.children.DAFORM.permissionId,
-        },
+        children: [
+          {
+            id: "REQUEST.DEVELOPMENTALASSIGNMENTFORM.DAFORM",
+            path: "daform",
+            element: <DAForm />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.DEVELOPMENTALASSIGNMENTFORM.children
+                  .DAFORM.permissionId,
+            },
+          },
+          {
+            id: "REQUEST.DEVELOPMENTALASSIGNMENTFORM.DARECOMMENDATION",
+            path: "darecommendation",
+            element: <DARecommendation />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.DEVELOPMENTALASSIGNMENTFORM.children
+                  .DARECOMMENDATION.permissionId,
+            },
+          },
+        ],
       },
       {
         id: "REQUEST.DATACHANGEMAINCONTAINER",

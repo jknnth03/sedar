@@ -1,24 +1,26 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
-import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import dayjs from "dayjs";
-import "../../../pages/GeneralStyle.scss";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import {
+  useCancelDaSubmissionMutation,
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
-  useCancelDaSubmissionMutation,
   useResubmitDaSubmissionMutation,
-  useSubmitDaRecommendationMutation,
-} from "../../../features/api/forms/daRecommentdationApi";
+} from "../../../../features/api/forms/daRecommentdationApi";
+import "../../../../pages/GeneralStyle.scss";
+import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
+import DARecommendationTable from "./DARecommendationTable";
 
-const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
+const DARecommendationMDAInProgress = ({
+  searchQuery,
+  dateFilters,
+  onCancel,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -26,7 +28,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -45,7 +47,6 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [resubmitDaSubmission] = useResubmitDaSubmissionMutation();
   const [cancelDaSubmission] = useCancelDaSubmissionMutation();
-  const [submitDaRecommendation] = useSubmitDaRecommendationMutation();
 
   const { refetch: refetchDashboard } = useShowDashboardQuery();
 
@@ -54,7 +55,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "RECOMMENDATION REJECTED",
+      approval_status: "FINAL MDA IN PROGRESS",
       pagination: 1,
       search: searchQuery || "",
     };
@@ -107,13 +108,10 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
       try {
         await triggerGetSubmission(submission.id);
       } catch (error) {
-        enqueueSnackbar("Error fetching submission details", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
+        console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission, enqueueSnackbar]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -130,182 +128,6 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
-  const handleSubmit = useCallback(
-    async (formData, entryId) => {
-      if (!entryId) {
-        enqueueSnackbar("Submission ID not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return;
-      }
-
-      try {
-        setModalLoading(true);
-
-        await submitDaRecommendation({ id: entryId, body: formData }).unwrap();
-
-        enqueueSnackbar("DA Recommendation submitted successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        handleModalClose();
-        await refetch();
-        await refetchDashboard();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to submit recommendation. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      submitDaRecommendation,
-      enqueueSnackbar,
-      handleModalClose,
-      refetch,
-      refetchDashboard,
-    ]
-  );
-
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      if (!entryId) {
-        enqueueSnackbar("Submission ID not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return;
-      }
-
-      if (formData.objectives && formData.objectives.length > 0) {
-        try {
-          setModalLoading(true);
-
-          await submitDaRecommendation({
-            id: entryId,
-            body: formData,
-          }).unwrap();
-
-          enqueueSnackbar("DA Recommendation updated successfully", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-
-          handleModalClose();
-          await refetch();
-          await refetchDashboard();
-        } catch (error) {
-          const errorMessage =
-            error?.data?.message ||
-            "Failed to update recommendation. Please try again.";
-          enqueueSnackbar(errorMessage, {
-            variant: "error",
-            autoHideDuration: 2000,
-          });
-        } finally {
-          setModalLoading(false);
-        }
-        return;
-      }
-
-      if (!formData.kpis || formData.kpis.length === 0) {
-        enqueueSnackbar("Please add at least one objective/KPI.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return;
-      }
-
-      let finalRecommendation = null;
-      if (formData.for_permanent_appointment) {
-        finalRecommendation = "FOR PERMANENT";
-      } else if (formData.not_for_permanent_appointment) {
-        finalRecommendation = "NOT FOR PERMANENT";
-      } else if (formData.for_extension) {
-        finalRecommendation = "FOR EXTENSION";
-      }
-
-      if (!finalRecommendation) {
-        enqueueSnackbar("Please select a recommendation option.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return;
-      }
-
-      const hasAllActualPerformance = formData.kpis.every(
-        (kpi) =>
-          kpi.actual_performance !== null &&
-          kpi.actual_performance !== undefined &&
-          kpi.actual_performance !== ""
-      );
-
-      if (!hasAllActualPerformance) {
-        enqueueSnackbar("Please fill in all Actual Performance fields.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-        return;
-      }
-
-      const objectives = formData.kpis.map((kpi) => ({
-        id: kpi.id || kpi.source_kpi_id,
-        actual_performance: kpi.actual_performance,
-        remarks: kpi.remarks || "",
-      }));
-
-      const payload = {
-        final_recommendation: finalRecommendation,
-        objectives: objectives,
-      };
-
-      if (formData.for_extension && formData.extension_end_date) {
-        payload.extension_end_date = dayjs(formData.extension_end_date).format(
-          "YYYY-MM-DD"
-        );
-      }
-
-      try {
-        setModalLoading(true);
-
-        await submitDaRecommendation({ id: entryId, body: payload }).unwrap();
-
-        enqueueSnackbar("DA Recommendation updated successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-
-        handleModalClose();
-        await refetch();
-        await refetchDashboard();
-      } catch (error) {
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to update recommendation. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      submitDaRecommendation,
-      enqueueSnackbar,
-      handleModalClose,
-      refetch,
-      refetchDashboard,
-    ]
-  );
-
   const handleResubmit = useCallback(
     async (submissionId) => {
       const submission = submissions.find((sub) => sub.id === submissionId);
@@ -313,7 +135,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissions]
+    [submissions],
   );
 
   const handleCancel = useCallback(
@@ -330,7 +152,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
         });
       }
     },
-    [submissions, enqueueSnackbar]
+    [submissions, enqueueSnackbar],
   );
 
   const handleActionConfirm = async () => {
@@ -409,11 +231,11 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -429,11 +251,11 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -457,7 +279,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="RECOMMENDATION REJECTED"
+          statusFilter="FINAL MDA IN PROGRESS"
           onCancel={handleCancel}
         />
 
@@ -474,8 +296,6 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
-        onSubmit={handleSubmit}
-        onSave={handleSave}
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
@@ -494,4 +314,4 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
   );
 };
 
-export default DARecommendationRejected;
+export default DARecommendationMDAInProgress;

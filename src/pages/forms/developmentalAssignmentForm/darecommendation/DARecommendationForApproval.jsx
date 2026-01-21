@@ -1,22 +1,19 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
-import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import dayjs from "dayjs";
-import "../../../pages/GeneralStyle.scss";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
 import {
+  useCancelDaSubmissionMutation,
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
-  useCancelDaSubmissionMutation,
   useResubmitDaSubmissionMutation,
-  useSubmitDaRecommendationMutation,
-} from "../../../features/api/forms/daRecommentdationApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+} from "../../../../features/api/forms/daRecommentdationApi";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import "../../../../pages/GeneralStyle.scss";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 import DARecommendationTable from "./DARecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 
 const DARecommendationForApproval = ({
   searchQuery,
@@ -30,7 +27,7 @@ const DARecommendationForApproval = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -111,7 +108,7 @@ const DARecommendationForApproval = ({
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -147,7 +144,7 @@ const DARecommendationForApproval = ({
           (obj) =>
             obj.actual_performance !== null &&
             obj.actual_performance !== undefined &&
-            obj.actual_performance !== ""
+            obj.actual_performance !== "",
         );
 
         if (!allHaveActualPerformance) {
@@ -220,7 +217,7 @@ const DARecommendationForApproval = ({
         (kpi) =>
           kpi.actual_performance !== null &&
           kpi.actual_performance !== undefined &&
-          kpi.actual_performance !== ""
+          kpi.actual_performance !== "",
       );
 
       if (!hasAllActualPerformance) {
@@ -244,7 +241,7 @@ const DARecommendationForApproval = ({
 
       if (formData.for_extension && formData.extension_end_date) {
         payload.extension_end_date = dayjs(formData.extension_end_date).format(
-          "YYYY-MM-DD"
+          "YYYY-MM-DD",
         );
       }
 
@@ -282,7 +279,7 @@ const DARecommendationForApproval = ({
       handleModalClose,
       refetch,
       refetchDashboard,
-    ]
+    ],
   );
 
   const handleResubmit = useCallback(
@@ -292,7 +289,7 @@ const DARecommendationForApproval = ({
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissionsList]
+    [submissionsList],
   );
 
   const handleCancel = useCallback(
@@ -309,7 +306,7 @@ const DARecommendationForApproval = ({
         });
       }
     },
-    [submissionsList, enqueueSnackbar]
+    [submissionsList, enqueueSnackbar],
   );
 
   const handleActionConfirm = async () => {
@@ -389,11 +386,11 @@ const DARecommendationForApproval = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -409,11 +406,11 @@ const DARecommendationForApproval = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;

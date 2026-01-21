@@ -1,29 +1,29 @@
-import React from "react";
+import CancelIcon from "@mui/icons-material/Cancel";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import RestoreIcon from "@mui/icons-material/Restore";
 import {
+  Box,
+  Chip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  Box,
-  IconButton,
-  Menu,
-  MenuItem,
-  Chip,
   Tooltip,
-  Skeleton,
+  Typography,
   useTheme,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import RestoreIcon from "@mui/icons-material/Restore";
-import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
+import React from "react";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import NoDataFound from "../../../NoDataFound";
 import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "./DAFormHistoryDialog";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import NoDataFound from "../../NoDataFound";
 
 const DAFormTable = ({
   submissionsList,
@@ -190,7 +190,7 @@ const DAFormTable = ({
     if (!statusFilter) return submissionsList;
     return submissionsList.filter(
       (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+        submission.status?.toUpperCase() === statusFilter.toUpperCase(),
     );
   }, [submissionsList, statusFilter]);
 

@@ -25,11 +25,11 @@ import {
   styles,
   StyledTabs,
   StyledTab,
-} from "../manpowerform/FormSubmissionStyles";
+} from "../../manpowerform/FormSubmissionStyles";
 
 import { format } from "date-fns";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../hooks/useDebounce";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import useDebounce from "../../../../hooks/useDebounce";
 
 import DAForRecommendation from "./DAForRecommendation";
 import DARecommendationForApproval from "./DARecommendationForApproval";
@@ -38,8 +38,8 @@ import DARecommendationRejected from "./DARecommendationRejected";
 import DARecommendationForMDAProcessing from "./DARecommendationForMDAProcessing";
 import DARecommendationMDAInProgress from "./DARecommendationMDAInProgress";
 import DARecommendationCompleted from "./DARecommendationCompleted";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
+import DateFilterDialog from "../../../zzzreusable/DateFilterDialog";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
