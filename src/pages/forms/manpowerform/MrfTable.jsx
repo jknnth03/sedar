@@ -68,6 +68,36 @@ const MrfTable = ({
   };
 
   const renderStatusChip = (submission) => {
+    const sortedActivityLog = [...(submission.activity_log || [])].sort(
+      (a, b) => {
+        const eventTypeA = (
+          a?.event_type ||
+          a?.status ||
+          a?.action ||
+          ""
+        ).toLowerCase();
+        const eventTypeB = (
+          b?.event_type ||
+          b?.status ||
+          b?.action ||
+          ""
+        ).toLowerCase();
+
+        if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return 1;
+        if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return -1;
+
+        const dateA = new Date(a.timestamp || 0);
+        const dateB = new Date(b.timestamp || 0);
+        return dateB - dateA;
+      }
+    );
+
+    const latestActivity = sortedActivityLog.find(
+      (activity) => activity.event_type?.toLowerCase() !== "upcoming"
+    );
+
+    const status = latestActivity?.event_type?.toLowerCase() || "unknown";
+
     const statusConfig = {
       pending: {
         color: "#f57c00",
@@ -105,9 +135,6 @@ const MrfTable = ({
         label: "CANCELLED",
       },
     };
-
-    const latestActivity = submission.activity_log?.[0];
-    const status = latestActivity?.event_type?.toLowerCase() || "unknown";
 
     const config = statusConfig[status] || {
       color: "#757575",

@@ -33,6 +33,7 @@ import {
   useApproveDataChangeMutation,
   useRejectDataChangeMutation,
 } from "../../../features/api/approving/dataChangeApproval.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -515,6 +516,9 @@ const DataChangeApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveDataChange, { isLoading: approveLoading }] =
     useApproveDataChangeMutation();
   const [rejectDataChange, { isLoading: rejectLoading }] =
@@ -524,6 +528,15 @@ const DataChangeApproval = () => {
     useGetDataChangeApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
+
+  const dataChangeCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.data_change?.form || 0;
+
+    return {
+      forApproval: approval,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -556,6 +569,7 @@ const DataChangeApproval = () => {
         enqueueSnackbar("Data change approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -567,7 +581,7 @@ const DataChangeApproval = () => {
         );
       }
     },
-    [detailsDialog, approveDataChange, enqueueSnackbar]
+    [detailsDialog, approveDataChange, enqueueSnackbar, refetchDashboard]
   );
 
   const handleReject = useCallback(
@@ -584,6 +598,7 @@ const DataChangeApproval = () => {
         enqueueSnackbar("Data change returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -595,7 +610,7 @@ const DataChangeApproval = () => {
         );
       }
     },
-    [detailsDialog, rejectDataChange, enqueueSnackbar]
+    [detailsDialog, rejectDataChange, enqueueSnackbar, refetchDashboard]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -621,12 +636,12 @@ const DataChangeApproval = () => {
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: 0,
+      badgeCount: dataChangeCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: 0,
+      badgeCount: dataChangeCounts.approved,
     },
   ];
 

@@ -176,82 +176,172 @@ const FormSubmissionFields = ({
           position_id: submittable.position_id,
           requisition_type_id: submittable.requisition_type_id,
           ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
+        }).then(() => {
+          if (
+            replacementInfo?.type === "employee_movement" &&
+            replacementInfo.details
+          ) {
+            const employeeData = replacementInfo.details.employee;
+            const newPositionData = replacementInfo.details.new_position;
+
+            if (employeeData) {
+              setValue(
+                "movement_employee_id",
+                {
+                  id: employeeData.id,
+                  full_name: employeeData.full_name,
+                  employee_code: employeeData.employee_code,
+                },
+                { shouldValidate: false }
+              );
+            }
+
+            if (newPositionData) {
+              setValue(
+                "movement_new_position_id",
+                {
+                  id: newPositionData.id,
+                  code: newPositionData.code,
+                  title: newPositionData.title,
+                  title_with_unit: newPositionData.title_with_unit,
+                },
+                { shouldValidate: false }
+              );
+            }
+
+            if (replacementInfo.details.reason_for_change) {
+              setValue(
+                "movement_reason_for_change",
+                replacementInfo.details.reason_for_change,
+                { shouldValidate: false }
+              );
+            }
+
+            if (replacementInfo.details.da_start_date) {
+              const startDate = parseDateValue(
+                replacementInfo.details.da_start_date
+              );
+              setValue("movement_da_start_date", startDate, {
+                shouldValidate: false,
+              });
+            }
+
+            if (replacementInfo.details.da_end_date) {
+              const endDate = parseDateValue(
+                replacementInfo.details.da_end_date
+              );
+              setValue("movement_da_end_date", endDate, {
+                shouldValidate: false,
+              });
+            }
+
+            if (
+              replacementInfo.details.da_start_date ||
+              replacementInfo.details.da_end_date
+            ) {
+              setValue("movement_is_da", true, { shouldValidate: false });
+            }
+          } else if (
+            replacementInfo?.type === "direct_replacement" &&
+            replacementInfo.details?.employee
+          ) {
+            const employeeData = replacementInfo.details.employee;
+            setValue(
+              "employee_to_be_replaced_id",
+              {
+                id: employeeData.id,
+                full_name: employeeData.full_name,
+                employee_code: employeeData.employee_code,
+              },
+              { shouldValidate: false }
+            );
+          }
         });
-      }
-
-      if (
-        replacementInfo?.type === "employee_movement" &&
-        replacementInfo.details
-      ) {
-        const employeeData = replacementInfo.details.employee;
-        const newPositionData = replacementInfo.details.new_position;
-
-        if (employeeData) {
-          setValue("movement_employee_id", {
-            id: employeeData.id,
-            full_name: employeeData.full_name,
-            employee_code: employeeData.employee_code,
-          });
-        }
-
-        if (newPositionData) {
-          setValue("movement_new_position_id", {
-            id: newPositionData.id,
-            code: newPositionData.code,
-            title: newPositionData.title,
-            title_with_unit: newPositionData.title_with_unit,
-          });
-        }
-
-        if (replacementInfo.details.reason_for_change) {
-          setValue(
-            "movement_reason_for_change",
-            replacementInfo.details.reason_for_change
-          );
-        }
-
-        if (replacementInfo.details.da_start_date) {
-          const startDate = parseDateValue(
-            replacementInfo.details.da_start_date
-          );
-          setValue("movement_da_start_date", startDate, {
-            shouldValidate: false,
-          });
-        }
-
-        if (replacementInfo.details.da_end_date) {
-          const endDate = parseDateValue(replacementInfo.details.da_end_date);
-          setValue("movement_da_end_date", endDate, { shouldValidate: false });
-        }
-
+      } else {
         if (
-          replacementInfo.details.da_start_date ||
-          replacementInfo.details.da_end_date
+          replacementInfo?.type === "employee_movement" &&
+          replacementInfo.details
         ) {
-          setValue("movement_is_da", true);
+          const employeeData = replacementInfo.details.employee;
+          const newPositionData = replacementInfo.details.new_position;
+
+          if (employeeData) {
+            setValue(
+              "movement_employee_id",
+              {
+                id: employeeData.id,
+                full_name: employeeData.full_name,
+                employee_code: employeeData.employee_code,
+              },
+              { shouldValidate: false }
+            );
+          }
+
+          if (newPositionData) {
+            setValue(
+              "movement_new_position_id",
+              {
+                id: newPositionData.id,
+                code: newPositionData.code,
+                title: newPositionData.title,
+                title_with_unit: newPositionData.title_with_unit,
+              },
+              { shouldValidate: false }
+            );
+          }
+
+          if (replacementInfo.details.reason_for_change) {
+            setValue(
+              "movement_reason_for_change",
+              replacementInfo.details.reason_for_change,
+              { shouldValidate: false }
+            );
+          }
+
+          if (replacementInfo.details.da_start_date) {
+            const startDate = parseDateValue(
+              replacementInfo.details.da_start_date
+            );
+            setValue("movement_da_start_date", startDate, {
+              shouldValidate: false,
+            });
+          }
+
+          if (replacementInfo.details.da_end_date) {
+            const endDate = parseDateValue(replacementInfo.details.da_end_date);
+            setValue("movement_da_end_date", endDate, {
+              shouldValidate: false,
+            });
+          }
+
+          if (
+            replacementInfo.details.da_start_date ||
+            replacementInfo.details.da_end_date
+          ) {
+            setValue("movement_is_da", true, { shouldValidate: false });
+          }
+        } else if (
+          replacementInfo?.type === "direct_replacement" &&
+          replacementInfo.details?.employee
+        ) {
+          const employeeData = replacementInfo.details.employee;
+          setValue(
+            "employee_to_be_replaced_id",
+            {
+              id: employeeData.id,
+              full_name: employeeData.full_name,
+              employee_code: employeeData.employee_code,
+            },
+            { shouldValidate: false }
+          );
         }
-      } else if (
-        replacementInfo?.type === "direct_replacement" &&
-        replacementInfo.details?.employee
-      ) {
-        const employeeData = replacementInfo.details.employee;
-        setValue("employee_to_be_replaced_id", {
-          id: employeeData.id,
-          full_name: employeeData.full_name,
-          employee_code: employeeData.employee_code,
-        });
       }
     }
   }, [mode, selectedEntry, setValue, triggerGetEmployees]);
 
   useEffect(() => {
     const loadEmployees = async () => {
-      if (
-        watchedPositionId?.id &&
-        watchedRequisitionType?.id &&
-        !isReadOnly &&
-        !isEditMode
-      ) {
+      if (watchedPositionId?.id && watchedRequisitionType?.id && !isEditMode) {
         setIsLoadingEmployees(true);
         await triggerGetEmployees({
           position_id: watchedPositionId.id,
@@ -266,7 +356,6 @@ const FormSubmissionFields = ({
   }, [
     watchedRequisitionType?.id,
     watchedPositionId?.id,
-    isReadOnly,
     isEditMode,
     triggerGetEmployees,
     selectedEntry?.id,
@@ -863,7 +952,6 @@ const FormSubmissionFields = ({
                 )}
               />
             </Box>
-
             <Box>
               <Controller
                 name="employment_type"

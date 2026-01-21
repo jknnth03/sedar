@@ -165,7 +165,8 @@ const RegistrationApprovalTable = ({
     const params = {
       page,
       per_page: rowsPerPage,
-      status: approvalStatus,
+      status: approvalStatus === "approved" ? "approved" : "active",
+      approval_status: approvalStatus === "approved" ? "approved" : "pending",
       pagination: true,
     };
 
@@ -181,6 +182,7 @@ const RegistrationApprovalTable = ({
     isLoading: queryLoading,
     isFetching,
     error,
+    refetch,
   } = useGetMyRegistrationApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
@@ -496,6 +498,7 @@ const RegistrationApproval = () => {
     open: false,
     registration: null,
   });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const methods = useForm({
     defaultValues: {
@@ -539,6 +542,7 @@ const RegistrationApproval = () => {
           variant: "success",
         });
         setDetailsDialog({ open: false, registration: null });
+        setRefreshTrigger((prev) => prev + 1);
       } catch (error) {
         enqueueSnackbar(
           error?.data?.message || "Failed to approve registration",
@@ -564,6 +568,7 @@ const RegistrationApproval = () => {
           variant: "success",
         });
         setDetailsDialog({ open: false, registration: null });
+        setRefreshTrigger((prev) => prev + 1);
       } catch (error) {
         enqueueSnackbar(
           error?.data?.message || "Failed to return registration",
@@ -669,7 +674,10 @@ const RegistrationApproval = () => {
 
         <Box sx={styles.tabsContainer}>
           {tabsData.map((tab, index) => (
-            <TabPanel key={index} value={activeTab} index={index}>
+            <TabPanel
+              key={`${index}-${refreshTrigger}`}
+              value={activeTab}
+              index={index}>
               <RegistrationApprovalTable
                 approvalStatus={tab.approvalStatus}
                 searchQuery={searchQuery}

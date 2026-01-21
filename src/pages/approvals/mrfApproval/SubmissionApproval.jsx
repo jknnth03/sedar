@@ -33,6 +33,7 @@ import {
   useApproveSubmissionMutation,
   useRejectSubmissionMutation,
 } from "../../../features/api/approvalsetting/submissionApprovalApi.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "./SubmissionApprovalStyles.jsx";
@@ -526,6 +527,9 @@ const SubmissionApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const selectedSubmissionId = detailsDialog.submission?.id;
 
   const {
@@ -541,6 +545,15 @@ const SubmissionApproval = () => {
     useApproveSubmissionMutation();
   const [rejectSubmission, { isLoading: rejectLoading }] =
     useRejectSubmissionMutation();
+
+  const mrfCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.manpower || 0;
+
+    return {
+      forApproval: approval,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -572,6 +585,7 @@ const SubmissionApproval = () => {
         enqueueSnackbar("Submission approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
       } catch (error) {
         enqueueSnackbar(
@@ -582,7 +596,7 @@ const SubmissionApproval = () => {
         );
       }
     },
-    [detailsDialog, approveSubmission, enqueueSnackbar]
+    [detailsDialog, approveSubmission, enqueueSnackbar, refetchDashboard]
   );
 
   const handleReject = useCallback(
@@ -599,6 +613,7 @@ const SubmissionApproval = () => {
         enqueueSnackbar("Submission returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
       } catch (error) {
         enqueueSnackbar(error?.data?.message || "Failed to return submission", {
@@ -606,7 +621,7 @@ const SubmissionApproval = () => {
         });
       }
     },
-    [detailsDialog, rejectSubmission, enqueueSnackbar]
+    [detailsDialog, rejectSubmission, enqueueSnackbar, refetchDashboard]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -617,12 +632,12 @@ const SubmissionApproval = () => {
     {
       label: "FOR APPROVAL",
       status: "pending",
-      badgeCount: 0,
+      badgeCount: mrfCounts.forApproval,
     },
     {
       label: "APPROVED",
       status: "approved",
-      badgeCount: 0,
+      badgeCount: mrfCounts.approved,
     },
   ];
 

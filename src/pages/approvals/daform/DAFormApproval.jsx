@@ -34,6 +34,7 @@ import {
   useApproveDaSubmissionMutation,
   useRejectDaSubmissionMutation,
 } from "../../../features/api/approving/daFormApproval.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -514,6 +515,9 @@ const DAFormApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveDaSubmission, { isLoading: approveLoading }] =
     useApproveDaSubmissionMutation();
   const [rejectDaSubmission, { isLoading: rejectLoading }] =
@@ -523,6 +527,15 @@ const DAFormApproval = () => {
     useGetDaApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
+
+  const daCounts = useMemo(() => {
+    const approval = dashboardData?.result?.approval?.da?.form || 0;
+
+    return {
+      forApproval: approval,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -555,6 +568,7 @@ const DAFormApproval = () => {
         enqueueSnackbar("DA Form approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -563,7 +577,7 @@ const DAFormApproval = () => {
         });
       }
     },
-    [detailsDialog, approveDaSubmission, enqueueSnackbar]
+    [detailsDialog, approveDaSubmission, enqueueSnackbar, refetchDashboard]
   );
 
   const handleReject = useCallback(
@@ -580,6 +594,7 @@ const DAFormApproval = () => {
         enqueueSnackbar("DA Form returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -588,7 +603,7 @@ const DAFormApproval = () => {
         });
       }
     },
-    [detailsDialog, rejectDaSubmission, enqueueSnackbar]
+    [detailsDialog, rejectDaSubmission, enqueueSnackbar, refetchDashboard]
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -614,12 +629,12 @@ const DAFormApproval = () => {
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: 0,
+      badgeCount: daCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: 0,
+      badgeCount: daCounts.approved,
     },
   ];
 

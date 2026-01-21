@@ -11,6 +11,7 @@ import {
   useUpdateMrfSubmissionMutation,
   useResubmitMrfSubmissionMutation,
 } from "../../../features/api/forms/mrfApi";
+import { useLazyGetAllEmployeesToBeReplacedQuery } from "../../../features/api/employee/mainApi";
 import MrfTable from "./MrfTable";
 import FormSubmissionModal from "../../../components/modal/form/ManpowerForm/FormSubmissionModal";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
@@ -108,6 +109,7 @@ const MrfForApproval = ({
   const [createMrfSubmission] = useCreateMrfSubmissionMutation();
   const [updateMrfSubmission] = useUpdateMrfSubmissionMutation();
   const [resubmitMrfSubmission] = useResubmitMrfSubmissionMutation();
+  const [triggerGetEmployees] = useLazyGetAllEmployeesToBeReplacedQuery();
 
   const filteredSubmissions = useMemo(() => {
     return submissionsData?.result?.data || [];
@@ -115,12 +117,30 @@ const MrfForApproval = ({
 
   const totalCount = submissionsData?.result?.total || 0;
 
-  const handleRowClick = useCallback((submission) => {
-    setModalMode("view");
-    setSelectedSubmissionId(submission.id);
-    setMenuAnchor({});
-    setModalOpen(true);
-  }, []);
+  const handleRowClick = useCallback(
+    async (submission) => {
+      setModalMode("view");
+      setSelectedSubmissionId(submission.id);
+      setMenuAnchor({});
+
+      // PRE-LOAD employees data before opening modal
+      const submittable = submission.submittable;
+      if (submittable?.position_id && submittable?.requisition_type_id) {
+        try {
+          await triggerGetEmployees({
+            position_id: submittable.position_id,
+            requisition_type_id: submittable.requisition_type_id,
+            current_mrf_id: submission.id,
+          });
+        } catch (error) {
+          console.error("Error preloading employees:", error);
+        }
+      }
+
+      setModalOpen(true);
+    },
+    [triggerGetEmployees]
+  );
 
   const handleUpdateSubmission = useCallback((submission) => {
     setSelectedSubmissionId(submission.id);
