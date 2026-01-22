@@ -1,7 +1,8 @@
 import React from "react";
+import { Outlet } from "react-router";
 
-function DevelopmentAssignmentForm() {
-  return <div>DevelopmentAssignmentForm</div>;
+function DevelopmentalAssignmentForm() {
+  return <Outlet />;
 }
 
-export default DevelopmentAssignmentForm;
+export default DevelopmentalAssignmentForm;

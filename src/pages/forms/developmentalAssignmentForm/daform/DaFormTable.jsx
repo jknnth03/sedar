@@ -22,8 +22,8 @@ import dayjs from "dayjs";
 import React from "react";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import NoDataFound from "../../../NoDataFound";
-import { styles } from "../manpowerform/FormSubmissionStyles";
 import DAFormHistoryDialog from "./DAFormHistoryDialog";
+import { styles } from "../../manpowerform/FormSubmissionStyles";
 
 const DAFormTable = ({
   submissionsList,

@@ -8,12 +8,12 @@ import {
   useGetSingleDaSubmissionQuery,
   useUpdateDaMutation,
   useResubmitDaMutation,
-} from "../../../features/api/forms/daformApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+} from "../../../../features/api/forms/daformApi";
 import DAFormTable from "./DAFormTable";
-import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
+import DAFormModal from "../../../../components/modal/form/DAForm/DaFormModal";
 
 const DAFormAwaitingResubmission = ({
   searchQuery,
@@ -26,7 +26,7 @@ const DAFormAwaitingResubmission = ({
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -197,7 +197,7 @@ const DAFormAwaitingResubmission = ({
       submissionDetails,
       submissionsList,
       resubmitDaSubmission,
-    ]
+    ],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -224,11 +224,11 @@ const DAFormAwaitingResubmission = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -244,11 +244,11 @@ const DAFormAwaitingResubmission = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, currentParams],
   );
 
   const handleModeChange = useCallback((newMode) => {

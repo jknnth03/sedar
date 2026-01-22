@@ -2,18 +2,18 @@ import { Box } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import DAFormModal from "../../../components/modal/form/DAForm/DAFormModal";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+import DAFormModal from "../../../../components/modal/form/DAForm/DaFormModal";
+import { useCancelFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
 import {
   useGetDaSubmissionsQuery,
   useGetSingleDaSubmissionQuery,
   useResubmitDaMutation,
   useUpdateDaMutation,
-} from "../../../features/api/forms/daformApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import "../../../pages/GeneralStyle.scss";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+} from "../../../../features/api/forms/daformApi";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
+import "../../../../pages/GeneralStyle.scss";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 import DAFormTable from "./DAFormTable";
 
 const DAFormRejected = ({

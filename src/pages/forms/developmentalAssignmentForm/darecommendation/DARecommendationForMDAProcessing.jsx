@@ -11,7 +11,7 @@ import {
 import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
 import "../../../../pages/GeneralStyle.scss";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
-import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
+import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
 import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 import DARecommendationTable from "./DARecommendationTable";
 

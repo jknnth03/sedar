@@ -41,8 +41,7 @@ import RegistrationApproval from "../../pages/approvals/registrationApproval/Reg
 import DATACHANGEMAINCONTAINER from "../../pages/forms/201datachange/DataChangeMainContainer.jsx";
 import MrfMainContainer from "../../pages/forms/manpowerform/MrfMainContainer.jsx";
 import DAForm from "../../pages/forms/developmentalAssignmentForm/daform/DAForm.jsx";
-import KPI from "../../pages/evaluation/Kpi.jsx";
-import Evaluation from "../../pages/evaluation/Evaluation.jsx";
+import KPI from "../../pages/masterlist/kpi/Kpi.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
 import DataChangeApproval from "../../pages/approvals/dataChangeApproval/DataChangeApproval.jsx";
 import MASTERDATAAUTHORITY from "../../pages/forms/mdaform/MDA.jsx";
@@ -331,19 +330,11 @@ export const ROUTES = [
         },
       },
       {
-        id: "EVALUATION",
-        path: MODULES.EVALUATION.path,
-        element: <Evaluation />,
-        handle: {
-          permission: MODULES.EVALUATION.permissionId,
-        },
-      },
-      {
-        id: "EVALUATION.KPI",
-        path: `${MODULES.EVALUATION.path}/${MODULES.EVALUATION.children.KPI.path}`,
+        id: "MASTERLIST.KPI",
+        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.KPI.path}`,
         element: <KPI />,
         handle: {
-          permission: MODULES.EVALUATION.children.KPI.permissionId,
+          permission: MODULES.MASTERLIST.children.KPI.permissionId,
         },
       },
       {

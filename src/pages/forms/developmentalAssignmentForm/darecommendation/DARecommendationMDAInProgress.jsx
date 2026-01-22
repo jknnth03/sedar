@@ -10,9 +10,9 @@ import {
 } from "../../../../features/api/forms/daRecommentdationApi";
 import "../../../../pages/GeneralStyle.scss";
 import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 import DARecommendationTable from "./DARecommendationTable";
 

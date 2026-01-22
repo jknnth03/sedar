@@ -183,11 +183,11 @@ const DARecommendationModal = ({
       }
       const totalDistribution = data.kpis.reduce(
         (sum, kpi) => sum + Number(kpi.distribution_percentage || 0),
-        0
+        0,
       );
       if (totalDistribution !== 100) {
         alert(
-          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`
+          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`,
         );
         return;
       }
@@ -221,7 +221,7 @@ const DARecommendationModal = ({
         (kpi) =>
           kpi.actual_performance !== null &&
           kpi.actual_performance !== undefined &&
-          kpi.actual_performance !== ""
+          kpi.actual_performance !== "",
       );
 
       if (!hasAllActualPerformance) {
@@ -242,7 +242,7 @@ const DARecommendationModal = ({
 
       if (data.for_extension && data.extension_end_date) {
         formattedData.extension_end_date = dayjs(
-          data.extension_end_date
+          data.extension_end_date,
         ).format("YYYY-MM-DD");
       }
 
@@ -282,7 +282,7 @@ const DARecommendationModal = ({
         (kpi) =>
           kpi.actual_performance !== null &&
           kpi.actual_performance !== undefined &&
-          kpi.actual_performance !== ""
+          kpi.actual_performance !== "",
       );
 
       if (!hasAllActualPerformance) {
@@ -303,7 +303,7 @@ const DARecommendationModal = ({
 
       if (data.for_extension && data.extension_end_date) {
         formattedData.extension_end_date = dayjs(
-          data.extension_end_date
+          data.extension_end_date,
         ).format("YYYY-MM-DD");
       }
 
@@ -340,7 +340,7 @@ const DARecommendationModal = ({
         (kpi) =>
           kpi.actual_performance !== null &&
           kpi.actual_performance !== undefined &&
-          kpi.actual_performance !== ""
+          kpi.actual_performance !== "",
       );
 
       if (!hasAllActualPerformance) {
@@ -363,7 +363,7 @@ const DARecommendationModal = ({
 
       if (data.for_extension && data.extension_end_date) {
         formattedData.extension_end_date = dayjs(
-          data.extension_end_date
+          data.extension_end_date,
         ).format("YYYY-MM-DD");
       }
 
@@ -543,7 +543,7 @@ const DARecommendationModal = ({
                     sx={styles.editIconButtonStyles}>
                     <EditIcon
                       sx={styles.editIconStyles(
-                        !shouldEnableEditButton() || isProcessing
+                        !shouldEnableEditButton() || isProcessing,
                       )}
                     />
                   </IconButton>
@@ -603,7 +603,7 @@ const DARecommendationModal = ({
                 }
                 sx={styles.resubmitButtonStyles(
                   shouldEnableResubmitButton(),
-                  isProcessing
+                  isProcessing,
                 )}>
                 {isProcessing ? "Resubmitting..." : "Resubmit"}
               </Button>

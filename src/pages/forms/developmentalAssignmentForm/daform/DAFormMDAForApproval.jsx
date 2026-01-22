@@ -16,12 +16,12 @@ import {
 } from "../../../../features/api/forms/daformApi";
 import DAFormTable from "./DAFormTable";
 import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
-import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
+import DAFormModal from "../../../../components/modal/form/DAForm/DaFormModal";
 import {
   useResubmitFormSubmissionMutation,
   useCancelFormSubmissionMutation,
-} from "../../../features/api/approvalsetting/formSubmissionApi";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+} from "../../../../features/api/approvalsetting/formSubmissionApi";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
 const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -30,7 +30,7 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -151,7 +151,7 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
           error?.data?.message || "Failed to update DA Form submission",
           {
             variant: "error",
-          }
+          },
         );
       } finally {
         setIsUpdating(false);
@@ -165,7 +165,7 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
       refetchDetails,
       refetch,
       handleModalClose,
-    ]
+    ],
   );
 
   const handleResubmit = useCallback(
@@ -186,11 +186,11 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
           {
             variant: "error",
             autoHideDuration: 2000,
-          }
+          },
         );
       }
     },
-    [resubmitDaSubmission, enqueueSnackbar, refetchDetails, refetch]
+    [resubmitDaSubmission, enqueueSnackbar, refetchDetails, refetch],
   );
 
   const handleCancel = useCallback(
@@ -222,7 +222,7 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
         return false;
       }
     },
-    [cancelDaSubmission, enqueueSnackbar, refetch]
+    [cancelDaSubmission, enqueueSnackbar, refetch],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -249,11 +249,11 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -269,11 +269,11 @@ const DAFormMDAForApproval = ({ searchQuery, dateFilters, onCancel }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching;

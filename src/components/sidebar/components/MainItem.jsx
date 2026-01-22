@@ -2,8 +2,7 @@ import { Box, Collapse, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import PropTypes from "prop-types";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 const MenuItem = ({
   name = "",
@@ -20,6 +19,8 @@ const MenuItem = ({
   hasChildren = false,
   isExpanded = false,
 }) => {
+  const [isHovered, setIsHovered] = React.useState(false);
+
   let paddingLeft = "0px";
 
   if (level === 0) {
@@ -30,10 +31,21 @@ const MenuItem = ({
     paddingLeft = `${32 + (level - 1) * 16}px`;
   }
 
+  const isChildLevel2 = className.includes("child-level-2");
+  const shouldUseOrange = isChildLevel2 && (active || isHovered);
+  const textColor = shouldUseOrange ? "rgb(230, 81, 0) !important" : "inherit";
+  const iconColor = shouldUseOrange
+    ? "rgb(230, 81, 0) !important"
+    : isChildLevel2 && !active && !isHovered
+      ? "rgb(33, 61, 112) !important"
+      : undefined;
+
   return (
     <Box
       className={`liststyle ${className} ${active ? "active" : ""}`}
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       sx={{
         cursor: "pointer",
         paddingLeft: paddingLeft,
@@ -66,7 +78,9 @@ const MenuItem = ({
             }}
           />
         )}
-        <Box className={`icon ${active ? "active-icon" : ""}`}>
+        <Box
+          className={`icon ${active ? "active-icon" : ""}`}
+          sx={iconColor ? { color: iconColor } : {}}>
           {icon || <span className="sidebar__placeholder-icon">📄</span>}
         </Box>
         {!sidebarOpen && notificationCount > 0 && (
@@ -104,6 +118,7 @@ const MenuItem = ({
               flex: 1,
               minWidth: 0,
               marginRight: "4px",
+              color: textColor,
             }}>
             {name}
           </Typography>
@@ -121,12 +136,10 @@ const MenuItem = ({
                   display: "flex",
                   alignItems: "center",
                   color: active ? "inherit" : "rgb(33, 61, 112)",
+                  transition: "transform 0.2s ease",
+                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
                 }}>
-                {isExpanded ? (
-                  <KeyboardArrowUpIcon sx={{ fontSize: "20px" }} />
-                ) : (
-                  <KeyboardArrowDownIcon sx={{ fontSize: "20px" }} />
-                )}
+                <ArrowDropDownIcon sx={{ fontSize: "24px" }} />
               </Box>
             )}
           </Box>
@@ -277,7 +290,13 @@ export const MainItem = ({
         icon={icon}
         active={isParentActive}
         onClick={handleChildren}
-        className={level === 0 ? "main-item" : "sub-item"}
+        className={
+          level === 0
+            ? "main-item"
+            : level === 1
+              ? "sub-item"
+              : "sub-item child-level-2"
+        }
         sidebarOpen={sidebarOpen}
         notificationCount={displayNotificationCount}
         showDotOnly={showDotOnly}
@@ -320,7 +339,9 @@ export const MainItem = ({
                 active={isSubItemActive}
                 isChild={true}
                 onClick={() => handleNavigation(fullChildPath)}
-                className="sub-item"
+                className={
+                  level + 1 >= 2 ? "sub-item child-level-2" : "sub-item"
+                }
                 sidebarOpen={sidebarOpen}
                 notificationCount={item.notificationCount || 0}
                 showDotOnly={false}

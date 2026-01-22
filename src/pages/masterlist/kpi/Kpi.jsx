@@ -32,16 +32,16 @@ import CloseIcon from "@mui/icons-material/Close";
 import HelpIcon from "@mui/icons-material/Help";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../pages/GeneralStyle.scss";
+import "../../../pages/GeneralStyle.scss";
 import {
   useGetTablePositionsQuery,
   useUpdatePositionKpisMutation,
   useGetPositionKpisQuery,
-} from "../../features/api/evaluation/kpiApi";
-import KpiModal from "../../components/modal/evaluation/KpiModal";
-import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+} from "../../../features/api/evaluation/kpiApi";
+import KpiModal from "../../../components/modal/evaluation/KpiModal";
+import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import { kpiStyles } from "./KpiStyles";
-import NoDataFound from "../NoDataFound";
+import NoDataFound from "../../NoDataFound";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -246,7 +246,7 @@ const Kpi = () => {
       enqueueSnackbar,
       handleModalClose,
       updatePositionKpis,
-    ]
+    ],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -290,7 +290,7 @@ const Kpi = () => {
 
       return name !== "N/A" ? name : "Untitled Position";
     },
-    [safelyDisplayValue]
+    [safelyDisplayValue],
   );
 
   const getSuperiorName = useCallback(
@@ -304,7 +304,7 @@ const Kpi = () => {
 
       return superior !== "N/A" ? superior : "No superior assigned";
     },
-    [safelyDisplayValue]
+    [safelyDisplayValue],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -383,7 +383,7 @@ const Kpi = () => {
                     sx={{
                       ...kpiStyles.tableHeaderCell(
                         isMobile,
-                        isMobile ? "60px" : "80px"
+                        isMobile ? "60px" : "80px",
                       ),
                       backgroundColor: "#ffffff",
                       borderBottom: "none",
@@ -394,7 +394,7 @@ const Kpi = () => {
                     sx={{
                       ...kpiStyles.tableHeaderCell(
                         isMobile,
-                        isMobile ? "200px" : "400px"
+                        isMobile ? "200px" : "400px",
                       ),
                       backgroundColor: "#ffffff",
                       borderBottom: "none",
@@ -406,7 +406,7 @@ const Kpi = () => {
                       sx={{
                         ...kpiStyles.tableHeaderCell(
                           isMobile,
-                          isMobile ? "180px" : "300px"
+                          isMobile ? "180px" : "300px",
                         ),
                         backgroundColor: "#ffffff",
                         borderBottom: "none",
@@ -419,7 +419,7 @@ const Kpi = () => {
                     sx={{
                       ...kpiStyles.tableHeaderCell(
                         isMobile,
-                        isMobile ? "80px" : "120px"
+                        isMobile ? "80px" : "120px",
                       ),
                       backgroundColor: "#ffffff",
                       borderBottom: "none",
@@ -488,7 +488,8 @@ const Kpi = () => {
                         <TableCell
                           sx={kpiStyles.superiorCell(
                             isMobile,
-                            getSuperiorName(position) === "No superior assigned"
+                            getSuperiorName(position) ===
+                              "No superior assigned",
                           )}>
                           {getSuperiorName(position)}
                         </TableCell>
@@ -579,9 +580,9 @@ const Kpi = () => {
                 {safelyDisplayValue(selectedPositionForAction?.name) !== "N/A"
                   ? safelyDisplayValue(selectedPositionForAction?.name)
                   : safelyDisplayValue(selectedPositionForAction?.title) !==
-                    "N/A"
-                  ? safelyDisplayValue(selectedPositionForAction?.title)
-                  : "Unknown Position"}
+                      "N/A"
+                    ? safelyDisplayValue(selectedPositionForAction?.title)
+                    : "Unknown Position"}
               </Typography>
             )}
           </DialogContent>

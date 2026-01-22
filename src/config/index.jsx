@@ -518,25 +518,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
-    EVALUATION: {
-      name: "Evaluation",
-      permissionId: "EVALUATION",
-      displayName: "Evaluation",
-      path: "/evaluation",
-      icon: <TrendingUpIcon sx={iconStyles.mainExtraLarge} />,
-      notificationCount: 0,
-      children: {
-        KPI: {
-          name: "KPI",
-          permissionId: "EVALUATION.KPI",
-          displayName: "KPI",
-          path: "kpi",
-          icon: <VpnKeyIcon sx={iconStyles.child} />,
 
-          notificationCount: 0,
-        },
-      },
-    },
     MASTERLIST: {
       name: "Masterlist",
       permissionId: "MASTERLIST",
@@ -557,6 +539,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Position",
           path: "positions",
           icon: <BadgeIcon sx={iconStyles.child} />,
+        },
+        KPI: {
+          name: "KPI",
+          permissionId: "EVALUATION.KPI",
+          displayName: "KPI",
+          path: "kpi",
+          icon: <VpnKeyIcon sx={iconStyles.child} />,
+
+          notificationCount: 0,
         },
       },
     },

@@ -13,6 +13,7 @@ import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams
 import DAFormModal from "../../../../components/modal/form/DAForm/DAFormModal";
 import { useResubmitFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
 import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 
 const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -21,7 +22,7 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -123,7 +124,7 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
         setConfirmOpen(true);
       }
     },
-    [selectedSubmissionId, submissionDetails, submissionsList]
+    [selectedSubmissionId, submissionDetails, submissionsList],
   );
 
   const handleResubmit = useCallback(
@@ -133,7 +134,7 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissionsList]
+    [submissionsList],
   );
 
   const handleCancelSubmission = useCallback(() => {
@@ -225,11 +226,11 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -245,11 +246,11 @@ const DAFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;

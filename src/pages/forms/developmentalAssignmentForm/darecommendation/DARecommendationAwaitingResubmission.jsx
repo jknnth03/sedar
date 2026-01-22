@@ -12,7 +12,7 @@ import {
 import DARecommendationTable from "./DARecommendationTable";
 import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
-import DARecommendationModal from "../../../components/modal/form/DARecommendation/DARecommendationModal";
+import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
 import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
 const DARecommendationAwaitingResubmission = ({
