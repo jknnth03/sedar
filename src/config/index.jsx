@@ -230,9 +230,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
       notificationCount: counts.pendingApprovals,
       children: {
         SUBMISSIONAPPROVAL: {
-          name: "MRF",
+          name: "Manpower Form",
           permissionId: "APPROVING.SUBMISSIONAPPROVAL",
-          displayName: "MRF",
+          displayName: "Manpower Form",
           path: "submissionapproval",
           icon: <TaskIcon sx={iconStyles.child} />,
 
@@ -456,20 +456,30 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.pendingRegistrations,
         },
         EVALUATIONFORM: {
-          name: "Evaluation Form",
+          name: "Evaluation",
           permissionId: "REQUEST.EVALUATIONFORM",
-          displayName: "Evaluation Form",
-          path: "evaluationform",
+          displayName: "Evaluation",
+          path: "evaluation",
           icon: <RateReviewIcon sx={iconStyles.child} />,
-          notificationCount: counts.evaluationFormTotal || 0,
-        },
-        EVALUATIONRECOMMENDATION: {
-          name: "Evaluation Recommendation",
-          permissionId: "REQUEST.EVALUATIONRECOMMENDATION",
-          displayName: "Evaluation Recommendation",
-          path: "evaluationrecommendation",
-          icon: <RecommendIcon sx={iconStyles.child} />,
-          notificationCount: counts.evaluationRecommendationTotal || 0,
+          notificationCount: counts.evaluationTotal || 0,
+          children: {
+            EVALUATIONFORMCHILD: {
+              name: "Evaluation Form",
+              permissionId: "REQUEST.EVALUATIONFORM.EVALUATIONFORMCHILD",
+              displayName: "Evaluation Form",
+              path: "evaluationform",
+              icon: <RateReviewIcon sx={iconStyles.child} />,
+              notificationCount: counts.evaluationFormTotal || 0,
+            },
+            EVALUATIONRECOMMENDATION: {
+              name: "Evaluation Recommendation",
+              permissionId: "REQUEST.EVALUATIONFORM.EVALUATIONRECOMMENDATION",
+              displayName: "Evaluation Recommendation",
+              path: "evaluationrecommendation",
+              icon: <RecommendIcon sx={iconStyles.child} />,
+              notificationCount: counts.evaluationRecommendationTotal || 0,
+            },
+          },
         },
         BIANNUALPERFORMANCE: {
           name: "Bi-Annual Performance",
@@ -477,7 +487,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Bi-Annual Performance",
           path: "biannualperformance",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          notificationCount: counts.performanceTotal,
+          notificationCount: 0,
         },
       },
     },

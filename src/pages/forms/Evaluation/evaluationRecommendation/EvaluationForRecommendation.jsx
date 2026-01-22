@@ -1,28 +1,30 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
-  useGetProbationaryEvaluationsQuery,
-  useLazyGetSingleProbationaryEvaluationQuery,
-  useUpdateProbationaryEvaluationMutation,
-  useResubmitProbationaryEvaluationMutation,
-} from "../../../features/api/forms/evaluationFormApi";
-import EvaluationFormTable from "./EvaluationFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+  useGetEvaluationSubmissionsQuery,
+  useLazyGetSingleEvaluationSubmissionQuery,
+  useSubmitEvaluationRecommendationMutation,
+  useResubmitEvaluationSubmissionMutation,
+  useCancelEvaluationSubmissionMutation,
+} from "../../../../features/api/forms/evaluationRecommendationApi";
+import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import EvaluationRecommendationModal from "../../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
+const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
+  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -39,17 +41,18 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     defaultValues: {},
   });
 
-  const [updateProbationaryEvaluation] =
-    useUpdateProbationaryEvaluationMutation();
-  const [resubmitProbationaryEvaluation] =
-    useResubmitProbationaryEvaluationMutation();
+  const [submitEvaluationRecommendation] =
+    useSubmitEvaluationRecommendationMutation();
+  const [resubmitEvaluationSubmission] =
+    useResubmitEvaluationSubmissionMutation();
+  const [cancelEvaluationSubmission] = useCancelEvaluationSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "REJECTED",
+      approval_status: "FOR RECOMMENDATION",
       pagination: 1,
       search: searchQuery || "",
       start_date: dateFilters?.start_date,
@@ -67,7 +70,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     isFetching,
     refetch,
     error,
-  } = useGetProbationaryEvaluationsQuery(apiQueryParams, {
+  } = useGetEvaluationSubmissionsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
@@ -75,7 +78,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
   const [
     triggerGetSubmission,
     { data: submissionDetails, isLoading: detailsLoading },
-  ] = useLazyGetSingleProbationaryEvaluationQuery();
+  ] = useLazyGetSingleEvaluationSubmissionQuery();
 
   const submissions = useMemo(() => {
     return submissionsData?.result?.data || [];
@@ -98,7 +101,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -115,25 +118,28 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     }
   }, [selectedSubmissionId, triggerGetSubmission]);
 
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
+  const handleSubmitForRecommendation = useCallback(
+    async (formattedData, entryId) => {
       setModalLoading(true);
       try {
-        await updateProbationaryEvaluation({
+        console.log("Sending to API:", formattedData);
+
+        const response = await submitEvaluationRecommendation({
           id: entryId,
-          data: formData,
+          body: formattedData,
         }).unwrap();
 
-        enqueueSnackbar("Probationary Evaluation updated successfully", {
+        enqueueSnackbar("Evaluation Recommendation submitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
         handleModalClose();
         await refetch();
       } catch (error) {
+        console.error("Submit error:", error);
         const errorMessage =
           error?.data?.message ||
-          "Failed to update evaluation. Please try again.";
+          "Failed to submit recommendation. Please try again.";
         enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 2000,
@@ -142,7 +148,12 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
         setModalLoading(false);
       }
     },
-    [updateProbationaryEvaluation, enqueueSnackbar, handleModalClose, refetch]
+    [
+      submitEvaluationRecommendation,
+      enqueueSnackbar,
+      handleModalClose,
+      refetch,
+    ],
   );
 
   const handleResubmit = useCallback(
@@ -152,12 +163,25 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissions]
+    [submissions],
   );
 
-  const handleCancelSubmission = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const handleCancel = useCallback(
+    async (submissionId) => {
+      const submission = submissions.find((sub) => sub.id === submissionId);
+      if (submission) {
+        setSelectedSubmissionForAction(submission);
+        setConfirmAction("cancel");
+        setConfirmOpen(true);
+      } else {
+        enqueueSnackbar("Submission not found. Please try again.", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      }
+    },
+    [submissions, enqueueSnackbar],
+  );
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -165,11 +189,20 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     setIsLoading(true);
 
     try {
-      if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitProbationaryEvaluation(
-          selectedSubmissionForAction.id
+      if (confirmAction === "cancel" && selectedSubmissionForAction) {
+        await cancelEvaluationSubmission(
+          selectedSubmissionForAction.id,
         ).unwrap();
-        enqueueSnackbar("Probationary Evaluation resubmitted successfully", {
+        enqueueSnackbar("Evaluation Recommendation cancelled successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        refetch();
+      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
+        await resubmitEvaluationSubmission(
+          selectedSubmissionForAction.id,
+        ).unwrap();
+        enqueueSnackbar("Evaluation Recommendation resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
@@ -179,7 +212,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} evaluation. Please try again.`;
+        `Failed to ${confirmAction} recommendation. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -201,7 +234,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
       selectedSubmissionForAction?.reference_number ||
-      "Probationary Evaluation";
+      "Evaluation Recommendation";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
@@ -229,11 +262,11 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -249,11 +282,11 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -268,7 +301,7 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <EvaluationFormTable
+        <EvaluationRecommendationTable
           submissionsList={submissions}
           isLoadingState={isLoadingState}
           error={error}
@@ -277,8 +310,8 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="REJECTED"
-          onCancel={handleCancelSubmission}
+          statusFilter="FOR RECOMMENDATION"
+          onCancel={handleCancel}
         />
 
         <CustomTablePagination
@@ -290,11 +323,11 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
         />
       </Box>
 
-      <EvaluationFormModal
+      <EvaluationRecommendationModal
         open={modalOpen}
         onClose={handleModalClose}
-        onSave={handleSave}
         onResubmit={handleResubmit}
+        onSubmit={handleSubmitForRecommendation}
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
@@ -308,9 +341,10 @@ const EvaluationFormRejected = ({ searchQuery, dateFilters, onCancel }) => {
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
+        module="Evaluation Recommendation"
       />
     </FormProvider>
   );
 };
 
-export default EvaluationFormRejected;
+export default EvaluationForRecommendation;

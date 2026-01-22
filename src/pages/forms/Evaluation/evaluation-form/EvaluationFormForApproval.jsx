@@ -1,32 +1,31 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
-  useGetEvaluationSubmissionsQuery,
-  useLazyGetSingleEvaluationSubmissionQuery,
-  useSubmitEvaluationRecommendationMutation,
-  useResubmitEvaluationSubmissionMutation,
-  useCancelEvaluationSubmissionMutation,
-} from "../../../features/api/forms/evaluationRecommendationApi";
-import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+  useGetProbationaryEvaluationsQuery,
+  useGetSingleProbationaryEvaluationQuery,
+  useUpdateProbationaryEvaluationMutation,
+} from "../../../../features/api/forms/evaluationFormApi";
+import EvaluationFormTable from "./EvaluationFormTable";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import EvaluationFormModal from "../../../../components/modal/form/EvaluationForm/EvaluationFormModal";
+import { useResubmitFormSubmissionMutation } from "../../../../features/api/approvalsetting/formSubmissionApi";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
-  const theme = useTheme();
+const EvaluationFormForApproval = ({ searchQuery, dateFilters, onCancel }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
@@ -34,26 +33,24 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
     useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalLoading, setModalLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
   });
 
-  const [submitEvaluationRecommendation] =
-    useSubmitEvaluationRecommendationMutation();
-  const [resubmitEvaluationSubmission] =
-    useResubmitEvaluationSubmissionMutation();
-  const [cancelEvaluationSubmission] = useCancelEvaluationSubmissionMutation();
+  const [updateProbationaryEvaluation] =
+    useUpdateProbationaryEvaluationMutation();
+  const [resubmitProbationaryEvaluation] = useResubmitFormSubmissionMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "FOR RECOMMENDATION",
-      pagination: 1,
+      approval_status: "PENDING",
+      pagination: true,
       search: searchQuery || "",
       start_date: dateFilters?.start_date,
       end_date: dateFilters?.end_date,
@@ -70,113 +67,73 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
     isFetching,
     refetch,
     error,
-  } = useGetEvaluationSubmissionsQuery(apiQueryParams, {
+  } = useGetProbationaryEvaluationsQuery(apiQueryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const [
-    triggerGetSubmission,
-    { data: submissionDetails, isLoading: detailsLoading },
-  ] = useLazyGetSingleEvaluationSubmissionQuery();
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetSingleProbationaryEvaluationQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
+  });
 
-  const submissions = useMemo(() => {
-    return submissionsData?.result?.data || [];
+  const submissionsList = useMemo(() => {
+    const data = submissionsData?.result?.data || [];
+    return data;
   }, [submissionsData]);
 
-  const totalCount = useMemo(() => {
-    return submissionsData?.result?.total || 0;
-  }, [submissionsData]);
+  const handleRowClick = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setModalMode("view");
+    setModalOpen(true);
+  }, []);
 
-  const handleRowClick = useCallback(
-    async (submission) => {
-      setSelectedSubmissionId(submission.id);
-      setModalMode("view");
-      setModalOpen(true);
-      setMenuAnchor({});
-
-      try {
-        await triggerGetSubmission(submission.id);
-      } catch (error) {
-        console.error("Error fetching submission details:", error);
-      }
-    },
-    [triggerGetSubmission]
-  );
+  useEffect(() => {
+    if (submissionDetails?.result && modalOpen) {
+      setSelectedEntry(submissionDetails.result);
+    }
+  }, [submissionDetails, modalOpen]);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
+    setSelectedEntry(null);
     setSelectedSubmissionId(null);
-    setModalLoading(false);
     setModalMode("view");
-    methods.reset();
-  }, [methods]);
+  }, []);
 
-  const handleRefreshDetails = useCallback(() => {
-    if (selectedSubmissionId) {
-      triggerGetSubmission(selectedSubmissionId);
-    }
-  }, [selectedSubmissionId, triggerGetSubmission]);
-
-  const handleSubmitForRecommendation = useCallback(
-    async (formattedData, entryId) => {
-      setModalLoading(true);
-      try {
-        console.log("Sending to API:", formattedData);
-
-        const response = await submitEvaluationRecommendation({
-          id: entryId,
-          body: formattedData,
-        }).unwrap();
-
-        enqueueSnackbar("Evaluation Recommendation submitted successfully", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-        handleModalClose();
-        await refetch();
-      } catch (error) {
-        console.error("Submit error:", error);
-        const errorMessage =
-          error?.data?.message ||
-          "Failed to submit recommendation. Please try again.";
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      } finally {
-        setModalLoading(false);
+  const handleSave = useCallback(
+    async (formData, mode) => {
+      if (mode === "edit" && selectedSubmissionId) {
+        const submission =
+          submissionDetails?.result ||
+          submissionsList.find((sub) => sub.id === selectedSubmissionId);
+        setSelectedSubmissionForAction(submission);
+        setPendingFormData(formData);
+        setConfirmAction("update");
+        setConfirmOpen(true);
       }
     },
-    [submitEvaluationRecommendation, enqueueSnackbar, handleModalClose, refetch]
+    [selectedSubmissionId, submissionDetails, submissionsList],
   );
 
   const handleResubmit = useCallback(
     async (submissionId) => {
-      const submission = submissions.find((sub) => sub.id === submissionId);
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
       setSelectedSubmissionForAction(submission);
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissions]
+    [submissionsList],
   );
 
-  const handleCancel = useCallback(
-    async (submissionId) => {
-      const submission = submissions.find((sub) => sub.id === submissionId);
-      if (submission) {
-        setSelectedSubmissionForAction(submission);
-        setConfirmAction("cancel");
-        setConfirmOpen(true);
-      } else {
-        enqueueSnackbar("Submission not found. Please try again.", {
-          variant: "error",
-          autoHideDuration: 2000,
-        });
-      }
-    },
-    [submissions, enqueueSnackbar]
-  );
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleActionConfirm = async () => {
     if (!confirmAction) return;
@@ -184,30 +141,37 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
     setIsLoading(true);
 
     try {
-      if (confirmAction === "cancel" && selectedSubmissionForAction) {
-        await cancelEvaluationSubmission(
-          selectedSubmissionForAction.id
-        ).unwrap();
-        enqueueSnackbar("Evaluation Recommendation cancelled successfully", {
+      if (
+        confirmAction === "update" &&
+        pendingFormData &&
+        selectedSubmissionId
+      ) {
+        await updateProbationaryEvaluation({
+          id: selectedSubmissionId,
+          data: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("Probationary Evaluation updated successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        refetch();
+        await refetchDetails();
+        await refetch();
+        handleModalClose();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
-        await resubmitEvaluationSubmission(
-          selectedSubmissionForAction.id
+        await resubmitProbationaryEvaluation(
+          selectedSubmissionForAction.id,
         ).unwrap();
-        enqueueSnackbar("Evaluation Recommendation resubmitted successfully", {
+        enqueueSnackbar("Probationary Evaluation resubmitted successfully", {
           variant: "success",
           autoHideDuration: 2000,
         });
-        await handleRefreshDetails();
+        await refetchDetails();
         await refetch();
       }
     } catch (error) {
       const errorMessage =
         error?.data?.message ||
-        `Failed to ${confirmAction} recommendation. Please try again.`;
+        `Failed to ${confirmAction} submission. Please try again.`;
       enqueueSnackbar(errorMessage, {
         variant: "error",
         autoHideDuration: 2000,
@@ -216,6 +180,7 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
       setConfirmOpen(false);
       setSelectedSubmissionForAction(null);
       setConfirmAction(null);
+      setPendingFormData(null);
       setIsLoading(false);
     }
   };
@@ -224,12 +189,13 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
     setConfirmOpen(false);
     setSelectedSubmissionForAction(null);
     setConfirmAction(null);
+    setPendingFormData(null);
   }, []);
 
   const getSubmissionDisplayName = useCallback(() => {
     const submissionForAction =
       selectedSubmissionForAction?.reference_number ||
-      "Evaluation Recommendation";
+      "Probationary Evaluation";
     return submissionForAction;
   }, [selectedSubmissionForAction]);
 
@@ -257,11 +223,11 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -277,14 +243,16 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
+
+  const totalCount = submissionsData?.result?.total || 0;
 
   return (
     <FormProvider {...methods}>
@@ -296,8 +264,8 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
           flexDirection: "column",
           backgroundColor: "white",
         }}>
-        <EvaluationRecommendationTable
-          submissionsList={submissions}
+        <EvaluationFormTable
+          submissionsList={submissionsList}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -305,8 +273,8 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="FOR RECOMMENDATION"
-          onCancel={handleCancel}
+          statusFilter="PENDING"
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination
@@ -318,13 +286,13 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
         />
       </Box>
 
-      <EvaluationRecommendationModal
+      <EvaluationFormModal
         open={modalOpen}
         onClose={handleModalClose}
+        onSave={handleSave}
         onResubmit={handleResubmit}
-        onSubmit={handleSubmitForRecommendation}
-        selectedEntry={submissionDetails}
-        isLoading={modalLoading || detailsLoading}
+        selectedEntry={selectedEntry}
+        isLoading={detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />
@@ -336,10 +304,9 @@ const EvaluationForRecommendation = ({ searchQuery, dateFilters }) => {
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
-        module="Evaluation Recommendation"
       />
     </FormProvider>
   );
 };
 
-export default EvaluationForRecommendation;
+export default EvaluationFormForApproval;

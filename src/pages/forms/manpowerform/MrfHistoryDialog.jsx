@@ -119,7 +119,7 @@ const MrfHistoryDialog = ({
   const TimelineStep = ({ activity, index, isLast, isCompleted }) => {
     const IconComponent = getStatusIcon(activity);
     const statusColor = getStatusColor(
-      activity?.event_type || activity?.status || activity?.action
+      activity?.event_type || activity?.status || activity?.action,
     );
 
     return (
@@ -306,13 +306,13 @@ const MrfHistoryDialog = ({
         ""
       ).toLowerCase();
 
-      if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
-      if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
+      if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return 1;
+      if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return -1;
 
       const dateA = new Date(a.timestamp || 0);
       const dateB = new Date(b.timestamp || 0);
-      return dateB - dateA;
-    }
+      return dateA - dateB;
+    },
   );
 
   return (

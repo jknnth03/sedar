@@ -2,41 +2,59 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetProbationaryEvaluationsQuery,
   useGetSingleProbationaryEvaluationQuery,
-} from "../../../features/api/forms/evaluationFormApi";
+  useUpdateProbationaryEvaluationMutation,
+  useResubmitProbationaryEvaluationMutation,
+} from "../../../../features/api/forms/evaluationFormApi";
 import EvaluationFormTable from "./EvaluationFormTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import EvaluationFormModal from "../../../components/modal/form/EvaluationForm/EvaluationFormModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import EvaluationFormModal from "../../../../components/modal/form/EvaluationForm/EvaluationFormModal";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
+const EvaluationFormAwaitingResubmission = ({
+  searchQuery,
+  dateFilters,
+  onCancel,
+}) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [queryParams, setQueryParams] = useRememberQueryParams();
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState({});
   const [modalMode, setModalMode] = useState("view");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [selectedSubmissionForAction, setSelectedSubmissionForAction] =
+    useState(null);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm({
     defaultValues: {},
   });
+
+  const [updateProbationaryEvaluation] =
+    useUpdateProbationaryEvaluationMutation();
+  const [resubmitProbationaryEvaluation] =
+    useResubmitProbationaryEvaluationMutation();
 
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "CANCELLED",
+      approval_status: "AWAITING RESUBMISSION",
       pagination: true,
       search: searchQuery || "",
       start_date: dateFilters?.start_date,
@@ -93,6 +111,99 @@ const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
     setModalMode("view");
   }, []);
 
+  const handleSave = useCallback(
+    async (formData, mode) => {
+      if (mode === "edit" && selectedSubmissionId) {
+        const submission =
+          submissionDetails?.result ||
+          submissionsList.find((sub) => sub.id === selectedSubmissionId);
+        setSelectedSubmissionForAction(submission);
+        setPendingFormData(formData);
+        setConfirmAction("update");
+        setConfirmOpen(true);
+      }
+    },
+    [selectedSubmissionId, submissionDetails, submissionsList],
+  );
+
+  const handleResubmit = useCallback(
+    async (submissionId) => {
+      const submission = submissionsList.find((sub) => sub.id === submissionId);
+      setSelectedSubmissionForAction(submission);
+      setConfirmAction("resubmit");
+      setConfirmOpen(true);
+    },
+    [submissionsList],
+  );
+
+  const handleCancelSubmission = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const handleActionConfirm = async () => {
+    if (!confirmAction) return;
+
+    setIsLoading(true);
+
+    try {
+      if (
+        confirmAction === "update" &&
+        pendingFormData &&
+        selectedSubmissionId
+      ) {
+        await updateProbationaryEvaluation({
+          id: selectedSubmissionId,
+          data: pendingFormData,
+        }).unwrap();
+        enqueueSnackbar("Probationary Evaluation updated successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        await refetchDetails();
+        await refetch();
+        handleModalClose();
+      } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
+        await resubmitProbationaryEvaluation(
+          selectedSubmissionForAction.id,
+        ).unwrap();
+        enqueueSnackbar("Probationary Evaluation resubmitted successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        await refetchDetails();
+        await refetch();
+      }
+    } catch (error) {
+      const errorMessage =
+        error?.data?.message ||
+        `Failed to ${confirmAction} submission. Please try again.`;
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+        autoHideDuration: 2000,
+      });
+    } finally {
+      setConfirmOpen(false);
+      setSelectedSubmissionForAction(null);
+      setConfirmAction(null);
+      setPendingFormData(null);
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmationCancel = useCallback(() => {
+    setConfirmOpen(false);
+    setSelectedSubmissionForAction(null);
+    setConfirmAction(null);
+    setPendingFormData(null);
+  }, []);
+
+  const getSubmissionDisplayName = useCallback(() => {
+    const submissionForAction =
+      selectedSubmissionForAction?.reference_number ||
+      "Probationary Evaluation";
+    return submissionForAction;
+  }, [selectedSubmissionForAction]);
+
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
     event.preventDefault();
@@ -117,11 +228,11 @@ const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -137,14 +248,14 @@ const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
-  const isLoadingState = queryLoading || isFetching;
+  const isLoadingState = queryLoading || isFetching || isLoading;
 
   const totalCount = submissionsData?.result?.total || 0;
 
@@ -167,7 +278,8 @@ const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="CANCELLED"
+          statusFilter="AWAITING RESUBMISSION"
+          onCancel={handleCancelSubmission}
         />
 
         <CustomTablePagination
@@ -182,13 +294,24 @@ const EvaluationFormCancelled = ({ searchQuery, dateFilters }) => {
       <EvaluationFormModal
         open={modalOpen}
         onClose={handleModalClose}
+        onSave={handleSave}
+        onResubmit={handleResubmit}
         selectedEntry={selectedEntry}
         isLoading={detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
       />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleConfirmationCancel}
+        onConfirm={handleActionConfirm}
+        isLoading={isLoading}
+        action={confirmAction}
+        itemName={getSubmissionDisplayName()}
+      />
     </FormProvider>
   );
 };
 
-export default EvaluationFormCancelled;
+export default EvaluationFormAwaitingResubmission;

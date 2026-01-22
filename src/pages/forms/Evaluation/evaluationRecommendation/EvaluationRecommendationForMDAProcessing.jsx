@@ -2,17 +2,20 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetEvaluationSubmissionsQuery,
   useLazyGetSingleEvaluationSubmissionQuery,
-} from "../../../features/api/forms/evaluationRecommendationApi";
+} from "../../../../features/api/forms/evaluationRecommendationApi";
 import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import EvaluationRecommendationModal from "../../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
+const EvaluationRecommendationForMDAProcessing = ({
+  searchQuery,
+  dateFilters,
+}) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -20,7 +23,7 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -38,7 +41,7 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "COMPLETED",
+      approval_status: "PENDING MDA CREATION",
       pagination: 1,
       search: searchQuery || "",
       start_date: dateFilters?.start_date,
@@ -87,7 +90,7 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -122,11 +125,11 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -142,11 +145,11 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -170,7 +173,7 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="COMPLETED"
+          statusFilter="PENDING MDA CREATION"
         />
 
         <CustomTablePagination
@@ -194,4 +197,4 @@ const EvaluationRecommendationCompleted = ({ searchQuery, dateFilters }) => {
   );
 };
 
-export default EvaluationRecommendationCompleted;
+export default EvaluationRecommendationForMDAProcessing;

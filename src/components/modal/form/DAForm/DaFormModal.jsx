@@ -61,24 +61,10 @@ const DAFormModal = ({
 
   const isFormValid = useCallback(() => {
     if (currentMode === "create") {
-      console.log("🔍 Validating:", {
-        approved_mrf_id,
-        employee_id,
-        to_position_id,
-        result: !!(approved_mrf_id && employee_id && to_position_id),
-      });
       return !!(approved_mrf_id && employee_id && to_position_id);
     }
     return true;
   }, [currentMode, approved_mrf_id, employee_id, to_position_id]);
-
-  console.log("🔍 Form Values Debug:", {
-    approved_mrf_id,
-    employee_id,
-    to_position_id,
-    currentMode,
-    isFormValid: isFormValid(),
-  });
 
   useEffect(() => {
     if (open && selectedEntry) {
@@ -175,7 +161,6 @@ const DAFormModal = ({
 
   const onSubmit = async (data) => {
     if (isSubmittingRef.current) {
-      console.log("⚠️ Form already submitting, ignoring");
       return;
     }
 
@@ -186,11 +171,11 @@ const DAFormModal = ({
       }
       const totalDistribution = data.kpis.reduce(
         (sum, kpi) => sum + Number(kpi.distribution_percentage || 0),
-        0
+        0,
       );
       if (totalDistribution !== 100) {
         alert(
-          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`
+          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`,
         );
         return;
       }
@@ -338,7 +323,7 @@ const DAFormModal = ({
                     sx={styles.editIconButtonStyles}>
                     <EditIcon
                       sx={styles.editIconStyles(
-                        !shouldEnableEditButton() || isProcessing
+                        !shouldEnableEditButton() || isProcessing,
                       )}
                     />
                   </IconButton>
@@ -399,7 +384,7 @@ const DAFormModal = ({
                 }
                 sx={styles.resubmitButtonStyles(
                   shouldEnableResubmitButton(),
-                  isProcessing
+                  isProcessing,
                 )}>
                 Resubmit
               </Button>
@@ -424,10 +409,10 @@ const DAFormModal = ({
                 {isProcessing
                   ? "Saving..."
                   : currentMode === "create"
-                  ? "Create"
-                  : currentMode === "resubmit"
-                  ? "Resubmit"
-                  : "Update"}
+                    ? "Create"
+                    : currentMode === "resubmit"
+                      ? "Resubmit"
+                      : "Update"}
               </Button>
             )}
           </DialogActions>

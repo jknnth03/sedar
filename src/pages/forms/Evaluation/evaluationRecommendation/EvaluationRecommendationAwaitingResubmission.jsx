@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetEvaluationSubmissionsQuery,
   useLazyGetSingleEvaluationSubmissionQuery,
@@ -10,12 +10,12 @@ import {
   useUpdateEvaluationSubmissionMutation,
   useResubmitEvaluationSubmissionMutation,
   useCancelEvaluationSubmissionMutation,
-} from "../../../features/api/forms/evaluationRecommendationApi";
+} from "../../../../features/api/forms/evaluationRecommendationApi";
 import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import ConfirmationDialog from "../../../styles/ConfirmationDialog";
-import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import EvaluationRecommendationModal from "../../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
 const EvaluationRecommendationAwaitingResubmission = ({
   searchQuery,
@@ -28,7 +28,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -109,7 +109,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
         });
       }
     },
-    [triggerGetSubmission, enqueueSnackbar]
+    [triggerGetSubmission, enqueueSnackbar],
   );
 
   const handleModalClose = useCallback(() => {
@@ -153,7 +153,12 @@ const EvaluationRecommendationAwaitingResubmission = ({
         setModalLoading(false);
       }
     },
-    [submitEvaluationRecommendation, enqueueSnackbar, handleModalClose, refetch]
+    [
+      submitEvaluationRecommendation,
+      enqueueSnackbar,
+      handleModalClose,
+      refetch,
+    ],
   );
 
   const handleUpdateEvaluation = useCallback(
@@ -183,7 +188,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
         setModalLoading(false);
       }
     },
-    [updateEvaluationSubmission, enqueueSnackbar, handleModalClose, refetch]
+    [updateEvaluationSubmission, enqueueSnackbar, handleModalClose, refetch],
   );
 
   const handleResubmit = useCallback(
@@ -193,7 +198,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
       setConfirmAction("resubmit");
       setConfirmOpen(true);
     },
-    [submissions]
+    [submissions],
   );
 
   const handleCancel = useCallback(
@@ -210,7 +215,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
         });
       }
     },
-    [submissions, enqueueSnackbar]
+    [submissions, enqueueSnackbar],
   );
 
   const handleActionConfirm = async () => {
@@ -221,7 +226,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
     try {
       if (confirmAction === "cancel" && selectedSubmissionForAction) {
         await cancelEvaluationSubmission(
-          selectedSubmissionForAction.id
+          selectedSubmissionForAction.id,
         ).unwrap();
         enqueueSnackbar("Evaluation Recommendation cancelled successfully", {
           variant: "success",
@@ -230,7 +235,7 @@ const EvaluationRecommendationAwaitingResubmission = ({
         refetch();
       } else if (confirmAction === "resubmit" && selectedSubmissionForAction) {
         await resubmitEvaluationSubmission(
-          selectedSubmissionForAction.id
+          selectedSubmissionForAction.id,
         ).unwrap();
         enqueueSnackbar("Evaluation Recommendation resubmitted successfully", {
           variant: "success",
@@ -292,11 +297,11 @@ const EvaluationRecommendationAwaitingResubmission = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -312,11 +317,11 @@ const EvaluationRecommendationAwaitingResubmission = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;

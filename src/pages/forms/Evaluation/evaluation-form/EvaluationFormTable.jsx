@@ -9,29 +9,42 @@ import {
   Typography,
   Box,
   IconButton,
+  Menu,
+  MenuItem,
   Chip,
   Tooltip,
   Skeleton,
   useTheme,
 } from "@mui/material";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
+import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import { styles } from "../manpowerform/FormSubmissionStyles";
-import DAFormHistoryDialog from "../developmentalAssignmentForm/daform/DAFormHistoryDialog";
-import NoDataFound from "../../NoDataFound";
+import { styles } from "../../manpowerform/FormSubmissionStyles";
+import EvaluationFormHistoryDialog from "./EvaluationFormHistoryDialog";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import NoDataFound from "../../../NoDataFound";
 
-const EvaluationRecommendationTable = ({
+const EvaluationFormTable = ({
   submissionsList,
   isLoadingState,
   error,
   handleRowClick,
+  handleMenuOpen,
+  handleMenuClose,
+  menuAnchor,
   searchQuery,
   statusFilter,
+  onCancel,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedEvaluationHistory, setSelectedEvaluationHistory] =
     React.useState(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
+  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -52,55 +65,70 @@ const EvaluationRecommendationTable = ({
 
   const renderStatusChip = (submission) => {
     const statusConfig = {
-      "for recommendation": {
-        color: "#1976d2",
-        bgColor: "#e3f2fd",
-        label: "FOR RECOMMENDATION",
-      },
-      "for submission": {
-        color: "#0288d1",
-        bgColor: "#e1f5fe",
-        label: "FOR SUBMISSION",
-      },
-      "pending recommendation": {
+      "pending mda creation": {
         color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
-      },
-      "pending recommendation approval": {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
+        bgColor: "#fff4e6",
+        label: "PENDING MDA CREATION",
       },
       pending: {
         color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
+        bgColor: "#fff4e6",
+        label: "FOR APPROVAL",
       },
-      "recommendation approved": {
-        color: "#2e7d32",
-        bgColor: "#e8f5e8",
-        label: "APPROVED",
+      "for recommendation": {
+        color: "#f57c00",
+        bgColor: "#fff4e6",
+        label: "FOR RECOMMENDATION",
       },
-      "recommendation rejected": {
-        color: "#d32f2f",
-        bgColor: "#ffebee",
-        label: "REJECTED",
+      "for mda processing": {
+        color: "#1976d2",
+        bgColor: "#e3f2fd",
+        label: "FOR MDA PROCESSING",
       },
-      "awaiting recommendation resubmission": {
+      "mda for approval": {
         color: "#9c27b0",
         bgColor: "#f3e5f5",
-        label: "AWAITING RESUBMISSION",
+        label: "MDA FOR APPROVAL",
       },
       completed: {
         color: "#2e7d32",
-        bgColor: "#e8f5e8",
+        bgColor: "#e8f5e9",
         label: "COMPLETED",
+      },
+      approved: {
+        color: "#2e7d32",
+        bgColor: "#e8f5e9",
+        label: "APPROVED",
+      },
+      received: {
+        color: "#2e7d32",
+        bgColor: "#e8f5e9",
+        label: "RECEIVED",
+      },
+      rejected: {
+        color: "#d32f2f",
+        bgColor: "#ffebee",
+        label: "REJECTED",
       },
       cancelled: {
         color: "#757575",
         bgColor: "#f5f5f5",
         label: "CANCELLED",
+      },
+      returned: {
+        color: "#d32f2f",
+        bgColor: "#ffebee",
+        label: "RETURNED",
+      },
+      "awaiting approval": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "AWAITING APPROVAL",
+      },
+      "awaiting resubmission": {
+        color: "#9c27b0",
+        bgColor: "#f3e5f5",
+        label: "FOR SUBMISSION",
       },
     };
 
@@ -108,26 +136,11 @@ const EvaluationRecommendationTable = ({
     const config = statusConfig[status] || {
       color: "#757575",
       bgColor: "#f5f5f5",
-      label: submission.status?.toUpperCase() || "UNKNOWN",
+      label: status?.toUpperCase() || "UNKNOWN",
     };
 
     return (
       <Chip label={config.label} size="small" sx={styles.statusChip(config)} />
-    );
-  };
-
-  const renderRecommendation = (submission) => {
-    const recommendation = submission.recommendation || "-";
-    return (
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 700,
-          fontSize: "14px",
-          textTransform: "uppercase",
-        }}>
-        {recommendation}
-      </Typography>
     );
   };
 
@@ -140,6 +153,30 @@ const EvaluationRecommendationTable = ({
   const handleHistoryDialogClose = () => {
     setHistoryDialogOpen(false);
     setSelectedEvaluationHistory(null);
+  };
+
+  const handleCancelClick = (submission) => {
+    setSelectedSubmissionToCancel(submission);
+    setCancelRemarks("");
+    setCancelDialogOpen(true);
+    handleMenuClose(submission.id);
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelDialogOpen(false);
+    setSelectedSubmissionToCancel(null);
+    setCancelRemarks("");
+  };
+
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
+  const canCancelSubmission = (submission) => {
+    return submission?.actions?.can_cancel === true;
   };
 
   const renderActivityLog = (submission) => {
@@ -159,36 +196,46 @@ const EvaluationRecommendationTable = ({
     if (!statusFilter) return submissionsList;
     return submissionsList.filter(
       (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+        submission.status?.toUpperCase() === statusFilter.toUpperCase(),
     );
   }, [submissionsList, statusFilter]);
 
   const getNoDataMessage = () => {
     if (statusFilter) {
       const statusLabels = {
-        "FOR RECOMMENDATION": "for recommendation",
-        "FOR SUBMISSION": "for submission",
-        "PENDING RECOMMENDATION": "pending",
-        "PENDING RECOMMENDATION APPROVAL": "pending",
         PENDING: "pending",
-        "RECOMMENDATION APPROVED": "approved",
-        "RECOMMENDATION REJECTED": "rejected",
-        "AWAITING RECOMMENDATION RESUBMISSION": "awaiting resubmission",
+        "FOR RECOMMENDATION": "for recommendation",
+        "PENDING MDA CREATION": "pending mda creation",
+        "FOR MDA PROCESSING": "for mda processing",
+        "MDA FOR APPROVAL": "mda for approval",
         COMPLETED: "completed",
+        APPROVED: "approved",
+        REJECTED: "rejected",
         CANCELLED: "cancelled",
+        RETURNED: "returned",
+        "AWAITING APPROVAL": "awaiting approval",
+        "AWAITING RESUBMISSION": "awaiting resubmission",
       };
       const statusLabel =
         statusLabels[statusFilter] || statusFilter.toLowerCase();
       return searchQuery
-        ? `No ${statusLabel} evaluations found for "${searchQuery}"`
-        : `No ${statusLabel} evaluations found`;
+        ? `No ${statusLabel} submissions found for "${searchQuery}"`
+        : `No ${statusLabel} submissions found`;
     }
+    return searchQuery
+      ? `No results for "${searchQuery}"`
+      : "No submissions found";
   };
 
-  // Hide recommendation column if status is "FOR RECOMMENDATION"
-  const shouldShowRecommendationColumn = statusFilter !== "FOR RECOMMENDATION";
-
-  const totalColumns = shouldShowRecommendationColumn ? 7 : 6;
+  const shouldHideActions =
+    statusFilter === "CANCELLED" ||
+    statusFilter === "COMPLETED" ||
+    statusFilter === "PENDING MDA CREATION" ||
+    statusFilter === "MDA FOR APPROVAL" ||
+    statusFilter === "FOR MDA PROCESSING" ||
+    statusFilter === "MDA IN PROGRESS";
+  const shouldShowActionsColumn = !shouldHideActions;
+  const totalColumns = shouldShowActionsColumn ? 7 : 6;
 
   return (
     <>
@@ -205,14 +252,7 @@ const EvaluationRecommendationTable = ({
                 REFERENCE NO.
               </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
-              <TableCell sx={styles.columnStyles.formName}>
-                CHARGING NAME
-              </TableCell>
-              {shouldShowRecommendationColumn && (
-                <TableCell sx={styles.columnStyles.recommendation}>
-                  RECOMMENDATION
-                </TableCell>
-              )}
+              <TableCell sx={styles.columnStyles.formName}>CHARGING</TableCell>
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
@@ -220,6 +260,11 @@ const EvaluationRecommendationTable = ({
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
+              {shouldShowActionsColumn && (
+                <TableCell align="center" sx={styles.columnStyles.actions}>
+                  ACTIONS
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody
@@ -240,11 +285,6 @@ const EvaluationRecommendationTable = ({
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
-                    {shouldShowRecommendationColumn && (
-                      <TableCell>
-                        <Skeleton animation="wave" height={30} />
-                      </TableCell>
-                    )}
                     <TableCell>
                       <Skeleton
                         animation="wave"
@@ -265,6 +305,17 @@ const EvaluationRecommendationTable = ({
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell align="center">
+                        <Skeleton
+                          animation="wave"
+                          variant="circular"
+                          width={32}
+                          height={32}
+                          sx={{ margin: "0 auto" }}
+                        />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </>
@@ -308,15 +359,6 @@ const EvaluationRecommendationTable = ({
                       }}>
                       {submission.charging_name || "-"}
                     </TableCell>
-                    {shouldShowRecommendationColumn && (
-                      <TableCell
-                        sx={{
-                          ...styles.columnStyles.recommendation,
-                          ...styles.cellContentStyles,
-                        }}>
-                        {renderRecommendation(submission)}
-                      </TableCell>
-                    )}
                     <TableCell sx={styles.columnStyles.status}>
                       {renderStatusChip(submission)}
                     </TableCell>
@@ -332,6 +374,53 @@ const EvaluationRecommendationTable = ({
                         ? dayjs(submission.created_at).format("MMM D, YYYY")
                         : "-"}
                     </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell
+                        align="center"
+                        sx={styles.columnStyles.actions}>
+                        <Tooltip title="Actions">
+                          <IconButton
+                            onClick={(e) => handleMenuOpen(e, submission)}
+                            size="small"
+                            sx={styles.actionIconButton(theme)}>
+                            <MoreVertIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Menu
+                          anchorEl={menuAnchor[submission.id]}
+                          open={Boolean(menuAnchor[submission.id])}
+                          onClose={() => handleMenuClose(submission.id)}
+                          transformOrigin={{
+                            horizontal: "right",
+                            vertical: "top",
+                          }}
+                          anchorOrigin={{
+                            horizontal: "right",
+                            vertical: "bottom",
+                          }}
+                          PaperProps={{
+                            sx: styles.actionMenu(theme),
+                          }}
+                          sx={{
+                            zIndex: 10000,
+                          }}>
+                          <MenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelClick(submission);
+                            }}
+                            disabled={!canCancelSubmission(submission)}
+                            sx={
+                              canCancelSubmission(submission)
+                                ? styles.cancelMenuItem
+                                : styles.cancelMenuItemDisabled
+                            }>
+                            <CancelIcon fontSize="small" sx={{ mr: 1 }} />
+                            Cancel Request
+                          </MenuItem>
+                        </Menu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
@@ -378,13 +467,30 @@ const EvaluationRecommendationTable = ({
         </Table>
       </TableContainer>
 
-      <DAFormHistoryDialog
+      <EvaluationFormHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedEvaluationHistory}
+        selectedEvaluationHistory={selectedEvaluationHistory}
+      />
+
+      <ConfirmationDialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        action="cancel"
+        itemId={selectedSubmissionToCancel?.id}
+        itemName={selectedSubmissionToCancel?.reference_number || "N/A"}
+        module="Probationary Evaluation Request"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleCancelSuccess}
       />
     </>
   );
 };
 
-export default EvaluationRecommendationTable;
+export default EvaluationFormTable;

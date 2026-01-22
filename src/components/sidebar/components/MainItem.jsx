@@ -31,15 +31,6 @@ const MenuItem = ({
     paddingLeft = `${32 + (level - 1) * 16}px`;
   }
 
-  const isChildLevel2 = className.includes("child-level-2");
-  const shouldUseOrange = isChildLevel2 && (active || isHovered);
-  const textColor = shouldUseOrange ? "rgb(230, 81, 0) !important" : "inherit";
-  const iconColor = shouldUseOrange
-    ? "rgb(230, 81, 0) !important"
-    : isChildLevel2 && !active && !isHovered
-      ? "rgb(33, 61, 112) !important"
-      : undefined;
-
   return (
     <Box
       className={`liststyle ${className} ${active ? "active" : ""}`}
@@ -78,9 +69,7 @@ const MenuItem = ({
             }}
           />
         )}
-        <Box
-          className={`icon ${active ? "active-icon" : ""}`}
-          sx={iconColor ? { color: iconColor } : {}}>
+        <Box className={`icon ${active ? "active-icon" : ""}`}>
           {icon || <span className="sidebar__placeholder-icon">📄</span>}
         </Box>
         {!sidebarOpen && notificationCount > 0 && (
@@ -118,7 +107,6 @@ const MenuItem = ({
               flex: 1,
               minWidth: 0,
               marginRight: "4px",
-              color: textColor,
             }}>
             {name}
           </Typography>

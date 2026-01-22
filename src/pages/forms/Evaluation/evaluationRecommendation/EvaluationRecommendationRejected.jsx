@@ -2,20 +2,18 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetEvaluationSubmissionsQuery,
   useLazyGetSingleEvaluationSubmissionQuery,
-} from "../../../features/api/forms/evaluationRecommendationApi";
+  useSubmitEvaluationRecommendationMutation,
+} from "../../../../features/api/forms/evaluationRecommendationApi";
 import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import EvaluationRecommendationModal from "../../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const EvaluationRecommendationMDAInProgress = ({
-  searchQuery,
-  dateFilters,
-}) => {
+const EvaluationRecommendationRejected = ({ searchQuery, dateFilters }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -23,7 +21,7 @@ const EvaluationRecommendationMDAInProgress = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -36,12 +34,15 @@ const EvaluationRecommendationMDAInProgress = ({
     defaultValues: {},
   });
 
+  const [submitEvaluationRecommendation] =
+    useSubmitEvaluationRecommendationMutation();
+
   const apiQueryParams = useMemo(() => {
     return {
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "MDA IN PROGRESS",
+      approval_status: "RECOMMENDATION REJECTED",
       pagination: 1,
       search: searchQuery || "",
       start_date: dateFilters?.start_date,
@@ -90,7 +91,7 @@ const EvaluationRecommendationMDAInProgress = ({
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -100,6 +101,84 @@ const EvaluationRecommendationMDAInProgress = ({
     setModalMode("view");
     methods.reset();
   }, [methods]);
+
+  const handleRefreshDetails = useCallback(() => {
+    if (selectedSubmissionId) {
+      triggerGetSubmission(selectedSubmissionId);
+    }
+  }, [selectedSubmissionId, triggerGetSubmission]);
+
+  const handleSubmitForRecommendation = useCallback(
+    async (formattedData, entryId) => {
+      setModalLoading(true);
+      try {
+        const response = await submitEvaluationRecommendation({
+          id: entryId,
+          body: formattedData,
+        }).unwrap();
+
+        enqueueSnackbar("Evaluation Recommendation submitted successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        handleModalClose();
+        await refetch();
+      } catch (error) {
+        console.error("Submit error:", error);
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to submit recommendation. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [
+      submitEvaluationRecommendation,
+      enqueueSnackbar,
+      handleModalClose,
+      refetch,
+    ],
+  );
+
+  const handleUpdateEvaluation = useCallback(
+    async (formattedData, mode, entryId) => {
+      setModalLoading(true);
+      try {
+        const response = await submitEvaluationRecommendation({
+          id: entryId,
+          body: formattedData,
+        }).unwrap();
+
+        enqueueSnackbar("Evaluation Recommendation updated successfully", {
+          variant: "success",
+          autoHideDuration: 2000,
+        });
+        handleModalClose();
+        await refetch();
+      } catch (error) {
+        console.error("Update error:", error);
+        const errorMessage =
+          error?.data?.message ||
+          "Failed to update evaluation. Please try again.";
+        enqueueSnackbar(errorMessage, {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [
+      submitEvaluationRecommendation,
+      enqueueSnackbar,
+      handleModalClose,
+      refetch,
+    ],
+  );
 
   const handleMenuOpen = useCallback((event, submission) => {
     event.stopPropagation();
@@ -125,11 +204,11 @@ const EvaluationRecommendationMDAInProgress = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -145,11 +224,11 @@ const EvaluationRecommendationMDAInProgress = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -173,7 +252,7 @@ const EvaluationRecommendationMDAInProgress = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="MDA IN PROGRESS"
+          statusFilter="RECOMMENDATION REJECTED"
         />
 
         <CustomTablePagination
@@ -188,6 +267,8 @@ const EvaluationRecommendationMDAInProgress = ({
       <EvaluationRecommendationModal
         open={modalOpen}
         onClose={handleModalClose}
+        onSave={handleUpdateEvaluation}
+        onSubmit={handleSubmitForRecommendation}
         selectedEntry={submissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
@@ -197,4 +278,4 @@ const EvaluationRecommendationMDAInProgress = ({
   );
 };
 
-export default EvaluationRecommendationMDAInProgress;
+export default EvaluationRecommendationRejected;

@@ -71,11 +71,11 @@ import CatOneTemplate from "../../pages/assessment-templates/CatOneTemplate.jsx"
 import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx";
 import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
 import DaRecommendationApproval from "../../pages/approvals/da-recommendation/DaRecommendationApproval.jsx";
-import EVALUATIONFORM from "../../pages/forms/evaluation/EvaluationForm.jsx";
+import EVALUATIONFORM from "../../pages/forms/Evaluation/evaluation-form/EvaluationForm.jsx";
 import MDARecommendation from "../../pages/forms/mdarecommendation/MDARecommendation.jsx";
 import MdaRecommendationApproval from "../../pages/approvals/mdaRecommendation/MDARecommendationApproval.jsx";
 import EvaluationApproval from "../../pages/approvals/evaluationApproval/EvaluationApproval.jsx";
-import EvaluationRecommendation from "../../pages/forms/evaluationRecommendation/EvaluationRecommendation.jsx";
+import EvaluationRecommendation from "../../pages/forms/Evaluation/evaluationRecommendation/EvaluationRecommendation.jsx";
 import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
 import MDAEvaluationRecommendation from "../../pages/forms/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
 import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
@@ -84,6 +84,7 @@ import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.
 import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualApproval.jsx";
 import Nationalities from "../../pages/extras/Nationalities.jsx";
 import DevelopmentalAssignmentForm from "../../pages/forms/developmentalAssignmentForm/DevelopmentAssignmentForm.jsx";
+import Evaluation from "../../pages/forms/Evaluation/Evaluation.jsx";
 
 export const ROUTES = [
   {
@@ -279,19 +280,32 @@ export const ROUTES = [
       {
         id: "REQUEST.EVALUATIONFORM",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.EVALUATIONFORM.path}`,
-        element: <EVALUATIONFORM />,
+        element: <Evaluation />,
         handle: {
           permission: MODULES.REQUEST.children.EVALUATIONFORM.permissionId,
         },
-      },
-      {
-        id: "REQUEST.EVALUATIONRECOMMENDATION",
-        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.path}`,
-        element: <EvaluationRecommendation />,
-        handle: {
-          permission:
-            MODULES.REQUEST.children.EVALUATIONRECOMMENDATION.permissionId,
-        },
+        children: [
+          {
+            id: "REQUEST.EVALUATIONFORM.EVALUATIONFORMCHILD",
+            path: "evaluationform",
+            element: <EVALUATIONFORM />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.EVALUATIONFORM.children
+                  .EVALUATIONFORMCHILD.permissionId,
+            },
+          },
+          {
+            id: "REQUEST.EVALUATIONFORM.EVALUATIONRECOMMENDATION",
+            path: "evaluationrecommendation",
+            element: <EvaluationRecommendation />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.EVALUATIONFORM.children
+                  .EVALUATIONRECOMMENDATION.permissionId,
+            },
+          },
+        ],
       },
       {
         id: "REQUEST.BIANNUALPERFORMANCE",

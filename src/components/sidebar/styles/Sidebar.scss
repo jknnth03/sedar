@@ -202,6 +202,14 @@
   margin: 2px 0;
   transition: all 0.2s ease;
 
+  .icon {
+    color: rgb(33, 61, 112) !important;
+  }
+
+  .text {
+    color: rgb(55, 75, 115);
+  }
+
   &:not(.active):hover {
     background-color: rgb(240, 248, 255);
     color: rgb(33, 61, 112);
@@ -223,23 +231,55 @@
   }
 
   &.child-level-2 {
-    &:not(.active):hover {
-      background-color: rgba(255, 152, 0, 0.08) !important;
-      color: rgb(230, 81, 0) !important;
+    .icon {
+      color: rgb(33, 61, 112) !important;
+    }
+
+    .text {
+      color: rgb(55, 75, 115) !important;
+    }
+
+    &:hover:not(.active) {
+      background-color: rgb(240, 248, 255) !important;
+      color: rgb(33, 61, 112) !important;
       transform: translateX(2px);
+      margin-left: 16px;
+      border-radius: 3px;
 
       .icon {
-        color: rgb(230, 81, 0) !important;
+        color: rgb(33, 61, 112) !important;
+      }
+
+      .text {
+        color: rgb(33, 61, 112) !important;
       }
     }
 
     &.active {
       background-color: rgba(255, 152, 0, 0.15) !important;
-      color: rgb(230, 81, 0) !important;
+      color: rgb(33, 61, 112) !important;
       font-weight: 500;
+      margin-left: 16px;
+      border-radius: 3px;
 
       .icon {
-        color: rgb(230, 81, 0) !important;
+        color: rgb(33, 61, 112) !important;
+      }
+
+      .text {
+        color: rgb(33, 61, 112) !important;
+      }
+
+      &:hover {
+        background-color: rgba(255, 152, 0, 0.15) !important;
+
+        .icon {
+          color: rgb(33, 61, 112) !important;
+        }
+
+        .text {
+          color: rgb(33, 61, 112) !important;
+        }
       }
     }
   }
@@ -262,16 +302,6 @@
   align-items: center;
   justify-content: center;
   font-size: 22px;
-}
-
-.sub-item.child-level-2:hover .icon,
-.sub-item.child-level-2.active .icon {
-  color: rgb(230, 81, 0) !important;
-}
-
-.sub-item.child-level-2:hover .text,
-.sub-item.child-level-2.active .text {
-  color: rgb(230, 81, 0) !important;
 }
 
 .mainbox.open .icon {

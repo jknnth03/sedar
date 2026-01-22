@@ -2,21 +2,19 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetEvaluationSubmissionsQuery,
   useLazyGetSingleEvaluationSubmissionQuery,
-} from "../../../features/api/forms/evaluationRecommendationApi";
+} from "../../../../features/api/forms/evaluationRecommendationApi";
 import EvaluationRecommendationTable from "./EvaluationRecommendationTable";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import EvaluationRecommendationModal from "../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
-import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import EvaluationRecommendationModal from "../../../../components/modal/form/EvaluationRecommendation/EvaluationRecommendationModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 
-const EvaluationRecommendationCancelled = ({
+const EvaluationRecommendationMDAInProgress = ({
   searchQuery,
   dateFilters,
-  filterDataByDate,
-  filterDataBySearch,
 }) => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
@@ -25,7 +23,7 @@ const EvaluationRecommendationCancelled = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -43,11 +41,13 @@ const EvaluationRecommendationCancelled = ({
       page: page,
       per_page: rowsPerPage,
       status: "active",
-      approval_status: "CANCELLED",
+      approval_status: "MDA IN PROGRESS",
       pagination: 1,
       search: searchQuery || "",
+      start_date: dateFilters?.start_date,
+      end_date: dateFilters?.end_date,
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -69,37 +69,13 @@ const EvaluationRecommendationCancelled = ({
     { data: submissionDetails, isLoading: detailsLoading },
   ] = useLazyGetSingleEvaluationSubmissionQuery();
 
-  const filteredSubmissions = useMemo(() => {
-    const rawData = submissionsData?.result?.data || [];
+  const submissions = useMemo(() => {
+    return submissionsData?.result?.data || [];
+  }, [submissionsData]);
 
-    let filtered = rawData;
-
-    if (dateFilters && filterDataByDate) {
-      filtered = filterDataByDate(
-        filtered,
-        dateFilters.startDate,
-        dateFilters.endDate
-      );
-    }
-
-    if (searchQuery && filterDataBySearch) {
-      filtered = filterDataBySearch(filtered, searchQuery);
-    }
-
-    return filtered;
-  }, [
-    submissionsData,
-    dateFilters,
-    searchQuery,
-    filterDataByDate,
-    filterDataBySearch,
-  ]);
-
-  const paginatedSubmissions = useMemo(() => {
-    const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
-  }, [filteredSubmissions, page, rowsPerPage]);
+  const totalCount = useMemo(() => {
+    return submissionsData?.result?.total || 0;
+  }, [submissionsData]);
 
   const handleRowClick = useCallback(
     async (submission) => {
@@ -114,7 +90,7 @@ const EvaluationRecommendationCancelled = ({
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleModalClose = useCallback(() => {
@@ -149,11 +125,11 @@ const EvaluationRecommendationCancelled = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -169,11 +145,11 @@ const EvaluationRecommendationCancelled = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching || isLoading;
@@ -189,7 +165,7 @@ const EvaluationRecommendationCancelled = ({
           backgroundColor: "white",
         }}>
         <EvaluationRecommendationTable
-          submissionsList={paginatedSubmissions}
+          submissionsList={submissions}
           isLoadingState={isLoadingState}
           error={error}
           handleRowClick={handleRowClick}
@@ -197,11 +173,11 @@ const EvaluationRecommendationCancelled = ({
           handleMenuClose={handleMenuClose}
           menuAnchor={menuAnchor}
           searchQuery={searchQuery}
-          statusFilter="CANCELLED"
+          statusFilter="MDA IN PROGRESS"
         />
 
         <CustomTablePagination
-          count={filteredSubmissions.length}
+          count={totalCount}
           page={Math.max(0, page - 1)}
           rowsPerPage={rowsPerPage}
           onPageChange={handlePageChange}
@@ -221,4 +197,4 @@ const EvaluationRecommendationCancelled = ({
   );
 };
 
-export default EvaluationRecommendationCancelled;
+export default EvaluationRecommendationMDAInProgress;
