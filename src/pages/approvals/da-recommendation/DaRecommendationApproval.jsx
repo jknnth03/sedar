@@ -33,6 +33,7 @@ import {
   useApproveDaRecommendationSubmissionMutation,
   useRejectDaRecommendationSubmissionMutation,
 } from "../../../features/api/approving/daRecommendationApproval.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -195,7 +196,7 @@ const DaRecommendationApprovalTable = ({
 
   const daRecommendationApprovalsList = useMemo(
     () => daRecommendationApprovalsData?.result?.data || [],
-    [daRecommendationApprovalsData]
+    [daRecommendationApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -264,8 +265,8 @@ const DaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -275,8 +276,8 @@ const DaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -286,8 +287,8 @@ const DaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 CHARGING
               </TableCell>
@@ -297,8 +298,8 @@ const DaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -308,8 +309,8 @@ const DaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "160px"
-                    : "200px",
+                      ? "160px"
+                      : "200px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE REQUESTED"}
               </TableCell>
@@ -393,7 +394,7 @@ const DaRecommendationApprovalTable = ({
                     <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -500,7 +501,7 @@ const DaRecommendationApproval = () => {
   const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
-    [theme, isMobile, isTablet, isVerySmall]
+    [theme, isMobile, isTablet, isVerySmall],
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -517,6 +518,9 @@ const DaRecommendationApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveDaRecommendation, { isLoading: approveLoading }] =
     useApproveDaRecommendationSubmissionMutation();
   const [rejectDaRecommendation, { isLoading: rejectLoading }] =
@@ -526,6 +530,16 @@ const DaRecommendationApproval = () => {
     useGetDaRecommendationApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
+
+  const daCounts = useMemo(() => {
+    const daRecommendation =
+      dashboardData?.result?.approval?.da?.recommendation || 0;
+
+    return {
+      forApproval: daRecommendation,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -558,6 +572,7 @@ const DaRecommendationApproval = () => {
         enqueueSnackbar("DA recommendation approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -565,11 +580,11 @@ const DaRecommendationApproval = () => {
           error?.data?.message || "Failed to approve DA recommendation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveDaRecommendation, enqueueSnackbar]
+    [detailsDialog, approveDaRecommendation, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
@@ -586,6 +601,7 @@ const DaRecommendationApproval = () => {
         enqueueSnackbar("DA recommendation returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -593,11 +609,11 @@ const DaRecommendationApproval = () => {
           error?.data?.message || "Failed to return DA recommendation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, rejectDaRecommendation, enqueueSnackbar]
+    [detailsDialog, rejectDaRecommendation, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -616,19 +632,19 @@ const DaRecommendationApproval = () => {
         />
       );
     },
-    [customStyles]
+    [customStyles],
   );
 
   const tabsData = [
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: 0,
+      badgeCount: daCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: 0,
+      badgeCount: daCounts.approved,
     },
   ];
 

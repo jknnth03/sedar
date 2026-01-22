@@ -62,6 +62,7 @@ const MrfHistoryDialog = ({
       "awaiting resubmission": "#4c00ffff",
       "for approval": "#1976d2",
       "awaiting approval": "#9c27b0",
+      "for receiving": "#ff9800",
     };
     return statusColors[status?.toLowerCase()] || "#f57c00";
   };
@@ -101,6 +102,7 @@ const MrfHistoryDialog = ({
       case "awaiting resubmission":
       case "awaiting approval":
       case "for approval":
+      case "for receiving":
         IconComponent = HourglassEmptyIcon;
         break;
       case "cancelled":
@@ -309,9 +311,9 @@ const MrfHistoryDialog = ({
       if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return 1;
       if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return -1;
 
-      const dateA = new Date(a.timestamp || 0);
-      const dateB = new Date(b.timestamp || 0);
-      return dateA - dateB;
+      const dateA = a.timestamp ? new Date(a.timestamp) : new Date();
+      const dateB = b.timestamp ? new Date(b.timestamp) : new Date();
+      return dateB - dateA;
     },
   );
 

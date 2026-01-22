@@ -34,6 +34,7 @@ import {
   useApproveEvaluationMutation,
   useRejectEvaluationMutation,
 } from "../../../features/api/approving/evaluationApprovalApi.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -44,8 +45,6 @@ import {
   StyledTabs,
   StyledTab,
 } from "../../forms/manpowerform/FormSubmissionStyles";
-
-// Path: ../../pages/approvals/evaluationApproval/EvaluationApproval.jsx
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -198,7 +197,7 @@ const EvaluationApprovalTable = ({
 
   const evaluationApprovalsList = useMemo(
     () => evaluationApprovalsData?.result?.data || [],
-    [evaluationApprovalsData]
+    [evaluationApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -266,8 +265,8 @@ const EvaluationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -277,8 +276,8 @@ const EvaluationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -288,8 +287,8 @@ const EvaluationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "START" : "START DATE"}
               </TableCell>
@@ -299,8 +298,8 @@ const EvaluationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "END" : "END DATE"}
               </TableCell>
@@ -310,8 +309,8 @@ const EvaluationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -321,8 +320,8 @@ const EvaluationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
@@ -394,7 +393,7 @@ const EvaluationApprovalTable = ({
                       }}>
                       {approval.probation_start_date
                         ? dayjs(approval.probation_start_date).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -406,7 +405,7 @@ const EvaluationApprovalTable = ({
                       }}>
                       {approval.probation_end_date
                         ? dayjs(approval.probation_end_date).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -421,7 +420,7 @@ const EvaluationApprovalTable = ({
                     <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -528,7 +527,7 @@ const EvaluationApproval = () => {
   const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
-    [theme, isMobile, isTablet, isVerySmall]
+    [theme, isMobile, isTablet, isVerySmall],
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -545,6 +544,9 @@ const EvaluationApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveEvaluation, { isLoading: approveLoading }] =
     useApproveEvaluationMutation();
   const [rejectEvaluation, { isLoading: rejectLoading }] =
@@ -554,6 +556,16 @@ const EvaluationApproval = () => {
     useGetProbationaryApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
+
+  const probationaryCounts = useMemo(() => {
+    const probationaryForm =
+      dashboardData?.result?.approval?.probationary?.form || 0;
+
+    return {
+      forApproval: probationaryForm,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -586,6 +598,7 @@ const EvaluationApproval = () => {
         enqueueSnackbar("Evaluation approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -593,11 +606,11 @@ const EvaluationApproval = () => {
           error?.data?.message || "Failed to approve evaluation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveEvaluation, enqueueSnackbar]
+    [detailsDialog, approveEvaluation, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
@@ -614,6 +627,7 @@ const EvaluationApproval = () => {
         enqueueSnackbar("Evaluation returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -622,7 +636,7 @@ const EvaluationApproval = () => {
         });
       }
     },
-    [detailsDialog, rejectEvaluation, enqueueSnackbar]
+    [detailsDialog, rejectEvaluation, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -641,19 +655,19 @@ const EvaluationApproval = () => {
         />
       );
     },
-    [customStyles]
+    [customStyles],
   );
 
   const tabsData = [
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: 0,
+      badgeCount: probationaryCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: 0,
+      badgeCount: probationaryCounts.approved,
     },
   ];
 

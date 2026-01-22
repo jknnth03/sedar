@@ -34,6 +34,7 @@ import {
   useApproveMdaSubmissionMutation,
   useRejectMdaSubmissionMutation,
 } from "../../../features/api/approving/mdaApprovalApi.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -195,7 +196,7 @@ const MdaApprovalTable = ({
 
   const mdaApprovalsList = useMemo(
     () => mdaApprovalsData?.result?.data || [],
-    [mdaApprovalsData]
+    [mdaApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -263,8 +264,8 @@ const MdaApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -274,8 +275,8 @@ const MdaApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -285,8 +286,8 @@ const MdaApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
               </TableCell>
@@ -296,8 +297,8 @@ const MdaApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -307,8 +308,8 @@ const MdaApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
@@ -391,7 +392,7 @@ const MdaApprovalTable = ({
                     <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -498,7 +499,7 @@ const MdaApproval = () => {
   const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
-    [theme, isMobile, isTablet, isVerySmall]
+    [theme, isMobile, isTablet, isVerySmall],
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -515,6 +516,9 @@ const MdaApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveMdaSubmission, { isLoading: approveLoading }] =
     useApproveMdaSubmissionMutation();
   const [rejectMdaSubmission, { isLoading: rejectLoading }] =
@@ -524,6 +528,16 @@ const MdaApproval = () => {
     useGetMdaApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
+
+  const mdaCounts = useMemo(() => {
+    const mdaDataChange =
+      dashboardData?.result?.approval?.data_change?.mda || 0;
+
+    return {
+      forApproval: mdaDataChange,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -556,6 +570,7 @@ const MdaApproval = () => {
         enqueueSnackbar("MDA approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -564,7 +579,7 @@ const MdaApproval = () => {
         });
       }
     },
-    [detailsDialog, approveMdaSubmission, enqueueSnackbar]
+    [detailsDialog, approveMdaSubmission, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
@@ -581,6 +596,7 @@ const MdaApproval = () => {
         enqueueSnackbar("MDA returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -589,7 +605,7 @@ const MdaApproval = () => {
         });
       }
     },
-    [detailsDialog, rejectMdaSubmission, enqueueSnackbar]
+    [detailsDialog, rejectMdaSubmission, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -608,19 +624,19 @@ const MdaApproval = () => {
         />
       );
     },
-    [customStyles]
+    [customStyles],
   );
 
   const tabsData = [
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: 0,
+      badgeCount: mdaCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: 0,
+      badgeCount: mdaCounts.approved,
     },
   ];
 

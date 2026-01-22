@@ -195,7 +195,7 @@ const SubmissionApprovalTable = ({
 
   const submissionApprovalsList = useMemo(
     () => submissionApprovalsData?.result?.data || [],
-    [submissionApprovalsData]
+    [submissionApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -263,8 +263,8 @@ const SubmissionApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -274,8 +274,8 @@ const SubmissionApprovalTable = ({
                   minWidth: isVerySmall
                     ? "180px"
                     : isMobile
-                    ? "220px"
-                    : "280px",
+                      ? "220px"
+                      : "280px",
                 }}>
                 POSITION
               </TableCell>
@@ -285,8 +285,8 @@ const SubmissionApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ TYPE" : "REQUISITION TYPE"}
               </TableCell>
@@ -296,8 +296,8 @@ const SubmissionApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -307,8 +307,8 @@ const SubmissionApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "DEPT" : "DEPARTMENT"}
               </TableCell>
@@ -318,8 +318,8 @@ const SubmissionApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
@@ -410,7 +410,7 @@ const SubmissionApprovalTable = ({
                     <TableCell>
                       {submission.created_at
                         ? dayjs(submission.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -592,11 +592,11 @@ const SubmissionApproval = () => {
           error?.data?.message || "Failed to approve submission",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveSubmission, enqueueSnackbar, refetchDashboard]
+    [detailsDialog, approveSubmission, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
@@ -621,7 +621,7 @@ const SubmissionApproval = () => {
         });
       }
     },
-    [detailsDialog, rejectSubmission, enqueueSnackbar, refetchDashboard]
+    [detailsDialog, rejectSubmission, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {

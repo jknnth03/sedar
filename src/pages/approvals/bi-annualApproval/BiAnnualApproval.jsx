@@ -33,6 +33,7 @@ import {
   useApproveBiAnnualSubmissionMutation,
   useRejectBiAnnualSubmissionMutation,
 } from "../../../features/api/approving/biAnnualApproval.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -195,7 +196,7 @@ const BiAnnualApprovalTable = ({
 
   const biAnnualApprovalsList = useMemo(
     () => biAnnualApprovalsData?.result?.data || [],
-    [biAnnualApprovalsData]
+    [biAnnualApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -263,8 +264,8 @@ const BiAnnualApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -274,8 +275,8 @@ const BiAnnualApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -285,8 +286,8 @@ const BiAnnualApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 PERIOD
               </TableCell>
@@ -296,8 +297,8 @@ const BiAnnualApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "SUBMITTED BY" : "SUBMITTED BY"}
               </TableCell>
@@ -307,8 +308,8 @@ const BiAnnualApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "160px"
-                    : "200px",
+                      ? "160px"
+                      : "200px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE SUBMITTED"}
               </TableCell>
@@ -391,7 +392,7 @@ const BiAnnualApprovalTable = ({
                     <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -498,7 +499,7 @@ const BiAnnualApproval = () => {
   const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
-    [theme, isMobile, isTablet, isVerySmall]
+    [theme, isMobile, isTablet, isVerySmall],
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -515,6 +516,9 @@ const BiAnnualApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveBiAnnual, { isLoading: approveLoading }] =
     useApproveBiAnnualSubmissionMutation();
   const [rejectBiAnnual, { isLoading: rejectLoading }] =
@@ -525,24 +529,14 @@ const BiAnnualApproval = () => {
       skip: !selectedApprovalId,
     });
 
-  // Get counts from the API response
-  const { data: countsData } = useGetMyBiAnnualApprovalsQuery(
-    {
-      page: 1,
-      per_page: 1,
-      status: "active",
-      pagination: 1,
-    },
-    {
-      refetchOnMountOrArgChange: true,
-    }
-  );
+  const performanceCounts = useMemo(() => {
+    const performance = dashboardData?.result?.approval?.performance || 0;
 
-  const counts = useMemo(
-    () =>
-      countsData?.result?.counts || { pending: 0, approved: 0, rejected: 0 },
-    [countsData]
-  );
+    return {
+      forApproval: performance,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -554,7 +548,6 @@ const BiAnnualApproval = () => {
   }, []);
 
   const handleRowClick = useCallback((approval) => {
-    // Use the id field, not submission_id
     setSelectedApprovalId(approval.id);
     setDetailsDialog({
       open: true,
@@ -567,7 +560,6 @@ const BiAnnualApproval = () => {
       const { submission } = detailsDialog;
       try {
         const payload = {
-          // Use the approval id (which is the correct ID for the endpoint)
           id: submission.id,
           comments,
           reason,
@@ -577,6 +569,7 @@ const BiAnnualApproval = () => {
         enqueueSnackbar("Performance evaluation approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -584,11 +577,11 @@ const BiAnnualApproval = () => {
           error?.data?.message || "Failed to approve performance evaluation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveBiAnnual, enqueueSnackbar]
+    [detailsDialog, approveBiAnnual, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
@@ -596,7 +589,6 @@ const BiAnnualApproval = () => {
       const { submission } = detailsDialog;
       try {
         const payload = {
-          // Use the approval id (which is the correct ID for the endpoint)
           id: submission.id,
           comments,
           reason,
@@ -606,6 +598,7 @@ const BiAnnualApproval = () => {
         enqueueSnackbar("Performance evaluation returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -613,11 +606,11 @@ const BiAnnualApproval = () => {
           error?.data?.message || "Failed to return performance evaluation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, rejectBiAnnual, enqueueSnackbar]
+    [detailsDialog, rejectBiAnnual, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -636,19 +629,19 @@ const BiAnnualApproval = () => {
         />
       );
     },
-    [customStyles]
+    [customStyles],
   );
 
   const tabsData = [
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: counts.pending,
+      badgeCount: performanceCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: counts.approved,
+      badgeCount: performanceCounts.approved,
     },
   ];
 

@@ -34,6 +34,7 @@ import {
   useApproveMdaRecommendationSubmissionMutation,
   useRejectMdaRecommendationSubmissionMutation,
 } from "../../../features/api/approving/mdaRecommendationApproval.js";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
@@ -197,7 +198,7 @@ const MdaRecommendationApprovalTable = ({
 
   const mdaRecommendationApprovalsList = useMemo(
     () => mdaRecommendationApprovalsData?.result?.data || [],
-    [mdaRecommendationApprovalsData]
+    [mdaRecommendationApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -266,8 +267,8 @@ const MdaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -277,8 +278,8 @@ const MdaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -288,8 +289,8 @@ const MdaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
               </TableCell>
@@ -299,8 +300,8 @@ const MdaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -310,8 +311,8 @@ const MdaRecommendationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE CREATED"}
               </TableCell>
@@ -395,7 +396,7 @@ const MdaRecommendationApprovalTable = ({
                     <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -502,7 +503,7 @@ const MdaRecommendationApproval = () => {
   const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
-    [theme, isMobile, isTablet, isVerySmall]
+    [theme, isMobile, isTablet, isVerySmall],
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -519,6 +520,9 @@ const MdaRecommendationApproval = () => {
     },
   });
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
+
   const [approveMdaRecommendationSubmission, { isLoading: approveLoading }] =
     useApproveMdaRecommendationSubmissionMutation();
   const [rejectMdaRecommendationSubmission, { isLoading: rejectLoading }] =
@@ -528,6 +532,16 @@ const MdaRecommendationApproval = () => {
     useGetMdaRecommendationApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
+
+  const mdaRecommendationCounts = useMemo(() => {
+    const daRecommendation =
+      dashboardData?.result?.approval?.da?.recommendation || 0;
+
+    return {
+      forApproval: daRecommendation,
+      approved: 0,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -563,13 +577,13 @@ const MdaRecommendationApproval = () => {
           comments,
         };
 
-        const result = await approveMdaRecommendationSubmission(
-          payload
-        ).unwrap();
+        const result =
+          await approveMdaRecommendationSubmission(payload).unwrap();
 
         enqueueSnackbar("MDA Recommendation approved successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -577,11 +591,16 @@ const MdaRecommendationApproval = () => {
           error?.data?.message || "Failed to approve MDA Recommendation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveMdaRecommendationSubmission, enqueueSnackbar]
+    [
+      detailsDialog,
+      approveMdaRecommendationSubmission,
+      enqueueSnackbar,
+      refetchDashboard,
+    ],
   );
 
   const handleReject = useCallback(
@@ -602,13 +621,13 @@ const MdaRecommendationApproval = () => {
           reason,
         };
 
-        const result = await rejectMdaRecommendationSubmission(
-          payload
-        ).unwrap();
+        const result =
+          await rejectMdaRecommendationSubmission(payload).unwrap();
 
         enqueueSnackbar("MDA Recommendation returned successfully!", {
           variant: "success",
         });
+        refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
@@ -616,11 +635,16 @@ const MdaRecommendationApproval = () => {
           error?.data?.message || "Failed to return MDA Recommendation",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, rejectMdaRecommendationSubmission, enqueueSnackbar]
+    [
+      detailsDialog,
+      rejectMdaRecommendationSubmission,
+      enqueueSnackbar,
+      refetchDashboard,
+    ],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -639,19 +663,19 @@ const MdaRecommendationApproval = () => {
         />
       );
     },
-    [customStyles]
+    [customStyles],
   );
 
   const tabsData = [
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: 0,
+      badgeCount: mdaRecommendationCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: 0,
+      badgeCount: mdaRecommendationCounts.approved,
     },
   ];
 

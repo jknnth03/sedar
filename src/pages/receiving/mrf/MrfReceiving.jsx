@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Badge,
@@ -37,6 +37,7 @@ import {
   useReceiveSubmissionMutation,
   useReturnSubmissionMutation,
 } from "../../../features/api/receiving/receivingApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 
 const TabPanel = ({ children, value, index, ...other }) => {
@@ -93,7 +94,7 @@ const filterDataBySearch = (data, searchQuery) => {
       item.reference_number?.toLowerCase().includes(query) ||
       item.employee_name?.toLowerCase().includes(query) ||
       item.employee_code?.toLowerCase().includes(query) ||
-      item.action_type?.toLowerCase().includes(query)
+      item.action_type?.toLowerCase().includes(query),
   );
 };
 
@@ -216,7 +217,7 @@ const CustomSearchBar = ({
     if (dateFilters.startDate && dateFilters.endDate) {
       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
         dateFilters.endDate,
-        "MMM dd"
+        "MMM dd",
       )}`;
     }
     if (dateFilters.startDate) {
@@ -411,7 +412,7 @@ const MrfReceiving = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -421,15 +422,22 @@ const MrfReceiving = () => {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const { data: dashboardData, refetch: refetchDashboard } =
+    useShowDashboardQuery();
   const [receiveSubmission] = useReceiveSubmissionMutation();
   const [returnSubmission] = useReturnSubmissionMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const mrfCounts = {
-    forReceiving: 0,
-    received: 0,
-  };
+  const mrfCounts = useMemo(() => {
+    const receiving = dashboardData?.result?.receiving?.manpower || 0;
+    const received = 0;
+
+    return {
+      forReceiving: receiving,
+      received: received,
+    };
+  }, [dashboardData]);
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -439,10 +447,10 @@ const MrfReceiving = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap],
   );
 
   const handleSearchChange = useCallback(
@@ -453,10 +461,10 @@ const MrfReceiving = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab, tabMap],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -481,6 +489,8 @@ const MrfReceiving = () => {
           autoHideDuration: 2000,
         });
 
+        refetchDashboard();
+
         if (onSuccess && typeof onSuccess === "function") {
           onSuccess();
         }
@@ -503,7 +513,7 @@ const MrfReceiving = () => {
         return false;
       }
     },
-    [receiveSubmission, enqueueSnackbar]
+    [receiveSubmission, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReturnSubmission = useCallback(
@@ -519,6 +529,8 @@ const MrfReceiving = () => {
           variant: "success",
           autoHideDuration: 2000,
         });
+
+        refetchDashboard();
 
         if (onSuccess && typeof onSuccess === "function") {
           onSuccess();
@@ -542,7 +554,7 @@ const MrfReceiving = () => {
         return false;
       }
     },
-    [returnSubmission, enqueueSnackbar]
+    [returnSubmission, enqueueSnackbar, refetchDashboard],
   );
 
   const tabsData = [

@@ -248,9 +248,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.registrationApprovals,
         },
         DATACHANGEAPPROVAL: {
-          name: "Data Change",
+          name: "201 Data Change",
           permissionId: "APPROVING.DATACHANGEAPPROVAL",
-          displayName: "Data Change",
+          displayName: "201 Data Change",
           path: "datachangeapproval",
           icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
 
@@ -365,9 +365,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
     },
 
     REQUEST: {
-      name: "Requisition",
+      name: "Requisition Form",
       permissionId: "REQUEST",
-      displayName: "Requisition",
+      displayName: "Requisition Form",
       path: "/request",
       icon: <PendingActionsIcon sx={iconStyles.mainExtraLarge} />,
       notificationCount: counts.totalRequisitionCount,
@@ -577,14 +577,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <LooksOneIcon sx={iconStyles.child} />,
           notificationCount: counts.catOneTotal,
         },
-        CATTWO: {
-          name: "CAT II",
-          permissionId: "DEVELOPMENTALASSIGNMENT.CATTWO",
-          displayName: "CAT II",
-          path: "cattwo",
-          icon: <LooksTwoIcon sx={iconStyles.child} />,
-          notificationCount: counts.catTwoTotal,
-        },
         PDP: {
           name: "PDP",
           permissionId: "DEVELOPMENTALASSIGNMENT.PDP",
@@ -592,6 +584,14 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "pdp",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.pdpTotal,
+        },
+        CATTWO: {
+          name: "CAT II",
+          permissionId: "DEVELOPMENTALASSIGNMENT.CATTWO",
+          displayName: "CAT II",
+          path: "cattwo",
+          icon: <LooksTwoIcon sx={iconStyles.child} />,
+          notificationCount: counts.catTwoTotal,
         },
       },
     },
