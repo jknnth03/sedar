@@ -61,9 +61,7 @@ const SubmissionDialog = ({
     if (onReceive) {
       try {
         await onReceive(submission);
-      } catch (error) {
-        // Error handling is done in the parent component
-      }
+      } catch (error) {}
     }
     setConfirmationOpen(false);
     handleClose();
@@ -73,9 +71,7 @@ const SubmissionDialog = ({
     if (onReturn) {
       try {
         await onReturn(submission, reason);
-      } catch (error) {
-        // Error handling is done in the parent component
-      }
+      } catch (error) {}
     }
     setConfirmationOpen(false);
     handleClose();
@@ -140,7 +136,6 @@ const SubmissionDialog = ({
     }
   }, [fileViewerOpen, fileUrl]);
 
-  // Reset confirmation state when dialog closes
   useEffect(() => {
     if (!open) {
       setConfirmationOpen(false);
@@ -190,6 +185,12 @@ const SubmissionDialog = ({
   };
 
   const isProcessed = submission?.status === "APPROVED";
+
+  const containerStyles = {
+    main: {
+      padding: "16px 24px",
+    },
+  };
 
   return (
     <>
@@ -252,205 +253,224 @@ const SubmissionDialog = ({
               Request Information
             </Typography>
 
-            <Box>
-              <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
-                <Box
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "1fr",
+                  md: "repeat(3, 1fr)",
+                },
+                "@media (min-width: 750px)": {
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                },
+                gap: 2,
+                mb: 2,
+              }}>
+              <Box
+                sx={{
+                  minHeight: "60px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}>
+                <Typography
+                  variant="caption"
                   sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
+                    color: "rgb(33, 61, 112)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    display: "block",
+                    mb: 0.5,
                   }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    FORM TYPE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getFormType()}
-                  </Typography>
-                </Box>
-                <Box
+                  FORM TYPE
+                </Typography>
+                <Typography
+                  variant="body2"
                   sx={{
+                    color: "#000000ff",
+                    fontSize: "13px",
+                    lineHeight: 1.4,
                     flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    overflow: "hidden",
                   }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    POSITION
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getPosition()}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    JOB LEVEL
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getJobLevel()}
-                  </Typography>
-                </Box>
+                  {getFormType()}
+                </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 6 }}>
-                <Box
+              <Box
+                sx={{
+                  minHeight: "60px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}>
+                <Typography
+                  variant="caption"
                   sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
+                    color: "rgb(33, 61, 112)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    display: "block",
+                    mb: 0.5,
                   }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EXPECTED SALARY
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getExpectedSalary()}
-                  </Typography>
-                </Box>
+                  POSITION
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#000000ff",
+                    fontSize: "13px",
+                    lineHeight: 1.4,
+                    flex: 1,
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    overflow: "hidden",
+                  }}>
+                  {getPosition()}
+                </Typography>
+              </Box>
 
-                <Box
+              <Box
+                sx={{
+                  minHeight: "60px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}>
+                <Typography
+                  variant="caption"
                   sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
+                    color: "rgb(33, 61, 112)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    display: "block",
+                    mb: 0.5,
                   }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    REQUISITION TYPE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getRequisitionType()}
-                  </Typography>
-                </Box>
+                  JOB LEVEL
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#000000ff",
+                    fontSize: "13px",
+                    lineHeight: 1.4,
+                    flex: 1,
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    overflow: "hidden",
+                  }}>
+                  {getJobLevel()}
+                </Typography>
+              </Box>
+            </Box>
 
-                <Box
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "1fr",
+                  md: "repeat(3, 1fr)",
+                },
+                "@media (min-width: 750px)": {
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                },
+                gap: 2,
+              }}>
+              <Box
+                sx={{
+                  minHeight: "60px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}>
+                <Typography
+                  variant="caption"
                   sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
+                    color: "rgb(33, 61, 112)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    display: "block",
+                    mb: 0.5,
                   }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EMPLOYEE TO BE REPLACED
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getEmployeeToBeReplaced()}
-                  </Typography>
-                </Box>
+                  EXPECTED SALARY
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#000000ff",
+                    fontSize: "13px",
+                    lineHeight: 1.4,
+                    flex: 1,
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    overflow: "hidden",
+                  }}>
+                  {getExpectedSalary()}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  minHeight: "60px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgb(33, 61, 112)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    display: "block",
+                    mb: 0.5,
+                  }}>
+                  REQUISITION TYPE
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#000000ff",
+                    fontSize: "13px",
+                    lineHeight: 1.4,
+                    flex: 1,
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    overflow: "hidden",
+                  }}>
+                  {getRequisitionType()}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  minHeight: "60px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgb(33, 61, 112)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    display: "block",
+                    mb: 0.5,
+                  }}>
+                  EMPLOYEE TO BE REPLACED
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#000000ff",
+                    fontSize: "13px",
+                    lineHeight: 1.4,
+                    flex: 1,
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    overflow: "hidden",
+                  }}>
+                  {getEmployeeToBeReplaced()}
+                </Typography>
               </Box>
             </Box>
           </Box>
@@ -474,10 +494,21 @@ const SubmissionDialog = ({
               Justification & Remarks
             </Typography>
 
-            <Box sx={{ display: "flex", gap: 10 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "1fr",
+                  md: "repeat(2, 1fr)",
+                },
+                "@media (min-width: 750px)": {
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                },
+                gap: 2,
+              }}>
               <Box
                 sx={{
-                  flex: 1,
                   minHeight: "60px",
                   display: "flex",
                   flexDirection: "column",
@@ -509,7 +540,6 @@ const SubmissionDialog = ({
 
               <Box
                 sx={{
-                  flex: 1,
                   minHeight: "60px",
                   display: "flex",
                   flexDirection: "column",

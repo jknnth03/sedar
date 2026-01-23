@@ -14,6 +14,7 @@ import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import DARecommendationModal from "../../../../components/modal/form/DARecommendation/DARecommendationModal";
 import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 import DARecommendationTable from "./DARecommendationTable";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
 
 const DARecommendationForMDAProcessing = ({
   searchQuery,
@@ -259,6 +260,16 @@ const DARecommendationForMDAProcessing = ({
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const normalizedSubmissionDetails = useMemo(() => {
+    if (!submissionDetails) return null;
+
+    if (submissionDetails.result) {
+      return submissionDetails.result;
+    }
+
+    return submissionDetails;
+  }, [submissionDetails]);
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -295,7 +306,7 @@ const DARecommendationForMDAProcessing = ({
         open={modalOpen}
         onClose={handleModalClose}
         onResubmit={handleResubmit}
-        selectedEntry={submissionDetails}
+        selectedEntry={normalizedSubmissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
@@ -308,6 +319,7 @@ const DARecommendationForMDAProcessing = ({
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
+        module="DA Recommendation"
       />
     </FormProvider>
   );

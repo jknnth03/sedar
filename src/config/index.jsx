@@ -41,14 +41,13 @@ import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
 import TaskIcon from "@mui/icons-material/Task";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ArchiveIcon from "@mui/icons-material/Archive";
-import MarkAsUnreadIcon from "@mui/icons-material/MarkAsUnread";
+import PersonIcon from "@mui/icons-material/Person";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import CloudSyncIcon from "@mui/icons-material/CloudSync";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import LowPriorityIcon from "@mui/icons-material/LowPriority";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
-import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import MonitorIcon from "@mui/icons-material/Monitor";
 import { useShowDashboardQuery } from "../features/api/usermanagement/dashboardApi";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
@@ -139,18 +138,18 @@ export const createEnhancedModules = (dashboardData = {}) => {
       notificationCount: counts.pendingReceiving,
       children: {
         PENDINGFORMS: {
-          name: "MRF Receiving",
+          name: "Manpower Form",
           permissionId: "RECEIVING.PENDINGFORMS",
-          displayName: "MRF Receiving",
+          displayName: "Manpower Form",
           path: "pendingforms",
-          icon: <MarkAsUnreadIcon sx={iconStyles.child} />,
+          icon: <NoteAddIcon sx={iconStyles.child} />,
 
           notificationCount: counts.pendingMrfReceiving,
         },
         DAFORMRECEIVING: {
-          name: "DA Form Receiving",
+          name: "DA Form",
           permissionId: "RECEIVING.DAFORMRECEIVING",
-          displayName: "DA Form Receiving",
+          displayName: "DA Form",
           path: "daformreceiving",
           icon: <DescriptionIcon sx={iconStyles.child} />,
 
@@ -302,11 +301,11 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount: counts.probationaryMdaApprovals,
         },
         MDAAPPROVAL: {
-          name: "MDA (For Data Change)",
+          name: "MDA (For 201 Datachange)",
           permissionId: "APPROVING.MDAAPPROVAL",
-          displayName: "MDA (For Data Change)",
+          displayName: "MDA (For 201 Datachange)",
           path: "mdaapproval",
-          icon: <VerifiedIcon sx={iconStyles.child} />,
+          icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
 
           notificationCount: counts.mdaApprovals,
         },
@@ -324,7 +323,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           permissionId: "APPROVING.MDARECOMMENDATIONAPPROVAL",
           displayName: "MDA (Recommendation)",
           path: "mdarecommendationapproval",
-          icon: <DescriptionIcon sx={iconStyles.child} />,
+          icon: <RecommendIcon sx={iconStyles.child} />,
 
           notificationCount: 0,
         },
@@ -377,7 +376,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           permissionId: "REQUEST.MRFMAINCONTAINER",
           displayName: "Manpower Form",
           path: "mrfmaincontainer",
-          icon: <MarkEmailReadIcon sx={iconStyles.child} />,
+          icon: <NoteAddIcon sx={iconStyles.child} />,
           notificationCount: counts.manpowerTotal,
         },
         DATACHANGEMAINCONTAINER: {
@@ -420,7 +419,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           permissionId: "REQUEST.MASTERDATAAUTHORITY",
           displayName: "MDA (For Data Change)",
           path: "masterdataauthority",
-          icon: <CreateNewFolderIcon sx={iconStyles.child} />,
+          icon: <CloudSyncIcon sx={iconStyles.child} />,
           notificationCount: counts.mdaDataChangeTotal,
         },
         MDADA: {
@@ -428,7 +427,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           permissionId: "REQUEST.MDADA",
           displayName: "MDA (For DA)",
           path: "mdada",
-          icon: <VerifiedIcon sx={iconStyles.child} />,
+          icon: <DescriptionIcon sx={iconStyles.child} />,
           notificationCount: counts.mdaDaTotal,
         },
         MDARECOMMENDATION: {
@@ -444,7 +443,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           permissionId: "REQUEST.MDAEVALUATIONRECOMMENDATION",
           displayName: "MDA (For Evaluation)",
           path: "mdaevaluationrecommendation",
-          icon: <VerifiedIcon sx={iconStyles.child} />,
+          icon: <RateReviewIcon sx={iconStyles.child} />,
           notificationCount: counts.mdaProbationaryTotal,
         },
         PENDINGREGISTRATION: {
@@ -452,7 +451,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           permissionId: "REQUEST.PENDINGREGISTRATION",
           displayName: "Registration",
           path: "pendingregistration",
-          icon: <PendingActionsIcon sx={iconStyles.child} />,
+          icon: <PersonIcon sx={iconStyles.child} />,
           notificationCount: counts.pendingRegistrations,
         },
         EVALUATIONFORM: {

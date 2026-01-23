@@ -8,7 +8,6 @@ import {
   Box,
   IconButton,
   Typography,
-  Divider,
   useTheme,
   CircularProgress,
   Card,
@@ -19,6 +18,7 @@ import {
   Close as CloseIcon,
   History as HistoryIcon,
   Add as AddIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -83,7 +83,7 @@ const StatusModal = ({
     {
       skip: !open || !currentEmployeeId,
       refetchOnMountOrArgChange: true,
-    }
+    },
   );
 
   const getFieldsVisibility = (status) => {
@@ -105,7 +105,7 @@ const StatusModal = ({
       const employeeRecord = apiResponse.result.data.find(
         (item) =>
           item.employee_id === currentEmployeeId ||
-          item.employee?.id === currentEmployeeId
+          item.employee?.id === currentEmployeeId,
       );
 
       if (employeeRecord) {
@@ -133,7 +133,7 @@ const StatusModal = ({
       const employeeRecord = apiResponse.data.data.find(
         (item) =>
           item.employee_id === currentEmployeeId ||
-          item.employee?.id === currentEmployeeId
+          item.employee?.id === currentEmployeeId,
       );
 
       if (employeeRecord) {
@@ -151,7 +151,7 @@ const StatusModal = ({
       const employeeRecord = apiResponse.data.find(
         (item) =>
           item.employee_id === currentEmployeeId ||
-          item.employee?.id === currentEmployeeId
+          item.employee?.id === currentEmployeeId,
       );
 
       if (employeeRecord) {
@@ -220,7 +220,7 @@ const StatusModal = ({
     if (open && currentMode === "view") {
       const { statusEntriesToMap, employee } = extractStatusHistory(
         apiResponse,
-        employeeData
+        employeeData,
       );
 
       setCurrentEmployee(employee);
@@ -316,34 +316,34 @@ const StatusModal = ({
 
       formData.append(
         "employee_status_label",
-        newStatusEntry.employee_status_label
+        newStatusEntry.employee_status_label,
       );
 
       if (newStatusEntry.employee_status_start_date) {
         formData.append(
           "employee_status_start_date",
-          newStatusEntry.employee_status_start_date.format("YYYY-MM-DD")
+          newStatusEntry.employee_status_start_date.format("YYYY-MM-DD"),
         );
       }
 
       if (newStatusEntry.employee_status_end_date) {
         formData.append(
           "employee_status_end_date",
-          newStatusEntry.employee_status_end_date.format("YYYY-MM-DD")
+          newStatusEntry.employee_status_end_date.format("YYYY-MM-DD"),
         );
       }
 
       if (newStatusEntry.employee_status_effectivity_date) {
         formData.append(
           "employee_status_effectivity_date",
-          newStatusEntry.employee_status_effectivity_date.format("YYYY-MM-DD")
+          newStatusEntry.employee_status_effectivity_date.format("YYYY-MM-DD"),
         );
       }
 
       if (newStatusEntry.employee_status_attachment instanceof File) {
         formData.append(
           "employee_status_attachment",
-          newStatusEntry.employee_status_attachment
+          newStatusEntry.employee_status_attachment,
         );
       }
 
@@ -437,10 +437,10 @@ const StatusModal = ({
 
     return (
       <Box sx={{ mt: 2, position: "relative" }}>
-        <Stack spacing={3}>
+        <Stack spacing={2}>
           {statusHistory.map((status, index) => {
             const fieldsVisibility = getFieldsVisibility(
-              status.employee_status_label
+              status.employee_status_label,
             );
 
             const displayDate =
@@ -459,12 +459,11 @@ const StatusModal = ({
               <Box
                 key={status.id || index}
                 sx={{ display: "flex", gap: 2, position: "relative" }}>
-                {/* Date Added section - wider with only 2 lines */}
                 <Box
                   sx={{
-                    width: "120px", // Increased width
+                    width: "120px",
                     flexShrink: 0,
-                    pt: 1,
+                    pt: 0.5,
                     pl: 2,
                   }}>
                   <Typography
@@ -474,6 +473,7 @@ const StatusModal = ({
                       fontWeight: 500,
                       textAlign: "left",
                       lineHeight: 1.2,
+                      fontSize: "0.75rem",
                     }}>
                     Date Added:
                   </Typography>
@@ -484,7 +484,8 @@ const StatusModal = ({
                       fontWeight: 400,
                       textAlign: "left",
                       lineHeight: 1.2,
-                      whiteSpace: "nowrap", // Prevent wrapping
+                      whiteSpace: "nowrap",
+                      fontSize: "0.75rem",
                     }}>
                     {formatDate(displayDate) || `Entry ${index + 1}`}
                   </Typography>
@@ -497,43 +498,43 @@ const StatusModal = ({
                     borderRadius: 2,
                     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                   }}>
-                  <CardContent sx={{ p: 3 }}>
+                  <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
                     <Typography
                       variant="h6"
                       sx={{
                         fontWeight: 600,
                         color: "#213D70",
-                        mb: 3,
+                        mb: 1.5,
+                        fontSize: "1rem",
                       }}>
                       {status.employee_status_label}
                     </Typography>
 
-                    {/* Updated layout - all fields in one row */}
                     <Box
                       sx={{
                         display: "flex",
-                        alignItems: "flex-start",
-                        gap: 4, // Gap between sections
-                        flexWrap: "nowrap", // Keep everything in one line
+                        alignItems: "center",
+                        gap: 3,
+                        flexWrap: "wrap",
                       }}>
-                      {/* Start Date */}
-                      <Box sx={{ flex: "0 0 15%" }}>
+                      <Box sx={{ minWidth: "120px" }}>
                         <Typography
                           variant="body2"
                           sx={{
                             fontWeight: 600,
                             color: "#FE5313",
-                            mb: 1,
+                            mb: 0.5,
                             textTransform: "uppercase",
-                            fontSize: "0.75rem",
+                            fontSize: "0.7rem",
                           }}>
                           START DATE
                         </Typography>
                         <Typography
-                          variant="body1"
+                          variant="body2"
                           sx={{
                             fontWeight: 500,
                             color: "#213D70",
+                            fontSize: "0.875rem",
                           }}>
                           {status.employee_status_start_date
                             ? formatDate(status.employee_status_start_date)
@@ -541,24 +542,24 @@ const StatusModal = ({
                         </Typography>
                       </Box>
 
-                      {/* End Date */}
-                      <Box sx={{ flex: "0 0 15%" }}>
+                      <Box sx={{ minWidth: "120px" }}>
                         <Typography
                           variant="body2"
                           sx={{
                             fontWeight: 600,
                             color: "#FE5313",
-                            mb: 1,
+                            mb: 0.5,
                             textTransform: "uppercase",
-                            fontSize: "0.75rem",
+                            fontSize: "0.7rem",
                           }}>
                           END DATE
                         </Typography>
                         <Typography
-                          variant="body1"
+                          variant="body2"
                           sx={{
                             fontWeight: 500,
                             color: "#213D70",
+                            fontSize: "0.875rem",
                           }}>
                           {status.employee_status_end_date
                             ? formatDate(status.employee_status_end_date)
@@ -566,85 +567,90 @@ const StatusModal = ({
                         </Typography>
                       </Box>
 
-                      {/* Effectivity Date */}
-                      <Box sx={{ flex: "0 0 20%" }}>
+                      <Box sx={{ minWidth: "140px" }}>
                         <Typography
                           variant="body2"
                           sx={{
                             fontWeight: 600,
                             color: "#FE5313",
-                            mb: 1,
+                            mb: 0.5,
                             textTransform: "uppercase",
-                            fontSize: "0.75rem",
+                            fontSize: "0.7rem",
                           }}>
                           EFFECTIVITY DATE
                         </Typography>
                         <Typography
-                          variant="body1"
+                          variant="body2"
                           sx={{
                             fontWeight: 500,
                             color: "#213D70",
+                            fontSize: "0.875rem",
                           }}>
                           {status.employee_status_effectivity_date
                             ? formatDate(
-                                status.employee_status_effectivity_date
+                                status.employee_status_effectivity_date,
                               )
                             : "-"}
                         </Typography>
                       </Box>
 
-                      {/* Attachment */}
-                      <Box sx={{ flex: "1 1 auto" }}>
+                      <Box sx={{ flex: 1, minWidth: "150px" }}>
                         <Typography
                           variant="body2"
                           sx={{
                             fontWeight: 600,
                             color: "#FE5313",
-                            mb: 1,
+                            mb: 0.5,
                             textTransform: "uppercase",
-                            fontSize: "0.75rem",
+                            fontSize: "0.7rem",
                           }}>
                           ATTACHMENT
                         </Typography>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                          }}>
-                          {hasAttachment ? (
-                            <>
-                              <Typography
-                                variant="body1"
-                                sx={{
-                                  fontWeight: 500,
-                                  color: theme.palette.primary.main,
-                                  cursor: "pointer",
-                                  textDecoration: "underline",
-                                  "&:hover": {
-                                    color: theme.palette.primary.dark,
-                                  },
-                                }}
-                                onClick={() => handleAttachmentClick(status)}>
-                                {status.employee_status_attachment_filename ||
-                                  status.status_attachment_filename ||
-                                  getAttachmentFilename(
-                                    status.employee_status_attachment ||
-                                      status.status_attachment
-                                  )}
-                              </Typography>
-                            </>
-                          ) : (
+                        {hasAttachment ? (
+                          <Box
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}>
                             <Typography
-                              variant="body1"
+                              variant="body2"
                               sx={{
                                 fontWeight: 500,
                                 color: "#213D70",
+                                fontSize: "0.875rem",
                               }}>
-                              -
+                              {status.employee_status_attachment_filename ||
+                                status.status_attachment_filename ||
+                                getAttachmentFilename(
+                                  status.employee_status_attachment ||
+                                    status.status_attachment,
+                                )}
                             </Typography>
-                          )}
-                        </Box>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleAttachmentClick(status)}
+                              sx={{
+                                color: theme.palette.primary.main,
+                                padding: "2px",
+                                "&:hover": {
+                                  backgroundColor: "rgba(33, 150, 243, 0.08)",
+                                },
+                              }}>
+                              <VisibilityIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Box>
+                        ) : (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 500,
+                              color: "#213D70",
+                              fontSize: "0.875rem",
+                            }}>
+                            -
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                   </CardContent>
@@ -726,7 +732,8 @@ const StatusModal = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            pb: 2,
+            pb: 1.5,
+            pt: 2,
           }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             {getIcon()}
@@ -741,10 +748,11 @@ const StatusModal = ({
           </Box>
         </DialogTitle>
 
-        <DialogContent>
+        <DialogContent sx={{ pt: 1 }}>
           {currentEmployee && (
-            <Box sx={{ mb: 3, pl: 2 }}>
-              <Typography sx={{ fontWeight: 800, color: "#213D70" }}>
+            <Box sx={{ mb: 2, pl: 2 }}>
+              <Typography
+                sx={{ fontWeight: 800, color: "#213D70", fontSize: "0.95rem" }}>
                 {formatEmployeeName(currentEmployee)}
               </Typography>
               {currentEmployee?.employee_code && (
@@ -752,7 +760,7 @@ const StatusModal = ({
                   sx={{
                     color: "#494949ff",
                     fontWeight: 500,
-                    fontSize: "0.875rem",
+                    fontSize: "0.8rem",
                   }}>
                   {currentEmployee.employee_code}
                 </Typography>
@@ -767,7 +775,7 @@ const StatusModal = ({
               newStatusEntry={newStatusEntry}
               errors={errors}
               fieldsVisibility={getFieldsVisibility(
-                newStatusEntry.employee_status_label
+                newStatusEntry.employee_status_label,
               )}
               onInputChange={handleInputChange}
             />
@@ -776,7 +784,7 @@ const StatusModal = ({
 
         <DialogActions
           sx={{
-            p: 3,
+            p: 2.5,
             justifyContent: "space-between",
           }}>
           {isViewMode ? (

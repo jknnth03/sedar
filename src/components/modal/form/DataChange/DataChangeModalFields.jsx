@@ -77,7 +77,7 @@ const DataChangeModalFields = ({
   const { data: formsData, isLoading: formsLoading } =
     useGetAllApprovalFormsQuery(
       { page: 1, per_page: 1000, status: "active" },
-      { skip: !shouldLoadDropdowns || mode !== "create" }
+      { skip: !shouldLoadDropdowns || mode !== "create" },
     );
 
   const [
@@ -88,13 +88,13 @@ const DataChangeModalFields = ({
   const { data: movementTypesData, isLoading: movementTypesLoading } =
     useGetAllMovementTypesQuery(
       { page: 1, per_page: 1000, status: "active" },
-      { skip: !shouldLoadDropdowns || !dropdownsLoaded.movementTypes }
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.movementTypes },
     );
 
   const { data: positionsData, isLoading: positionsLoading } =
     useGetAllPositionsQuery(
       { page: 1, per_page: 1000, status: "active" },
-      { skip: !shouldLoadDropdowns || !dropdownsLoaded.positions }
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.positions },
     );
 
   const { data: mrfSubmissionsData, isLoading: mrfSubmissionsLoading } =
@@ -103,7 +103,7 @@ const DataChangeModalFields = ({
         status: "active",
         approval_status: "approved",
       },
-      { skip: !shouldLoadDropdowns || !dropdownsLoaded.mrfSubmissions }
+      { skip: !shouldLoadDropdowns || !dropdownsLoaded.mrfSubmissions },
     );
 
   const normalizeApiData = useCallback((data) => {
@@ -117,7 +117,7 @@ const DataChangeModalFields = ({
 
   const forms = useMemo(
     () => normalizeApiData(formsData),
-    [formsData, normalizeApiData]
+    [formsData, normalizeApiData],
   );
 
   const employees = useMemo(() => {
@@ -126,17 +126,17 @@ const DataChangeModalFields = ({
 
   const movementTypes = useMemo(
     () => normalizeApiData(movementTypesData),
-    [movementTypesData, normalizeApiData]
+    [movementTypesData, normalizeApiData],
   );
 
   const positions = useMemo(
     () => normalizeApiData(positionsData),
-    [positionsData, normalizeApiData]
+    [positionsData, normalizeApiData],
   );
 
   const mrfSubmissions = useMemo(
     () => normalizeApiData(mrfSubmissionsData),
-    [mrfSubmissionsData, normalizeApiData]
+    [mrfSubmissionsData, normalizeApiData],
   );
 
   const excludedMovementTypes = [
@@ -154,7 +154,7 @@ const DataChangeModalFields = ({
 
     const isExcluded = excludedMovementTypes.some(
       (excludedType) =>
-        excludedType.toLowerCase() === movementTypeName.toLowerCase()
+        excludedType.toLowerCase() === movementTypeName.toLowerCase(),
     );
 
     return !isExcluded;
@@ -184,7 +184,7 @@ const DataChangeModalFields = ({
         }
       }
     },
-    [dropdownsLoaded, triggerGetEmployees, shouldLoadDropdowns]
+    [dropdownsLoaded, triggerGetEmployees, shouldLoadDropdowns],
   );
 
   useEffect(() => {
@@ -255,7 +255,7 @@ const DataChangeModalFields = ({
           } else if (attachment.existing_file_id) {
             formData.append(
               "existing_attachments[]",
-              attachment.existing_file_id
+              attachment.existing_file_id,
             );
           }
         }

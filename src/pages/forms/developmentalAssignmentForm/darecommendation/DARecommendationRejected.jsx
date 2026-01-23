@@ -9,12 +9,14 @@ import {
   useGetDaSubmissionsQuery,
   useLazyGetSingleDaSubmissionQuery,
   useResubmitDaSubmissionMutation,
+  useSubmitDaRecommendationMutation,
 } from "../../../../features/api/forms/daRecommentdationApi";
 import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
 import "../../../../pages/GeneralStyle.scss";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
 import DARecommendationTable from "./DARecommendationTable";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
 
 const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
   const theme = useTheme();
@@ -436,6 +438,16 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
 
   const isLoadingState = queryLoading || isFetching || isLoading;
 
+  const normalizedSubmissionDetails = useMemo(() => {
+    if (!submissionDetails) return null;
+
+    if (submissionDetails.result) {
+      return submissionDetails.result;
+    }
+
+    return submissionDetails;
+  }, [submissionDetails]);
+
   return (
     <FormProvider {...methods}>
       <Box
@@ -474,7 +486,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
         onResubmit={handleResubmit}
         onSubmit={handleSubmit}
         onSave={handleSave}
-        selectedEntry={submissionDetails}
+        selectedEntry={normalizedSubmissionDetails}
         isLoading={modalLoading || detailsLoading}
         mode={modalMode}
         submissionId={selectedSubmissionId}
@@ -487,6 +499,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
         isLoading={isLoading}
         action={confirmAction}
         itemName={getSubmissionDisplayName()}
+        module="DA Recommendation"
       />
     </FormProvider>
   );

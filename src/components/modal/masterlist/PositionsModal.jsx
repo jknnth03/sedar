@@ -14,6 +14,7 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  Skeleton,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -36,18 +37,26 @@ import { useLazyGetAllShowToolsQuery } from "../../../features/api/extras/toolsA
 import { useLazyGetAllOneRdfQuery } from "../../../features/api/masterlist/realonerdfApi";
 import RequestorSequence from "./RequestorSequence";
 import { styles, getEditIconStyle } from "./PositionModalStyles";
-import { useLazyGetAllUsersQuery } from "../../../features/api/usermanagement/userApi";
 import {
-  getCreateModeInitialValues,
-  getViewEditModeFormData,
-  getRequestorSequenceData,
-  getDisplayValues,
-  getInitialDropdownOptions,
   mergeDropdownOptions,
-} from "./PositionModalHelpers";
+  normalizeData,
+  getAttachmentDisplayName,
+  validatePositionForm,
+  buildFormDataPayload,
+  getModalTitle,
+  hasExistingAttachment,
+} from "./PositionsModalHelpers";
+import {
+  setCreateModeValues,
+  setFormValuesFromResponse,
+  setRequestorsFromResponse,
+  setDisplayValuesFromResponse,
+  setInitialDropdownOptions,
+} from "./PositionsModalGetValues";
 import PositionDialog from "../../../pages/masterlist/positions/PositionDialog";
+import { useGetAllGeneralsQuery } from "../../../features/api/employee/generalApi";
 
-export default function PositionsModal({
+function PositionsModal({
   open,
   onClose,
   refetch,
@@ -55,24 +64,14 @@ export default function PositionsModal({
   showArchived,
   edit,
 }) {
-  const [formData, setFormData] = useState({
-    titles: "",
-    code: "",
-    superior_name: null,
-    pay_frequency: "",
-    tools: [],
-    schedule: "",
-    team: "",
-    charging: "",
-    position_attachment: null,
-  });
-
+  const [formData, setFormData] = useState(setCreateModeValues());
   const [errors, setErrors] = useState({});
   const [errorMessage, setErrorMessage] = useState(null);
   const [requestorSequence, setRequestorSequence] = useState([]);
   const [currentMode, setCurrentMode] = useState(edit);
   const [originalMode, setOriginalMode] = useState(edit);
   const [isInitialLoad, setIsInitialLoad] = useState(false);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const [fullPositionData, setFullPositionData] = useState(null);
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
@@ -87,87 +86,61 @@ export default function PositionsModal({
 
   const [fetchTools, { data: toolsListRaw = [], isLoading: toolsLoading }] =
     useLazyGetAllShowToolsQuery();
-
   const [fetchTitles, { data: titlesData, isLoading: titlesLoading }] =
     useLazyGetAllShowTitlesQuery();
-
   const [fetchSchedules, { data: schedulesData, isLoading: schedulesLoading }] =
     useLazyGetAllShowSchedulesQuery();
-
   const [fetchTeams, { data: teamsData, isLoading: teamsLoading }] =
     useLazyGetAllShowTeamsQuery();
-
-  const [fetchUsers, { data: usersData, isLoading: usersLoading }] =
-    useLazyGetAllUsersQuery();
-
+  const { data: usersData, isLoading: usersLoading } = useGetAllGeneralsQuery();
   const [fetchCharging, { data: chargingData, isLoading: chargingLoading }] =
     useLazyGetAllOneRdfQuery();
-
   const [getPositionById, { isFetching: isFetchingPosition }] =
     useLazyGetPositionByIdQuery();
-
   const [postPosition, { isLoading: isAdding }] = usePostPositionMutation();
   const [updatePosition, { isLoading: isUpdating }] =
     useUpdatePositionMutation();
 
-  const normalizeData = (data) => {
-    if (!data) return [];
-    const result = data.result?.data || data.result || [];
-    return result;
-  };
-
   const toolsList = useMemo(() => normalizeData(toolsListRaw), [toolsListRaw]);
   const titlesListFromApi = useMemo(
     () => normalizeData(titlesData),
-    [titlesData]
+    [titlesData],
   );
   const schedulesListFromApi = useMemo(
     () => normalizeData(schedulesData),
-    [schedulesData]
+    [schedulesData],
   );
   const teamsListFromApi = useMemo(() => normalizeData(teamsData), [teamsData]);
   const usersListFromApi = useMemo(() => normalizeData(usersData), [usersData]);
   const chargingListFromApi = useMemo(
     () => normalizeData(chargingData),
-    [chargingData]
+    [chargingData],
   );
 
   const titlesList = useMemo(
     () => mergeDropdownOptions(titlesListFromApi, initialOptions.titlesList),
-    [titlesListFromApi, initialOptions.titlesList]
+    [titlesListFromApi, initialOptions.titlesList],
   );
-
   const schedulesList = useMemo(
     () =>
       mergeDropdownOptions(schedulesListFromApi, initialOptions.schedulesList),
-    [schedulesListFromApi, initialOptions.schedulesList]
+    [schedulesListFromApi, initialOptions.schedulesList],
   );
-
   const teamsList = useMemo(
     () => mergeDropdownOptions(teamsListFromApi, initialOptions.teamsList),
-    [teamsListFromApi, initialOptions.teamsList]
+    [teamsListFromApi, initialOptions.teamsList],
   );
-
   const usersList = useMemo(
     () => mergeDropdownOptions(usersListFromApi, initialOptions.usersList),
-    [usersListFromApi, initialOptions.usersList]
+    [usersListFromApi, initialOptions.usersList],
   );
-
   const chargingList = useMemo(
     () =>
       mergeDropdownOptions(chargingListFromApi, initialOptions.chargingList),
-    [chargingListFromApi, initialOptions.chargingList]
+    [chargingListFromApi, initialOptions.chargingList],
   );
 
-  const isLoading =
-    toolsLoading ||
-    titlesLoading ||
-    schedulesLoading ||
-    teamsLoading ||
-    usersLoading ||
-    chargingLoading ||
-    isFetchingPosition ||
-    isInitialLoad;
+  const isProcessing = isSwitchingMode || isInitialLoad;
 
   useEffect(() => {
     if (open) {
@@ -190,16 +163,12 @@ export default function PositionsModal({
         try {
           setIsInitialLoad(true);
           const response = await getPositionById(position.id).unwrap();
-          setFullPositionData(response.result);
+          const apiData = response.result;
 
-          const dropdownOptions = getInitialDropdownOptions(response.result);
-          setInitialOptions(dropdownOptions);
-
-          const formData = getViewEditModeFormData(response.result);
-          setFormData(formData);
-
-          const requestorsList = getRequestorSequenceData(response.result);
-          setRequestorSequence(requestorsList);
+          setFullPositionData(apiData);
+          setInitialOptions(setInitialDropdownOptions(apiData));
+          setFormData(setFormValuesFromResponse(apiData));
+          setRequestorSequence(setRequestorsFromResponse(apiData.requesters));
         } catch (error) {
           enqueueSnackbar("Failed to load position details", {
             variant: "error",
@@ -213,6 +182,23 @@ export default function PositionsModal({
     }
   }, [open, position?.id, edit, getPositionById, enqueueSnackbar]);
 
+  useEffect(() => {
+    if (open) {
+      setErrors({});
+      setErrorMessage(null);
+
+      if (!position || Object.keys(position).length === 0) {
+        setFormData(setCreateModeValues());
+        setRequestorSequence([]);
+      }
+    } else {
+      setFormData(setCreateModeValues());
+      setRequestorSequence([]);
+      setErrors({});
+      setErrorMessage(null);
+    }
+  }, [open, position]);
+
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -221,38 +207,36 @@ export default function PositionsModal({
 
   const handleModeChange = async (newMode) => {
     if (newMode === "edit" && position?.id && currentMode === "view") {
-      if (!fullPositionData) {
-        try {
-          setIsInitialLoad(true);
-          const response = await getPositionById(position.id).unwrap();
-          setFullPositionData(response.result);
+      try {
+        setIsSwitchingMode(true);
 
-          const dropdownOptions = getInitialDropdownOptions(response.result);
-          setInitialOptions(dropdownOptions);
-
-          const formData = getViewEditModeFormData(response.result);
-          setFormData(formData);
-
-          const requestorsList = getRequestorSequenceData(response.result);
-          setRequestorSequence(requestorsList);
-        } catch (error) {
-          enqueueSnackbar("Failed to load position details", {
-            variant: "error",
-            autoHideDuration: 2000,
-          });
-          return;
-        } finally {
-          setIsInitialLoad(false);
+        if (toolsList.length === 0) {
+          await fetchTools();
         }
-      } else {
-        const dropdownOptions = getInitialDropdownOptions(fullPositionData);
-        setInitialOptions(dropdownOptions);
 
-        const formData = getViewEditModeFormData(fullPositionData);
-        setFormData(formData);
+        if (!fullPositionData) {
+          const response = await getPositionById(position.id).unwrap();
+          const apiData = response.result;
 
-        const requestorsList = getRequestorSequenceData(fullPositionData);
-        setRequestorSequence(requestorsList);
+          setFullPositionData(apiData);
+          setInitialOptions(setInitialDropdownOptions(apiData));
+          setFormData(setFormValuesFromResponse(apiData));
+          setRequestorSequence(setRequestorsFromResponse(apiData.requesters));
+        } else {
+          setInitialOptions(setInitialDropdownOptions(fullPositionData));
+          setFormData(setFormValuesFromResponse(fullPositionData));
+          setRequestorSequence(
+            setRequestorsFromResponse(fullPositionData.requesters),
+          );
+        }
+      } catch (error) {
+        enqueueSnackbar("Failed to load position details", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+        return;
+      } finally {
+        setIsSwitchingMode(false);
       }
     }
     setCurrentMode(newMode);
@@ -295,100 +279,31 @@ export default function PositionsModal({
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {
-      titles: !formData.titles,
-      code: !formData.code || !formData.code.trim(),
-      pay_frequency: !formData.pay_frequency,
-      schedule: !formData.schedule,
-      team: !formData.team,
-      charging: !formData.charging,
-      tools: formData.tools.length === 0,
-      requestor_sequence: requestorSequence.length === 0,
-    };
-
-    if (
-      currentMode !== true &&
-      currentMode !== "edit" &&
-      currentMode !== "view"
-    ) {
-      newErrors.position_attachment =
-        !formData.position_attachment ||
-        (formData.position_attachment instanceof FileList &&
-          formData.position_attachment.length === 0);
-    }
-
-    setErrors(newErrors);
-    return !Object.values(newErrors).some(Boolean);
-  };
-
-  const getToolsForPayload = () => {
-    if (!formData.tools || formData.tools.length === 0) return [];
-
-    return formData.tools
-      .map((toolName) => {
-        const tool = toolsList.find((t) => t.name === toolName);
-        return tool ? tool.id : null;
-      })
-      .filter((id) => id !== null);
-  };
-
-  const getRequestorsForPayload = () => {
-    if (!requestorSequence || requestorSequence.length === 0) return [];
-    return requestorSequence.map((req) => req.id);
-  };
-
   const handleSubmit = async () => {
     setErrorMessage(null);
 
-    if (!validateForm()) {
+    const validation = validatePositionForm(
+      formData,
+      requestorSequence,
+      currentMode,
+    );
+
+    if (!validation.isValid) {
+      setErrors(validation.errors);
       setErrorMessage("Please fill out all required fields.");
       return;
     }
 
-    const toolIds = getToolsForPayload();
-    const requestorIds = getRequestorsForPayload();
-
-    const formDataToSend = new FormData();
-
-    formDataToSend.append("code", formData.code);
-    formDataToSend.append("title_id", formData.titles);
-    if (formData.superior_name) {
-      formDataToSend.append("superior_id", formData.superior_name);
-    }
-    formDataToSend.append("pay_frequency", formData.pay_frequency);
-    formDataToSend.append("schedule_id", formData.schedule);
-    formDataToSend.append("team_id", formData.team);
-    formDataToSend.append("charging_id", formData.charging);
-    formDataToSend.append("status", showArchived ? "inactive" : "active");
-
-    toolIds.forEach((toolId) => {
-      formDataToSend.append("tools[]", toolId);
-    });
-
-    requestorIds.forEach((requestorId) => {
-      formDataToSend.append("requester_user_ids[]", requestorId);
-    });
-
-    if (formData.position_attachment instanceof File) {
-      formDataToSend.append(
-        "position_attachment",
-        formData.position_attachment
-      );
-    } else if (
-      (currentMode === true || currentMode === "edit") &&
-      formData.position_attachment?.original
-    ) {
-      formDataToSend.append(
-        "position_attachment",
-        formData.position_attachment.original
-      );
-    }
+    const formDataToSend = buildFormDataPayload(
+      formData,
+      requestorSequence,
+      toolsList,
+      showArchived,
+      currentMode,
+    );
 
     try {
       if (currentMode === true || currentMode === "edit") {
-        formDataToSend.append("_method", "PATCH");
-
         await updatePosition({
           formData: formDataToSend,
           id: position.id,
@@ -404,56 +319,38 @@ export default function PositionsModal({
       handleClose();
     } catch (error) {
       setErrorMessage(
-        error?.data?.message || "An error occurred while saving the position."
+        error?.data?.message || "An error occurred while saving the position.",
       );
     }
   };
 
-  useEffect(() => {
-    if (open) {
-      setErrors({});
-      setErrorMessage(null);
-
-      if (!position || Object.keys(position).length === 0) {
-        const initialValues = getCreateModeInitialValues();
-        setFormData(initialValues);
-        setRequestorSequence([]);
-      }
-    } else {
-      const initialValues = getCreateModeInitialValues();
-      setFormData(initialValues);
-      setRequestorSequence([]);
-      setErrors({});
-      setErrorMessage(null);
+  const handleViewAttachment = () => {
+    const dataToUse = fullPositionData || position;
+    if (dataToUse?.position_attachment) {
+      setAttachmentDialogOpen(true);
     }
-  }, [open, position]);
+  };
 
   const handleTitlesOpen = () => {
-    if (titlesListFromApi.length === 0 && !isReadOnly) {
+    if (titlesList.length === 0 && !isReadOnly) {
       fetchTitles();
     }
   };
 
   const handleSchedulesOpen = () => {
-    if (schedulesListFromApi.length === 0 && !isReadOnly) {
+    if (schedulesList.length === 0 && !isReadOnly) {
       fetchSchedules();
     }
   };
 
   const handleTeamsOpen = () => {
-    if (teamsListFromApi.length === 0 && !isReadOnly) {
+    if (teamsList.length === 0 && !isReadOnly) {
       fetchTeams();
     }
   };
 
-  const handleUsersOpen = () => {
-    if (usersListFromApi.length === 0 && !isReadOnly) {
-      fetchUsers();
-    }
-  };
-
   const handleChargingOpen = () => {
-    if (chargingListFromApi.length === 0 && !isReadOnly) {
+    if (chargingList.length === 0 && !isReadOnly) {
       fetchCharging();
     }
   };
@@ -464,54 +361,11 @@ export default function PositionsModal({
     }
   };
 
-  const getAttachmentDisplayName = () => {
-    const attachment = formData.position_attachment;
-    if (!attachment) return "";
-
-    if (attachment instanceof File) {
-      return attachment.name;
-    } else if (typeof attachment === "object" && attachment !== null) {
-      return attachment.name || "Attached Document";
-    } else if (typeof attachment === "string") {
-      return attachment.split("/").pop() || "Attached Document";
-    }
-    return "";
-  };
-
-  const handleViewAttachment = () => {
-    const dataToUse = fullPositionData || position;
-    if (dataToUse?.position_attachment) {
-      setAttachmentDialogOpen(true);
-    }
-  };
-
-  const hasExistingAttachment = () => {
-    const dataToUse = fullPositionData || position;
-    return !!(
-      dataToUse?.position_attachment || formData.position_attachment?.original
-    );
-  };
-
-  const getModalTitle = () => {
-    switch (currentMode) {
-      case false:
-        return "ADD POSITION";
-      case "view":
-        return "VIEW POSITION";
-      case true:
-      case "edit":
-        return "EDIT POSITION";
-      default:
-        return "Position";
-    }
-  };
-
   const isReadOnly = currentMode === "view";
   const isViewMode = currentMode === "view";
   const isEditMode = currentMode === true || currentMode === "edit";
-
   const dataToDisplay = fullPositionData || position;
-  const displayValues = getDisplayValues(dataToDisplay);
+  const displayValues = setDisplayValuesFromResponse(dataToDisplay);
   const {
     displayTitle,
     displaySchedule,
@@ -528,16 +382,16 @@ export default function PositionsModal({
           <Box sx={styles.titleContainer}>
             <WorkOutlineIcon sx={styles.titleIcon} />
             <Typography variant="h6" component="div" sx={styles.titleText}>
-              {getModalTitle()}
+              {getModalTitle(currentMode)}
             </Typography>
             {isViewMode && (
               <Tooltip title="EDIT POSITION" arrow placement="top">
                 <IconButton
                   onClick={() => handleModeChange("edit")}
-                  disabled={isLoading}
+                  disabled={isProcessing}
                   size="small"
                   sx={styles.editButton}>
-                  <EditIcon sx={getEditIconStyle(isLoading)} />
+                  <EditIcon sx={getEditIconStyle(isProcessing)} />
                 </IconButton>
               </Tooltip>
             )}
@@ -545,7 +399,7 @@ export default function PositionsModal({
               <Tooltip title="CANCEL EDIT">
                 <IconButton
                   onClick={handleCancelEdit}
-                  disabled={isLoading}
+                  disabled={isProcessing}
                   size="small"
                   sx={styles.cancelEditButton}>
                   <EditOffIcon sx={styles.cancelEditIcon} />
@@ -570,9 +424,109 @@ export default function PositionsModal({
         )}
 
         <DialogContent>
-          {isLoading ? (
-            <Box sx={styles.loadingContainer}>
-              <CircularProgress />
+          {isProcessing ? (
+            <Box>
+              <Box sx={styles.formGrid}>
+                <Box sx={styles.fullWidthColumn}>
+                  <Skeleton
+                    variant="text"
+                    width="15%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box>
+                  <Skeleton
+                    variant="text"
+                    width="25%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box>
+                  <Skeleton
+                    variant="text"
+                    width="35%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box>
+                  <Skeleton
+                    variant="text"
+                    width="30%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box>
+                  <Skeleton
+                    variant="text"
+                    width="25%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box>
+                  <Skeleton
+                    variant="text"
+                    width="20%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box>
+                  <Skeleton
+                    variant="text"
+                    width="25%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box sx={styles.fullWidthColumn}>
+                  <Skeleton
+                    variant="text"
+                    width="40%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+
+                <Box sx={styles.fullWidthColumn}>
+                  <Skeleton
+                    variant="text"
+                    width="18%"
+                    height={20}
+                    sx={{ mb: 1 }}
+                  />
+                  <Skeleton variant="rounded" height={56} />
+                </Box>
+              </Box>
+
+              <Box sx={{ mt: 3 }}>
+                <Skeleton
+                  variant="text"
+                  width="40%"
+                  height={24}
+                  sx={{ mb: 2 }}
+                />
+                <Skeleton variant="rounded" height={180} />
+              </Box>
             </Box>
           ) : (
             <Box>
@@ -602,6 +556,7 @@ export default function PositionsModal({
                       }}
                       onOpen={handleTitlesOpen}
                       disabled={isReadOnly}
+                      loading={titlesLoading}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -657,8 +612,8 @@ export default function PositionsModal({
                       }));
                       clearFieldError("superior_name");
                     }}
-                    onOpen={handleUsersOpen}
                     disabled={isReadOnly}
+                    loading={usersLoading}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -723,6 +678,7 @@ export default function PositionsModal({
                     }}
                     onOpen={handleSchedulesOpen}
                     disabled={isReadOnly}
+                    loading={schedulesLoading}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -763,6 +719,7 @@ export default function PositionsModal({
                     }}
                     onOpen={handleTeamsOpen}
                     disabled={isReadOnly}
+                    loading={teamsLoading}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -804,6 +761,7 @@ export default function PositionsModal({
                     }}
                     onOpen={handleChargingOpen}
                     disabled={isReadOnly}
+                    loading={chargingLoading}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -825,14 +783,20 @@ export default function PositionsModal({
                   <TextField
                     fullWidth
                     label="Position Attachment"
-                    value={getAttachmentDisplayName()}
+                    value={getAttachmentDisplayName(
+                      formData.position_attachment,
+                    )}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
                       readOnly: true,
                       disableUnderline: false,
                       endAdornment: (
                         <Box sx={{ display: "flex", gap: 1 }}>
-                          {hasExistingAttachment() && (
+                          {hasExistingAttachment(
+                            fullPositionData,
+                            position,
+                            formData,
+                          ) && (
                             <Tooltip title="View Attachment">
                               <IconButton
                                 onClick={handleViewAttachment}
@@ -850,7 +814,9 @@ export default function PositionsModal({
                             size="large"
                             disabled={isReadOnly}
                             sx={styles.attachmentButton}>
-                            {getAttachmentDisplayName()
+                            {getAttachmentDisplayName(
+                              formData.position_attachment,
+                            )
                               ? "Change"
                               : "Attach File Here"}
                             <input
@@ -891,18 +857,14 @@ export default function PositionsModal({
                     <Autocomplete
                       multiple
                       options={toolsList}
-                      getOptionLabel={(option) => {
-                        if (typeof option === "string") return option;
-                        return option?.name || "";
-                      }}
-                      value={formData.tools.map(
-                        (toolName) =>
-                          toolsList.find((t) => t.name === toolName) || toolName
-                      )}
+                      getOptionLabel={(option) => option?.name || ""}
+                      value={formData.tools
+                        .map((toolName) =>
+                          toolsList.find((t) => t.name === toolName),
+                        )
+                        .filter(Boolean)}
                       onChange={(event, newValue) => {
-                        const toolNames = newValue.map((item) =>
-                          typeof item === "string" ? item : item.name
-                        );
+                        const toolNames = newValue.map((item) => item.name);
                         setFormData((prev) => ({
                           ...prev,
                           tools: toolNames,
@@ -911,12 +873,9 @@ export default function PositionsModal({
                       }}
                       onOpen={handleToolsOpen}
                       disabled={isReadOnly}
+                      loading={toolsLoading}
                       isOptionEqualToValue={(option, value) => {
-                        const optionName =
-                          typeof option === "string" ? option : option?.name;
-                        const valueName =
-                          typeof value === "string" ? value : value?.name;
-                        return optionName === valueName;
+                        return option?.id === value?.id;
                       }}
                       renderInput={(params) => (
                         <TextField
@@ -942,7 +901,6 @@ export default function PositionsModal({
                 isReadOnly={isReadOnly}
                 errors={errors}
                 employeesList={usersList}
-                onOpen={handleUsersOpen}
               />
             </Box>
           )}
@@ -953,7 +911,7 @@ export default function PositionsModal({
             <Button
               onClick={handleSubmit}
               variant="contained"
-              disabled={isLoading || isAdding || isUpdating}>
+              disabled={isProcessing || isAdding || isUpdating}>
               {isAdding || isUpdating ? (
                 "Saving..."
               ) : (
@@ -981,3 +939,5 @@ export default function PositionsModal({
     </>
   );
 }
+
+export default PositionsModal;

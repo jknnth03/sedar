@@ -89,12 +89,13 @@ const MrfTable = ({
         const dateA = new Date(a.timestamp || 0);
         const dateB = new Date(b.timestamp || 0);
         return dateB - dateA;
-      }
+      },
     );
 
-    const latestActivity = sortedActivityLog.find(
-      (activity) => activity.event_type?.toLowerCase() !== "upcoming"
-    );
+    const latestActivity = sortedActivityLog.find((activity) => {
+      const eventType = activity.event_type?.toLowerCase() || "";
+      return eventType !== "upcoming" && eventType !== "data updated";
+    });
 
     const status = latestActivity?.event_type?.toLowerCase() || "unknown";
 
@@ -103,11 +104,6 @@ const MrfTable = ({
         color: "#f57c00",
         bgColor: "#fff8e1",
         label: "FOR APPROVAL",
-      },
-      "data updated": {
-        color: "#9c27b0",
-        bgColor: "#f3e5f5",
-        label: "AWAITING RESUBMISSION",
       },
       rejected: {
         color: "#d32f2f",
@@ -133,6 +129,16 @@ const MrfTable = ({
         color: "#757575",
         bgColor: "#f5f5f5",
         label: "CANCELLED",
+      },
+      resubmitted: {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "FOR APPROVAL",
+      },
+      submitted: {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "FOR APPROVAL",
       },
     };
 
@@ -244,7 +250,7 @@ const MrfTable = ({
     if (!statusFilter) return submissionsList;
     return submissionsList.filter(
       (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+        submission.status?.toUpperCase() === statusFilter.toUpperCase(),
     );
   }, [submissionsList, statusFilter]);
 
@@ -275,7 +281,7 @@ const MrfTable = ({
       (submission) =>
         canCancelSubmission(submission) ||
         canUpdateSubmission(submission) ||
-        canResubmitSubmission(submission)
+        canResubmitSubmission(submission),
     );
   const totalColumns = shouldShowActionsColumn ? 6 : 5;
 
@@ -389,7 +395,7 @@ const MrfTable = ({
                     }}>
                     {renderPosition(
                       submission.position_title,
-                      submission.job_level
+                      submission.job_level,
                     )}
                   </TableCell>
                   <TableCell

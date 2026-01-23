@@ -168,7 +168,7 @@ const DaFormReceivingModal = ({
         {
           variant: "error",
           autoHideDuration: 3000,
-        }
+        },
       );
       return;
     }
@@ -287,7 +287,7 @@ const DaFormReceivingModal = ({
                     sx={styles.editIconButtonStyles}>
                     <EditIcon
                       sx={styles.editIconStyles(
-                        !shouldEnableEditButton() || isProcessing
+                        !shouldEnableEditButton() || isProcessing,
                       )}
                     />
                   </IconButton>
