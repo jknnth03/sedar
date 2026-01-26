@@ -175,7 +175,7 @@ const DARecommendationRejected = ({ searchQuery, dateFilters, onCancel }) => {
   );
 
   const handleSave = useCallback(
-    async (formData, mode, entryId) => {
+    async (formData, entryId) => {
       if (!entryId) {
         enqueueSnackbar("Submission ID not found. Please try again.", {
           variant: "error",

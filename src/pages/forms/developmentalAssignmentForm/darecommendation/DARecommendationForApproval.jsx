@@ -129,8 +129,8 @@ const DARecommendationForApproval = ({
   }, [selectedSubmissionId, triggerGetSubmission]);
 
   const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      console.log("handleSave called with:", { formData, mode, entryId });
+    async (formData, entryId) => {
+      console.log("handleSave called with:", { formData, entryId });
 
       if (!entryId) {
         enqueueSnackbar("Submission ID not found. Please try again.", {

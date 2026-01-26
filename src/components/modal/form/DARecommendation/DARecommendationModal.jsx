@@ -252,7 +252,7 @@ const DARecommendationModal = ({
       if (handlerToUse) {
         try {
           setIsUpdating(true);
-          await handlerToUse(formattedData, currentMode, entryId);
+          await handlerToUse(formattedData, entryId);
         } catch (error) {
           alert("Failed to submit. Please try again.");
         } finally {
@@ -310,7 +310,7 @@ const DARecommendationModal = ({
       if (onSave) {
         try {
           setIsUpdating(true);
-          await onSave(formattedData, currentMode, entryId);
+          await onSave(formattedData, entryId);
         } catch (error) {
           alert("Failed to save. Please try again.");
         } finally {
@@ -370,7 +370,7 @@ const DARecommendationModal = ({
       if (onSave) {
         try {
           setIsUpdating(true);
-          await onSave(formattedData, currentMode, entryId);
+          await onSave(formattedData, entryId);
         } catch (error) {
           alert("Failed to save. Please try again.");
         } finally {
@@ -414,7 +414,7 @@ const DARecommendationModal = ({
     if (onSave) {
       try {
         setIsUpdating(true);
-        await onSave(formattedData, currentMode, entryId);
+        await onSave(formattedData, entryId);
       } catch (error) {
         alert("Failed to save. Please try again.");
       } finally {

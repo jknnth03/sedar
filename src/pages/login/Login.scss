@@ -1,100 +1,100 @@
-// @use "../../styles/mixins.scss" as mx;
+@use "../../styles/mixins.scss" as mx;
 
-// .login {
-//   background-color: rgb(239, 239, 239);
-//   display: flex;
-//   justify-content: center;
-//   align-items: center;
-//   flex-direction: column;
-//   width: 100vw;
-//   height: 100vh;
-//   overflow: auto;
+.login {
+  background-color: rgb(239, 239, 239);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
 
-//   &__container1 {
-//     background-color: rgb(223, 241, 253);
-//     width: 460px;
-//     height: 460px;
-//     display: flex;
-//     flex-direction: column;
-//     align-items: center;
-//     gap: 15px;
-//     padding-top: 20px;
-//     box-shadow: rgba(151, 151, 151, 0.2) 0px 5px 15px;
-//     border-top-left-radius: 10px;
-//     border-bottom-left-radius: 10px;
-//     border-top-right-radius: 0;
-//     border-bottom-right-radius: 0;
-//     @include mx.lm {
-//       display: none !important;
-//     }
-//   }
+  &__container1 {
+    background-color: rgb(223, 241, 253);
+    width: 460px;
+    height: 460px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding-top: 20px;
+    box-shadow: rgba(151, 151, 151, 0.2) 0px 5px 15px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    @include mx.lm {
+      display: none !important;
+    }
+  }
 
-//   &__container2 {
-//     background-color: white;
-//     width: 460px;
-//     height: 460px;
-//     display: flex;
-//     flex-direction: column;
-//     align-items: center;
-//     gap: 15px;
-//     padding-top: 20px;
-//     box-shadow: rgba(151, 151, 151, 0.2) 0px 5px 15px;
-//     border-top-left-radius: 0px;
-//     border-bottom-left-radius: 0px;
-//     border-top-right-radius: 10px;
-//     border-bottom-right-radius: 10px;
-//   }
+  &__container2 {
+    background-color: white;
+    width: 460px;
+    height: 460px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding-top: 20px;
+    box-shadow: rgba(151, 151, 151, 0.2) 0px 5px 15px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+  }
 
-//   &__footer {
-//     display: flex;
-//     flex-direction: column;
-//     align-items: center;
-//     margin-top: 2px;
-//   }
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2px;
+  }
 
-//   &__textbottom {
-//     display: flex;
-//     text-align: center;
-//     justify-content: center;
-//     font-size: 0.8rem !important;
-//     width: 100%;
-//   }
+  &__textbottom {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.8rem !important;
+    width: 100%;
+  }
 
-//   &__textbox-container {
-//     display: flex;
-//     flex-direction: column;
-//     align-items: center;
-//     width: 100%;
-//   }
+  &__textbox-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
 
-//   &__textbox {
-//     width: 60%;
-//     max-width: 320px;
-//     margin-bottom: 20px !important;
-//   }
+  &__textbox {
+    width: 60%;
+    max-width: 320px;
+    margin-bottom: 20px !important;
+  }
 
-//   &__button {
-//     width: 60%;
-//     max-width: 320px;
-//     height: 50px;
-//     margin-top: 10px;
-//   }
+  &__button {
+    width: 60%;
+    max-width: 320px;
+    height: 50px;
+    margin-top: 10px;
+  }
 
-//   .login__title {
-//     font-size: 1.2rem;
-//     margin-bottom: 1rem;
-//     margin-top: 1rem;
-//     text-align: center;
-//   }
-// }
-// .login-illustration {
-//   @include mx.sm {
-//     display: none !important;
-//   }
-// }
+  .login__title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    text-align: center;
+  }
+}
+.login-illustration {
+  @include mx.sm {
+    display: none !important;
+  }
+}
 
-// .login-form-container {
-//   @include mx.sm {
-//     max-width: 100% !important;
-//   }
-// }
+.login-form-container {
+  @include mx.sm {
+    max-width: 100% !important;
+  }
+}

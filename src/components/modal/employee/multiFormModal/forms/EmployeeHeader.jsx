@@ -48,25 +48,6 @@ const EmployeeHeader = ({
     return "N/A";
   };
 
-  const getAttainmentLabel = () => {
-    const attainmentSources = [
-      formData?.attainment?.name,
-      selectedGeneral?.attainment?.name,
-      formData?.degree?.name,
-      selectedGeneral?.degree?.name,
-      selectedGeneral?.attainments?.[0]?.attainment?.name,
-      selectedGeneral?.attainments?.[0]?.degree?.name,
-      formData?.attainments?.[0]?.attainment?.name,
-      formData?.attainments?.[0]?.degree?.name,
-    ];
-
-    for (const attainment of attainmentSources) {
-      if (attainment && attainment !== "N/A") return attainment;
-    }
-
-    return "N/A";
-  };
-
   const getImageSrc = () => {
     const imageSources = [
       formData?.general_info?.image_url,
@@ -221,40 +202,6 @@ const EmployeeHeader = ({
     return "N/A";
   };
 
-  const getMobileNumber = () => {
-    const mobileSources = [
-      formData?.mobile_number,
-      selectedGeneral?.mobile_number,
-      selectedGeneral?.contacts?.mobile_number,
-      selectedGeneral?.contact_info?.mobile_number,
-      formData?.contacts?.mobile_number,
-      formData?.contact_info?.mobile_number,
-    ];
-
-    for (const mobile of mobileSources) {
-      if (mobile) return mobile;
-    }
-
-    return "N/A";
-  };
-
-  const getEmailAddress = () => {
-    const emailSources = [
-      formData?.email_address,
-      selectedGeneral?.email_address,
-      selectedGeneral?.contacts?.email_address,
-      selectedGeneral?.contact_info?.email_address,
-      formData?.contacts?.email_address,
-      formData?.contact_info?.email_address,
-    ];
-
-    for (const email of emailSources) {
-      if (email) return email;
-    }
-
-    return "N/A";
-  };
-
   const getDevelopmentalAssignment = () => {
     const daSources = [
       formData?.general_info?.developmental_assignment,
@@ -342,55 +289,27 @@ const EmployeeHeader = ({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: "repeat(2, 1fr)",
               gap: 3,
               fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
               mb: 3,
             }}>
             <Box>
               <Box
-                component="h3"
-                sx={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
-                  mb: 0,
-                  m: 0,
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                FULL NAME
-              </Box>
-              <Box
                 sx={{
                   fontSize: "0.875rem",
-                  fontWeight: 400,
+                  fontWeight: 600,
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  mb: 0.5,
                 }}>
                 {getFullName()}
               </Box>
-            </Box>
-
-            <Box>
               <Box
-                component="h3"
                 sx={{
                   fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
-                  mb: 0,
-                  m: 0,
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                ID NUMBER
-              </Box>
-              <Box
-                sx={{
-                  fontSize: "0.875rem",
                   fontWeight: 400,
-                  color: "#111827",
+                  color: "#6b7280",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
                 {getEmployeeCode()}
@@ -405,41 +324,7 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0,
-                  m: 0,
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                POSITION
-              </Box>
-              <Box
-                sx={{
-                  fontSize: "0.875rem",
-                  fontWeight: 400,
-                  color: "#111827",
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                {getPosition()}
-              </Box>
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 3,
-              fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-              mb: 3,
-            }}>
-            <Box>
-              <Box
-                component="h3"
-                sx={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
-                  mb: 0,
+                  mb: 0.5,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
@@ -455,7 +340,16 @@ const EmployeeHeader = ({
                 {getCharging()}
               </Box>
             </Box>
+          </Box>
 
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gap: 3,
+              fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+              mb: 3,
+            }}>
             <Box>
               <Box
                 component="h3"
@@ -464,11 +358,11 @@ const EmployeeHeader = ({
                   fontWeight: 600,
                   color: "#6b7280",
                   textTransform: "uppercase",
-                  mb: 0,
+                  mb: 0.5,
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
-                MOBILE NUMBER
+                POSITION
               </Box>
               <Box
                 sx={{
@@ -477,7 +371,7 @@ const EmployeeHeader = ({
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
-                {getMobileNumber()}
+                {getPosition()}
               </Box>
             </Box>
 
@@ -487,7 +381,7 @@ const EmployeeHeader = ({
                   sx={{
                     fontSize: "0.75rem",
                     fontWeight: 600,
-                    color: "#dc2626 !important",
+                    color: "#dc2626!important",
                     fontFamily:
                       '"Helvetica Neue", Helvetica, Arial, sans-serif',
                     textTransform: "uppercase",
@@ -498,14 +392,14 @@ const EmployeeHeader = ({
                   }}>
                   UNDER DA{" "}
                   <TrendingUpIcon
-                    sx={{ fontSize: "1rem", color: "#dc2626 !important" }}
+                    sx={{ fontSize: "1rem", color: "#dc2626!important" }}
                   />
                 </Box>
                 <Box
                   sx={{
                     fontSize: "0.875rem",
                     fontWeight: 400,
-                    color: "#dc2626 !important",
+                    color: "#dc2626!important",
                     fontFamily:
                       '"Helvetica Neue", Helvetica, Arial, sans-serif',
                   }}>
@@ -521,12 +415,12 @@ const EmployeeHeader = ({
                     fontWeight: 600,
                     color: "#6b7280",
                     textTransform: "uppercase",
-                    mb: 0,
+                    mb: 0.5,
                     m: 0,
                     fontFamily:
                       '"Helvetica Neue", Helvetica, Arial, sans-serif',
                   }}>
-                  EMAIL ADDRESS
+                  EMPLOYMENT TYPE
                 </Box>
                 <Box
                   sx={{
@@ -536,71 +430,35 @@ const EmployeeHeader = ({
                     fontFamily:
                       '"Helvetica Neue", Helvetica, Arial, sans-serif',
                   }}>
-                  {getEmailAddress()}
+                  {getEmploymentType()}
                 </Box>
               </Box>
             )}
           </Box>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: developmentalAssignment ? "2fr 1fr" : "1fr",
-              gap: 3,
-            }}>
-            <Box>
-              <Box
-                component="h3"
-                sx={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  textTransform: "uppercase",
-                  mb: 0,
-                  m: 0,
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                FULL ADDRESS
-              </Box>
-              <Box
-                sx={{
-                  fontSize: "0.875rem",
-                  fontWeight: 400,
-                  color: "#111827",
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                }}>
-                {formatAddress()}
-              </Box>
+          <Box>
+            <Box
+              component="h3"
+              sx={{
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: "#6b7280",
+                textTransform: "uppercase",
+                mb: 0.5,
+                m: 0,
+                fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+              }}>
+              FULL ADDRESS
             </Box>
-
-            {developmentalAssignment && (
-              <Box>
-                <Box
-                  component="h3"
-                  sx={{
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    color: "#6b7280",
-                    textTransform: "uppercase",
-                    mb: 0,
-                    m: 0,
-                    fontFamily:
-                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                  }}>
-                  EMAIL ADDRESS
-                </Box>
-                <Box
-                  sx={{
-                    fontSize: "0.875rem",
-                    fontWeight: 400,
-                    color: "#111827",
-                    fontFamily:
-                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                  }}>
-                  {getEmailAddress()}
-                </Box>
-              </Box>
-            )}
+            <Box
+              sx={{
+                fontSize: "0.875rem",
+                fontWeight: 400,
+                color: "#111827",
+                fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+              }}>
+              {formatAddress()}
+            </Box>
           </Box>
         </Box>
       </Box>
