@@ -46,6 +46,7 @@ export default function RolesModal({
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [expandedPanels, setExpandedPanels] = useState(new Set());
+  const [expandedChildren, setExpandedChildren] = useState(new Set());
   const [postRole, { isLoading: adding }] = usePostRoleMutation();
   const [updateRole, { isLoading: updating }] = useUpdateRoleMutation();
   const { enqueueSnackbar } = useSnackbar();
@@ -65,11 +66,10 @@ export default function RolesModal({
         icon: child.icon,
         level: level,
         hasChildren: hasChildren,
+        children: child.children
+          ? flattenChildren(child.children, level + 1)
+          : null,
       });
-
-      if (child.children) {
-        result.push(...flattenChildren(child.children, level + 1));
-      }
     });
 
     return result;
@@ -120,6 +120,20 @@ export default function RolesModal({
     ]);
   };
 
+  const getAllChildPermissions = (children) => {
+    let permissions = [];
+    children.forEach((child) => {
+      permissions.push(child.permission);
+      if (child.children) {
+        permissions = [
+          ...permissions,
+          ...getAllChildPermissions(child.children),
+        ];
+      }
+    });
+    return permissions;
+  };
+
   useEffect(() => {
     if (open) {
       if (selectedRole) {
@@ -132,15 +146,26 @@ export default function RolesModal({
 
         if (isViewMode) {
           const allPanelNames = Object.keys(hierarchicalPermissions).filter(
-            (parentName) => !hierarchicalPermissions[parentName].isStandalone
+            (parentName) => !hierarchicalPermissions[parentName].isStandalone,
           );
           setExpandedPanels(new Set(allPanelNames));
+
+          const allChildKeys = [];
+          Object.values(hierarchicalPermissions).forEach((group) => {
+            group.children.forEach((child) => {
+              if (child.hasChildren) {
+                allChildKeys.push(child.permission);
+              }
+            });
+          });
+          setExpandedChildren(new Set(allChildKeys));
         }
       } else {
         setRoleName("");
         setSelectedPermissions([]);
         setSelectAll(false);
         setExpandedPanels(new Set());
+        setExpandedChildren(new Set());
       }
       setErrorMessage(null);
     }
@@ -149,7 +174,7 @@ export default function RolesModal({
   useEffect(() => {
     const totalPermissions = getAllPermissions().length;
     setSelectAll(
-      selectedPermissions.length === totalPermissions && totalPermissions > 0
+      selectedPermissions.length === totalPermissions && totalPermissions > 0,
     );
   }, [selectedPermissions]);
 
@@ -173,19 +198,19 @@ export default function RolesModal({
     const group = hierarchicalPermissions[parentName];
     if (!group) return;
 
-    const childPermissions = group.children.map((child) => child.permission);
+    const childPermissions = getAllChildPermissions(group.children);
     const parentPermission = group.parent.permission;
     const allGroupPermissions = parentPermission
       ? [parentPermission, ...childPermissions]
       : childPermissions;
 
     const allChildrenSelected = childPermissions.every((permission) =>
-      selectedPermissions.includes(permission)
+      selectedPermissions.includes(permission),
     );
 
     if (allChildrenSelected) {
       setSelectedPermissions((prev) =>
-        prev.filter((permission) => !allGroupPermissions.includes(permission))
+        prev.filter((permission) => !allGroupPermissions.includes(permission)),
       );
 
       setExpandedPanels((prev) => {
@@ -196,7 +221,7 @@ export default function RolesModal({
     } else {
       setSelectedPermissions((prev) => {
         const filtered = prev.filter(
-          (permission) => !allGroupPermissions.includes(permission)
+          (permission) => !allGroupPermissions.includes(permission),
         );
         return [...filtered, ...allGroupPermissions];
       });
@@ -207,20 +232,57 @@ export default function RolesModal({
     }
   };
 
+  const handleChildWithChildrenChange = (child, event) => {
+    if (isViewMode) return;
+
+    event.stopPropagation();
+
+    const childPermissions = getAllChildPermissions(child.children);
+    const allPermissions = [child.permission, ...childPermissions];
+
+    const allSelected = allPermissions.every((permission) =>
+      selectedPermissions.includes(permission),
+    );
+
+    if (allSelected) {
+      setSelectedPermissions((prev) =>
+        prev.filter((permission) => !allPermissions.includes(permission)),
+      );
+    } else {
+      setSelectedPermissions((prev) => {
+        const filtered = prev.filter(
+          (permission) => !allPermissions.includes(permission),
+        );
+        return [...filtered, ...allPermissions];
+      });
+    }
+  };
+
   const handleSelectAll = () => {
     if (isViewMode) return;
 
     if (selectAll) {
       setSelectedPermissions([]);
       setExpandedPanels(new Set());
+      setExpandedChildren(new Set());
     } else {
       const allPermissions = getAllPermissions();
       setSelectedPermissions(allPermissions);
 
       const allPanelNames = Object.keys(hierarchicalPermissions).filter(
-        (parentName) => !hierarchicalPermissions[parentName].isStandalone
+        (parentName) => !hierarchicalPermissions[parentName].isStandalone,
       );
       setExpandedPanels(new Set(allPanelNames));
+
+      const allChildKeys = [];
+      Object.values(hierarchicalPermissions).forEach((group) => {
+        group.children.forEach((child) => {
+          if (child.hasChildren) {
+            allChildKeys.push(child.permission);
+          }
+        });
+      });
+      setExpandedChildren(new Set(allChildKeys));
     }
   };
 
@@ -232,12 +294,12 @@ export default function RolesModal({
     const group = hierarchicalPermissions[parentName];
     if (!group) return false;
 
-    const childPermissions = group.children.map((child) => child.permission);
+    const childPermissions = getAllChildPermissions(group.children);
 
     return (
       childPermissions.length > 0 &&
       childPermissions.every((permission) =>
-        selectedPermissions.includes(permission)
+        selectedPermissions.includes(permission),
       )
     );
   };
@@ -246,14 +308,41 @@ export default function RolesModal({
     const group = hierarchicalPermissions[parentName];
     if (!group) return false;
 
-    const childPermissions = group.children.map((child) => child.permission);
+    const childPermissions = getAllChildPermissions(group.children);
     const selectedInGroup = childPermissions.filter((permission) =>
-      selectedPermissions.includes(permission)
+      selectedPermissions.includes(permission),
     );
 
     return (
       selectedInGroup.length > 0 &&
       selectedInGroup.length < childPermissions.length
+    );
+  };
+
+  const isChildWithChildrenFullySelected = (child) => {
+    if (!child.children) return false;
+
+    const childPermissions = getAllChildPermissions(child.children);
+    const allPermissions = [child.permission, ...childPermissions];
+
+    return allPermissions.every((permission) =>
+      selectedPermissions.includes(permission),
+    );
+  };
+
+  const isChildWithChildrenPartiallySelected = (child) => {
+    if (!child.children) return false;
+
+    const childPermissions = getAllChildPermissions(child.children);
+    const allPermissions = [child.permission, ...childPermissions];
+
+    const selectedInGroup = allPermissions.filter((permission) =>
+      selectedPermissions.includes(permission),
+    );
+
+    return (
+      selectedInGroup.length > 0 &&
+      selectedInGroup.length < allPermissions.length
     );
   };
 
@@ -266,6 +355,20 @@ export default function RolesModal({
         newSet.delete(panelName);
       } else {
         newSet.add(panelName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleChildAccordionToggle = (childKey) => {
+    if (isViewMode) return;
+
+    setExpandedChildren((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(childKey)) {
+        newSet.delete(childKey);
+      } else {
+        newSet.add(childKey);
       }
       return newSet;
     });
@@ -300,7 +403,7 @@ export default function RolesModal({
       handleClose();
     } catch (error) {
       setErrorMessage(
-        error?.data?.message || "An error occurred. Please try again."
+        error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };
@@ -310,6 +413,7 @@ export default function RolesModal({
     setSelectedPermissions([]);
     setSelectAll(false);
     setExpandedPanels(new Set());
+    setExpandedChildren(new Set());
     setErrorMessage(null);
     handleClose();
   };
@@ -319,64 +423,158 @@ export default function RolesModal({
     return selectedRole ? "EDIT ROLE" : "CREATE NEW ROLE";
   };
 
-  const renderChildItem = (child) => {
-    const paddingLeft = child.level * 32;
+  const renderNestedChildren = (children, parentPadding = 0) => {
+    return children.map((child) => {
+      const paddingLeft = parentPadding + 32;
 
-    return (
-      <Grid item xs={12} sm={6} key={child.permission}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            minHeight: "40px",
-            paddingLeft: `${paddingLeft}px`,
-            border: "1px solid #e0e0e0",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            backgroundColor: child.level > 1 ? "#f9f9f9" : "#fff",
-            transition: "all 0.2s",
-            "&:hover": {
-              backgroundColor: "#f5f5f5",
-              borderColor: "#bbb",
-            },
-          }}>
-          <Checkbox
-            sx={{
-              color: "#ccc",
-              padding: "4px",
-              marginRight: "8px",
-              "&.Mui-checked": {
-                color: "#FF4500",
-              },
-            }}
-            checked={isPermissionSelected(child.permission)}
-            onChange={() => handlePermissionChange(child.permission)}
-            disabled={isLoading || isViewMode}
-          />
-          <Box display="flex" alignItems="center" gap={1.5} flex={1}>
-            {React.cloneElement(child.icon, {
-              sx: {
-                color: "rgb(33, 61, 112)",
-                fontSize: "18px",
-                flexShrink: 0,
-              },
-            })}
-            <Typography
-              variant="body2"
+      if (child.hasChildren && child.children) {
+        return (
+          <Grid item xs={12} key={child.permission}>
+            <Accordion
+              expanded={expandedChildren.has(child.permission)}
+              onChange={() => handleChildAccordionToggle(child.permission)}
               sx={{
-                fontSize: child.level > 1 ? "13px" : "14px",
-                color: "#333",
-                fontWeight: child.hasChildren ? 600 : 400,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                boxShadow: "none",
+                border: "1px solid #e0e0e0",
+                borderRadius: "6px !important",
+                marginBottom: "8px",
+                backgroundColor: "#fafafa",
+                "&:before": { display: "none" },
               }}>
-              {child.name}
-            </Typography>
+              <AccordionSummary
+                expandIcon={
+                  !isViewMode && (
+                    <ExpandMoreIcon
+                      sx={{ color: "rgb(33, 61, 112)", fontSize: "20px" }}
+                    />
+                  )
+                }
+                sx={{
+                  minHeight: "40px !important",
+                  paddingLeft: `${paddingLeft}px`,
+                  "&.Mui-expanded": {
+                    minHeight: "40px !important",
+                  },
+                  cursor: isViewMode ? "default !important" : "pointer",
+                }}>
+                <Box display="flex" alignItems="center" width="100%">
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        sx={{
+                          color: "#ccc",
+                          padding: "4px",
+                          marginRight: "8px",
+                          "&.Mui-checked": {
+                            color: "#FF4500",
+                          },
+                          "&.MuiCheckbox-indeterminate": {
+                            color: "#FF4500",
+                          },
+                        }}
+                        checked={isChildWithChildrenFullySelected(child)}
+                        indeterminate={isChildWithChildrenPartiallySelected(
+                          child,
+                        )}
+                        onChange={(e) =>
+                          handleChildWithChildrenChange(child, e)
+                        }
+                        disabled={isLoading || isViewMode}
+                      />
+                    }
+                    label={
+                      <Box display="flex" alignItems="center" gap={1.5}>
+                        {React.cloneElement(child.icon, {
+                          sx: {
+                            color: "rgb(33, 61, 112)",
+                            fontSize: "18px",
+                            flexShrink: 0,
+                          },
+                        })}
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: "13px",
+                            color: "#333",
+                            fontWeight: 600,
+                          }}>
+                          {child.name}
+                        </Typography>
+                      </Box>
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{ flexGrow: 1, margin: 0 }}
+                  />
+                </Box>
+              </AccordionSummary>
+
+              <AccordionDetails
+                sx={{ padding: "8px 16px", backgroundColor: "#fff" }}>
+                <Grid container spacing={1.5}>
+                  {renderNestedChildren(child.children, paddingLeft)}
+                </Grid>
+              </AccordionDetails>
+            </Accordion>
+          </Grid>
+        );
+      }
+
+      return (
+        <Grid item xs={12} sm={6} key={child.permission}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              minHeight: "40px",
+              paddingLeft: `${paddingLeft}px`,
+              border: "1px solid #e0e0e0",
+              borderRadius: "6px",
+              padding: "8px 12px",
+              backgroundColor: "#fff",
+              transition: "all 0.2s",
+              "&:hover": {
+                backgroundColor: "#f5f5f5",
+                borderColor: "#bbb",
+              },
+            }}>
+            <Checkbox
+              sx={{
+                color: "#ccc",
+                padding: "4px",
+                marginRight: "8px",
+                "&.Mui-checked": {
+                  color: "#FF4500",
+                },
+              }}
+              checked={isPermissionSelected(child.permission)}
+              onChange={() => handlePermissionChange(child.permission)}
+              disabled={isLoading || isViewMode}
+            />
+            <Box display="flex" alignItems="center" gap={1.5} flex={1}>
+              {React.cloneElement(child.icon, {
+                sx: {
+                  color: "rgb(33, 61, 112)",
+                  fontSize: "18px",
+                  flexShrink: 0,
+                },
+              })}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "13px",
+                  color: "#333",
+                  fontWeight: 400,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}>
+                {child.name}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </Grid>
-    );
+        </Grid>
+      );
+    });
   };
 
   return (
@@ -535,7 +733,7 @@ export default function RolesModal({
                                 },
                               }}
                               checked={isPermissionSelected(
-                                group.parent.permission
+                                group.parent.permission,
                               )}
                               onChange={() =>
                                 handlePermissionChange(group.parent.permission)
@@ -608,7 +806,7 @@ export default function RolesModal({
                                   }}
                                   checked={isGroupFullySelected(parentName)}
                                   indeterminate={isGroupPartiallySelected(
-                                    parentName
+                                    parentName,
                                   )}
                                   onChange={(e) =>
                                     handleParentPermissionChange(parentName, e)
@@ -645,13 +843,11 @@ export default function RolesModal({
                             backgroundColor: "#fafafa",
                           }}>
                           <Grid container spacing={1.5}>
-                            {group.children.map((child) =>
-                              renderChildItem(child)
-                            )}
+                            {renderNestedChildren(group.children, 0)}
                           </Grid>
                         </AccordionDetails>
                       </Accordion>
-                    )
+                    ),
                 )}
               </Paper>
             </Grid>

@@ -17,7 +17,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import HelpIcon from "@mui/icons-material/Help";
-import * as styles from "../dataChangeApproval/DataChangeApprovalStyles";
+import * as styles from "../../dataChangeApproval/DataChangeApprovalStyles";
 
 const DaRecommendationApprovalDialog = ({
   open,

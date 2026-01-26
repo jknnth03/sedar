@@ -18,7 +18,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import HelpIcon from "@mui/icons-material/Help";
-import * as styles from "../daMDAApproval/DAMDAApprovalDialogStyles";
+import * as styles from "../../mda/daMDAApproval/DAMDAApprovalDialogStyles";
 
 const EvaluationRecommendationApprovalDialog = ({
   open,

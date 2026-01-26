@@ -23,36 +23,33 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
-  useGetMyDaMdaApprovalsQuery,
-  useGetDaMdaApprovalByIdQuery,
-  useApproveDaMdaSubmissionMutation,
-  useRejectDaMdaSubmissionMutation,
-} from "../../../features/api/approving/daMDAApproval.js";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../config";
+  useGetMyProbationaryRecommendationApprovalsQuery,
+  useGetProbationaryRecommendationApprovalByIdQuery,
+  useApproveRecommendationMutation,
+  useRejectRecommendationMutation,
+} from "../../../../features/api/approving/evaluationRecommendationApprovalApi.js";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
-import DAMDAApprovalDialog from "./DAMDAApprovalDialog.jsx";
-import NoDataFound from "../../NoDataFound";
+import { createSubmissionApprovalStyles } from "../../mrfApproval/SubmissionApprovalStyles.jsx";
+import EvaluationRecommendationApprovalDialog from "./EvaluationRecommendationApprovalDialog.jsx";
+import NoDataFound from "../../../NoDataFound";
 import {
-  styles,
-  StyledTabs,
   StyledTab,
-} from "../../forms/manpowerform/FormSubmissionStyles";
+  StyledTabs,
+  styles,
+} from "../../../forms/manpowerform/formSubmissionStyles.jsx";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`da-mda-approval-tabpanel-${index}`}
-      aria-labelledby={`da-mda-approval-tab-${index}`}
+      id={`evaluation-recommendation-approval-tabpanel-${index}`}
+      aria-labelledby={`evaluation-recommendation-approval-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -97,7 +94,11 @@ const CustomSearchBar = ({
         gap: isVerySmall ? 1 : 1.5,
       }}>
       <TextField
-        placeholder={isVerySmall ? "Search..." : "Search DA MDA Approvals..."}
+        placeholder={
+          isVerySmall
+            ? "Search..."
+            : "Search Evaluation Recommendation Approvals..."
+        }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
@@ -154,7 +155,7 @@ const CustomSearchBar = ({
   );
 };
 
-const DAMDAApprovalTable = ({
+const EvaluationRecommendationApprovalTable = ({
   approvalStatus,
   searchQuery,
   isMobile,
@@ -173,8 +174,7 @@ const DAMDAApprovalTable = ({
       per_page: rowsPerPage,
       status: "active",
       approval_status: approvalStatus,
-      pagination: 1,
-      type: "da",
+      pagination: true,
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -185,18 +185,18 @@ const DAMDAApprovalTable = ({
   }, [debounceValue, page, rowsPerPage, approvalStatus]);
 
   const {
-    data: daMdaApprovalsData,
+    data: evaluationRecommendationApprovalsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetMyDaMdaApprovalsQuery(queryParams, {
+  } = useGetMyProbationaryRecommendationApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const daMdaApprovalsList = useMemo(
-    () => daMdaApprovalsData?.result?.data || [],
-    [daMdaApprovalsData],
+  const evaluationRecommendationApprovalsList = useMemo(
+    () => evaluationRecommendationApprovalsData?.result?.data || [],
+    [evaluationRecommendationApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -254,7 +254,10 @@ const DAMDAApprovalTable = ({
         <Table
           stickyHeader
           sx={{
-            height: daMdaApprovalsList.length === 0 ? "100%" : "auto",
+            height:
+              evaluationRecommendationApprovalsList.length === 0
+                ? "100%"
+                : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -282,14 +285,25 @@ const DAMDAApprovalTable = ({
               </TableCell>
               <TableCell
                 sx={{
-                  width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
+                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
                   minWidth: isVerySmall
-                    ? "150px"
+                    ? "120px"
                     : isMobile
-                      ? "180px"
-                      : "220px",
+                      ? "150px"
+                      : "180px",
                 }}>
-                {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
+                START DATE
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
+                  minWidth: isVerySmall
+                    ? "120px"
+                    : isMobile
+                      ? "150px"
+                      : "180px",
+                }}>
+                END DATE
               </TableCell>
               <TableCell
                 sx={{
@@ -317,7 +331,10 @@ const DAMDAApprovalTable = ({
           </TableHead>
           <TableBody
             sx={{
-              height: daMdaApprovalsList.length === 0 ? "100%" : "auto",
+              height:
+                evaluationRecommendationApprovalsList.length === 0
+                  ? "100%"
+                  : "auto",
             }}>
             {isLoadingState ? (
               <TableRow sx={{ height: "100%" }}>
@@ -344,8 +361,8 @@ const DAMDAApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : daMdaApprovalsList.length > 0 ? (
-              daMdaApprovalsList.map((approval) => {
+            ) : evaluationRecommendationApprovalsList.length > 0 ? (
+              evaluationRecommendationApprovalsList.map((approval) => {
                 return (
                   <TableRow
                     key={approval.id}
@@ -373,13 +390,19 @@ const DAMDAApprovalTable = ({
                       }}>
                       {approval.employee_name || "-"}
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                      {approval.movement_type || "-"}
+                    <TableCell>
+                      {approval.probation_start_date
+                        ? dayjs(approval.probation_start_date).format(
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
+                          )
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {approval.probation_end_date
+                        ? dayjs(approval.probation_end_date).format(
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
+                          )
+                        : "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -471,7 +494,7 @@ const DAMDAApprovalTable = ({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={daMdaApprovalsData?.result?.total || 0}
+          count={evaluationRecommendationApprovalsData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={Math.max(0, page - 1)}
           onPageChange={handlePageChange}
@@ -489,7 +512,7 @@ const DAMDAApprovalTable = ({
   );
 };
 
-const DAMDAApproval = () => {
+const EvaluationRecommendationApproval = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -519,21 +542,22 @@ const DAMDAApproval = () => {
   const { data: dashboardData, refetch: refetchDashboard } =
     useShowDashboardQuery();
 
-  const [approveDaMdaSubmission, { isLoading: approveLoading }] =
-    useApproveDaMdaSubmissionMutation();
-  const [rejectDaMdaSubmission, { isLoading: rejectLoading }] =
-    useRejectDaMdaSubmissionMutation();
+  const [approveRecommendation, { isLoading: approveLoading }] =
+    useApproveRecommendationMutation();
+  const [rejectRecommendation, { isLoading: rejectLoading }] =
+    useRejectRecommendationMutation();
 
   const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
-    useGetDaMdaApprovalByIdQuery(selectedApprovalId, {
+    useGetProbationaryRecommendationApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
 
-  const daMdaCounts = useMemo(() => {
-    const daMda = dashboardData?.result?.approval?.da?.mda || 0;
+  const probationaryRecommendationCounts = useMemo(() => {
+    const probationaryRecommendation =
+      dashboardData?.result?.approval?.probationary?.recommendation || 0;
 
     return {
-      forApproval: daMda,
+      forApproval: probationaryRecommendation,
       approved: 0,
     };
   }, [dashboardData]);
@@ -556,34 +580,53 @@ const DAMDAApproval = () => {
   }, []);
 
   const handleApprove = useCallback(
-    async ({ comments, reason }) => {
+    async ({ comments }) => {
       const { submission } = detailsDialog;
+
+      if (!submission || !submission.id) {
+        enqueueSnackbar("Error: No submission data found", {
+          variant: "error",
+        });
+        return;
+      }
+
       try {
         const payload = {
           id: submission.id,
           comments,
-          reason,
         };
 
-        await approveDaMdaSubmission(payload).unwrap();
-        enqueueSnackbar("DA MDA approved successfully!", {
+        await approveRecommendation(payload).unwrap();
+
+        enqueueSnackbar("Evaluation Recommendation approved successfully!", {
           variant: "success",
         });
         refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to approve DA MDA", {
-          variant: "error",
-        });
+        enqueueSnackbar(
+          error?.data?.message || "Failed to approve Evaluation Recommendation",
+          {
+            variant: "error",
+          },
+        );
       }
     },
-    [detailsDialog, approveDaMdaSubmission, enqueueSnackbar, refetchDashboard],
+    [detailsDialog, approveRecommendation, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
     async ({ comments, reason }) => {
       const { submission } = detailsDialog;
+
+      if (!submission || !submission.id) {
+        enqueueSnackbar("Error: No submission data found", {
+          variant: "error",
+        });
+        return;
+      }
+
       try {
         const payload = {
           id: submission.id,
@@ -591,20 +634,24 @@ const DAMDAApproval = () => {
           reason,
         };
 
-        await rejectDaMdaSubmission(payload).unwrap();
-        enqueueSnackbar("DA MDA returned successfully!", {
+        await rejectRecommendation(payload).unwrap();
+
+        enqueueSnackbar("Evaluation Recommendation returned successfully!", {
           variant: "success",
         });
         refetchDashboard();
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to return DA MDA", {
-          variant: "error",
-        });
+        enqueueSnackbar(
+          error?.data?.message || "Failed to return Evaluation Recommendation",
+          {
+            variant: "error",
+          },
+        );
       }
     },
-    [detailsDialog, rejectDaMdaSubmission, enqueueSnackbar, refetchDashboard],
+    [detailsDialog, rejectRecommendation, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -630,19 +677,19 @@ const DAMDAApproval = () => {
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: daMdaCounts.forApproval,
+      badgeCount: probationaryRecommendationCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: daMdaCounts.approved,
+      badgeCount: probationaryRecommendationCounts.approved,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `da-mda-approval-tab-${index}`,
-      "aria-controls": `da-mda-approval-tabpanel-${index}`,
+      id: `evaluation-recommendation-approval-tab-${index}`,
+      "aria-controls": `evaluation-recommendation-approval-tabpanel-${index}`,
     };
   };
 
@@ -668,7 +715,7 @@ const DAMDAApproval = () => {
                 ...(isVerySmall && styles.headerTitleTextVerySmall),
                 paddingRight: "14px",
               }}>
-              {isVerySmall ? "DA MDA" : "DA MDA APPROVAL"}
+              {isVerySmall ? "EVAL REC" : "EVALUATION RECOMMENDATION APPROVAL"}
             </Typography>
           </Box>
 
@@ -683,7 +730,7 @@ const DAMDAApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="DA MDA Approval tabs"
+            aria-label="Evaluation Recommendation Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile
@@ -718,7 +765,7 @@ const DAMDAApproval = () => {
         <Box sx={styles.tabsContainer}>
           {tabsData.map((tab, index) => (
             <TabPanel key={index} value={activeTab} index={index}>
-              <DAMDAApprovalTable
+              <EvaluationRecommendationApprovalTable
                 approvalStatus={tab.approvalStatus}
                 searchQuery={searchQuery}
                 isMobile={isMobile}
@@ -730,7 +777,7 @@ const DAMDAApproval = () => {
           ))}
         </Box>
 
-        <DAMDAApprovalDialog
+        <EvaluationRecommendationApprovalDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
           approval={selectedApprovalData?.result || detailsDialog.submission}
@@ -738,11 +785,10 @@ const DAMDAApproval = () => {
           onReject={handleReject}
           isLoading={approveLoading || rejectLoading}
           isLoadingData={selectedApprovalLoading}
-          styles={customStyles}
         />
       </Box>
     </FormProvider>
   );
 };
 
-export default DAMDAApproval;
+export default EvaluationRecommendationApproval;

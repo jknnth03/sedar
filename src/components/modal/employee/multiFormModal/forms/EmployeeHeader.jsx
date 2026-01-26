@@ -1,5 +1,6 @@
 import React from "react";
 import { Box } from "@mui/material";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
 const EmployeeHeader = ({
   getValues,
@@ -254,7 +255,25 @@ const EmployeeHeader = ({
     return "N/A";
   };
 
+  const getDevelopmentalAssignment = () => {
+    const daSources = [
+      formData?.general_info?.developmental_assignment,
+      selectedGeneral?.general_info?.developmental_assignment,
+      formData?.developmental_assignment,
+      selectedGeneral?.developmental_assignment,
+    ];
+
+    for (const da of daSources) {
+      if (da && da.is_in_da === true) {
+        return da;
+      }
+    }
+
+    return null;
+  };
+
   const imageUrl = getImageSrc();
+  const developmentalAssignment = getDevelopmentalAssignment();
 
   return (
     <Box
@@ -288,7 +307,7 @@ const EmployeeHeader = ({
               }}
               onLoad={() => {
                 const placeholder = document.querySelector(
-                  `[data-placeholder-for="${imageUrl}"]`
+                  `[data-placeholder-for="${imageUrl}"]`,
                 );
                 if (placeholder) {
                   placeholder.style.display = "none";
@@ -462,6 +481,73 @@ const EmployeeHeader = ({
               </Box>
             </Box>
 
+            {developmentalAssignment ? (
+              <Box>
+                <Box
+                  sx={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "#dc2626 !important",
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                    textTransform: "uppercase",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    mb: 0.5,
+                  }}>
+                  UNDER DA{" "}
+                  <TrendingUpIcon
+                    sx={{ fontSize: "1rem", color: "#dc2626 !important" }}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    fontSize: "0.875rem",
+                    fontWeight: 400,
+                    color: "#dc2626 !important",
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}>
+                  Position: {developmentalAssignment.position_title || "N/A"}
+                </Box>
+              </Box>
+            ) : (
+              <Box>
+                <Box
+                  component="h3"
+                  sx={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    mb: 0,
+                    m: 0,
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}>
+                  EMAIL ADDRESS
+                </Box>
+                <Box
+                  sx={{
+                    fontSize: "0.875rem",
+                    fontWeight: 400,
+                    color: "#111827",
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}>
+                  {getEmailAddress()}
+                </Box>
+              </Box>
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: developmentalAssignment ? "2fr 1fr" : "1fr",
+              gap: 3,
+            }}>
             <Box>
               <Box
                 component="h3"
@@ -474,7 +560,7 @@ const EmployeeHeader = ({
                   m: 0,
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
-                EMAIL ADDRESS
+                FULL ADDRESS
               </Box>
               <Box
                 sx={{
@@ -483,34 +569,38 @@ const EmployeeHeader = ({
                   color: "#111827",
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                 }}>
-                {getEmailAddress()}
+                {formatAddress()}
               </Box>
             </Box>
-          </Box>
 
-          <Box>
-            <Box
-              component="h3"
-              sx={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "#6b7280",
-                textTransform: "uppercase",
-                mb: 0,
-                m: 0,
-                fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-              }}>
-              FULL ADDRESS
-            </Box>
-            <Box
-              sx={{
-                fontSize: "0.875rem",
-                fontWeight: 400,
-                color: "#111827",
-                fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-              }}>
-              {formatAddress()}
-            </Box>
+            {developmentalAssignment && (
+              <Box>
+                <Box
+                  component="h3"
+                  sx={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    mb: 0,
+                    m: 0,
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}>
+                  EMAIL ADDRESS
+                </Box>
+                <Box
+                  sx={{
+                    fontSize: "0.875rem",
+                    fontWeight: 400,
+                    color: "#111827",
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  }}>
+                  {getEmailAddress()}
+                </Box>
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>

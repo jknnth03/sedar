@@ -49,43 +49,45 @@ import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdi
 import MRFMonitoring from "../../pages/monitoring/MRF/MRFMonitoring.jsx";
 import DataChangeMonitoring from "../../pages/monitoring/datachange/DataChangeMonitoring.jsx";
 import MDAMonitoring from "../../pages/monitoring/MDA/MDAMonitoring.jsx";
-import MdaApproval from "../../pages/approvals/mdaApproval/MdaApproval.jsx";
 import CatOne from "../../pages/developmental-assignment/catone/CatOne.jsx";
 import CatTwo from "../../pages/developmental-assignment/cattwo/CatTwo.jsx";
 import Pdp from "../../pages/developmental-assignment/pdp/Pdp.jsx";
 import CatOneApproval from "../../pages/approvals/da-task/CatOneApproval.jsx";
 import CatTwoApproval from "../../pages/approvals/da-task/CatTwoApproval.jsx";
 import PdpApproval from "../../pages/approvals/da-task/PdpApproval.jsx";
-import DAFormApproval from "../../pages/approvals/daform/DAFormApproval.jsx";
 import WorkWeeks from "../../pages/extras/WorkWeeks.jsx";
 import WorkHours from "../../pages/extras/WorkHours.jsx";
 import RestDays from "../../pages/extras/RestDays.jsx";
 import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
 import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
 import MDADA from "../../pages/forms/mda/mda-da/MDADA.jsx";
-import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
 import DARecommendation from "../../pages/forms/developmentalAssignmentForm/darecommendation/DARecommendation.jsx";
 import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
 import Redirect from "../../pages/login/Redirect.jsx";
 import CatOneTemplate from "../../pages/assessment-templates/CatOneTemplate.jsx";
 import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx";
 import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
-import DaRecommendationApproval from "../../pages/approvals/da-recommendation/DaRecommendationApproval.jsx";
 import EVALUATIONFORM from "../../pages/forms/Evaluation/evaluation-form/EvaluationForm.jsx";
 import MDARecommendation from "../../pages/forms/mda/mdarecommendation/MDARecommendation.jsx";
-import MdaRecommendationApproval from "../../pages/approvals/mdaRecommendation/MDARecommendationApproval.jsx";
-import EvaluationApproval from "../../pages/approvals/evaluationApproval/EvaluationApproval.jsx";
 import EvaluationRecommendation from "../../pages/forms/Evaluation/evaluationRecommendation/EvaluationRecommendation.jsx";
-import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
 import MDAEvaluationRecommendation from "../../pages/forms/mda/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
-import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
 import BiAnnualPerformance from "../../pages/forms/biAnnualPerformance/BiAnnualPerformance.jsx";
 import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.jsx";
 import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualApproval.jsx";
 import Nationalities from "../../pages/extras/Nationalities.jsx";
 import DevelopmentalAssignmentForm from "../../pages/forms/developmentalAssignmentForm/DevelopmentAssignmentForm.jsx";
-import Evaluation from "../../pages/forms/Evaluation/Evaluation.jsx";
 import MasterDataAuthority from "../../pages/forms/mda/MasterDataAuthority.jsx";
+import MdaApproval from "../../pages/approvals/mda/mdaApproval/MdaApproval.jsx";
+import DAMDAApproval from "../../pages/approvals/mda/daMDAApproval/DAMDAApproval.jsx";
+import MdaRecommendationApproval from "../../pages/approvals/mda/mdaRecommendation/MDARecommendationApproval.jsx";
+import MDAEvaluationApproval from "../../pages/approvals/mda/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
+import DAFormApproval from "../../pages/approvals/developmentalAssignment/daform/DAFormApproval.jsx";
+import DaRecommendationApproval from "../../pages/approvals/developmentalAssignment/da-recommendation/DaRecommendationApproval.jsx";
+import EvaluationApproval from "../../pages/approvals/evaluation/evaluationFormApproval/EvaluationApproval.jsx";
+import EvaluationRecommendationApproval from "../../pages/approvals/evaluation/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
+import MDA from "../../pages/approvals/mda/MDA.jsx";
+import DevelopmentalAssignment from "../../pages/approvals/developmentalAssignment/DevelopmentalAssignment.jsx";
+import Evaluation from "../../pages/approvals/evaluation/Evaluation.jsx";
 
 export const ROUTES = [
   {
@@ -397,74 +399,115 @@ export const ROUTES = [
         },
       },
       {
-        id: "APPROVING.MDAAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDAAPPROVAL.path}`,
-        element: <MdaApproval />,
+        id: "APPROVING.MDA",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDA.path}`,
+        element: <MDA />,
         handle: {
-          permission: MODULES.APPROVING.children.MDAAPPROVAL.permissionId,
+          permission: MODULES.APPROVING.children.MDA.permissionId,
         },
+        children: [
+          {
+            id: "APPROVING.MDA.MDAAPPROVAL",
+            path: "mdaapproval",
+            element: <MdaApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.MDA.children.MDAAPPROVAL
+                  .permissionId,
+            },
+          },
+          {
+            id: "APPROVING.MDA.DAMDAAPPROVAL",
+            path: "damdaapproval",
+            element: <DAMDAApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.MDA.children.DAMDAAPPROVAL
+                  .permissionId,
+            },
+          },
+          {
+            id: "APPROVING.MDA.MDARECOMMENDATIONAPPROVAL",
+            path: "mdarecommendationapproval",
+            element: <MdaRecommendationApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.MDA.children
+                  .MDARECOMMENDATIONAPPROVAL.permissionId,
+            },
+          },
+          {
+            id: "APPROVING.MDA.MDAEVALUATIONAPPROVAL",
+            path: "mdaevaluationapproval",
+            element: <MDAEvaluationApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.MDA.children.MDAEVALUATIONAPPROVAL
+                  .permissionId,
+            },
+          },
+        ],
       },
       {
-        id: "APPROVING.DAMDAAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DAMDAAPPROVAL.path}`,
-        element: <DAMDAApproval />,
-        handle: {
-          permission: MODULES.APPROVING.children.DAMDAAPPROVAL.permissionId,
-        },
-      },
-      {
-        id: "APPROVING.DAFORMAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DAFORMAPPROVAL.path}`,
-        element: <DAFormApproval />,
-        handle: {
-          permission: MODULES.APPROVING.children.DAFORMAPPROVAL.permissionId,
-        },
-      },
-      {
-        id: "APPROVING.DARECOMMENDATIONAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.path}`,
-        element: <DaRecommendationApproval />,
+        id: "APPROVING.DEVELOPMENTALASSIGNMENT",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.DEVELOPMENTALASSIGNMENT.path}`,
+        element: <DevelopmentalAssignment />,
         handle: {
           permission:
-            MODULES.APPROVING.children.DARECOMMENDATIONAPPROVAL.permissionId,
+            MODULES.APPROVING.children.DEVELOPMENTALASSIGNMENT.permissionId,
         },
+        children: [
+          {
+            id: "APPROVING.DEVELOPMENTALASSIGNMENT.DAFORMAPPROVAL",
+            path: "daformapproval",
+            element: <DAFormApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.DEVELOPMENTALASSIGNMENT.children
+                  .DAFORMAPPROVAL.permissionId,
+            },
+          },
+          {
+            id: "APPROVING.DEVELOPMENTALASSIGNMENT.DARECOMMENDATIONAPPROVAL",
+            path: "darecommendationapproval",
+            element: <DaRecommendationApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.DEVELOPMENTALASSIGNMENT.children
+                  .DARECOMMENDATIONAPPROVAL.permissionId,
+            },
+          },
+        ],
       },
       {
-        id: "APPROVING.EVALUATIONAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATIONAPPROVAL.path}`,
-        element: <EvaluationApproval />,
+        id: "APPROVING.EVALUATION",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATION.path}`,
+        element: <Evaluation />,
         handle: {
-          permission:
-            MODULES.APPROVING.children.EVALUATIONAPPROVAL.permissionId,
+          permission: MODULES.APPROVING.children.EVALUATION.permissionId,
         },
-      },
-      {
-        id: "APPROVING.EVALUATIONRECOMMENDATIONAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL.path}`,
-        element: <EvaluationRecommendationApproval />,
-        handle: {
-          permission:
-            MODULES.APPROVING.children.EVALUATIONRECOMMENDATIONAPPROVAL
-              .permissionId,
-        },
-      },
-      {
-        id: "APPROVING.MDAEVALUATIONAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDAEVALUATIONAPPROVAL.path}`,
-        element: <MDAEvaluationApproval />,
-        handle: {
-          permission:
-            MODULES.APPROVING.children.MDAEVALUATIONAPPROVAL.permissionId,
-        },
-      },
-      {
-        id: "APPROVING.MDARECOMMENDATIONAPPROVAL",
-        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.path}`,
-        element: <MdaRecommendationApproval />,
-        handle: {
-          permission:
-            MODULES.APPROVING.children.MDARECOMMENDATIONAPPROVAL.permissionId,
-        },
+        children: [
+          {
+            id: "APPROVING.EVALUATION.EVALUATIONAPPROVAL",
+            path: "evaluationapproval",
+            element: <EvaluationApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.EVALUATION.children
+                  .EVALUATIONAPPROVAL.permissionId,
+            },
+          },
+          {
+            id: "APPROVING.EVALUATION.EVALUATIONRECOMMENDATIONAPPROVAL",
+            path: "evaluationrecommendationapproval",
+            element: <EvaluationRecommendationApproval />,
+            handle: {
+              permission:
+                MODULES.APPROVING.children.EVALUATION.children
+                  .EVALUATIONRECOMMENDATIONAPPROVAL.permissionId,
+            },
+          },
+        ],
       },
       {
         id: "APPROVING.BIANNUALAPPROVAL",

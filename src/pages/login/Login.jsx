@@ -47,13 +47,13 @@ export const useUserPermissions = () => {
 
   const hasAnyPermission = (permissionList) => {
     return permissionList.some((permission) =>
-      permissions.includes(permission)
+      permissions.includes(permission),
     );
   };
 
   const hasAllPermissions = (permissionList) => {
     return permissionList.every((permission) =>
-      permissions.includes(permission)
+      permissions.includes(permission),
     );
   };
 
@@ -139,7 +139,7 @@ const LoginPage = () => {
             roleId: res.user.role.id,
             roleName: res.user.role.name,
             accessPermissions: res.user.role.access_permissions || [],
-          })
+          }),
         );
       }
 
@@ -147,7 +147,7 @@ const LoginPage = () => {
         setCredentials({
           user: res.user,
           token: res.token,
-        })
+        }),
       );
 
       setShouldFetchDashboard(true);

@@ -234,7 +234,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Manpower Form",
           path: "submissionapproval",
           icon: <TaskIcon sx={iconStyles.child} />,
-
           notificationCount: counts.manpowerFormApprovals,
         },
         REGISTRATIONAPPROVAL: {
@@ -243,7 +242,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Registration",
           path: "registrationapproval",
           icon: <HowToRegIcon sx={iconStyles.child} />,
-
           notificationCount: counts.registrationApprovals,
         },
         DATACHANGEAPPROVAL: {
@@ -252,80 +250,109 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "201 Data Change",
           path: "datachangeapproval",
           icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
-
           notificationCount: counts.dataChangeFormApprovals,
         },
-        DAFORMAPPROVAL: {
-          name: "DA Form",
-          permissionId: "APPROVING.DAFORMAPPROVAL",
-          displayName: "DA Form",
-          path: "daformapproval",
-          icon: <DescriptionIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.daFormApprovals,
-        },
-        DARECOMMENDATIONAPPROVAL: {
-          name: "DA Recommendation",
-          permissionId: "APPROVING.DARECOMMENDATIONAPPROVAL",
-          displayName: "DA Recommendation",
-          path: "darecommendationapproval",
-          icon: <DescriptionIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.daRecommendationApprovals,
-        },
-        EVALUATIONAPPROVAL: {
-          name: "Evaluation Form",
-          permissionId: "APPROVING.EVALUATIONAPPROVAL",
-          displayName: "Evaluation Form",
-          path: "evaluationapproval",
-          icon: <RateReviewIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.probationaryFormApprovals,
-        },
-        EVALUATIONRECOMMENDATIONAPPROVAL: {
-          name: "Evaluation Recommendation",
-          permissionId: "APPROVING.EVALUATIONRECOMMENDATIONAPPROVAL",
-          displayName: "Evaluation Recommendation",
-          path: "evaluationrecommendationapproval",
-          icon: <RecommendIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.probationaryRecommendationApprovals,
-        },
-        MDAEVALUATIONAPPROVAL: {
-          name: "MDA (For Evaluation)",
-          permissionId: "APPROVING.MDAEVALUATIONAPPROVAL",
-          displayName: "MDA (For Evaluation)",
-          path: "mdaevaluationapproval",
-          icon: <RateReviewIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.probationaryMdaApprovals,
-        },
-        MDAAPPROVAL: {
-          name: "MDA (For 201 Datachange)",
-          permissionId: "APPROVING.MDAAPPROVAL",
-          displayName: "MDA (For 201 Datachange)",
-          path: "mdaapproval",
-          icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.mdaApprovals,
-        },
-        DAMDAAPPROVAL: {
-          name: "MDA (For DA)",
-          permissionId: "APPROVING.DAMDAAPPROVAL",
-          displayName: "MDA (For DA)",
-          path: "damdaapproval",
+        MDA: {
+          name: "MDA",
+          permissionId: "APPROVING.MDA",
+          displayName: "MDA",
+          path: "mda",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-
-          notificationCount: counts.daMdaApprovals,
+          notificationCount:
+            counts.mdaApprovals +
+            counts.daMdaApprovals +
+            counts.probationaryMdaApprovals,
+          children: {
+            MDAAPPROVAL: {
+              name: "MDA (For 201 Datachange)",
+              permissionId: "APPROVING.MDA.MDAAPPROVAL",
+              displayName: "MDA (For 201 Datachange)",
+              path: "mdaapproval",
+              icon: <PublishedWithChangesIcon sx={iconStyles.child} />,
+              notificationCount: counts.mdaApprovals,
+            },
+            DAMDAAPPROVAL: {
+              name: "MDA (For DA)",
+              permissionId: "APPROVING.MDA.DAMDAAPPROVAL",
+              displayName: "MDA (For DA)",
+              path: "damdaapproval",
+              icon: <VerifiedIcon sx={iconStyles.child} />,
+              notificationCount: counts.daMdaApprovals,
+            },
+            MDARECOMMENDATIONAPPROVAL: {
+              name: "MDA (Recommendation)",
+              permissionId: "APPROVING.MDA.MDARECOMMENDATIONAPPROVAL",
+              displayName: "MDA (Recommendation)",
+              path: "mdarecommendationapproval",
+              icon: <RecommendIcon sx={iconStyles.child} />,
+              notificationCount: 0,
+            },
+            MDAEVALUATIONAPPROVAL: {
+              name: "MDA (For Evaluation)",
+              permissionId: "APPROVING.MDA.MDAEVALUATIONAPPROVAL",
+              displayName: "MDA (For Evaluation)",
+              path: "mdaevaluationapproval",
+              icon: <RateReviewIcon sx={iconStyles.child} />,
+              notificationCount: counts.probationaryMdaApprovals,
+            },
+          },
         },
-        MDARECOMMENDATIONAPPROVAL: {
-          name: "MDA (Recommendation)",
-          permissionId: "APPROVING.MDARECOMMENDATIONAPPROVAL",
-          displayName: "MDA (Recommendation)",
-          path: "mdarecommendationapproval",
-          icon: <RecommendIcon sx={iconStyles.child} />,
-
-          notificationCount: 0,
+        DEVELOPMENTALASSIGNMENT: {
+          name: "Developmental Assignment",
+          permissionId: "APPROVING.DEVELOPMENTALASSIGNMENT",
+          displayName: "Developmental Assignment",
+          path: "developmentalassignment",
+          icon: <DescriptionIcon sx={iconStyles.child} />,
+          notificationCount:
+            counts.daFormApprovals + counts.daRecommendationApprovals,
+          children: {
+            DAFORMAPPROVAL: {
+              name: "DA Form",
+              permissionId: "APPROVING.DEVELOPMENTALASSIGNMENT.DAFORMAPPROVAL",
+              displayName: "DA Form",
+              path: "daformapproval",
+              icon: <DescriptionIcon sx={iconStyles.child} />,
+              notificationCount: counts.daFormApprovals,
+            },
+            DARECOMMENDATIONAPPROVAL: {
+              name: "DA Recommendation",
+              permissionId:
+                "APPROVING.DEVELOPMENTALASSIGNMENT.DARECOMMENDATIONAPPROVAL",
+              displayName: "DA Recommendation",
+              path: "darecommendationapproval",
+              icon: <RecommendIcon sx={iconStyles.child} />,
+              notificationCount: counts.daRecommendationApprovals,
+            },
+          },
+        },
+        EVALUATION: {
+          name: "Evaluation",
+          permissionId: "APPROVING.EVALUATION",
+          displayName: "Evaluation",
+          path: "evaluation",
+          icon: <RateReviewIcon sx={iconStyles.child} />,
+          notificationCount:
+            counts.probationaryFormApprovals +
+            counts.probationaryRecommendationApprovals,
+          children: {
+            EVALUATIONAPPROVAL: {
+              name: "Evaluation Form",
+              permissionId: "APPROVING.EVALUATION.EVALUATIONAPPROVAL",
+              displayName: "Evaluation Form",
+              path: "evaluationapproval",
+              icon: <RateReviewIcon sx={iconStyles.child} />,
+              notificationCount: counts.probationaryFormApprovals,
+            },
+            EVALUATIONRECOMMENDATIONAPPROVAL: {
+              name: "Evaluation Recommendation",
+              permissionId:
+                "APPROVING.EVALUATION.EVALUATIONRECOMMENDATIONAPPROVAL",
+              displayName: "Evaluation Recommendation",
+              path: "evaluationrecommendationapproval",
+              icon: <RecommendIcon sx={iconStyles.child} />,
+              notificationCount: counts.probationaryRecommendationApprovals,
+            },
+          },
         },
         BIANNUALAPPROVAL: {
           name: "Bi-Annual Approval",
@@ -333,7 +360,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Bi-Annual Approval",
           path: "biannualapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-
           notificationCount: counts.performanceApprovals,
         },
         CATONEAPPROVAL: {
@@ -362,7 +388,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
-
     REQUEST: {
       name: "Requisition Form",
       permissionId: "REQUEST",

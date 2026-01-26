@@ -19,7 +19,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import HelpIcon from "@mui/icons-material/Help";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import * as styles from "../daform/DAFormApprovalStyles";
+import * as styles from "../../developmentalAssignment/daform/DAFormApprovalStyles";
 
 const EvaluationApprovalDialog = ({
   open,

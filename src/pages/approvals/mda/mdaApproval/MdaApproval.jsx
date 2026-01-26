@@ -27,24 +27,23 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
   useGetMyMdaApprovalsQuery,
   useGetMdaApprovalByIdQuery,
   useApproveMdaSubmissionMutation,
   useRejectMdaSubmissionMutation,
-} from "../../../features/api/approving/mdaApprovalApi.js";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../config";
+} from "../../../../features/api/approving/mdaApprovalApi.js";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
+import { createSubmissionApprovalStyles } from "../../mrfApproval/SubmissionApprovalStyles.jsx";
 import MdaApprovalDialog from "./MdaApprovalDialog.jsx";
-import NoDataFound from "../../NoDataFound";
+import NoDataFound from "../../../NoDataFound";
 import {
   styles,
   StyledTabs,
   StyledTab,
-} from "../../forms/manpowerform/FormSubmissionStyles";
+} from "../../../forms/manpowerform/FormSubmissionStyles";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (

@@ -23,34 +23,36 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import "../../../pages/GeneralStyle.scss";
+import "../../../../pages/GeneralStyle.scss";
 import {
-  useGetMyProbationaryRecommendationApprovalsQuery,
-  useGetProbationaryRecommendationApprovalByIdQuery,
-  useApproveRecommendationMutation,
-  useRejectRecommendationMutation,
-} from "../../../features/api/approving/evaluationRecommendationApprovalApi.js";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../config";
+  useGetMyMdaRecommendationApprovalsQuery,
+  useGetMdaRecommendationApprovalByIdQuery,
+  useApproveMdaRecommendationSubmissionMutation,
+  useRejectMdaRecommendationSubmissionMutation,
+} from "../../../../features/api/approving/mdaRecommendationApproval.js";
+import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
+import { CONSTANT } from "../../../../config";
 import dayjs from "dayjs";
-import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
-import EvaluationRecommendationApprovalDialog from "./EvaluationRecommendationApprovalDialog.jsx";
-import NoDataFound from "../../NoDataFound";
+import { createSubmissionApprovalStyles } from "../../mrfApproval/SubmissionApprovalStyles.jsx";
+import MdaRecommendationApprovalDialog from "./MdaRecommendationApprovalDialog.jsx";
+import NoDataFound from "../../../NoDataFound";
 import {
-  styles,
-  StyledTabs,
   StyledTab,
-} from "../../forms/manpowerform/FormSubmissionStyles";
+  StyledTabs,
+  styles,
+} from "../../../forms/manpowerform/formSubmissionStyles.jsx";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`evaluation-recommendation-approval-tabpanel-${index}`}
-      aria-labelledby={`evaluation-recommendation-approval-tab-${index}`}
+      id={`mda-recommendation-approval-tabpanel-${index}`}
+      aria-labelledby={`mda-recommendation-approval-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -96,9 +98,7 @@ const CustomSearchBar = ({
       }}>
       <TextField
         placeholder={
-          isVerySmall
-            ? "Search..."
-            : "Search Evaluation Recommendation Approvals..."
+          isVerySmall ? "Search..." : "Search MDA Recommendation Approvals..."
         }
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
@@ -156,7 +156,7 @@ const CustomSearchBar = ({
   );
 };
 
-const EvaluationRecommendationApprovalTable = ({
+const MdaRecommendationApprovalTable = ({
   approvalStatus,
   searchQuery,
   isMobile,
@@ -176,6 +176,7 @@ const EvaluationRecommendationApprovalTable = ({
       status: "active",
       approval_status: approvalStatus,
       pagination: true,
+      type: "da",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -186,18 +187,18 @@ const EvaluationRecommendationApprovalTable = ({
   }, [debounceValue, page, rowsPerPage, approvalStatus]);
 
   const {
-    data: evaluationRecommendationApprovalsData,
+    data: mdaRecommendationApprovalsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetMyProbationaryRecommendationApprovalsQuery(queryParams, {
+  } = useGetMyMdaRecommendationApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const evaluationRecommendationApprovalsList = useMemo(
-    () => evaluationRecommendationApprovalsData?.result?.data || [],
-    [evaluationRecommendationApprovalsData],
+  const mdaRecommendationApprovalsList = useMemo(
+    () => mdaRecommendationApprovalsData?.result?.data || [],
+    [mdaRecommendationApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -256,9 +257,7 @@ const EvaluationRecommendationApprovalTable = ({
           stickyHeader
           sx={{
             height:
-              evaluationRecommendationApprovalsList.length === 0
-                ? "100%"
-                : "auto",
+              mdaRecommendationApprovalsList.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -286,25 +285,14 @@ const EvaluationRecommendationApprovalTable = ({
               </TableCell>
               <TableCell
                 sx={{
-                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
+                  width: isVerySmall ? "150px" : isMobile ? "180px" : "220px",
                   minWidth: isVerySmall
-                    ? "120px"
+                    ? "150px"
                     : isMobile
-                      ? "150px"
-                      : "180px",
+                      ? "180px"
+                      : "220px",
                 }}>
-                START DATE
-              </TableCell>
-              <TableCell
-                sx={{
-                  width: isVerySmall ? "120px" : isMobile ? "150px" : "180px",
-                  minWidth: isVerySmall
-                    ? "120px"
-                    : isMobile
-                      ? "150px"
-                      : "180px",
-                }}>
-                END DATE
+                {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
               </TableCell>
               <TableCell
                 sx={{
@@ -333,9 +321,7 @@ const EvaluationRecommendationApprovalTable = ({
           <TableBody
             sx={{
               height:
-                evaluationRecommendationApprovalsList.length === 0
-                  ? "100%"
-                  : "auto",
+                mdaRecommendationApprovalsList.length === 0 ? "100%" : "auto",
             }}>
             {isLoadingState ? (
               <TableRow sx={{ height: "100%" }}>
@@ -362,8 +348,8 @@ const EvaluationRecommendationApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : evaluationRecommendationApprovalsList.length > 0 ? (
-              evaluationRecommendationApprovalsList.map((approval) => {
+            ) : mdaRecommendationApprovalsList.length > 0 ? (
+              mdaRecommendationApprovalsList.map((approval) => {
                 return (
                   <TableRow
                     key={approval.id}
@@ -391,19 +377,13 @@ const EvaluationRecommendationApprovalTable = ({
                       }}>
                       {approval.employee_name || "-"}
                     </TableCell>
-                    <TableCell>
-                      {approval.probation_start_date
-                        ? dayjs(approval.probation_start_date).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
-                          )
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {approval.probation_end_date
-                        ? dayjs(approval.probation_end_date).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
-                          )
-                        : "-"}
+                    <TableCell
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                      {approval.movement_type || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -495,7 +475,7 @@ const EvaluationRecommendationApprovalTable = ({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={evaluationRecommendationApprovalsData?.result?.total || 0}
+          count={mdaRecommendationApprovalsData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={Math.max(0, page - 1)}
           onPageChange={handlePageChange}
@@ -513,7 +493,7 @@ const EvaluationRecommendationApprovalTable = ({
   );
 };
 
-const EvaluationRecommendationApproval = () => {
+const MdaRecommendationApproval = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -543,22 +523,22 @@ const EvaluationRecommendationApproval = () => {
   const { data: dashboardData, refetch: refetchDashboard } =
     useShowDashboardQuery();
 
-  const [approveRecommendation, { isLoading: approveLoading }] =
-    useApproveRecommendationMutation();
-  const [rejectRecommendation, { isLoading: rejectLoading }] =
-    useRejectRecommendationMutation();
+  const [approveMdaRecommendationSubmission, { isLoading: approveLoading }] =
+    useApproveMdaRecommendationSubmissionMutation();
+  const [rejectMdaRecommendationSubmission, { isLoading: rejectLoading }] =
+    useRejectMdaRecommendationSubmissionMutation();
 
   const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
-    useGetProbationaryRecommendationApprovalByIdQuery(selectedApprovalId, {
+    useGetMdaRecommendationApprovalByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
 
-  const probationaryRecommendationCounts = useMemo(() => {
-    const probationaryRecommendation =
-      dashboardData?.result?.approval?.probationary?.recommendation || 0;
+  const mdaRecommendationCounts = useMemo(() => {
+    const daRecommendation =
+      dashboardData?.result?.approval?.da?.recommendation || 0;
 
     return {
-      forApproval: probationaryRecommendation,
+      forApproval: daRecommendation,
       approved: 0,
     };
   }, [dashboardData]);
@@ -597,9 +577,10 @@ const EvaluationRecommendationApproval = () => {
           comments,
         };
 
-        await approveRecommendation(payload).unwrap();
+        const result =
+          await approveMdaRecommendationSubmission(payload).unwrap();
 
-        enqueueSnackbar("Evaluation Recommendation approved successfully!", {
+        enqueueSnackbar("MDA Recommendation approved successfully!", {
           variant: "success",
         });
         refetchDashboard();
@@ -607,14 +588,19 @@ const EvaluationRecommendationApproval = () => {
         setSelectedApprovalId(null);
       } catch (error) {
         enqueueSnackbar(
-          error?.data?.message || "Failed to approve Evaluation Recommendation",
+          error?.data?.message || "Failed to approve MDA Recommendation",
           {
             variant: "error",
           },
         );
       }
     },
-    [detailsDialog, approveRecommendation, enqueueSnackbar, refetchDashboard],
+    [
+      detailsDialog,
+      approveMdaRecommendationSubmission,
+      enqueueSnackbar,
+      refetchDashboard,
+    ],
   );
 
   const handleReject = useCallback(
@@ -635,9 +621,10 @@ const EvaluationRecommendationApproval = () => {
           reason,
         };
 
-        await rejectRecommendation(payload).unwrap();
+        const result =
+          await rejectMdaRecommendationSubmission(payload).unwrap();
 
-        enqueueSnackbar("Evaluation Recommendation returned successfully!", {
+        enqueueSnackbar("MDA Recommendation returned successfully!", {
           variant: "success",
         });
         refetchDashboard();
@@ -645,14 +632,19 @@ const EvaluationRecommendationApproval = () => {
         setSelectedApprovalId(null);
       } catch (error) {
         enqueueSnackbar(
-          error?.data?.message || "Failed to return Evaluation Recommendation",
+          error?.data?.message || "Failed to return MDA Recommendation",
           {
             variant: "error",
           },
         );
       }
     },
-    [detailsDialog, rejectRecommendation, enqueueSnackbar, refetchDashboard],
+    [
+      detailsDialog,
+      rejectMdaRecommendationSubmission,
+      enqueueSnackbar,
+      refetchDashboard,
+    ],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -678,19 +670,19 @@ const EvaluationRecommendationApproval = () => {
     {
       label: "FOR APPROVAL",
       approvalStatus: "pending",
-      badgeCount: probationaryRecommendationCounts.forApproval,
+      badgeCount: mdaRecommendationCounts.forApproval,
     },
     {
       label: "APPROVED",
       approvalStatus: "approved",
-      badgeCount: probationaryRecommendationCounts.approved,
+      badgeCount: mdaRecommendationCounts.approved,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `evaluation-recommendation-approval-tab-${index}`,
-      "aria-controls": `evaluation-recommendation-approval-tabpanel-${index}`,
+      id: `mda-recommendation-approval-tab-${index}`,
+      "aria-controls": `mda-recommendation-approval-tabpanel-${index}`,
     };
   };
 
@@ -716,7 +708,7 @@ const EvaluationRecommendationApproval = () => {
                 ...(isVerySmall && styles.headerTitleTextVerySmall),
                 paddingRight: "14px",
               }}>
-              {isVerySmall ? "EVAL REC" : "EVALUATION RECOMMENDATION APPROVAL"}
+              {isVerySmall ? "MDA REC" : "MDA RECOMMENDATION APPROVAL"}
             </Typography>
           </Box>
 
@@ -731,7 +723,7 @@ const EvaluationRecommendationApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="Evaluation Recommendation Approval tabs"
+            aria-label="MDA Recommendation Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile
@@ -766,7 +758,7 @@ const EvaluationRecommendationApproval = () => {
         <Box sx={styles.tabsContainer}>
           {tabsData.map((tab, index) => (
             <TabPanel key={index} value={activeTab} index={index}>
-              <EvaluationRecommendationApprovalTable
+              <MdaRecommendationApprovalTable
                 approvalStatus={tab.approvalStatus}
                 searchQuery={searchQuery}
                 isMobile={isMobile}
@@ -778,7 +770,7 @@ const EvaluationRecommendationApproval = () => {
           ))}
         </Box>
 
-        <EvaluationRecommendationApprovalDialog
+        <MdaRecommendationApprovalDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
           approval={selectedApprovalData?.result || detailsDialog.submission}
@@ -792,4 +784,4 @@ const EvaluationRecommendationApproval = () => {
   );
 };
 
-export default EvaluationRecommendationApproval;
+export default MdaRecommendationApproval;
