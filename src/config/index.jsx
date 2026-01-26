@@ -415,36 +415,50 @@ export const createEnhancedModules = (dashboardData = {}) => {
           },
         },
         MASTERDATAAUTHORITY: {
-          name: "MDA (For Data Change)",
+          name: "Master Data Authority",
           permissionId: "REQUEST.MASTERDATAAUTHORITY",
-          displayName: "MDA (For Data Change)",
+          displayName: "Master Data Authority",
           path: "masterdataauthority",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
-          notificationCount: counts.mdaDataChangeTotal,
-        },
-        MDADA: {
-          name: "MDA (For DA)",
-          permissionId: "REQUEST.MDADA",
-          displayName: "MDA (For DA)",
-          path: "mdada",
-          icon: <DescriptionIcon sx={iconStyles.child} />,
-          notificationCount: counts.mdaDaTotal,
-        },
-        MDARECOMMENDATION: {
-          name: "MDA (For Recommendation)",
-          permissionId: "REQUEST.MDARECOMMENDATION",
-          displayName: "MDA (For Recommendation)",
-          path: "mdarecommendation",
-          icon: <VerifiedIcon sx={iconStyles.child} />,
-          notificationCount: 0,
-        },
-        MDAEVALUATIONRECOMMENDATION: {
-          name: "MDA (For Evaluation)",
-          permissionId: "REQUEST.MDAEVALUATIONRECOMMENDATION",
-          displayName: "MDA (For Evaluation)",
-          path: "mdaevaluationrecommendation",
-          icon: <RateReviewIcon sx={iconStyles.child} />,
-          notificationCount: counts.mdaProbationaryTotal,
+          notificationCount:
+            counts.mdaDataChangeTotal +
+            counts.mdaDaTotal +
+            counts.mdaProbationaryTotal,
+          children: {
+            MDAFORM: {
+              name: "MDA (For Data Change)",
+              permissionId: "REQUEST.MASTERDATAAUTHORITY.MDAFORM",
+              displayName: "MDA (For Data Change)",
+              path: "mdaform",
+              icon: <CloudSyncIcon sx={iconStyles.child} />,
+              notificationCount: counts.mdaDataChangeTotal,
+            },
+            MDADA: {
+              name: "MDA (For DA)",
+              permissionId: "REQUEST.MASTERDATAAUTHORITY.MDADA",
+              displayName: "MDA (For DA)",
+              path: "mdada",
+              icon: <DescriptionIcon sx={iconStyles.child} />,
+              notificationCount: counts.mdaDaTotal,
+            },
+            MDARECOMMENDATION: {
+              name: "MDA (For Recommendation)",
+              permissionId: "REQUEST.MASTERDATAAUTHORITY.MDARECOMMENDATION",
+              displayName: "MDA (For Recommendation)",
+              path: "mdarecommendation",
+              icon: <VerifiedIcon sx={iconStyles.child} />,
+              notificationCount: 0,
+            },
+            MDAEVALUATIONRECOMMENDATION: {
+              name: "MDA (For Evaluation)",
+              permissionId:
+                "REQUEST.MASTERDATAAUTHORITY.MDAEVALUATIONRECOMMENDATION",
+              displayName: "MDA (For Evaluation)",
+              path: "mdaevaluationrecommendation",
+              icon: <RateReviewIcon sx={iconStyles.child} />,
+              notificationCount: counts.mdaProbationaryTotal,
+            },
+          },
         },
         PENDINGREGISTRATION: {
           name: "Registration",

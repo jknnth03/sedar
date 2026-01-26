@@ -13,21 +13,32 @@ import {
   Tooltip,
   Skeleton,
   useTheme,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import RestoreIcon from "@mui/icons-material/Restore";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import dayjs from "dayjs";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../../forms/mda/mdaform/MDAHistoryDialog";
-import NoDataFound from "../../NoDataFound";
+import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
+import NoDataFound from "../../../NoDataFound";
+import { styles } from "../../manpowerform/formSubmissionStyles";
 
-const MDAMonitoringTable = ({
-  submissionsList,
+const DAForMDAProcessingTable = ({
+  submissionsList = [],
   isLoadingState,
   error,
   handleRowClick,
+  handleMenuOpen,
+  handleMenuClose,
+  handleEditSubmission,
+  menuAnchor = {},
   searchQuery,
-  statusFilter,
-  showRequestor = false,
+  selectedFilters = [],
+  showArchived = false,
+  hideStatusColumn = false,
+  forMDAProcessing = false,
+  onCreateMDA,
+  onCancel,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
@@ -40,38 +51,30 @@ const MDAMonitoringTable = ({
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
           {submission.employee_name}
         </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontSize: "14px" }}>
-          {submission.employee_number || ""}
-        </Typography>
+        {submission.employee_code && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "14px" }}>
+            {submission.employee_code}
+          </Typography>
+        )}
       </Box>
-    );
-  };
-
-  const getRequestor = (submission) => {
-    if (!submission?.activity_log || submission.activity_log.length === 0) {
-      return "-";
-    }
-
-    const requestorLog = submission.activity_log.find(
-      (log) => log?.actor?.title === "Requestor",
-    );
-
-    if (!requestorLog?.actor?.full_name) {
-      return "-";
-    }
-
-    return (
-      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
-        {requestorLog.actor.full_name}
-      </Typography>
     );
   };
 
   const renderStatusChip = (submission) => {
     const statusConfig = {
+      "pending final mda": {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "PENDING FINAL MDA",
+      },
+      "pending mda creation": {
+        color: "#f57c00",
+        bgColor: "#fff8e1",
+        label: "PENDING MDA CREATION",
+      },
       pending: {
         color: "#f57c00",
         bgColor: "#fff8e1",
@@ -101,16 +104,6 @@ const MDAMonitoringTable = ({
         color: "#d32f2f",
         bgColor: "#ffebee",
         label: "RETURNED",
-      },
-      awaiting_resubmission: {
-        color: "#ed6c02",
-        bgColor: "#fff4e5",
-        label: "AWAITING RESUBMISSION",
-      },
-      "awaiting resubmission": {
-        color: "#9c27b0",
-        bgColor: "#f3e5f5",
-        label: "AWAITING RESUBMISSION",
       },
     };
 
@@ -150,41 +143,61 @@ const MDAMonitoringTable = ({
     );
   };
 
-  const filteredSubmissions = React.useMemo(() => {
-    if (!statusFilter) return submissionsList;
-
-    const normalizedFilter = statusFilter.toUpperCase().replace(/_/g, " ");
-
-    return submissionsList.filter((submission) => {
-      const submissionStatus = submission.status
-        ?.toUpperCase()
-        .replace(/_/g, " ");
-      return submissionStatus === normalizedFilter;
-    });
-  }, [submissionsList, statusFilter]);
-
-  const getNoDataMessage = () => {
-    if (statusFilter) {
-      const statusLabels = {
-        PENDING: "pending",
-        APPROVED: "approved",
-        REJECTED: "rejected",
-        AWAITING_RESUBMISSION: "awaiting resubmission",
-        "AWAITING RESUBMISSION": "awaiting resubmission",
-        CANCELLED: "cancelled",
-      };
-      const statusLabel =
-        statusLabels[statusFilter] || statusFilter.toLowerCase();
-      return searchQuery
-        ? `No ${statusLabel} submissions found for "${searchQuery}"`
-        : `No ${statusLabel} submissions found`;
-    }
-    return searchQuery
-      ? `No results for "${searchQuery}"`
-      : "No submissions found";
+  const shouldShowActionsForSubmission = (submission) => {
+    const status = submission?.status?.toLowerCase();
+    return status === "pending final mda";
   };
 
-  const colSpan = 8;
+  const shouldShowActionsColumn = React.useMemo(() => {
+    if (!forMDAProcessing) return false;
+    return submissionsList.some((submission) =>
+      shouldShowActionsForSubmission(submission),
+    );
+  }, [forMDAProcessing, submissionsList]);
+
+  const renderActionMenu = (submission) => {
+    if (!forMDAProcessing || !handleMenuOpen || !handleMenuClose) return null;
+    if (!shouldShowActionsForSubmission(submission)) return null;
+
+    return (
+      <>
+        <IconButton onClick={(e) => handleMenuOpen(e, submission)} size="small">
+          <MoreVertIcon />
+        </IconButton>
+        <Menu
+          anchorEl={menuAnchor?.[submission.id]}
+          open={Boolean(menuAnchor?.[submission.id])}
+          onClose={() => handleMenuClose(submission.id)}>
+          <MenuItem
+            onClick={() => {
+              handleMenuClose(submission.id);
+              if (onCreateMDA) onCreateMDA(submission);
+            }}>
+            Create MDA
+          </MenuItem>
+          {handleEditSubmission && (
+            <MenuItem
+              onClick={() => {
+                handleMenuClose(submission.id);
+                handleEditSubmission(submission);
+              }}>
+              Edit Submission
+            </MenuItem>
+          )}
+        </Menu>
+      </>
+    );
+  };
+
+  const getNoDataMessage = () => {
+    if (searchQuery) {
+      return `No results for "${searchQuery}"`;
+    }
+    return "";
+  };
+
+  const totalColumns =
+    (hideStatusColumn ? 0 : 1) + (shouldShowActionsColumn ? 1 : 0) + 5;
 
   return (
     <>
@@ -193,34 +206,35 @@ const MDAMonitoringTable = ({
           stickyHeader
           sx={{
             minWidth: 1200,
-            height: filteredSubmissions.length === 0 ? "100%" : "auto",
+            height: submissionsList.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={styles.columnStyles.id}>REQUESTOR</TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
-              <TableCell sx={styles.columnStyles.formName}>
-                MOVEMENT TYPE
-              </TableCell>
               <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
-              <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
-              <TableCell sx={styles.columnStyles.dateCreated}>
-                EFFECTIVE DATE
+              <TableCell sx={styles.columnStyles.formName}>
+                CHARGING NAME
               </TableCell>
+              {!hideStatusColumn && (
+                <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
+              )}
               <TableCell align="center" sx={styles.columnStyles.history}>
                 HISTORY
               </TableCell>
+              {shouldShowActionsColumn && (
+                <TableCell align="center" sx={styles.columnStyles.actions}>
+                  ACTIONS
+                </TableCell>
+              )}
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody
-            sx={{
-              height: filteredSubmissions.length === 0 ? "100%" : "auto",
-            }}>
+            sx={{ height: submissionsList.length === 0 ? "100%" : "auto" }}>
             {isLoadingState ? (
               <>
                 {[...Array(5)].map((_, index) => (
@@ -230,25 +244,21 @@ const MDAMonitoringTable = ({
                     </TableCell>
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton animation="wave" height={30} />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton animation="wave" height={30} />
                       <Skeleton animation="wave" height={20} width="60%" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton
-                        animation="wave"
-                        height={24}
-                        width={120}
-                        sx={{ borderRadius: "12px" }}
-                      />
-                    </TableCell>
-                    <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
+                    {!hideStatusColumn && (
+                      <TableCell>
+                        <Skeleton
+                          animation="wave"
+                          height={24}
+                          width={120}
+                          sx={{ borderRadius: "12px" }}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell align="center">
                       <Skeleton
                         animation="wave"
@@ -258,6 +268,17 @@ const MDAMonitoringTable = ({
                         sx={{ margin: "0 auto" }}
                       />
                     </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell align="center">
+                        <Skeleton
+                          animation="wave"
+                          variant="circular"
+                          width={32}
+                          height={32}
+                          sx={{ margin: "0 auto" }}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
@@ -265,30 +286,25 @@ const MDAMonitoringTable = ({
                 ))}
               </>
             ) : error ? (
-              <TableRow sx={{ height: "100%" }}>
+              <TableRow>
                 <TableCell
-                  colSpan={colSpan}
+                  colSpan={totalColumns}
                   align="center"
-                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
+                  sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : filteredSubmissions.length > 0 ? (
-              filteredSubmissions.map((submission) => {
+            ) : submissionsList.length > 0 ? (
+              submissionsList.map((submission) => {
                 return (
                   <TableRow
                     key={submission.id}
-                    onClick={() => handleRowClick(submission)}
+                    onClick={() => {
+                      if (handleRowClick) handleRowClick(submission);
+                    }}
                     sx={styles.tableRowHover(theme)}>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.id,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {getRequestor(submission)}
-                    </TableCell>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,
@@ -299,33 +315,33 @@ const MDAMonitoringTable = ({
                     </TableCell>
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.formName,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {submission.movement_type || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
                         ...styles.columnStyles.position,
                         ...styles.cellContentStyles,
                       }}>
                       {renderEmployee(submission)}
                     </TableCell>
-                    <TableCell sx={styles.columnStyles.status}>
-                      {renderStatusChip(submission)}
-                    </TableCell>
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.dateCreated,
+                        ...styles.columnStyles.formName,
                         ...styles.cellContentStyles,
                       }}>
-                      {submission.effective_date
-                        ? dayjs(submission.effective_date).format("MMM D, YYYY")
-                        : "-"}
+                      {submission.charging_name || "-"}
                     </TableCell>
+                    {!hideStatusColumn && (
+                      <TableCell sx={styles.columnStyles.status}>
+                        {renderStatusChip(submission)}
+                      </TableCell>
+                    )}
                     <TableCell align="center" sx={styles.columnStyles.history}>
                       {renderActivityLog(submission)}
                     </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell
+                        align="center"
+                        sx={styles.columnStyles.actions}>
+                        {renderActionMenu(submission)}
+                      </TableCell>
+                    )}
                     <TableCell
                       sx={{
                         ...styles.columnStyles.dateCreated,
@@ -341,7 +357,7 @@ const MDAMonitoringTable = ({
             ) : (
               <TableRow
                 sx={{
-                  height: "100%",
+                  height: 0,
                   pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
@@ -353,12 +369,12 @@ const MDAMonitoringTable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
-                    height: "100%",
-                    verticalAlign: "middle",
+                    height: 0,
+                    padding: 0,
                     border: "none",
                     borderBottom: "none",
-                    padding: 0,
                     pointerEvents: "none",
+                    position: "relative",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
@@ -390,4 +406,4 @@ const MDAMonitoringTable = ({
   );
 };
 
-export default MDAMonitoringTable;
+export default DAForMDAProcessingTable;

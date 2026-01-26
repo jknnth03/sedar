@@ -18,7 +18,7 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../../../pages/forms/mdaform/MDAHistoryDialog";
+import MDAHistoryDialog from "../../forms/mda/mdaform/MDAHistoryDialog";
 
 const MDAForApprovalTable = ({
   submissionsList,
@@ -52,7 +52,7 @@ const MDAForApprovalTable = ({
     if (!submission?.activity_log || submission.activity_log.length === 0)
       return "-";
     const submittedEvent = submission.activity_log.find(
-      (event) => event.event_type === "SUBMITTED"
+      (event) => event.event_type === "SUBMITTED",
     );
     return submittedEvent?.actor?.full_name || "-";
   };

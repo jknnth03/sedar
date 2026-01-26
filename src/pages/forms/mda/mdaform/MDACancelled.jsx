@@ -1,0 +1,271 @@
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { Typography, Box, useTheme } from "@mui/material";
+import { FormProvider, useForm } from "react-hook-form";
+import { useSnackbar } from "notistack";
+import "../../../../pages/GeneralStyle.scss";
+import {
+  useGetMdaSubmissionsQuery,
+  useGetSingleMdaSubmissionQuery,
+  useUpdateMdaMutation,
+} from "../../../../features/api/forms/mdaApi";
+import MDAForApprovalTable from "./MDAForApprovalTable";
+import { useRememberQueryParams } from "../../../../hooks/useRememberQueryParams";
+import MDAFormModal from "../../../../components/modal/form/MDAForm/MDAFormModal";
+import CustomTablePagination from "../../../zzzreusable/CustomTablePagination";
+
+const MDACancelled = ({ searchQuery, dateFilters }) => {
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [queryParams, setQueryParams] = useRememberQueryParams();
+
+  const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
+  const [rowsPerPage, setRowsPerPage] = useState(
+    parseInt(queryParams?.rowsPerPage) || 10,
+  );
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [menuAnchor, setMenuAnchor] = useState({});
+  const [selectedRowForMenu, setSelectedRowForMenu] = useState(null);
+  const [modalMode, setModalMode] = useState("view");
+
+  const methods = useForm({
+    defaultValues: {},
+  });
+
+  const [updateMdaSubmission] = useUpdateMdaMutation();
+
+  const apiQueryParams = useMemo(() => {
+    const params = {
+      pagination: 1,
+      page: page,
+      per_page: rowsPerPage,
+      status: "active",
+      approval_status: "CANCELLED",
+      search: searchQuery || "",
+    };
+
+    if (dateFilters?.start_date) {
+      params.start_date = dateFilters.start_date;
+    }
+    if (dateFilters?.end_date) {
+      params.end_date = dateFilters.end_date;
+    }
+
+    return params;
+  }, [page, rowsPerPage, searchQuery, dateFilters]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, dateFilters]);
+
+  const {
+    data: submissionsData,
+    isLoading: queryLoading,
+    isFetching,
+    refetch,
+    error,
+  } = useGetMdaSubmissionsQuery(apiQueryParams, {
+    refetchOnMountOrArgChange: true,
+    skip: false,
+  });
+
+  const {
+    data: submissionDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = useGetSingleMdaSubmissionQuery(selectedSubmissionId, {
+    skip: !selectedSubmissionId,
+    refetchOnMountOrArgChange: true,
+  });
+
+  const filteredSubmissions = useMemo(() => {
+    if (!submissionsData?.result) return [];
+
+    const result = submissionsData.result;
+
+    if (result.data && Array.isArray(result.data)) {
+      return result.data;
+    }
+
+    if (Array.isArray(result)) {
+      return result;
+    }
+
+    return [];
+  }, [submissionsData]);
+
+  const handleRowClick = useCallback((submission) => {
+    setSelectedSubmissionId(submission.id);
+    setMenuAnchor({});
+    setSelectedRowForMenu(null);
+    setModalMode("view");
+    setModalOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (submissionDetails?.result && modalOpen) {
+      setSelectedEntry(submissionDetails.result);
+    }
+  }, [submissionDetails, modalOpen]);
+
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
+    setSelectedEntry(null);
+    setSelectedSubmissionId(null);
+    setModalMode("view");
+  }, []);
+
+  const handleSave = useCallback(
+    async (formData, mode) => {
+      try {
+        console.log("Saving MDA submission:", formData, mode);
+
+        if (mode === "edit" && selectedSubmissionId) {
+          const response = await updateMdaSubmission({
+            id: selectedSubmissionId,
+            data: formData,
+          }).unwrap();
+
+          enqueueSnackbar("MDA submission updated successfully", {
+            variant: "success",
+          });
+
+          await refetchDetails();
+          await refetch();
+
+          handleModalClose();
+        }
+      } catch (error) {
+        console.error("Error saving MDA submission:", error);
+        enqueueSnackbar(
+          error?.data?.message || "Failed to update MDA submission",
+          {
+            variant: "error",
+          },
+        );
+      }
+    },
+    [
+      selectedSubmissionId,
+      updateMdaSubmission,
+      enqueueSnackbar,
+      refetchDetails,
+      refetch,
+      handleModalClose,
+    ],
+  );
+
+  const handleMenuOpen = useCallback((event, submission) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setMenuAnchor((prev) => ({
+      ...prev,
+      [submission.id]: event.currentTarget,
+    }));
+    setSelectedRowForMenu(submission);
+  }, []);
+
+  const handleMenuClose = useCallback((submissionId) => {
+    setMenuAnchor((prev) => ({ ...prev, [submissionId]: null }));
+    setSelectedRowForMenu(null);
+  }, []);
+
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      const targetPage = newPage + 1;
+      setPage(targetPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: targetPage,
+            rowsPerPage: rowsPerPage,
+          },
+          { retain: false },
+        );
+      }
+    },
+    [setQueryParams, rowsPerPage, queryParams],
+  );
+
+  const handleRowsPerPageChange = useCallback(
+    (event) => {
+      const newRowsPerPage = parseInt(event.target.value, 10);
+      const newPage = 1;
+      setRowsPerPage(newRowsPerPage);
+      setPage(newPage);
+      if (setQueryParams) {
+        setQueryParams(
+          {
+            ...queryParams,
+            page: newPage,
+            rowsPerPage: newRowsPerPage,
+          },
+          { retain: false },
+        );
+      }
+    },
+    [setQueryParams, queryParams],
+  );
+
+  const isLoadingState = queryLoading || isFetching;
+
+  const totalCount = submissionsData?.result?.total || 0;
+
+  return (
+    <FormProvider {...methods}>
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          backgroundColor: "#fafafa",
+        }}>
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "white",
+          }}>
+          <MDAForApprovalTable
+            submissionsList={filteredSubmissions}
+            isLoadingState={isLoadingState}
+            error={error}
+            handleRowClick={handleRowClick}
+            handleMenuOpen={handleMenuOpen}
+            handleMenuClose={handleMenuClose}
+            menuAnchor={menuAnchor}
+            searchQuery={searchQuery}
+            statusFilter="CANCELLED"
+          />
+
+          <CustomTablePagination
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
+        </Box>
+
+        <MDAFormModal
+          open={modalOpen}
+          onClose={handleModalClose}
+          onSave={handleSave}
+          selectedEntry={selectedEntry}
+          isLoading={detailsLoading}
+          mode={modalMode}
+          submissionId={selectedSubmissionId}
+        />
+      </Box>
+    </FormProvider>
+  );
+};
+
+export default MDACancelled;

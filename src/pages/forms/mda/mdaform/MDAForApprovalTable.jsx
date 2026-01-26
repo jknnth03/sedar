@@ -9,29 +9,42 @@ import {
   Typography,
   Box,
   IconButton,
+  Menu,
+  MenuItem,
   Chip,
   Tooltip,
   Skeleton,
   useTheme,
 } from "@mui/material";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
+import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../../forms/mda/mdaform/MDAHistoryDialog";
-import NoDataFound from "../../NoDataFound";
 
-const MDAMonitoringTable = ({
+import MDAHistoryDialog from "./MDAHistoryDialog";
+import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
+import NoDataFound from "../../../NoDataFound";
+import { styles } from "../../manpowerform/formSubmissionStyles";
+
+const MDAForApprovalTable = ({
   submissionsList,
   isLoadingState,
   error,
   handleRowClick,
+  handleMenuOpen,
+  handleMenuClose,
+  menuAnchor,
   searchQuery,
   statusFilter,
-  showRequestor = false,
+  onCancel,
 }) => {
   const theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false);
   const [selectedMdaHistory, setSelectedMdaHistory] = React.useState(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
+  const [selectedSubmissionToCancel, setSelectedSubmissionToCancel] =
+    React.useState(null);
+  const [cancelRemarks, setCancelRemarks] = React.useState("");
 
   const renderEmployee = (submission) => {
     if (!submission?.employee_name) return "-";
@@ -47,26 +60,6 @@ const MDAMonitoringTable = ({
           {submission.employee_number || ""}
         </Typography>
       </Box>
-    );
-  };
-
-  const getRequestor = (submission) => {
-    if (!submission?.activity_log || submission.activity_log.length === 0) {
-      return "-";
-    }
-
-    const requestorLog = submission.activity_log.find(
-      (log) => log?.actor?.title === "Requestor",
-    );
-
-    if (!requestorLog?.actor?.full_name) {
-      return "-";
-    }
-
-    return (
-      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
-        {requestorLog.actor.full_name}
-      </Typography>
     );
   };
 
@@ -107,11 +100,6 @@ const MDAMonitoringTable = ({
         bgColor: "#fff4e5",
         label: "AWAITING RESUBMISSION",
       },
-      "awaiting resubmission": {
-        color: "#9c27b0",
-        bgColor: "#f3e5f5",
-        label: "AWAITING RESUBMISSION",
-      },
     };
 
     const status = submission.status?.toLowerCase();
@@ -137,6 +125,30 @@ const MDAMonitoringTable = ({
     setSelectedMdaHistory(null);
   };
 
+  const handleCancelClick = (submission) => {
+    setSelectedSubmissionToCancel(submission);
+    setCancelRemarks("");
+    setCancelDialogOpen(true);
+    handleMenuClose(submission.id);
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelDialogOpen(false);
+    setSelectedSubmissionToCancel(null);
+    setCancelRemarks("");
+  };
+
+  const handleCancelSuccess = () => {
+    handleCancelDialogClose();
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
+  const canCancelSubmission = (submission) => {
+    return submission?.actions?.can_cancel === true;
+  };
+
   const renderActivityLog = (submission) => {
     return (
       <Tooltip title="View History" arrow>
@@ -152,15 +164,10 @@ const MDAMonitoringTable = ({
 
   const filteredSubmissions = React.useMemo(() => {
     if (!statusFilter) return submissionsList;
-
-    const normalizedFilter = statusFilter.toUpperCase().replace(/_/g, " ");
-
-    return submissionsList.filter((submission) => {
-      const submissionStatus = submission.status
-        ?.toUpperCase()
-        .replace(/_/g, " ");
-      return submissionStatus === normalizedFilter;
-    });
+    return submissionsList.filter(
+      (submission) =>
+        submission.status?.toUpperCase() === statusFilter.toUpperCase(),
+    );
   }, [submissionsList, statusFilter]);
 
   const getNoDataMessage = () => {
@@ -170,7 +177,6 @@ const MDAMonitoringTable = ({
         APPROVED: "approved",
         REJECTED: "rejected",
         AWAITING_RESUBMISSION: "awaiting resubmission",
-        "AWAITING RESUBMISSION": "awaiting resubmission",
         CANCELLED: "cancelled",
       };
       const statusLabel =
@@ -179,12 +185,12 @@ const MDAMonitoringTable = ({
         ? `No ${statusLabel} submissions found for "${searchQuery}"`
         : `No ${statusLabel} submissions found`;
     }
-    return searchQuery
-      ? `No results for "${searchQuery}"`
-      : "No submissions found";
   };
 
-  const colSpan = 8;
+  const shouldHideActions =
+    statusFilter === "APPROVED" || statusFilter === "CANCELLED";
+  const shouldShowActionsColumn = !shouldHideActions;
+  const totalColumns = shouldShowActionsColumn ? 8 : 7;
 
   return (
     <>
@@ -197,7 +203,6 @@ const MDAMonitoringTable = ({
           }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={styles.columnStyles.id}>REQUESTOR</TableCell>
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
@@ -215,6 +220,11 @@ const MDAMonitoringTable = ({
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
               </TableCell>
+              {shouldShowActionsColumn && (
+                <TableCell align="center" sx={styles.columnStyles.actions}>
+                  ACTIONS
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody
@@ -225,9 +235,6 @@ const MDAMonitoringTable = ({
               <>
                 {[...Array(5)].map((_, index) => (
                   <TableRow key={index}>
-                    <TableCell>
-                      <Skeleton animation="wave" height={30} />
-                    </TableCell>
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
@@ -261,15 +268,26 @@ const MDAMonitoringTable = ({
                     <TableCell>
                       <Skeleton animation="wave" height={30} />
                     </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell align="center">
+                        <Skeleton
+                          animation="wave"
+                          variant="circular"
+                          width={32}
+                          height={32}
+                          sx={{ margin: "0 auto" }}
+                        />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </>
             ) : error ? (
-              <TableRow sx={{ height: "100%" }}>
+              <TableRow>
                 <TableCell
-                  colSpan={colSpan}
+                  colSpan={totalColumns}
                   align="center"
-                  sx={{ py: 4, height: "100%", verticalAlign: "middle" }}>
+                  sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
@@ -282,13 +300,6 @@ const MDAMonitoringTable = ({
                     key={submission.id}
                     onClick={() => handleRowClick(submission)}
                     sx={styles.tableRowHover(theme)}>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.id,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {getRequestor(submission)}
-                    </TableCell>
                     <TableCell
                       sx={{
                         ...styles.columnStyles.referenceNumber,
@@ -335,14 +346,59 @@ const MDAMonitoringTable = ({
                         ? dayjs(submission.created_at).format("MMM D, YYYY")
                         : "-"}
                     </TableCell>
+                    {shouldShowActionsColumn && (
+                      <TableCell
+                        align="center"
+                        sx={styles.columnStyles.actions}>
+                        <Tooltip title="Actions">
+                          <IconButton
+                            onClick={(e) => handleMenuOpen(e, submission)}
+                            size="small"
+                            sx={styles.actionIconButton(theme)}>
+                            <MoreVertIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Menu
+                          anchorEl={menuAnchor[submission.id]}
+                          open={Boolean(menuAnchor[submission.id])}
+                          onClose={() => handleMenuClose(submission.id)}
+                          transformOrigin={{
+                            horizontal: "right",
+                            vertical: "top",
+                          }}
+                          anchorOrigin={{
+                            horizontal: "right",
+                            vertical: "bottom",
+                          }}
+                          PaperProps={{
+                            sx: styles.actionMenu(theme),
+                          }}
+                          sx={{
+                            zIndex: 10000,
+                          }}>
+                          <MenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelClick(submission);
+                            }}
+                            disabled={!canCancelSubmission(submission)}
+                            sx={
+                              canCancelSubmission(submission)
+                                ? styles.cancelMenuItem
+                                : styles.cancelMenuItemDisabled
+                            }>
+                            <CancelIcon fontSize="small" sx={{ mr: 1 }} />
+                            Cancel Request
+                          </MenuItem>
+                        </Menu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
             ) : (
               <TableRow
                 sx={{
-                  height: "100%",
-                  pointerEvents: "none",
                   "&:hover": {
                     backgroundColor: "transparent !important",
                     cursor: "default !important",
@@ -353,27 +409,15 @@ const MDAMonitoringTable = ({
                   rowSpan={999}
                   align="center"
                   sx={{
-                    height: "100%",
-                    verticalAlign: "middle",
-                    border: "none",
                     borderBottom: "none",
-                    padding: 0,
-                    pointerEvents: "none",
+                    height: "400px",
+                    verticalAlign: "middle",
                     "&:hover": {
                       backgroundColor: "transparent !important",
                       cursor: "default !important",
                     },
                   }}>
-                  <Box
-                    sx={{
-                      position: "fixed",
-                      left: "62%",
-                      top: "64%",
-                      transform: "translate(-50%, -50%)",
-                      zIndex: 1,
-                    }}>
-                    <NoDataFound message="" subMessage={getNoDataMessage()} />
-                  </Box>
+                  <NoDataFound message="" subMessage={getNoDataMessage()} />
                 </TableCell>
               </TableRow>
             )}
@@ -386,8 +430,25 @@ const MDAMonitoringTable = ({
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedMdaHistory={selectedMdaHistory}
       />
+
+      <ConfirmationDialog
+        open={cancelDialogOpen}
+        onClose={handleCancelDialogClose}
+        action="cancel"
+        itemId={selectedSubmissionToCancel?.id}
+        itemName={selectedSubmissionToCancel?.reference_number || "N/A"}
+        module="Data Change Request"
+        showRemarks={true}
+        remarks={cancelRemarks}
+        onRemarksChange={setCancelRemarks}
+        remarksRequired={true}
+        remarksLabel="Cancellation Remarks *"
+        remarksPlaceholder="Please provide a reason for cancellation (minimum 10 characters)"
+        remarksMinLength={10}
+        onSuccess={handleCancelSuccess}
+      />
     </>
   );
 };
 
-export default MDAMonitoringTable;
+export default MDAForApprovalTable;

@@ -44,7 +44,7 @@ import DAForm from "../../pages/forms/developmentalAssignmentForm/daform/DAForm.
 import KPI from "../../pages/masterlist/kpi/Kpi.jsx";
 import MovementTypes from "../../pages/extras/MovementTypes.jsx";
 import DataChangeApproval from "../../pages/approvals/dataChangeApproval/DataChangeApproval.jsx";
-import MASTERDATAAUTHORITY from "../../pages/forms/mdaform/MDA.jsx";
+import MASTERDATAAUTHORITY from "../../pages/forms/mda/mdaform/MDA.jsx";
 import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdit.jsx";
 import MRFMonitoring from "../../pages/monitoring/MRF/MRFMonitoring.jsx";
 import DataChangeMonitoring from "../../pages/monitoring/datachange/DataChangeMonitoring.jsx";
@@ -62,7 +62,7 @@ import WorkHours from "../../pages/extras/WorkHours.jsx";
 import RestDays from "../../pages/extras/RestDays.jsx";
 import SeparationTypes from "../../pages/extras/SeparationTypes.jsx";
 import SeparationReasons from "../../pages/extras/SeparationReasons.jsx";
-import MDADA from "../../pages/forms/mda-da/MDADA.jsx";
+import MDADA from "../../pages/forms/mda/mda-da/MDADA.jsx";
 import DAMDAApproval from "../../pages/approvals/daMDAApproval/DAMDAApproval.jsx";
 import DARecommendation from "../../pages/forms/developmentalAssignmentForm/darecommendation/DARecommendation.jsx";
 import DaFormReceiving from "../../pages/receiving/daform/DaFormReceiving.jsx";
@@ -72,12 +72,12 @@ import CatTwoTemplate from "../../pages/assessment-templates/CatTwoTemplate.jsx"
 import PdpTemplate from "../../pages/assessment-templates/PDPTemplate.jsx";
 import DaRecommendationApproval from "../../pages/approvals/da-recommendation/DaRecommendationApproval.jsx";
 import EVALUATIONFORM from "../../pages/forms/Evaluation/evaluation-form/EvaluationForm.jsx";
-import MDARecommendation from "../../pages/forms/mdarecommendation/MDARecommendation.jsx";
+import MDARecommendation from "../../pages/forms/mda/mdarecommendation/MDARecommendation.jsx";
 import MdaRecommendationApproval from "../../pages/approvals/mdaRecommendation/MDARecommendationApproval.jsx";
 import EvaluationApproval from "../../pages/approvals/evaluationApproval/EvaluationApproval.jsx";
 import EvaluationRecommendation from "../../pages/forms/Evaluation/evaluationRecommendation/EvaluationRecommendation.jsx";
 import EvaluationRecommendationApproval from "../../pages/approvals/evaluationRecommendationApproval/EvaluationRecommendationApproval.jsx";
-import MDAEvaluationRecommendation from "../../pages/forms/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
+import MDAEvaluationRecommendation from "../../pages/forms/mda/mdaEvaluationRecommendation/MDAEvaluationRecommendation.jsx";
 import MDAEvaluationApproval from "../../pages/approvals/mdaEvaluationRecommendationApproval/MDAEvaluationApproval.jsx";
 import BiAnnualPerformance from "../../pages/forms/biAnnualPerformance/BiAnnualPerformance.jsx";
 import BiAnnualTemplate from "../../pages/assessment-templates/BiAnnualTemplate.jsx";
@@ -85,6 +85,7 @@ import BiAnnualApproval from "../../pages/approvals/bi-annualApproval/BiAnnualAp
 import Nationalities from "../../pages/extras/Nationalities.jsx";
 import DevelopmentalAssignmentForm from "../../pages/forms/developmentalAssignmentForm/DevelopmentAssignmentForm.jsx";
 import Evaluation from "../../pages/forms/Evaluation/Evaluation.jsx";
+import MasterDataAuthority from "../../pages/forms/mda/MasterDataAuthority.jsx";
 
 export const ROUTES = [
   {
@@ -239,35 +240,52 @@ export const ROUTES = [
       {
         id: "REQUEST.MASTERDATAAUTHORITY",
         path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MASTERDATAAUTHORITY.path}`,
-        element: <MASTERDATAAUTHORITY />,
+        element: <MasterDataAuthority />,
         handle: {
           permission: MODULES.REQUEST.children.MASTERDATAAUTHORITY.permissionId,
         },
-      },
-      {
-        id: "REQUEST.MDADA",
-        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDADA.path}`,
-        element: <MDADA />,
-        handle: {
-          permission: MODULES.REQUEST.children.MDADA.permissionId,
-        },
-      },
-      {
-        id: "REQUEST.MDARECOMMENDATION",
-        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDARECOMMENDATION.path}`,
-        element: <MDARecommendation />,
-        handle: {
-          permission: MODULES.REQUEST.children.MDARECOMMENDATION.permissionId,
-        },
-      },
-      {
-        id: "REQUEST.MDAEVALUATIONRECOMMENDATION",
-        path: `${MODULES.REQUEST.path}/${MODULES.REQUEST.children.MDAEVALUATIONRECOMMENDATION.path}`,
-        element: <MDAEvaluationRecommendation />,
-        handle: {
-          permission:
-            MODULES.REQUEST.children.MDAEVALUATIONRECOMMENDATION.permissionId,
-        },
+        children: [
+          {
+            id: "REQUEST.MASTERDATAAUTHORITY.MDAFORM",
+            path: "mdaform",
+            element: <MASTERDATAAUTHORITY />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.MASTERDATAAUTHORITY.children.MDAFORM
+                  .permissionId,
+            },
+          },
+          {
+            id: "REQUEST.MASTERDATAAUTHORITY.MDADA",
+            path: "mdada",
+            element: <MDADA />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.MASTERDATAAUTHORITY.children.MDADA
+                  .permissionId,
+            },
+          },
+          {
+            id: "REQUEST.MASTERDATAAUTHORITY.MDARECOMMENDATION",
+            path: "mdarecommendation",
+            element: <MDARecommendation />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.MASTERDATAAUTHORITY.children
+                  .MDARECOMMENDATION.permissionId,
+            },
+          },
+          {
+            id: "REQUEST.MASTERDATAAUTHORITY.MDAEVALUATIONRECOMMENDATION",
+            path: "mdaevaluationrecommendation",
+            element: <MDAEvaluationRecommendation />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.MASTERDATAAUTHORITY.children
+                  .MDAEVALUATIONRECOMMENDATION.permissionId,
+            },
+          },
+        ],
       },
       {
         id: "REQUEST.PENDINGREGISTRATION",
