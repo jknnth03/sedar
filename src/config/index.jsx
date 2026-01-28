@@ -68,6 +68,7 @@ import FactCheckIcon from "@mui/icons-material/FactCheck";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import { calculateCounts } from "./NotificationBadge";
 import PublicIcon from "@mui/icons-material/Public";
+import DynamicFormIcon from "@mui/icons-material/DynamicForm";
 
 export const createEnhancedModules = (dashboardData = {}) => {
   const counts = calculateCounts(dashboardData);
@@ -368,7 +369,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT I",
           path: "catoneapproval",
           icon: <LooksOneIcon sx={iconStyles.child} />,
-          notificationCount: counts.catOneApprovals,
+          notificationCount: counts.daCat1Approvals,
         },
         CATTWOAPPROVAL: {
           name: "CAT II",
@@ -376,7 +377,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT II",
           path: "cattwoapproval",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
-          notificationCount: counts.catTwoApprovals,
+          notificationCount: counts.daCat2Approvals,
         },
         PDPAPPROVAL: {
           name: "PDP",
@@ -384,7 +385,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "PDP",
           path: "pdpapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
-          notificationCount: counts.pdpApprovals,
+          notificationCount: counts.daPdpApprovals,
         },
       },
     },
@@ -613,7 +614,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT I",
           path: "catone",
           icon: <LooksOneIcon sx={iconStyles.child} />,
-          notificationCount: counts.catOneTotal,
+          notificationCount: counts.cat1Total,
+          hasOverdue: counts.cat1TotalOverdue > 0,
         },
         PDP: {
           name: "PDP",
@@ -622,6 +624,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "pdp",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.pdpTotal,
+          hasOverdue: counts.pdpTotalOverdue > 0,
         },
         CATTWO: {
           name: "CAT II",
@@ -629,7 +632,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "CAT II",
           path: "cattwo",
           icon: <LooksTwoIcon sx={iconStyles.child} />,
-          notificationCount: counts.catTwoTotal,
+          notificationCount: counts.cat2Total,
+          hasOverdue: counts.cat2TotalOverdue > 0,
         },
       },
     },
@@ -860,6 +864,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Nationalities",
           path: "nationalities",
           icon: <PublicIcon sx={iconStyles.child} />,
+        },
+        STATUSES: {
+          name: "Statuses",
+          permissionId: "EXTRAS.STATUSES",
+          displayName: "Statuses",
+          path: "statuses",
+          icon: <DynamicFormIcon sx={iconStyles.child} />,
         },
       },
     },

@@ -31,7 +31,11 @@ import { useCancelFormSubmissionMutation } from "../../../../features/api/approv
 import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
 import ExportButton from "./ExportButton";
 import DateFilterDialog from "../../../zzzreusable/DateFilterDialog";
-import { styles } from "../../manpowerform/formSubmissionStyles";
+import {
+  StyledTab,
+  StyledTabs,
+  styles,
+} from "../../manpowerform/formSubmissionStyles";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (

@@ -137,7 +137,7 @@ const CatTwoTable = ({
 
   const tableColumns = useMemo(() => {
     const columns = [
-      { id: "reference_number", label: "Reference Number", minWidth: 150 },
+      { id: "reference_number", label: "Reference No.", minWidth: 150 },
       { id: "employee_name", label: "Employee Name", minWidth: 200 },
       { id: "position_title", label: "Position", minWidth: 200 },
       { id: "department", label: "Department", minWidth: 200 },
@@ -218,7 +218,7 @@ const CatTwoTable = ({
           ) : submissionsList.length > 0 ? (
             submissionsList.map((submission) => {
               const statusInfo = getStatusColor(
-                submission?.status || submission?.data_change?.status
+                submission?.status || submission?.data_change?.status,
               );
               return (
                 <TableRow
@@ -278,7 +278,7 @@ const CatTwoTable = ({
                     {formatDate(
                       submission?.created_at ||
                         submission?.date_assessed ||
-                        submission?.data_change?.date_assessed
+                        submission?.data_change?.date_assessed,
                     )}
                   </TableCell>
                   {(!hideStatusColumn || forAssessment) && (

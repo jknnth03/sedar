@@ -88,6 +88,7 @@ import EvaluationRecommendationApproval from "../../pages/approvals/evaluation/e
 import MDA from "../../pages/approvals/mda/MDA.jsx";
 import DevelopmentalAssignment from "../../pages/approvals/developmentalAssignment/DevelopmentalAssignment.jsx";
 import Evaluation from "../../pages/approvals/evaluation/Evaluation.jsx";
+import Status from "../../pages/extras/Status.jsx";
 
 export const ROUTES = [
   {
@@ -843,6 +844,14 @@ export const ROUTES = [
         element: <SeparationReasons />,
         handle: {
           permission: MODULES.EXTRAS.children.SEPARATIONREASONS.permissionId,
+        },
+      },
+      {
+        id: "EXTRAS.STATUSES",
+        path: `${MODULES.EXTRAS.path}/${MODULES.EXTRAS.children.STATUSES.path}`,
+        element: <Status />,
+        handle: {
+          permission: MODULES.EXTRAS.children.STATUSES.permissionId,
         },
       },
       {

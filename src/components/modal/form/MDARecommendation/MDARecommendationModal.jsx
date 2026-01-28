@@ -109,8 +109,6 @@ const MDARecommendationModal = ({
   }, [open, reset]);
 
   useEffect(() => {
-    console.log("Prefill Data Effect:", { open, prefillData, mode });
-
     if (open && prefillData) {
       console.log("Setting prefill data:", prefillData);
 
@@ -118,7 +116,7 @@ const MDARecommendationModal = ({
       setValue("employee_number", prefillData.employee_number || "");
       setValue(
         "birth_date",
-        prefillData.birth_date ? dayjs(prefillData.birth_date) : null
+        prefillData.birth_date ? dayjs(prefillData.birth_date) : null,
       );
       setValue("birth_place", prefillData.birth_place || "");
       setValue("gender", prefillData.gender || "");
@@ -131,7 +129,7 @@ const MDARecommendationModal = ({
       setValue("philhealth_number", prefillData.philhealth_number || "");
       setValue(
         "effective_date",
-        prefillData.effective_date ? dayjs(prefillData.effective_date) : null
+        prefillData.effective_date ? dayjs(prefillData.effective_date) : null,
       );
 
       if (prefillData.from) {
@@ -144,7 +142,7 @@ const MDARecommendationModal = ({
         setValue("from_allowance", prefillData.from.allowance || "");
         setValue(
           "from_additional_rate",
-          prefillData.from.additional_rate || ""
+          prefillData.from.additional_rate || "",
         );
       }
 
@@ -181,7 +179,7 @@ const MDARecommendationModal = ({
       setValue("philhealth_number", data.philhealth_number || "");
       setValue(
         "effective_date",
-        data.effective_date ? dayjs(data.effective_date) : null
+        data.effective_date ? dayjs(data.effective_date) : null,
       );
 
       if (data.from_details) {
@@ -193,7 +191,7 @@ const MDARecommendationModal = ({
         setValue("from_allowance", data.from_details.allowance || "");
         setValue(
           "from_additional_rate",
-          data.from_details.additional_rate || ""
+          data.from_details.additional_rate || "",
         );
       }
 
@@ -340,7 +338,7 @@ const MDARecommendationModal = ({
       console.error("Error creating MDA Recommendation:", error);
       enqueueSnackbar(
         error?.data?.message || "Failed to create MDA Recommendation",
-        { variant: "error" }
+        { variant: "error" },
       );
     }
   };
@@ -391,7 +389,7 @@ const MDARecommendationModal = ({
       console.error("Error updating MDA Recommendation:", error);
       enqueueSnackbar(
         error?.data?.message || "Failed to update MDA Recommendation",
-        { variant: "error" }
+        { variant: "error" },
       );
     }
   };
@@ -441,8 +439,8 @@ const MDARecommendationModal = ({
   const displayMode = prefillData
     ? "CREATE"
     : mode === "view"
-    ? "VIEW"
-    : "EDIT";
+      ? "VIEW"
+      : "EDIT";
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -503,8 +501,8 @@ const MDARecommendationModal = ({
                   {isCreating
                     ? "Creating MDA..."
                     : isUpdating
-                    ? "Saving changes..."
-                    : "Loading submission details..."}
+                      ? "Saving changes..."
+                      : "Loading submission details..."}
                 </Typography>
               </Box>
             ) : (

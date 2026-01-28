@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import PropTypes from "prop-types";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import Overdue from "../../../assets/clock-alert.svg";
 
 const MenuItem = ({
   name = "",
@@ -18,6 +19,7 @@ const MenuItem = ({
   level = 0,
   hasChildren = false,
   isExpanded = false,
+  hasOverdue = false,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -114,11 +116,47 @@ const MenuItem = ({
             sx={{
               display: "flex",
               alignItems: "center",
-              width: "24px",
-              justifyContent: "center",
+              gap: "4px",
               flexShrink: 0,
             }}>
-            {hasChildren && sidebarOpen && (
+            {hasOverdue && (
+              <img
+                src={Overdue}
+                style={{ width: "18px", height: "18px", color: "red" }}
+              />
+            )}
+            {notificationCount > 0 && (
+              <Box sx={{ flexShrink: 0 }}>
+                {showDotOnly ? (
+                  <Box
+                    sx={{
+                      backgroundColor: "#ff5252",
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                    }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      backgroundColor: "#ff5252",
+                      color: "white",
+                      fontSize: isChild ? "0.6rem" : "0.65rem",
+                      height: isChild ? "16px" : "18px",
+                      minWidth: isChild ? "16px" : "18px",
+                      borderRadius: isChild ? "8px" : "9px",
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 4px",
+                    }}>
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </Box>
+                )}
+              </Box>
+            )}
+            {hasChildren && (
               <Box
                 sx={{
                   display: "flex",
@@ -131,37 +169,6 @@ const MenuItem = ({
               </Box>
             )}
           </Box>
-          {notificationCount > 0 && (
-            <Box sx={{ flexShrink: 0, marginLeft: "auto", marginRight: "4px" }}>
-              {showDotOnly ? (
-                <Box
-                  sx={{
-                    backgroundColor: "#ff5252",
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                  }}
-                />
-              ) : (
-                <Box
-                  sx={{
-                    backgroundColor: "#ff5252",
-                    color: "white",
-                    fontSize: isChild ? "0.6rem" : "0.65rem",
-                    height: isChild ? "16px" : "18px",
-                    minWidth: isChild ? "16px" : "18px",
-                    borderRadius: isChild ? "8px" : "9px",
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "0 4px",
-                  }}>
-                  {notificationCount > 99 ? "99+" : notificationCount}
-                </Box>
-              )}
-            </Box>
-          )}
         </Box>
       )}
     </Box>
@@ -182,6 +189,7 @@ MenuItem.propTypes = {
   level: PropTypes.number,
   hasChildren: PropTypes.bool,
   isExpanded: PropTypes.bool,
+  hasOverdue: PropTypes.bool,
 };
 
 export const MainItem = ({
@@ -193,6 +201,7 @@ export const MainItem = ({
   notificationCount = 0,
   onParentClick = () => {},
   level = 0,
+  hasOverdue = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -292,6 +301,7 @@ export const MainItem = ({
         isChild={level > 0}
         hasChildren={!!subItem}
         isExpanded={openChildren}
+        hasOverdue={hasOverdue}
       />
       {subItem && sidebarOpen && (
         <Collapse in={openChildren}>
@@ -310,6 +320,7 @@ export const MainItem = ({
                   notificationCount={item.notificationCount || 0}
                   onParentClick={onParentClick}
                   level={level + 1}
+                  hasOverdue={item.hasOverdue || false}
                 />
               );
             }
@@ -334,6 +345,7 @@ export const MainItem = ({
                 notificationCount={item.notificationCount || 0}
                 showDotOnly={false}
                 level={level + 1}
+                hasOverdue={item.hasOverdue || false}
               />
             );
           })}
@@ -352,4 +364,5 @@ MainItem.propTypes = {
   notificationCount: PropTypes.number,
   onParentClick: PropTypes.func,
   level: PropTypes.number,
+  hasOverdue: PropTypes.bool,
 };

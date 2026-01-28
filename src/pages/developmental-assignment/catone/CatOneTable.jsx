@@ -121,7 +121,7 @@ const CatOneTable = ({
 
   const tableColumns = useMemo(() => {
     const columns = [
-      { id: "reference_number", label: "Reference Number", minWidth: 150 },
+      { id: "reference_number", label: "Reference No.", minWidth: 150 },
       { id: "employee_name", label: "Employee Name", minWidth: 200 },
       { id: "position_title", label: "Position", minWidth: 200 },
       { id: "department", label: "Department", minWidth: 200 },
@@ -256,7 +256,7 @@ const CatOneTable = ({
                     }}>
                     {formatDate(
                       submission?.developmental_assignment?.start_date ||
-                        submission?.data_change?.start_date
+                        submission?.data_change?.start_date,
                     )}
                   </TableCell>
                   <TableCell
@@ -266,7 +266,7 @@ const CatOneTable = ({
                     }}>
                     {formatDate(
                       submission?.developmental_assignment?.end_date ||
-                        submission?.data_change?.end_date
+                        submission?.data_change?.end_date,
                     )}
                   </TableCell>
                   {(!hideStatusColumn || forAssessment) && (

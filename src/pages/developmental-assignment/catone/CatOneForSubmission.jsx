@@ -9,6 +9,7 @@ import {
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import CatOneTable from "./CatOneTable";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
@@ -25,7 +26,7 @@ const CatOneForSubmission = ({
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -76,6 +77,8 @@ const CatOneForSubmission = ({
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const {
     data: catOneDetails,
@@ -134,6 +137,7 @@ const CatOneForSubmission = ({
             autoHideDuration: 2000,
           });
           refetch();
+          refetchDashboard();
         } catch (error) {
           const errorMessage =
             error?.data?.message ||
@@ -150,7 +154,13 @@ const CatOneForSubmission = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar, cancelCatOneSubmission, refetch]
+    [
+      submissionsData,
+      enqueueSnackbar,
+      cancelCatOneSubmission,
+      refetch,
+      refetchDashboard,
+    ],
   );
 
   const handleModalClose = useCallback(() => {
@@ -162,10 +172,11 @@ const CatOneForSubmission = ({
 
   const handleRefreshDetails = useCallback(() => {
     refetch();
+    refetchDashboard();
     if (selectedSubmissionId) {
       refetchDetails();
     }
-  }, [refetch, refetchDetails, selectedSubmissionId]);
+  }, [refetch, refetchDashboard, refetchDetails, selectedSubmissionId]);
 
   const handleModalSave = useCallback(
     async (formData, mode, entryId) => {
@@ -184,6 +195,7 @@ const CatOneForSubmission = ({
         setSelectedSubmissionId(null);
         setSelectedSubmission(null);
         refetch();
+        refetchDashboard();
         return true;
       } catch (error) {
         const errorMessage =
@@ -195,7 +207,7 @@ const CatOneForSubmission = ({
         return false;
       }
     },
-    [submitCatOne, enqueueSnackbar, refetch]
+    [submitCatOne, enqueueSnackbar, refetch, refetchDashboard],
   );
 
   const handleModalSaveAsDraft = useCallback(
@@ -215,6 +227,7 @@ const CatOneForSubmission = ({
         setSelectedSubmissionId(null);
         setSelectedSubmission(null);
         refetch();
+        refetchDashboard();
         return true;
       } catch (error) {
         const errorMessage =
@@ -226,7 +239,7 @@ const CatOneForSubmission = ({
         return false;
       }
     },
-    [saveCatOneAsDraft, enqueueSnackbar, refetch]
+    [saveCatOneAsDraft, enqueueSnackbar, refetch, refetchDashboard],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -253,11 +266,11 @@ const CatOneForSubmission = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -273,11 +286,11 @@ const CatOneForSubmission = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, currentParams],
   );
 
   const handleModeChange = useCallback((newMode) => {

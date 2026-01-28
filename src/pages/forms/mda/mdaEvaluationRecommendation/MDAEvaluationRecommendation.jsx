@@ -36,7 +36,11 @@ import MDAEvaluationCancelled from "./MDAEvaluationCancelled";
 import { useCancelFormSubmissionMutation } from "../../../../features/api/forms/mdaEvaluationRecommendationApi";
 import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
 import DateFilterDialog from "../../../zzzreusable/DateFilterDialog";
-import { styles } from "../../manpowerform/formSubmissionStyles";
+import {
+  StyledTab,
+  StyledTabs,
+  styles,
+} from "../../manpowerform/formSubmissionStyles";
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (

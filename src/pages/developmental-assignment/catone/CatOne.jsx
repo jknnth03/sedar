@@ -28,6 +28,7 @@ import {
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { format } from "date-fns";
 
 import CatOneForAssessment from "./CatOneForAssessment";
@@ -74,7 +75,7 @@ const CustomSearchBar = ({
     if (dateFilters.startDate && dateFilters.endDate) {
       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
         dateFilters.endDate,
-        "MMM dd"
+        "MMM dd",
       )}`;
     }
     if (dateFilters.startDate) {
@@ -256,6 +257,8 @@ const CatOne = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
+  const { data: dashboardData } = useShowDashboardQuery();
+
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
@@ -275,7 +278,7 @@ const CatOne = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -304,10 +307,16 @@ const CatOne = () => {
         ? format(dateFilters.endDate, "yyyy-MM-dd")
         : undefined,
     };
-    console.log("apiDateFilters:", filters); // ADD THIS
-    console.log("dateFilters:", dateFilters); // ADD THIS
     return filters;
   }, [dateFilters]);
+
+  const catOneCounts = {
+    forAssessment: dashboardData?.result?.da_tasks?.cat1?.for_assessment || 0,
+    forSubmission: dashboardData?.result?.da_tasks?.cat1?.for_submission || 0,
+    forApproval: dashboardData?.result?.approval?.da?.cat1 || 0,
+    returned: dashboardData?.result?.da_tasks?.cat1?.returned || 0,
+    approved: 0,
+  };
 
   const handleTabChange = useCallback(
     (event, newValue) => {
@@ -318,10 +327,10 @@ const CatOne = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery, tabMap],
   );
 
   const handleSearchChange = useCallback(
@@ -332,10 +341,10 @@ const CatOne = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab, tabMap],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -397,7 +406,7 @@ const CatOne = () => {
         return false;
       }
     },
-    [submitCatOne, enqueueSnackbar, handleRefreshDetails]
+    [submitCatOne, enqueueSnackbar, handleRefreshDetails],
   );
 
   const handleModalSaveAsDraft = useCallback(
@@ -433,7 +442,7 @@ const CatOne = () => {
         return false;
       }
     },
-    [saveCatOneAsDraft, enqueueSnackbar, handleRefreshDetails]
+    [saveCatOneAsDraft, enqueueSnackbar, handleRefreshDetails],
   );
 
   const handleCancel = useCallback(
@@ -463,7 +472,7 @@ const CatOne = () => {
         return false;
       }
     },
-    [enqueueSnackbar, handleRefreshDetails]
+    [enqueueSnackbar, handleRefreshDetails],
   );
 
   const tabsData = useMemo(
@@ -481,7 +490,7 @@ const CatOne = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catOneCounts.forAssessment,
       },
       {
         label: "FOR SUBMISSION",
@@ -496,7 +505,7 @@ const CatOne = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catOneCounts.forSubmission,
       },
       {
         label: "FOR APPROVAL",
@@ -511,7 +520,7 @@ const CatOne = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catOneCounts.forApproval,
       },
       {
         label: "RETURNED",
@@ -528,7 +537,7 @@ const CatOne = () => {
             onSaveAsDraft={handleModalSaveAsDraft}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catOneCounts.returned,
       },
       {
         label: "APPROVED",
@@ -543,7 +552,7 @@ const CatOne = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catOneCounts.approved,
       },
     ],
     [
@@ -555,7 +564,8 @@ const CatOne = () => {
       handleRowClick,
       handleModalSave,
       handleModalSaveAsDraft,
-    ]
+      catOneCounts,
+    ],
   );
 
   const a11yProps = (index) => {

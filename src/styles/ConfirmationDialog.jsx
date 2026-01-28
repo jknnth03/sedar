@@ -50,6 +50,10 @@ const ConfirmationDialog = ({
         return { text: "Cancel", icon: "?", iconColor: "#ff6b35" };
       case "delete":
         return { text: "Delete", icon: "?", iconColor: "#ff6b35" };
+      case "archive":
+        return { text: "Archive", icon: "?", iconColor: "#ff6b35" };
+      case "restore":
+        return { text: "Restore", icon: "?", iconColor: "#4caf50" };
       case "submit":
         return { text: "Submit", icon: "?", iconColor: "#ff6b35" };
       case "draft":
@@ -89,7 +93,7 @@ const ConfirmationDialog = ({
       setRemarksError(
         remarksMinLength > 0
           ? `Remarks must be at least ${remarksMinLength} characters`
-          : "Remarks are required"
+          : "Remarks are required",
       );
       return;
     }
@@ -221,8 +225,8 @@ const ConfirmationDialog = ({
               (hasRemarksError && remarksMinLength > 0
                 ? `Remarks must be at least ${remarksMinLength} characters`
                 : hasRemarksError
-                ? "Remarks are required"
-                : `${remarks.length} characters`)
+                  ? "Remarks are required"
+                  : `${remarks.length} characters`)
             }
             disabled={isProcessing}
             sx={{

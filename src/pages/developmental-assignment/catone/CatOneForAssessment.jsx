@@ -9,6 +9,7 @@ import {
   useSaveCatOneAsDraftMutation,
   useSubmitCatOneMutation,
 } from "../../../features/api/da-task/catOneApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import CatOneTable from "./CatOneTable";
 import CatOneModal from "../../../components/modal/da-task/CatOneModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
@@ -25,7 +26,7 @@ const CatOneForAssessment = ({
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -61,7 +62,6 @@ const CatOneForAssessment = ({
     if (dateFilters?.end_date !== undefined && dateFilters?.end_date !== null) {
       params.end_date = dateFilters.end_date;
     }
-    console.log("Final params:", params); // ADD THIS
     return params;
   }, [page, rowsPerPage, searchQuery, dateFilters]);
 
@@ -79,6 +79,8 @@ const CatOneForAssessment = ({
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const {
     data: catOneDetails,
@@ -137,6 +139,7 @@ const CatOneForAssessment = ({
             autoHideDuration: 2000,
           });
           refetch();
+          refetchDashboard();
         } catch (error) {
           const errorMessage =
             error?.data?.message ||
@@ -153,7 +156,13 @@ const CatOneForAssessment = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar, cancelCatOneSubmission, refetch]
+    [
+      submissionsData,
+      enqueueSnackbar,
+      cancelCatOneSubmission,
+      refetch,
+      refetchDashboard,
+    ],
   );
 
   const handleModalClose = useCallback(() => {
@@ -165,10 +174,11 @@ const CatOneForAssessment = ({
 
   const handleRefreshDetails = useCallback(() => {
     refetch();
+    refetchDashboard();
     if (selectedSubmissionId) {
       refetchDetails();
     }
-  }, [refetch, refetchDetails, selectedSubmissionId]);
+  }, [refetch, refetchDashboard, refetchDetails, selectedSubmissionId]);
 
   const handleModalSave = useCallback(
     async (formData, mode, entryId) => {
@@ -187,6 +197,7 @@ const CatOneForAssessment = ({
         setSelectedSubmissionId(null);
         setSelectedSubmission(null);
         refetch();
+        refetchDashboard();
         return true;
       } catch (error) {
         const errorMessage =
@@ -199,7 +210,7 @@ const CatOneForAssessment = ({
         return false;
       }
     },
-    [submitCatOne, enqueueSnackbar, refetch]
+    [submitCatOne, enqueueSnackbar, refetch, refetchDashboard],
   );
 
   const handleModalSaveAsDraft = useCallback(
@@ -219,6 +230,7 @@ const CatOneForAssessment = ({
         setSelectedSubmissionId(null);
         setSelectedSubmission(null);
         refetch();
+        refetchDashboard();
         return true;
       } catch (error) {
         const errorMessage =
@@ -230,7 +242,7 @@ const CatOneForAssessment = ({
         return false;
       }
     },
-    [saveCatOneAsDraft, enqueueSnackbar, refetch]
+    [saveCatOneAsDraft, enqueueSnackbar, refetch, refetchDashboard],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -257,11 +269,11 @@ const CatOneForAssessment = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -277,11 +289,11 @@ const CatOneForAssessment = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, currentParams],
   );
 
   const handleModeChange = useCallback((newMode) => {
