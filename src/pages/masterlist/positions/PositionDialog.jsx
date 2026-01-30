@@ -10,6 +10,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Chip,
 } from "@mui/material";
 import { Close, AttachFile } from "@mui/icons-material";
 
@@ -120,32 +121,32 @@ const PositionDialog = ({ open, onClose, position, type = "attachment" }) => {
     }
 
     return (
-      <List>
-        {tools.map((tool, index) => (
-          <ListItem
-            key={index}
-            sx={{
-              borderBottom:
-                index < tools.length - 1 ? "1px solid #e0e0e0" : "none",
-            }}>
-            <ListItemText
-              primary={
+      <Box sx={{ p: 2 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {tools.map((tool, index) => (
+            <Chip
+              key={index}
+              label={
                 typeof tool === "string"
                   ? tool
                   : tool?.name || `Tool ${index + 1}`
               }
-              primaryTypographyProps={{
+              color="primary"
+              variant="outlined"
+              sx={{
+                fontFamily: "'Helvetica Neue', Arial, sans-serif",
+                fontSize: "0.9rem",
                 fontWeight: 500,
               }}
             />
-          </ListItem>
-        ))}
-      </List>
+          ))}
+        </Box>
+      </Box>
     );
   };
 
   const renderRequestorsContent = () => {
-    const requestors = position?.requesters || [];
+    const requestors = position?.requesters || position?.requestors || [];
 
     if (!Array.isArray(requestors) || requestors.length === 0) {
       return (
@@ -154,6 +155,28 @@ const PositionDialog = ({ open, onClose, position, type = "attachment" }) => {
             No requestors assigned
           </Typography>
         </Box>
+      );
+    }
+
+    if (typeof requestors[0] === "string") {
+      return (
+        <List>
+          {requestors.map((requestor, index) => (
+            <ListItem
+              key={index}
+              sx={{
+                borderBottom:
+                  index < requestors.length - 1 ? "1px solid #e0e0e0" : "none",
+              }}>
+              <ListItemText
+                primary={requestor}
+                primaryTypographyProps={{
+                  fontWeight: 500,
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
       );
     }
 
@@ -188,6 +211,14 @@ const PositionDialog = ({ open, onClose, position, type = "attachment" }) => {
                       component="span"
                       display="block">
                       Position: {requestor.position.position_name}
+                    </Typography>
+                  )}
+                  {requestor?.department_name && (
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      display="block">
+                      Department: {requestor.department_name}
                     </Typography>
                   )}
                 </>
@@ -275,7 +306,7 @@ const PositionDialog = ({ open, onClose, position, type = "attachment" }) => {
             onError={() => {
               console.error(
                 "Failed to load attachment:",
-                position.position_attachment
+                position.position_attachment,
               );
             }}
           />

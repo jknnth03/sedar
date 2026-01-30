@@ -7,6 +7,7 @@ import {
   useGetPdpListQuery,
   useSubmitPdpMutation,
 } from "../../../features/api/da-task/pdpApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import PdpTable from "./PdpTable";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
@@ -26,7 +27,7 @@ const PdpForApproval = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const [menuAnchor, setMenuAnchor] = useState({});
@@ -79,6 +80,8 @@ const PdpForApproval = ({
     skip: false,
   });
 
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
+
   const [submitPdp] = useSubmitPdpMutation();
 
   const submissionsData = useMemo(() => {
@@ -103,7 +106,7 @@ const PdpForApproval = ({
         onRowClick(submission);
       }
     },
-    [onRowClick]
+    [onRowClick],
   );
 
   const handleViewSubmission = useCallback(
@@ -113,7 +116,7 @@ const PdpForApproval = ({
         onRowClick(submission);
       }
     },
-    [onRowClick]
+    [onRowClick],
   );
 
   const handleApproveSubmission = useCallback(
@@ -130,7 +133,7 @@ const PdpForApproval = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar],
   );
 
   const handleRejectSubmission = useCallback(
@@ -147,7 +150,7 @@ const PdpForApproval = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -174,11 +177,11 @@ const PdpForApproval = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -194,11 +197,11 @@ const PdpForApproval = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const handleActionConfirm = async () => {
@@ -223,10 +226,11 @@ const PdpForApproval = ({
         {
           variant: "success",
           autoHideDuration: 2000,
-        }
+        },
       );
 
       refetch();
+      refetchDashboard();
 
       if (confirmAction === "approve" && onApproveFromParent) {
         onApproveFromParent(selectedSubmissionForAction.id);
@@ -291,9 +295,6 @@ const PdpForApproval = ({
           selectedFilters={[]}
           showArchived={false}
           hideStatusColumn={false}
-          forApproval={true}
-          onApprove={handleApproveSubmission}
-          onReject={handleRejectSubmission}
         />
 
         <CustomTablePagination

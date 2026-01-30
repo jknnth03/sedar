@@ -6,23 +6,17 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Box,
   Typography,
   Chip,
-  IconButton,
-  Menu,
-  MenuItem,
   CircularProgress,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import CancelIcon from "@mui/icons-material/Cancel";
 import { format, parseISO } from "date-fns";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import NoDataFound from "../../NoDataFound";
+import Overdue from "../../../assets/clock-alert.svg";
 
 const CatOneTable = ({
   submissionsList = [],
@@ -206,6 +200,7 @@ const CatOneTable = ({
                 ? submission?.status
                 : submission?.data_change?.status || submission?.status;
               const statusInfo = getStatusColor(status);
+              const isOverdue = submission?.is_overdue || false;
               return (
                 <TableRow
                   key={submission.id}
@@ -216,9 +211,26 @@ const CatOneTable = ({
                       ...styles.columnStyles.id,
                       ...styles.cellContentStyles,
                     }}>
-                    {submission?.developmental_assignment?.reference_number ||
-                      submission?.data_change?.reference_number ||
-                      "N/A"}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}>
+                      <span>
+                        {submission?.developmental_assignment
+                          ?.reference_number ||
+                          submission?.data_change?.reference_number ||
+                          "N/A"}
+                      </span>
+                      {isOverdue && (
+                        <img
+                          src={Overdue}
+                          alt="Overdue"
+                          style={{ width: "18px", height: "18px" }}
+                        />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell
                     sx={{

@@ -25,9 +25,11 @@ import EditOffIcon from "@mui/icons-material/EditOff";
 import { useFormContext } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
+import { format, parseISO } from "date-fns";
 import CatOneModalFields from "./CarOneModalFields";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import CatOneModalPrinting from "./CatOneModalPrinting";
+import Overdue from "../../../assets/clock-alert.svg";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -167,6 +169,15 @@ const CatOneModal = ({
   const [confirmAction, setConfirmAction] = useState(null);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(parseISO(dateString), "MMM dd, yyyy");
+    } catch (error) {
+      return "Invalid Date";
+    }
+  };
 
   const shouldShowEditButton = () => {
     const status = selectedEntry?.status;
@@ -468,6 +479,9 @@ const CatOneModal = ({
   }, [open, currentMode, selectedEntry, formInitialized, setValue]);
 
   const isProcessing = isLoading || isUpdating;
+  const isOverdue = selectedEntry?.is_overdue || false;
+  const startDate = selectedEntry?.developmental_assignment?.start_date;
+  const endDate = selectedEntry?.developmental_assignment?.end_date;
 
   return (
     <>
@@ -584,6 +598,9 @@ const CatOneModal = ({
                 onFormDataCreate={handleFormDataCallback}
                 selectedEntry={selectedEntry}
                 formInitialized={formInitialized}
+                startDate={startDate}
+                endDate={endDate}
+                isOverdue={isOverdue}
                 key={`${
                   selectedEntry?.id || "new"
                 }-${currentMode}-${formInitialized}-${

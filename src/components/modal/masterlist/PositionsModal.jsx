@@ -158,7 +158,7 @@ function PositionsModal({
   }, [open, edit]);
 
   useEffect(() => {
-    if (open && position?.id && (edit === true || edit === "view")) {
+    if (open && position?.id) {
       const fetchFullData = async () => {
         try {
           setIsInitialLoad(true);
@@ -180,7 +180,7 @@ function PositionsModal({
       };
       fetchFullData();
     }
-  }, [open, position?.id, edit, getPositionById, enqueueSnackbar]);
+  }, [open, position?.id, getPositionById, enqueueSnackbar]);
 
   useEffect(() => {
     if (open) {

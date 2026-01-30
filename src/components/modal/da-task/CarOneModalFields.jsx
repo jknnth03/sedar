@@ -9,7 +9,6 @@ import {
   Radio,
   Paper,
   Divider,
-  CircularProgress,
   Alert,
   LinearProgress,
   Skeleton,
@@ -17,6 +16,8 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { Controller, useFormContext } from "react-hook-form";
 import dayjs from "dayjs";
+import { format, parseISO } from "date-fns";
+import Overdue from "../../../assets/clock-alert.svg";
 
 const CatOneModalFields = ({
   isLoading = false,
@@ -24,6 +25,9 @@ const CatOneModalFields = ({
   onFormDataCreate,
   selectedEntry = null,
   formInitialized = false,
+  startDate = null,
+  endDate = null,
+  isOverdue = false,
 }) => {
   const {
     control,
@@ -33,14 +37,21 @@ const CatOneModalFields = ({
   } = useFormContext();
 
   const [scores, setScores] = useState(null);
-  const [initialized, setInitialized] = useState(false);
 
   const dateAssessed = watch("date_assessed");
   const answers = watch("answers") || [];
 
   const isViewMode = mode === "view";
-
   const templateData = selectedEntry?.template;
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(parseISO(dateString), "MMM dd, yyyy");
+    } catch (error) {
+      return "Invalid Date";
+    }
+  };
 
   useEffect(() => {
     if (isViewMode && selectedEntry?.scores) {
@@ -49,56 +60,40 @@ const CatOneModalFields = ({
   }, [isViewMode, selectedEntry?.scores]);
 
   useEffect(() => {
-    if (formInitialized && selectedEntry && !initialized) {
-      if (selectedEntry.date_assessed) {
-        setValue("date_assessed", dayjs(selectedEntry.date_assessed), {
-          shouldValidate: false,
+    if (formInitialized && templateData && answers.length === 0) {
+      const initialAnswers = [];
+
+      const collectRateableItems = (items) => {
+        items.forEach((item) => {
+          if (item.is_rateable) {
+            initialAnswers.push({
+              template_item_id: item.id,
+              rating_scale_id: item.rating_id || null,
+            });
+          }
+          if (item.children && item.children.length > 0) {
+            collectRateableItems(item.children);
+          }
         });
-      }
+      };
 
-      if (selectedEntry.answers && selectedEntry.answers.length > 0) {
-        setValue("answers", selectedEntry.answers, { shouldValidate: false });
-      } else if (templateData) {
-        const initialAnswers = [];
+      templateData.sections.forEach((section) => {
+        collectRateableItems(section.items);
+      });
 
-        const collectRateableItems = (items) => {
-          items.forEach((item) => {
-            if (item.is_rateable) {
-              initialAnswers.push({
-                template_item_id: item.id,
-                rating_scale_id: item.rating_id,
-              });
-            }
-            if (item.children && item.children.length > 0) {
-              collectRateableItems(item.children);
-            }
-          });
-        };
-
-        templateData.sections.forEach((section) => {
-          collectRateableItems(section.items);
-        });
-
-        setValue("answers", initialAnswers, { shouldValidate: false });
-      }
-
-      setInitialized(true);
+      setValue("answers", initialAnswers, { shouldValidate: false });
     }
-
-    if (!formInitialized) {
-      setInitialized(false);
-    }
-  }, [formInitialized, selectedEntry, templateData, setValue, initialized]);
+  }, [formInitialized, templateData, answers.length, setValue]);
 
   useEffect(() => {
     if (onFormDataCreate) {
       const getFormData = () => {
         const formData = {
-          action: "submit_for_validation",
           date_assessed: dateAssessed
             ? dayjs(dateAssessed).format("YYYY-MM-DD")
             : null,
           answers: answers.filter((answer) => answer.rating_scale_id !== null),
+          action: "submit_for_validation",
         };
         return formData;
       };
@@ -110,9 +105,9 @@ const CatOneModalFields = ({
     const updatedAnswers = answers.map((answer) =>
       answer.template_item_id === templateItemId
         ? { ...answer, rating_scale_id: ratingScaleId }
-        : answer
+        : answer,
     );
-    setValue("answers", updatedAnswers);
+    setValue("answers", updatedAnswers, { shouldValidate: true });
   };
 
   const getRatingForItem = (templateItemId) => {
@@ -342,7 +337,7 @@ const CatOneModalFields = ({
         <Typography
           variant="h6"
           sx={{ mb: 2, fontWeight: 600, color: "rgb(33, 61, 112)" }}>
-          Employee Information
+          Employeeasdasd
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
           <Box>
@@ -361,6 +356,31 @@ const CatOneModalFields = ({
               {templateData?.name || "N/A"}
             </Typography>
           </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Start Date
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              {formatDate(startDate)}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              End Date
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {formatDate(endDate)}
+              </Typography>
+              {isOverdue && (
+                <img
+                  src={Overdue}
+                  alt="Overdue"
+                  style={{ width: "18px", height: "18px" }}
+                />
+              )}
+            </Box>
+          </Box>
         </Box>
       </Paper>
 
@@ -376,10 +396,6 @@ const CatOneModalFields = ({
               {...field}
               label="Date Assessed"
               disabled={isViewMode || isLoading}
-              value={field.value || null}
-              onChange={(newValue) => {
-                field.onChange(newValue);
-              }}
               slotProps={{
                 textField: {
                   fullWidth: true,
@@ -447,7 +463,7 @@ const CatOneModalFields = ({
                     {sectionData.weight}%
                   </Typography>
                 </Box>
-              )
+              ),
             )}
             <Divider sx={{ my: 2 }} />
             <Box

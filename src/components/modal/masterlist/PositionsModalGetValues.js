@@ -58,8 +58,10 @@ export const setRequestorsFromResponse = (requestersData) => {
   return requestersData.map((requester) => ({
     id: requester.id,
     name: requester.full_name || "Unknown User",
-    position: requester.position?.position_name || "No Position",
-    department: "No Department",
+    position: requester.position || null,
+    department_name: requester.department_name || null,
+    position_name: requester.position?.position_name || null,
+    position_department: requester.position?.department || null,
     employee_id: requester.employee_id,
     user_id: requester.id,
   }));
@@ -78,6 +80,7 @@ export const setInitialDropdownOptions = (apiResponse) => {
   const options = {
     titlesList: [],
     schedulesList: [],
+    teamsList: [],
     teamsList: [],
     chargingList: [],
     usersList: [],

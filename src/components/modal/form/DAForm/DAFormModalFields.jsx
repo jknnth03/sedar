@@ -61,7 +61,7 @@ const DAFormModalFields = ({
       },
       {
         skip: !shouldFetchMrf,
-      }
+      },
     );
 
   const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
@@ -73,8 +73,8 @@ const DAFormModalFields = ({
   const mrfSubmissions = Array.isArray(mrfData?.result?.data)
     ? mrfData.result.data
     : Array.isArray(mrfData?.result)
-    ? mrfData.result
-    : [];
+      ? mrfData.result
+      : [];
 
   useEffect(() => {
     if (!isCreate) {
@@ -107,7 +107,7 @@ const DAFormModalFields = ({
       !hasSyncedMrf
     ) {
       let matchingMrf = mrfSubmissions.find(
-        (mrf) => mrf.id === formValues.approved_mrf_id
+        (mrf) => mrf.id === formValues.approved_mrf_id,
       );
 
       if (!matchingMrf && selectedEntry) {
@@ -160,7 +160,7 @@ const DAFormModalFields = ({
         setValue("from_position_title", selectedMrf.from_position?.title || "");
         setValue(
           "from_department",
-          selectedMrf.from_position?.department || "-"
+          selectedMrf.from_position?.department || "-",
         );
 
         setValue("to_position_id", selectedMrf.to_position?.id || "");
@@ -180,7 +180,7 @@ const DAFormModalFields = ({
           try {
             setIsKpisLoading(true);
             const kpisResponse = await fetchPositionKpis(
-              selectedMrf.to_position.id
+              selectedMrf.to_position.id,
             ).unwrap();
 
             if (kpisResponse?.result && kpisResponse.result.length > 0) {
@@ -251,7 +251,11 @@ const DAFormModalFields = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="MRF"
+                      label={
+                        <span>
+                          MRF <span style={{ color: "red" }}>*</span>
+                        </span>
+                      }
                       fullWidth
                       error={!!errors.approved_mrf_id}
                       helperText={errors.approved_mrf_id?.message}
@@ -283,7 +287,7 @@ const DAFormModalFields = ({
 
             <Box>
               <TextField
-                label="EMPLOYEE NAME"
+                label="Employee Name"
                 value={formValues.employee_name || ""}
                 disabled
                 fullWidth
@@ -293,7 +297,7 @@ const DAFormModalFields = ({
 
             <Box>
               <TextField
-                label="POSITION - FROM"
+                label="Position - From"
                 value={formValues.from_position_title || ""}
                 disabled
                 fullWidth
@@ -303,7 +307,7 @@ const DAFormModalFields = ({
 
             <Box>
               <TextField
-                label="POSITION - TO"
+                label="Position - To"
                 value={formValues.to_position_title || ""}
                 disabled
                 fullWidth
@@ -313,7 +317,7 @@ const DAFormModalFields = ({
 
             <Box>
               <TextField
-                label="DEPARTMENT - FROM"
+                label="Department - From"
                 value={formValues.from_department || "-"}
                 disabled
                 fullWidth
@@ -323,7 +327,7 @@ const DAFormModalFields = ({
 
             <Box>
               <TextField
-                label="DEPARTMENT - TO"
+                label="Department - To"
                 value={formValues.to_department || "-"}
                 disabled
                 fullWidth
@@ -358,8 +362,8 @@ const DAFormModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => {
                       field.onChange(date);
@@ -370,7 +374,12 @@ const DAFormModalFields = ({
                         setValue("end_date", null);
                       }
                     }}
-                    label="INCLUSIVE DATES - FROM"
+                    label={
+                      <span>
+                        Inclusive Dates - From{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     disabled={true}
                     slotProps={{
                       textField: {
@@ -409,11 +418,16 @@ const DAFormModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    label="INCLUSIVE DATES - TO"
+                    label={
+                      <span>
+                        Inclusive Dates - To{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     disabled={true}
                     slotProps={{
                       textField: {

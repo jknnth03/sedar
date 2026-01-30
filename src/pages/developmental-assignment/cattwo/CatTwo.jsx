@@ -28,6 +28,7 @@ import {
   useSaveCatTwoAsDraftMutation,
   useSubmitCatTwoMutation,
 } from "../../../features/api/da-task/catTwoApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { format } from "date-fns";
 import CatTwoForAssessment from "./CatTwoForAssessment";
 import CatTwoForSubmission from "./CatTwoForSubmission";
@@ -253,6 +254,8 @@ const CatTwo = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
+  const { data: dashboardData } = useShowDashboardQuery();
+
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
@@ -271,7 +274,7 @@ const CatTwo = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -304,6 +307,24 @@ const CatTwo = () => {
     };
   }, [dateFilters]);
 
+  const catTwoCounts = {
+    forAssessment: dashboardData?.result?.da_tasks?.cat2?.for_assessment || 0,
+    forSubmission: dashboardData?.result?.da_tasks?.cat2?.for_submission || 0,
+    forApproval: dashboardData?.result?.approval?.da?.cat2 || 0,
+    returned: dashboardData?.result?.da_tasks?.cat2?.returned || 0,
+    approved: 0,
+  };
+
+  const catTwoOverdueCounts = {
+    forAssessment:
+      dashboardData?.result?.da_tasks?.cat2?.for_assessment_overdue || 0,
+    forSubmission:
+      dashboardData?.result?.da_tasks?.cat2?.for_submission_overdue || 0,
+    forApproval: dashboardData?.result?.approval?.da?.cat2_overdue || 0,
+    returned: dashboardData?.result?.da_tasks?.cat2?.returned_overdue || 0,
+    approved: 0,
+  };
+
   const handleTabChange = useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
@@ -312,10 +333,10 @@ const CatTwo = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery, tabMap],
   );
 
   const handleSearchChange = useCallback(
@@ -326,10 +347,10 @@ const CatTwo = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab, tabMap],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -381,7 +402,7 @@ const CatTwo = () => {
       setPendingFormData(formData);
       setConfirmOpen(true);
     },
-    []
+    [],
   );
 
   const handleActionConfirm = async () => {
@@ -517,7 +538,7 @@ const CatTwo = () => {
         return false;
       }
     },
-    [submitCatTwo, enqueueSnackbar, handleRefreshDetails]
+    [submitCatTwo, enqueueSnackbar, handleRefreshDetails],
   );
 
   const handleCancel = useCallback(
@@ -547,7 +568,7 @@ const CatTwo = () => {
         return false;
       }
     },
-    [enqueueSnackbar, handleRefreshDetails]
+    [enqueueSnackbar, handleRefreshDetails],
   );
 
   const getSubmissionDisplayName = useCallback(() => {
@@ -571,7 +592,8 @@ const CatTwo = () => {
             onConfirmationRequest={handleConfirmationRequest}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catTwoCounts.forAssessment,
+        overdueCount: catTwoOverdueCounts.forAssessment,
       },
       {
         label: "FOR SUBMISSION",
@@ -587,7 +609,8 @@ const CatTwo = () => {
             onConfirmationRequest={handleConfirmationRequest}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catTwoCounts.forSubmission,
+        overdueCount: catTwoOverdueCounts.forSubmission,
       },
       {
         label: "FOR APPROVAL",
@@ -601,7 +624,8 @@ const CatTwo = () => {
             onConfirmationRequest={handleConfirmationRequest}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catTwoCounts.forApproval,
+        overdueCount: catTwoOverdueCounts.forApproval,
       },
       {
         label: "RETURNED",
@@ -615,7 +639,8 @@ const CatTwo = () => {
             onConfirmationRequest={handleConfirmationRequest}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catTwoCounts.returned,
+        overdueCount: catTwoOverdueCounts.returned,
       },
       {
         label: "APPROVED",
@@ -629,7 +654,8 @@ const CatTwo = () => {
             onConfirmationRequest={handleConfirmationRequest}
           />
         ),
-        badgeCount: 0,
+        badgeCount: catTwoCounts.approved,
+        overdueCount: catTwoOverdueCounts.approved,
       },
     ],
     [
@@ -639,7 +665,9 @@ const CatTwo = () => {
       handleCancel,
       handleRowClick,
       handleConfirmationRequest,
-    ]
+      catTwoCounts,
+      catTwoOverdueCounts,
+    ],
   );
 
   const a11yProps = (index) => {
@@ -703,19 +731,21 @@ const CatTwo = () => {
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount > 0 ? (
-                      <Badge
-                        badgeContent={tab.badgeCount}
-                        color="error"
-                        sx={{
-                          ...styles.tabBadge,
-                          ...(isVerySmall && styles.tabBadgeVerySmall),
-                        }}>
-                        {tab.label}
-                      </Badge>
-                    ) : (
-                      tab.label
-                    )
+                    <Box sx={{ position: "relative", display: "inline-flex" }}>
+                      {tab.badgeCount > 0 ? (
+                        <Badge
+                          badgeContent={tab.badgeCount}
+                          color="error"
+                          sx={{
+                            ...styles.tabBadge,
+                            ...(isVerySmall && styles.tabBadgeVerySmall),
+                          }}>
+                          {tab.label}
+                        </Badge>
+                      ) : (
+                        tab.label
+                      )}
+                    </Box>
                   }
                   {...a11yProps(index)}
                 />

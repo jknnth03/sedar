@@ -25,6 +25,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { format, parseISO } from "date-fns";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import NoDataFound from "../../NoDataFound";
+import Overdue from "../../../assets/clock-alert.svg";
 
 const PdpTable = ({
   submissionsList = [],
@@ -229,6 +230,7 @@ const PdpTable = ({
                 ? submission?.status
                 : submission?.data_change?.status || submission?.status;
               const statusInfo = getStatusColor(status);
+              const isOverdue = submission?.is_overdue || false;
               return (
                 <TableRow
                   key={submission.id}
@@ -239,9 +241,26 @@ const PdpTable = ({
                       ...styles.columnStyles.id,
                       ...styles.cellContentStyles,
                     }}>
-                    {submission?.developmental_assignment?.reference_number ||
-                      submission?.data_change?.reference_number ||
-                      "N/A"}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}>
+                      <span>
+                        {submission?.developmental_assignment
+                          ?.reference_number ||
+                          submission?.data_change?.reference_number ||
+                          "N/A"}
+                      </span>
+                      {isOverdue && (
+                        <img
+                          src={Overdue}
+                          alt="Overdue"
+                          style={{ width: "18px", height: "18px" }}
+                        />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell
                     sx={{

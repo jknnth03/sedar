@@ -45,17 +45,15 @@ const BiAnnualPerformanceModalFields = ({
   const { data: prefillData, isLoading: isLoadingPrefill } =
     useGetPerformanceEvaluationPrefillQuery(
       { employee_id: selectedEmployeeId },
-      { skip: !selectedEmployeeId }
+      { skip: !selectedEmployeeId },
     );
 
-  // Load KPIs in VIEW mode
   useEffect(() => {
     if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
       setKpisList(formValues.kpis);
     }
   }, [isCreate, formValues.kpis]);
 
-  // Load Competency Assessment in VIEW mode
   useEffect(() => {
     if (!isCreate && formValues.competency_assessment) {
       const compAssessment = formValues.competency_assessment;
@@ -112,12 +110,10 @@ const BiAnnualPerformanceModalFields = ({
     }
   }, [isCreate, formValues.competency_assessment]);
 
-  // Handle prefill data in CREATE mode
   useEffect(() => {
     if (prefillData?.result && isCreate) {
       if (prefillData.result.employee) {
         const empData = prefillData.result.employee;
-        // Use 'code' field for ID number (e.g., "RDFFLFI-11841")
         setValue("employee_code", empData.code || empData.id_number || "");
         setValue("employee_name", empData.full_name);
         setValue("position_title", empData.position_title);
@@ -179,7 +175,6 @@ const BiAnnualPerformanceModalFields = ({
     }
   }, [prefillData, setValue, isCreate]);
 
-  // Load rating scales for VIEW/EDIT modes
   useEffect(() => {
     if (prefillData?.result && !isCreate) {
       if (prefillData.result.competency_template?.rating_scale) {
@@ -193,11 +188,10 @@ const BiAnnualPerformanceModalFields = ({
     if (newValue) {
       setValue("employee_id", newValue.id);
       setValue("employee_name", newValue.employee_name || newValue.full_name);
-      // Use 'code' field for ID number
       setValue("employee_code", newValue.code || newValue.id_number || "");
       setValue(
         "position_title",
-        newValue.position_title || newValue.position?.title?.name
+        newValue.position_title || newValue.position?.title?.name,
       );
     } else {
       setValue("employee_id", null);
@@ -227,25 +221,20 @@ const BiAnnualPerformanceModalFields = ({
       if (field === "actual_performance") {
         const isValid = validateNumericInput(value);
 
-        // Update error state
         setKpiErrors((prev) => {
           const newErrors = { ...prev };
           if (!newErrors[index]) {
             newErrors[index] = {};
           }
 
-          // Set error only if value is not empty and not valid
-          // Clear error if value is empty or valid
           newErrors[index].actual_performance =
             value !== "" && !isValid ? "Only numbers are allowed" : null;
 
           return newErrors;
         });
 
-        // Prevent updating the field if invalid (but allow empty)
         if (value !== "" && !isValid) return;
 
-        // Clear react-hook-form error for this field if it exists
         if (isValid || value === "") {
           clearErrors(`kpis.${index}.actual_performance`);
         }
@@ -256,7 +245,7 @@ const BiAnnualPerformanceModalFields = ({
       setKpisList(updatedKpis);
       setValue("kpis", updatedKpis, { shouldValidate: false });
     },
-    [kpisList, setValue, clearErrors]
+    [kpisList, setValue, clearErrors],
   );
 
   const handleCompetencyRatingChange = useCallback(
@@ -274,12 +263,12 @@ const BiAnnualPerformanceModalFields = ({
         setValue(
           "competency_assessment",
           { template_id: templateId, answers: updatedItems },
-          { shouldValidate: false }
+          { shouldValidate: false },
         );
         return updatedItems;
       });
     },
-    [setValue, ratingScales, templateId]
+    [setValue, ratingScales, templateId],
   );
 
   const employeeOptions = Array.isArray(employeesData?.result?.data)
@@ -354,7 +343,12 @@ const BiAnnualPerformanceModalFields = ({
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          label="EMPLOYEE NAME"
+                          label={
+                            <span>
+                              Employee Name{" "}
+                              <span style={{ color: "red" }}>*</span>
+                            </span>
+                          }
                           error={!!errors.employee_id}
                           helperText={errors.employee_id?.message}
                           fullWidth
@@ -378,7 +372,7 @@ const BiAnnualPerformanceModalFields = ({
                 />
               ) : (
                 <TextField
-                  label="EMPLOYEE NAME"
+                  label="Employee Name"
                   value={formValues.employee_name || ""}
                   disabled
                   fullWidth
@@ -388,7 +382,7 @@ const BiAnnualPerformanceModalFields = ({
             </Box>
             <Box>
               <TextField
-                label="ID NUMBER"
+                label="ID Number"
                 value={formValues.employee_code || ""}
                 disabled
                 fullWidth
@@ -397,7 +391,7 @@ const BiAnnualPerformanceModalFields = ({
             </Box>
             <Box>
               <TextField
-                label="POSITION"
+                label="Position"
                 value={formValues.position_title || ""}
                 disabled
                 fullWidth
@@ -430,11 +424,16 @@ const BiAnnualPerformanceModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    label="EVALUATION PERIOD START DATE"
+                    label={
+                      <span>
+                        Evaluation Period Start Date{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
@@ -461,11 +460,16 @@ const BiAnnualPerformanceModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    label="EVALUATION PERIOD END DATE"
+                    label={
+                      <span>
+                        Evaluation Period End Date{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     disabled={isReadOnly}
                     slotProps={{
                       textField: {
@@ -507,15 +511,8 @@ const BiAnnualPerformanceModalFields = ({
         <Box sx={{ p: 0, pb: 0, borderRadius: 2 }}>
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "1fr",
-                md: "repeat(3, 1fr)",
-              },
-              "@media (min-width: 900px)": {
-                gridTemplateColumns: "repeat(3, 1fr)",
-              },
+              display: "flex",
+              flexDirection: "column",
               gap: 2,
             }}>
             <Box>
@@ -526,9 +523,13 @@ const BiAnnualPerformanceModalFields = ({
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="STRENGTHS"
+                    label={
+                      <span>
+                        Strengths <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     multiline
-                    rows={4}
+                    rows={2}
                     disabled={isReadOnly}
                     fullWidth
                     error={!!errors.strengths_discussion}
@@ -546,9 +547,14 @@ const BiAnnualPerformanceModalFields = ({
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="DEVELOPMENT AREAS"
+                    label={
+                      <span>
+                        Development Areas{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     multiline
-                    rows={4}
+                    rows={2}
                     disabled={isReadOnly}
                     fullWidth
                     error={!!errors.development_discussion}
@@ -566,9 +572,13 @@ const BiAnnualPerformanceModalFields = ({
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="LEARNING NEEDS"
+                    label={
+                      <span>
+                        Learning Needs <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     multiline
-                    rows={4}
+                    rows={2}
                     disabled={isReadOnly}
                     fullWidth
                     error={!!errors.learning_needs_discussion}

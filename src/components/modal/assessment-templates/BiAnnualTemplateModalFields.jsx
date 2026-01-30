@@ -130,12 +130,12 @@ const BiAnnualTemplateFields = ({ isReadOnly, isCreate }) => {
     const currentSections = [...sections];
     currentSections[sectionIndex].items[itemIndex].children.splice(
       childIndex,
-      1
+      1,
     );
     currentSections[sectionIndex].items[itemIndex].children.forEach(
       (child, idx) => {
         child.display_order = idx + 1;
-      }
+      },
     );
 
     setValue("sections", currentSections, { shouldValidate: false });
@@ -558,7 +558,7 @@ const BiAnnualTemplateFields = ({ isReadOnly, isCreate }) => {
                                   handleChildDragStart(
                                     sectionIndex,
                                     itemIndex,
-                                    childIndex
+                                    childIndex,
                                   );
                                 }}
                                 onDragEnter={(e) => {
@@ -566,7 +566,7 @@ const BiAnnualTemplateFields = ({ isReadOnly, isCreate }) => {
                                   handleChildDragEnter(
                                     sectionIndex,
                                     itemIndex,
-                                    childIndex
+                                    childIndex,
                                   );
                                 }}
                                 onDragEnd={(e) => {
@@ -613,7 +613,7 @@ const BiAnnualTemplateFields = ({ isReadOnly, isCreate }) => {
                                   removeChildItem(
                                     sectionIndex,
                                     itemIndex,
-                                    childIndex
+                                    childIndex,
                                   )
                                 }
                                 sx={styles.deleteIconButton}>

@@ -9,6 +9,7 @@ import {
   useSaveCatTwoAsDraftMutation,
   useSubmitCatTwoMutation,
 } from "../../../features/api/da-task/catTwoApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import CatTwoTable from "./CatTwoTable";
 import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
@@ -27,7 +28,7 @@ const CatTwoReturned = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -86,6 +87,8 @@ const CatTwoReturned = ({
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const {
     data: catTwoDetails,
@@ -146,6 +149,7 @@ const CatTwoReturned = ({
           taskId: submissionId,
           onSuccess: () => {
             refetch();
+            refetchDashboard();
           },
         });
       } else {
@@ -155,7 +159,13 @@ const CatTwoReturned = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar, onConfirmationRequest, refetch]
+    [
+      submissionsData,
+      enqueueSnackbar,
+      onConfirmationRequest,
+      refetch,
+      refetchDashboard,
+    ],
   );
 
   const handleModalClose = useCallback(() => {
@@ -167,10 +177,11 @@ const CatTwoReturned = ({
 
   const handleRefreshDetails = useCallback(() => {
     refetch();
+    refetchDashboard();
     if (selectedSubmissionId) {
       refetchDetails();
     }
-  }, [refetch, refetchDetails, selectedSubmissionId]);
+  }, [refetch, refetchDashboard, refetchDetails, selectedSubmissionId]);
 
   const handleModalSaveAsDraft = useCallback(
     async (submissionData, submissionId) => {
@@ -188,6 +199,7 @@ const CatTwoReturned = ({
         data: submissionData,
         onSuccess: () => {
           refetch();
+          refetchDashboard();
           if (selectedSubmissionId) {
             refetchDetails();
           }
@@ -203,11 +215,12 @@ const CatTwoReturned = ({
       submissionsData,
       onConfirmationRequest,
       refetch,
+      refetchDashboard,
       selectedSubmissionId,
       refetchDetails,
       modalSuccessHandler,
       handleModalClose,
-    ]
+    ],
   );
 
   const handleModalSave = useCallback(
@@ -227,6 +240,7 @@ const CatTwoReturned = ({
           data: submissionData,
           onSuccess: () => {
             refetch();
+            refetchDashboard();
             if (selectedSubmissionId) {
               refetchDetails();
             }
@@ -242,6 +256,7 @@ const CatTwoReturned = ({
           data: submissionData,
           onSuccess: () => {
             refetch();
+            refetchDashboard();
             if (modalSuccessHandler) {
               modalSuccessHandler();
             }
@@ -261,6 +276,7 @@ const CatTwoReturned = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         handleModalClose();
       } catch (error) {
         const errorMessage =
@@ -274,6 +290,7 @@ const CatTwoReturned = ({
     },
     [
       refetch,
+      refetchDashboard,
       enqueueSnackbar,
       handleModalClose,
       submissionDetails,
@@ -283,7 +300,7 @@ const CatTwoReturned = ({
       selectedSubmissionId,
       refetchDetails,
       modalSuccessHandler,
-    ]
+    ],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -310,11 +327,11 @@ const CatTwoReturned = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -330,11 +347,11 @@ const CatTwoReturned = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const handleModeChange = useCallback((newMode) => {

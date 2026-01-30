@@ -38,29 +38,60 @@ const RequestorSequence = ({
     usersData ||
     [];
 
-  const getPositionDisplay = (position) => {
-    if (!position) return "";
-    if (typeof position === "string") return position;
-    if (typeof position === "object") {
-      return position.position_name || position.name || "";
+  const getPositionDisplay = (requestor) => {
+    if (!requestor) return "No Position";
+
+    if (requestor.position) {
+      if (
+        typeof requestor.position === "object" &&
+        requestor.position.position_name
+      ) {
+        return requestor.position.position_name;
+      }
+      if (typeof requestor.position === "string") {
+        return requestor.position;
+      }
     }
-    return String(position);
+
+    if (requestor.position_name) return requestor.position_name;
+
+    return "No Position";
   };
 
-  const getDepartmentDisplay = (department) => {
-    if (!department) return "";
-    if (typeof department === "string") return department;
-    if (typeof department === "object") {
-      return department.department_name || department.name || "";
+  const getDepartmentDisplay = (requestor) => {
+    if (!requestor) return "No Department";
+
+    if (
+      requestor.position &&
+      typeof requestor.position === "object" &&
+      requestor.position.department
+    ) {
+      return requestor.position.department;
     }
-    return String(department);
+
+    if (requestor.department_name) return requestor.department_name;
+
+    if (requestor.position_department) return requestor.position_department;
+
+    if (requestor.department) {
+      if (typeof requestor.department === "string") return requestor.department;
+      if (typeof requestor.department === "object") {
+        return (
+          requestor.department.department_name ||
+          requestor.department.name ||
+          "No Department"
+        );
+      }
+    }
+
+    return "No Department";
   };
 
   useEffect(() => {
     const currentRequestorIds = requestorSequence.map((req) => req.id);
     const safeUsers = Array.isArray(users) ? users : [];
     const filtered = safeUsers.filter(
-      (user) => !currentRequestorIds.includes(user.id)
+      (user) => !currentRequestorIds.includes(user.id),
     );
     setAvailableRequestors([...filtered]);
   }, [users, requestorSequence]);
@@ -74,8 +105,10 @@ const RequestorSequence = ({
       const newRequestor = {
         id: requestor.id,
         name: requestor.full_name || requestor.name || "Unknown User",
-        position: getPositionDisplay(requestor.position),
-        department: getDepartmentDisplay(requestor.department),
+        position: requestor.position || null,
+        department_name: requestor.department_name || null,
+        position_name: requestor.position?.position_name || null,
+        position_department: requestor.position?.department || null,
       };
       setRequestorSequence([...requestorSequence, newRequestor]);
       setSelectedRequestor("");
@@ -84,7 +117,7 @@ const RequestorSequence = ({
 
   const handleRemoveRequestor = (userId) => {
     const updatedSequence = requestorSequence.filter(
-      (req) => req.id !== userId
+      (req) => req.id !== userId,
     );
     setRequestorSequence([...updatedSequence]);
   };
@@ -145,13 +178,11 @@ const RequestorSequence = ({
                           requestor.name ||
                           "Unknown User"}
                       </Typography>
-                      {requestor.position && (
-                        <Typography variant="caption" color="text.secondary">
-                          {typeof requestor.position === "string"
-                            ? requestor.position
-                            : requestor.position.position_name || "No Position"}
-                        </Typography>
-                      )}
+                      <Typography variant="caption" color="text.secondary">
+                        {requestor.position?.position_name ||
+                          requestor.position ||
+                          "No Position"}
+                      </Typography>
                     </Box>
                   </MenuItem>
                 ))
@@ -222,18 +253,14 @@ const RequestorSequence = ({
 
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {requestor.name}
+                    {requestor.name || requestor.full_name || "Unknown User"}
                   </Typography>
-                  {requestor.position && (
-                    <Typography variant="body2" color="text.secondary">
-                      {requestor.position}
-                    </Typography>
-                  )}
-                  {requestor.department && (
-                    <Typography variant="body2" color="text.secondary">
-                      {requestor.department}
-                    </Typography>
-                  )}
+                  <Typography variant="body2" color="text.secondary">
+                    {getPositionDisplay(requestor)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {getDepartmentDisplay(requestor)}
+                  </Typography>
                 </Box>
 
                 {!isReadOnly && (

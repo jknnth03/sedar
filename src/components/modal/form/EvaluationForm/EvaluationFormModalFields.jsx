@@ -58,8 +58,8 @@ const EvaluationFormModalFields = ({
   const employees = Array.isArray(employeesData?.result?.data)
     ? employeesData.result.data
     : Array.isArray(employeesData?.result)
-    ? employeesData.result
-    : [];
+      ? employeesData.result
+      : [];
 
   const status =
     selectedEntry?.status || selectedEntry?.result?.status || formValues.status;
@@ -91,20 +91,20 @@ const EvaluationFormModalFields = ({
         setValue("employee_id", selectedEmployee.id);
         setValue(
           "employee_name",
-          selectedEmployee.full_name || selectedEmployee.employee_name
+          selectedEmployee.full_name || selectedEmployee.employee_name,
         );
         setValue("employee_code", selectedEmployee.code || "");
 
         if (selectedEmployee.probation_start_date) {
           setValue(
             "probation_start_date",
-            dayjs(selectedEmployee.probation_start_date)
+            dayjs(selectedEmployee.probation_start_date),
           );
         }
         if (selectedEmployee.probation_end_date) {
           setValue(
             "probation_end_date",
-            dayjs(selectedEmployee.probation_end_date)
+            dayjs(selectedEmployee.probation_end_date),
           );
         }
 
@@ -115,7 +115,7 @@ const EvaluationFormModalFields = ({
         if (!positionId) {
           try {
             const employeeDetails = await fetchSingleEmployee(
-              selectedEmployee.id
+              selectedEmployee.id,
             ).unwrap();
 
             const positionDetailsObj =
@@ -220,7 +220,7 @@ const EvaluationFormModalFields = ({
         return updatedKpis;
       });
     },
-    [setValue]
+    [setValue],
   );
 
   useEffect(() => {
@@ -268,7 +268,11 @@ const EvaluationFormModalFields = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="EMPLOYEE NAME"
+                      label={
+                        <span>
+                          Employee Name <span style={{ color: "red" }}>*</span>
+                        </span>
+                      }
                       fullWidth
                       error={!!errors.employee_id}
                       helperText={errors.employee_id?.message}
@@ -290,7 +294,7 @@ const EvaluationFormModalFields = ({
                 />
               ) : (
                 <TextField
-                  label="EMPLOYEE NAME"
+                  label="Employee Name"
                   value={formValues.employee_name || ""}
                   disabled
                   fullWidth
@@ -301,7 +305,7 @@ const EvaluationFormModalFields = ({
 
             <Box>
               <TextField
-                label="ID NUMBER"
+                label="ID Number"
                 value={formValues.employee_code || ""}
                 disabled
                 fullWidth
@@ -311,7 +315,7 @@ const EvaluationFormModalFields = ({
 
             <Box>
               <TextField
-                label="POSITION"
+                label="Position"
                 value={formValues.position_title || ""}
                 disabled
                 fullWidth
@@ -344,11 +348,16 @@ const EvaluationFormModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    label="PROBATION START DATE"
+                    label={
+                      <span>
+                        Probation Start Date{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     disabled={isCancelled || isReadOnly}
                     slotProps={{
                       textField: {
@@ -374,11 +383,16 @@ const EvaluationFormModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
-                    label="PROBATION END DATE"
+                    label={
+                      <span>
+                        Probation End Date{" "}
+                        <span style={{ color: "red" }}>*</span>
+                      </span>
+                    }
                     disabled={isCancelled || isReadOnly}
                     slotProps={{
                       textField: {
@@ -552,7 +566,7 @@ const EvaluationFormModalFields = ({
                           handleKpiFieldChange(
                             index,
                             "actual_performance",
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         inputProps={{

@@ -11,7 +11,43 @@ import {
   Button,
 } from "@mui/material";
 
-const CoaDialog = ({ open, onClose, selectedPosition }) => {
+const CoaDialog = ({ open, onClose, position }) => {
+  if (!position || !position.charging) {
+    return (
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle
+          style={{
+            backgroundColor: "rgb(233, 246, 255)",
+          }}>
+          <Typography
+            variant="h6"
+            style={{
+              fontWeight: "bold",
+              fontFamily: "'Helvetica Neue', Arial, sans-serif",
+            }}>
+            COA Details
+          </Typography>
+        </DialogTitle>
+        <DialogContent style={{ backgroundColor: "white" }}>
+          <Typography>No data available</Typography>
+        </DialogContent>
+        <DialogActions style={{ backgroundColor: "white" }}>
+          <Button
+            onClick={onClose}
+            variant="contained"
+            color="primary"
+            style={{
+              fontFamily: "'Helvetica Neue', Arial, sans-serif",
+            }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
+
+  const charging = position.charging;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle
@@ -36,7 +72,7 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Charging Name:</strong>}
-              secondary={selectedPosition?.charging?.name || "Not Available"}
+              secondary={charging.name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
@@ -54,9 +90,7 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Company:</strong>}
-              secondary={
-                selectedPosition?.charging?.company_name || "Not Available"
-              }
+              secondary={charging.company_name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
@@ -66,9 +100,6 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
                 },
               }}
             />
-            <Typography variant="body2" color="textSecondary">
-              {selectedPosition?.charging?.company_code || "N/A"}
-            </Typography>
           </ListItem>
           <ListItem
             style={{
@@ -77,17 +108,11 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Business Unit:</strong>}
-              secondary={
-                selectedPosition?.charging?.business_unit_name ||
-                "Not Available"
-              }
+              secondary={charging.business_unit_name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
             />
-            <Typography variant="body2" color="textSecondary">
-              {selectedPosition?.charging?.business_unit_code || "N/A"}
-            </Typography>
           </ListItem>
           <ListItem
             style={{
@@ -96,16 +121,11 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Department:</strong>}
-              secondary={
-                selectedPosition?.charging?.department_name || "Not Available"
-              }
+              secondary={charging.department_name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
             />
-            <Typography variant="body2" color="textSecondary">
-              {selectedPosition?.charging?.department_code || "N/A"}
-            </Typography>
           </ListItem>
           <ListItem
             style={{
@@ -114,16 +134,11 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Unit:</strong>}
-              secondary={
-                selectedPosition?.charging?.unit_name || "Not Available"
-              }
+              secondary={charging.unit_name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
             />
-            <Typography variant="body2" color="textSecondary">
-              {selectedPosition?.charging?.unit_code || "N/A"}
-            </Typography>
           </ListItem>
           <ListItem
             style={{
@@ -132,16 +147,11 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Sub-Unit:</strong>}
-              secondary={
-                selectedPosition?.charging?.sub_unit_name || "Not Available"
-              }
+              secondary={charging.sub_unit_name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
             />
-            <Typography variant="body2" color="textSecondary">
-              {selectedPosition?.charging?.sub_unit_code || "N/A"}
-            </Typography>
           </ListItem>
           <ListItem
             style={{
@@ -150,16 +160,11 @@ const CoaDialog = ({ open, onClose, selectedPosition }) => {
             }}>
             <ListItemText
               primary={<strong>Location:</strong>}
-              secondary={
-                selectedPosition?.charging?.location_name || "Not Available"
-              }
+              secondary={charging.location_name || "Not Available"}
               secondaryTypographyProps={{
                 style: { color: "#666", fontSize: "0.9rem" },
               }}
             />
-            <Typography variant="body2" color="textSecondary">
-              {selectedPosition?.charging?.location_code || "N/A"}
-            </Typography>
           </ListItem>
         </List>
       </DialogContent>

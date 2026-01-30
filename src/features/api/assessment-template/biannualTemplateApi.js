@@ -34,15 +34,7 @@ const biAnnualTemplateApi = sedarApi
         }),
         providesTags: ["biAnnualTemplate"],
       }),
-      createBiAnnualRankFileTemplate: build.mutation({
-        query: (data) => ({
-          url: "assessment-templates",
-          method: "POST",
-          body: data,
-        }),
-        invalidatesTags: ["biAnnualTemplate"],
-      }),
-      createBiAnnualSupervisoryTemplate: build.mutation({
+      createBiAnnualTemplate: build.mutation({
         query: (data) => ({
           url: "assessment-templates",
           method: "POST",
@@ -71,8 +63,7 @@ const biAnnualTemplateApi = sedarApi
 export const {
   useGetBiAnnualTemplatesQuery,
   useGetBiAnnualTemplateByIdQuery,
-  useCreateBiAnnualRankFileTemplateMutation,
-  useCreateBiAnnualSupervisoryTemplateMutation,
+  useCreateBiAnnualTemplateMutation,
   useUpdateBiAnnualTemplateMutation,
   useArchiveBiAnnualTemplateMutation,
 } = biAnnualTemplateApi;

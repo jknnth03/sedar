@@ -16,6 +16,8 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { Controller, useFormContext } from "react-hook-form";
 import dayjs from "dayjs";
+import { format, parseISO } from "date-fns";
+import Overdue from "../../../assets/clock-alert.svg";
 
 const CatTwoModalFields = ({
   isLoading = false,
@@ -23,6 +25,9 @@ const CatTwoModalFields = ({
   onFormDataCreate,
   selectedEntry = null,
   formInitialized = false,
+  startDate = null,
+  endDate = null,
+  isOverdue = false,
 }) => {
   const {
     control,
@@ -38,6 +43,21 @@ const CatTwoModalFields = ({
 
   const isViewMode = mode === "view";
   const templateData = selectedEntry?.template;
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(parseISO(dateString), "MMM dd, yyyy");
+    } catch (error) {
+      return "Invalid Date";
+    }
+  };
+
+  const actualStartDate =
+    startDate || selectedEntry?.developmental_assignment?.start_date;
+  const actualEndDate =
+    endDate || selectedEntry?.developmental_assignment?.end_date;
+  const actualIsOverdue = isOverdue || selectedEntry?.is_overdue;
 
   useEffect(() => {
     if (isViewMode && selectedEntry?.scores) {
@@ -91,7 +111,7 @@ const CatTwoModalFields = ({
     const updatedAnswers = answers.map((answer) =>
       answer.template_item_id === templateItemId
         ? { ...answer, rating_scale_id: ratingScaleId }
-        : answer
+        : answer,
     );
     setValue("answers", updatedAnswers, { shouldValidate: true });
   };
@@ -342,6 +362,31 @@ const CatTwoModalFields = ({
               {templateData?.name || "N/A"}
             </Typography>
           </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Start Date
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              {formatDate(actualStartDate)}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              End Date
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {formatDate(actualEndDate)}
+              </Typography>
+              {actualIsOverdue && (
+                <img
+                  src={Overdue}
+                  alt="Overdue"
+                  style={{ width: "18px", height: "18px" }}
+                />
+              )}
+            </Box>
+          </Box>
         </Box>
       </Paper>
 
@@ -424,7 +469,7 @@ const CatTwoModalFields = ({
                     {sectionData.weight}%
                   </Typography>
                 </Box>
-              )
+              ),
             )}
             <Divider sx={{ my: 2 }} />
             <Box

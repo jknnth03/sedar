@@ -27,6 +27,7 @@ import {
   useSavePdpAsDraftMutation,
   useSubmitPdpMutation,
 } from "../../../features/api/da-task/pdpApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { format } from "date-fns";
 
 import PdpForAssessment from "./PdpForAssessment";
@@ -253,6 +254,8 @@ const Pdp = () => {
   const { enqueueSnackbar } = useSnackbar();
   const methods = useForm();
 
+  const { data: dashboardData } = useShowDashboardQuery();
+
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
   const tabMap = {
@@ -272,7 +275,7 @@ const Pdp = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -307,6 +310,24 @@ const Pdp = () => {
     return filters;
   }, [dateFilters]);
 
+  const pdpCounts = {
+    forAssessment: dashboardData?.result?.da_tasks?.pdp?.for_assessment || 0,
+    forSubmission: dashboardData?.result?.da_tasks?.pdp?.for_submission || 0,
+    forApproval: dashboardData?.result?.approval?.da?.pdp || 0,
+    returned: dashboardData?.result?.da_tasks?.pdp?.returned || 0,
+    approved: 0,
+  };
+
+  const pdpOverdueCounts = {
+    forAssessment:
+      dashboardData?.result?.da_tasks?.pdp?.for_assessment_overdue || 0,
+    forSubmission:
+      dashboardData?.result?.da_tasks?.pdp?.for_submission_overdue || 0,
+    forApproval: dashboardData?.result?.approval?.da?.pdp_overdue || 0,
+    returned: dashboardData?.result?.da_tasks?.pdp?.returned_overdue || 0,
+    approved: 0,
+  };
+
   const handleTabChange = useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
@@ -315,10 +336,10 @@ const Pdp = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery, tabMap]
+    [setQueryParams, searchQuery, tabMap],
   );
 
   const handleSearchChange = useCallback(
@@ -329,10 +350,10 @@ const Pdp = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab, tabMap]
+    [setQueryParams, activeTab, tabMap],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -377,7 +398,7 @@ const Pdp = () => {
       setPendingFormData(formData);
       setConfirmOpen(true);
     },
-    []
+    [],
   );
 
   const handleActionConfirm = async () => {
@@ -479,7 +500,7 @@ const Pdp = () => {
         return false;
       }
     },
-    [handleRefreshDetails]
+    [handleRefreshDetails],
   );
 
   const handleReject = useCallback(
@@ -491,7 +512,7 @@ const Pdp = () => {
         return false;
       }
     },
-    [handleRefreshDetails]
+    [handleRefreshDetails],
   );
 
   const handleCancel = useCallback(
@@ -521,7 +542,7 @@ const Pdp = () => {
         return false;
       }
     },
-    [enqueueSnackbar, handleRefreshDetails]
+    [enqueueSnackbar, handleRefreshDetails],
   );
 
   const getSubmissionDisplayName = useCallback(() => {
@@ -542,7 +563,8 @@ const Pdp = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: pdpCounts.forAssessment,
+        overdueCount: pdpOverdueCounts.forAssessment,
       },
       {
         label: "FOR SUBMISSION",
@@ -555,7 +577,8 @@ const Pdp = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: pdpCounts.forSubmission,
+        overdueCount: pdpOverdueCounts.forSubmission,
       },
       {
         label: "FOR APPROVAL",
@@ -570,7 +593,8 @@ const Pdp = () => {
             onReject={handleReject}
           />
         ),
-        badgeCount: 0,
+        badgeCount: pdpCounts.forApproval,
+        overdueCount: pdpOverdueCounts.forApproval,
       },
       {
         label: "RETURNED",
@@ -583,7 +607,8 @@ const Pdp = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: pdpCounts.returned,
+        overdueCount: pdpOverdueCounts.returned,
       },
       {
         label: "APPROVED",
@@ -596,7 +621,8 @@ const Pdp = () => {
             onRowClick={handleRowClick}
           />
         ),
-        badgeCount: 0,
+        badgeCount: pdpCounts.approved,
+        overdueCount: pdpOverdueCounts.approved,
       },
     ],
     [
@@ -606,7 +632,9 @@ const Pdp = () => {
       handleRowClick,
       handleApprove,
       handleReject,
-    ]
+      pdpCounts,
+      pdpOverdueCounts,
+    ],
   );
 
   const a11yProps = (index) => {
@@ -670,19 +698,21 @@ const Pdp = () => {
                 <StyledTab
                   key={index}
                   label={
-                    tab.badgeCount > 0 ? (
-                      <Badge
-                        badgeContent={tab.badgeCount}
-                        color="error"
-                        sx={{
-                          ...styles.tabBadge,
-                          ...(isVerySmall && styles.tabBadgeVerySmall),
-                        }}>
-                        {tab.label}
-                      </Badge>
-                    ) : (
-                      tab.label
-                    )
+                    <Box sx={{ position: "relative", display: "inline-flex" }}>
+                      {tab.badgeCount > 0 ? (
+                        <Badge
+                          badgeContent={tab.badgeCount}
+                          color="error"
+                          sx={{
+                            ...styles.tabBadge,
+                            ...(isVerySmall && styles.tabBadgeVerySmall),
+                          }}>
+                          {tab.label}
+                        </Badge>
+                      ) : (
+                        tab.label
+                      )}
+                    </Box>
                   }
                   {...a11yProps(index)}
                 />

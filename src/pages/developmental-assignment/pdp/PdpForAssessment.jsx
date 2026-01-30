@@ -14,6 +14,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import { useGetPdpListQuery } from "../../../features/api/da-task/pdpApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import PdpTable from "./PdpTable";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
@@ -32,7 +33,7 @@ const PdpForAssessment = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const [menuAnchor, setMenuAnchor] = useState({});
@@ -85,6 +86,8 @@ const PdpForAssessment = ({
     skip: false,
   });
 
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
+
   const [cancelPdpSubmission] = useCancelFormSubmissionMutation();
 
   const submissionsData = useMemo(() => {
@@ -107,7 +110,7 @@ const PdpForAssessment = ({
         onRowClick(submission);
       }
     },
-    [onRowClick]
+    [onRowClick],
   );
 
   const handleEditSubmission = useCallback(
@@ -117,7 +120,7 @@ const PdpForAssessment = ({
         onRowClick(submission);
       }
     },
-    [onRowClick]
+    [onRowClick],
   );
 
   const handleCancelSubmission = useCallback(
@@ -134,7 +137,7 @@ const PdpForAssessment = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar]
+    [submissionsData, enqueueSnackbar],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -161,11 +164,11 @@ const PdpForAssessment = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -181,11 +184,11 @@ const PdpForAssessment = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const handleActionConfirm = async () => {
@@ -201,6 +204,7 @@ const PdpForAssessment = ({
           autoHideDuration: 2000,
         });
         refetch();
+        refetchDashboard();
         if (onCancel) {
           onCancel(selectedSubmissionForAction.id);
         }

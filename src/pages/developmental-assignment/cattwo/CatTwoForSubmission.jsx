@@ -9,6 +9,7 @@ import {
   useSaveCatTwoAsDraftMutation,
   useSubmitCatTwoMutation,
 } from "../../../features/api/da-task/catTwoApi";
+import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 import CatTwoTable from "./CatTwoTable";
 import CatTwoModal from "../../../components/modal/da-task/CatTwoModal";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
@@ -26,7 +27,7 @@ const CatTwoForSubmission = ({
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10,
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -85,6 +86,8 @@ const CatTwoForSubmission = ({
     refetchOnMountOrArgChange: true,
     skip: false,
   });
+
+  const { refetch: refetchDashboard } = useShowDashboardQuery();
 
   const {
     data: catTwoDetails,
@@ -145,6 +148,7 @@ const CatTwoForSubmission = ({
           taskId: submissionId,
           onSuccess: () => {
             refetch();
+            refetchDashboard();
           },
         });
       } else {
@@ -154,7 +158,13 @@ const CatTwoForSubmission = ({
         });
       }
     },
-    [submissionsData, enqueueSnackbar, onConfirmationRequest, refetch]
+    [
+      submissionsData,
+      enqueueSnackbar,
+      onConfirmationRequest,
+      refetch,
+      refetchDashboard,
+    ],
   );
 
   const handleModalClose = useCallback(() => {
@@ -166,10 +176,11 @@ const CatTwoForSubmission = ({
 
   const handleRefreshDetails = useCallback(() => {
     refetch();
+    refetchDashboard();
     if (selectedSubmissionId) {
       refetchDetails();
     }
-  }, [refetch, refetchDetails, selectedSubmissionId]);
+  }, [refetch, refetchDashboard, refetchDetails, selectedSubmissionId]);
 
   const handleModalSaveAsDraft = useCallback(
     async (submissionData, submissionId) => {
@@ -187,6 +198,7 @@ const CatTwoForSubmission = ({
         data: submissionData,
         onSuccess: () => {
           refetch();
+          refetchDashboard();
           if (selectedSubmissionId) {
             refetchDetails();
           }
@@ -202,11 +214,12 @@ const CatTwoForSubmission = ({
       submissionsData,
       onConfirmationRequest,
       refetch,
+      refetchDashboard,
       selectedSubmissionId,
       refetchDetails,
       modalSuccessHandler,
       handleModalClose,
-    ]
+    ],
   );
 
   const handleModalSave = useCallback(
@@ -225,6 +238,7 @@ const CatTwoForSubmission = ({
         data: submissionData,
         onSuccess: () => {
           refetch();
+          refetchDashboard();
           if (modalSuccessHandler) {
             modalSuccessHandler();
           }
@@ -237,9 +251,10 @@ const CatTwoForSubmission = ({
       submissionsData,
       onConfirmationRequest,
       refetch,
+      refetchDashboard,
       modalSuccessHandler,
       handleModalClose,
-    ]
+    ],
   );
 
   const handleMenuOpen = useCallback((event, submission) => {
@@ -266,11 +281,11 @@ const CatTwoForSubmission = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -286,11 +301,11 @@ const CatTwoForSubmission = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, currentParams],
   );
 
   const handleModeChange = useCallback((newMode) => {
