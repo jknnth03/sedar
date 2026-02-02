@@ -76,7 +76,7 @@ export const fileNameStyles = {
 
 export const replaceAttachmentStyles = {
   fontSize: "0.75rem",
-  color: "#f44336",
+  color: "rgb(33, 61, 112)",
   cursor: "pointer",
   mt: 0.5,
   "&:hover": { textDecoration: "underline" },
@@ -84,7 +84,7 @@ export const replaceAttachmentStyles = {
 
 export const uploadAttachmentTitleStyles = {
   fontWeight: 600,
-  color: "#f44336",
+  color: "rgb(33, 61, 112)",
   fontSize: "0.9rem",
 };
 
@@ -142,7 +142,7 @@ export const containerStyles = {
     p: 2,
   },
   attachmentSection: {
-    mt: 2,
+    mt: 0,
   },
   attachmentItem: {
     mb: 1,

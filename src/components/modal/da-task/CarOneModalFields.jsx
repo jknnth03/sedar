@@ -337,7 +337,7 @@ const CatOneModalFields = ({
         <Typography
           variant="h6"
           sx={{ mb: 2, fontWeight: 600, color: "rgb(33, 61, 112)" }}>
-          Employeeasdasd
+          Employee Information
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
           <Box>
@@ -346,6 +346,22 @@ const CatOneModalFields = ({
             </Typography>
             <Typography variant="body1" sx={{ fontWeight: 500 }}>
               {selectedEntry?.employee_name || "N/A"}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Position Title
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              {selectedEntry?.to_position_title || "N/A"}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Department
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              {selectedEntry?.department || "N/A"}
             </Typography>
           </Box>
           <Box>

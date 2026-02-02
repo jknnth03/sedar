@@ -115,9 +115,8 @@ const ForMDAProcessingModal = ({
       const submittableId = fetchedSubmissionData.result.submittable.id;
 
       try {
-        const prefillResponse = await getMdaRecommendationPrefill(
-          submittableId
-        ).unwrap();
+        const prefillResponse =
+          await getMdaRecommendationPrefill(submittableId).unwrap();
 
         if (onCreateMDA) {
           onCreateMDA({
@@ -169,7 +168,7 @@ const ForMDAProcessingModal = ({
                 variant="h6"
                 component="div"
                 sx={titleTypographyStyles}>
-                VIEW DA RECOMMENDATION
+                View DA Recommendation
               </Typography>
               {mode === "view" && (
                 <IconButton
@@ -225,7 +224,7 @@ const ForMDAProcessingModal = ({
                       borderRadius: 2,
                     }}>
                     <TextField
-                      label="EMPLOYEE NAME"
+                      label="Employee Name"
                       value={
                         submissionData.submittable?.employee?.full_name || ""
                       }
@@ -249,7 +248,7 @@ const ForMDAProcessingModal = ({
                       }}>
                       <Box>
                         <TextField
-                          label="POSITION - FROM"
+                          label="Position - From"
                           value={
                             submissionData.submittable?.from_position?.title
                               ?.name || ""
@@ -260,7 +259,7 @@ const ForMDAProcessingModal = ({
                         />
 
                         <TextField
-                          label="DEPARTMENT - FROM"
+                          label="Department - From"
                           value={
                             submissionData.submittable?.from_position?.charging
                               ?.department_name || "-"
@@ -271,11 +270,11 @@ const ForMDAProcessingModal = ({
                         />
 
                         <TextField
-                          label="INCLUSIVE DATES - FROM"
+                          label="Inclusive Dates - From"
                           value={
                             submissionData.submittable?.start_date
                               ? dayjs(
-                                  submissionData.submittable.start_date
+                                  submissionData.submittable.start_date,
                                 ).format("MM/DD/YYYY")
                               : ""
                           }
@@ -287,7 +286,7 @@ const ForMDAProcessingModal = ({
 
                       <Box>
                         <TextField
-                          label="POSITION - TO"
+                          label="Position - To"
                           value={
                             submissionData.submittable?.to_position?.code &&
                             submissionData.submittable?.to_position?.title?.name
@@ -300,7 +299,7 @@ const ForMDAProcessingModal = ({
                         />
 
                         <TextField
-                          label="DEPARTMENT - TO"
+                          label="Department - To"
                           value={
                             submissionData.submittable?.to_position?.charging
                               ?.department_name || "-"
@@ -311,11 +310,11 @@ const ForMDAProcessingModal = ({
                         />
 
                         <TextField
-                          label="INCLUSIVE DATES - TO"
+                          label="Inclusive Dates - To"
                           value={
                             submissionData.submittable?.end_date
                               ? dayjs(
-                                  submissionData.submittable.end_date
+                                  submissionData.submittable.end_date,
                                 ).format("MM/DD/YYYY")
                               : ""
                           }
@@ -481,7 +480,7 @@ const ForMDAProcessingModal = ({
                                   </Box>
                                 </TableCell>
                               </TableRow>
-                            )
+                            ),
                           )}
                         </TableBody>
                       </Table>

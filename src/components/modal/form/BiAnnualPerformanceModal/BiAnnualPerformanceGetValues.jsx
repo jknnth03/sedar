@@ -1,8 +1,5 @@
 import dayjs from "dayjs";
 
-/**
- * Get initial values for CREATE mode
- */
 export const getCreateModeInitialValues = () => {
   return {
     employee_id: null,
@@ -23,9 +20,6 @@ export const getCreateModeInitialValues = () => {
   };
 };
 
-/**
- * Get form data for VIEW/EDIT mode from selectedEntry
- */
 export const getViewEditModeFormData = (selectedEntry) => {
   const entry = selectedEntry?.result || selectedEntry;
   const submittable = entry?.submittable || entry;
@@ -35,20 +29,18 @@ export const getViewEditModeFormData = (selectedEntry) => {
     return getCreateModeInitialValues();
   }
 
-  // Extract employee data
   const employee = submittable.employee || {};
 
-  // Map employee_code from the 'code' field (e.g., "RDFFLFI-11841")
   const employeeCode =
     employee.code || employee.employee_code || employee.id_number || "";
   const employeeName = employee.full_name || employee.employee_name || "";
   const positionTitle =
+    employee.position?.position?.title?.name ||
     employee.position_title ||
     employee.current_position?.title ||
     employee.position?.title?.name ||
     "";
 
-  // Parse dates
   const startDate = submittable.evaluation_period_start_date
     ? dayjs(submittable.evaluation_period_start_date)
     : null;
@@ -56,9 +48,8 @@ export const getViewEditModeFormData = (selectedEntry) => {
     ? dayjs(submittable.evaluation_period_end_date)
     : null;
 
-  // Format KPIs
-  const kpis = Array.isArray(submittable.kpis)
-    ? submittable.kpis.map((kpi) => ({
+  const kpis = Array.isArray(submittable.objectives)
+    ? submittable.objectives.map((kpi) => ({
         source_kpi_id: kpi.source_kpi_id || kpi.id || null,
         objective_id: kpi.objective_id || null,
         objective_name: kpi.objective_name || kpi.objective?.name || "",
@@ -70,7 +61,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
       }))
     : [];
 
-  // Format competency assessment
   let competencyAssessment = {
     template_id: null,
     answers: [],
@@ -79,33 +69,29 @@ export const getViewEditModeFormData = (selectedEntry) => {
   if (submittable.competency_assessment) {
     const compAssessment = submittable.competency_assessment;
 
-    // Get template ID
     const templateId =
       compAssessment.assessment_template_id ||
       compAssessment.template_id ||
       compAssessment.template?.id ||
       null;
 
-    // Process answers from sections or direct answers array
     let answers = [];
 
     if (compAssessment.sections && Array.isArray(compAssessment.sections)) {
-      // Extract answers from nested sections structure
       compAssessment.sections.forEach((section) => {
         if (section.items && Array.isArray(section.items)) {
           section.items.forEach((item) => {
             if (item.children && Array.isArray(item.children)) {
               item.children.forEach((child) => {
                 if (child.is_ratable) {
+                  const savedAnswer = child.saved_answer;
                   answers.push({
-                    saved_answer_id: child.saved_answer?.id || null,
+                    saved_answer_id: savedAnswer?.id || null,
                     template_item_id: child.source_template_item_id || child.id,
                     pa_item_id: child.id,
-                    template_item_name: child.text,
-                    rating_scale_id:
-                      child.saved_answer?.rating_scale_id || null,
-                    rating_scale_name:
-                      child.saved_answer?.rating_scale?.label || null,
+                    template_item_name: child.text || "",
+                    rating_scale_id: savedAnswer?.rating_scale_id || null,
+                    rating_scale_name: savedAnswer?.rating_scale?.label || null,
                   });
                 }
               });
@@ -117,7 +103,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
       compAssessment.answers &&
       Array.isArray(compAssessment.answers)
     ) {
-      // Use answers array directly
       answers = compAssessment.answers.map((answer) => ({
         saved_answer_id: answer.saved_answer_id || answer.id || null,
         template_item_id:
@@ -133,10 +118,12 @@ export const getViewEditModeFormData = (selectedEntry) => {
     competencyAssessment = {
       template_id: templateId,
       answers: answers,
+      assessment_template_id: compAssessment.assessment_template_id || null,
+      template: compAssessment.template || null,
+      sections: compAssessment.sections || null,
     };
   }
 
-  // Format demerits
   const demerits = Array.isArray(submittable.demerits)
     ? submittable.demerits
     : [];
@@ -157,11 +144,7 @@ export const getViewEditModeFormData = (selectedEntry) => {
   };
 };
 
-/**
- * Format form data for submission to API
- */
 export const formatFormDataForSubmission = (formData) => {
-  // Format dates
   const formatDate = (date) => {
     if (!date) return null;
     if (dayjs.isDayjs(date)) {
@@ -170,7 +153,6 @@ export const formatFormDataForSubmission = (formData) => {
     return dayjs(date).format("YYYY-MM-DD");
   };
 
-  // Format KPIs
   const formattedKpis = Array.isArray(formData.kpis)
     ? formData.kpis.map((kpi) => ({
         source_kpi_id: kpi.source_kpi_id || null,
@@ -184,9 +166,8 @@ export const formatFormDataForSubmission = (formData) => {
       }))
     : [];
 
-  // Format competency assessment answers
   const formattedCompetencyAnswers = Array.isArray(
-    formData.competency_assessment?.answers
+    formData.competency_assessment?.answers,
   )
     ? formData.competency_assessment.answers.map((answer) => ({
         template_item_id: answer.template_item_id || null,
@@ -194,11 +175,10 @@ export const formatFormDataForSubmission = (formData) => {
       }))
     : [];
 
-  // Build submission payload
   const payload = {
     employee_id: formData.employee_id,
     evaluation_period_start_date: formatDate(
-      formData.evaluation_period_start_date
+      formData.evaluation_period_start_date,
     ),
     evaluation_period_end_date: formatDate(formData.evaluation_period_end_date),
     kpis: formattedKpis,
@@ -214,9 +194,6 @@ export const formatFormDataForSubmission = (formData) => {
   return payload;
 };
 
-/**
- * Helper to safely extract nested values
- */
 export const safeGet = (obj, path, defaultValue = null) => {
   try {
     return (
@@ -228,13 +205,9 @@ export const safeGet = (obj, path, defaultValue = null) => {
   }
 };
 
-/**
- * Validate form data before submission
- */
 export const validateFormData = (formData) => {
   const errors = [];
 
-  // Required fields validation
   if (!formData.employee_id) {
     errors.push("Employee is required");
   }
@@ -247,12 +220,10 @@ export const validateFormData = (formData) => {
     errors.push("Evaluation end date is required");
   }
 
-  // KPIs validation
   if (!Array.isArray(formData.kpis) || formData.kpis.length === 0) {
     errors.push("At least one KPI is required");
   }
 
-  // Discussions validation
   if (!formData.strengths_discussion?.trim()) {
     errors.push("Strengths discussion is required");
   }
@@ -265,7 +236,6 @@ export const validateFormData = (formData) => {
     errors.push("Learning needs discussion is required");
   }
 
-  // Competency assessment validation
   if (
     !formData.competency_assessment?.template_id ||
     !Array.isArray(formData.competency_assessment?.answers) ||
@@ -280,16 +250,10 @@ export const validateFormData = (formData) => {
   };
 };
 
-/**
- * Helper to check if form has unsaved changes
- */
 export const hasUnsavedChanges = (currentData, originalData) => {
   return JSON.stringify(currentData) !== JSON.stringify(originalData);
 };
 
-/**
- * Helper to reset specific form sections
- */
 export const resetFormSection = (section) => {
   const resetValues = {
     employee: {

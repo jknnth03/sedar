@@ -121,7 +121,7 @@ const CatOneModalPrinting = ({ data }) => {
         </TableRow>
         {item.children &&
           item.children.map((child) =>
-            renderItem(child, ratingScale, level + 1)
+            renderItem(child, ratingScale, level + 1),
           )}
       </React.Fragment>
     );
@@ -278,7 +278,7 @@ const CatOneModalPrinting = ({ data }) => {
                     fontSize: "11px",
                     border: "1px solid #000",
                   }}>
-                  {template.name?.replace("CAT 1 - ", "") || ""}
+                  {data.to_position_title || ""}
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -308,7 +308,7 @@ const CatOneModalPrinting = ({ data }) => {
                 </TableCell>
               </TableRow>
               {sections.map((section, index) =>
-                renderSection(section, ratingScale, index === 0)
+                renderSection(section, ratingScale, index === 0),
               )}
             </TableBody>
           </StyledTable>
@@ -395,7 +395,7 @@ const CatOneModalPrinting = ({ data }) => {
               visibility: visible;
             }
             
-            #print-content {
+            #print-conten   t {
               position: absolute;
               left: 0;
               top: 0;

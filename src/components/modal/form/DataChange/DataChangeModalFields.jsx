@@ -9,6 +9,7 @@ import {
   Autocomplete,
   CircularProgress,
   Skeleton,
+  Alert,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import {
@@ -158,6 +159,48 @@ const DataChangeModalFields = ({
     );
 
     return !isExcluded;
+  }, [watchedMovementType]);
+
+  const attachmentInstructions = useMemo(() => {
+    const movementTypeName =
+      watchedMovementType?.name || watchedMovementType?.type_name;
+
+    if (!movementTypeName) return null;
+
+    const normalizedName = movementTypeName.toLowerCase();
+
+    const instructionMap = {
+      "lateral transfer": ["1. Updated job description / Job Profiling"],
+      "merit increase": ["1. Updated performance evaluation"],
+      "position alignment": [
+        "1. Updated organizational structure",
+        "2. Updated job description / Job Profiling",
+      ],
+      downgrading: [
+        "1. Employee's intent letter requesting a voluntary downgrade in job level, position, and salary.",
+        "2. Updated job description / Job Profiling",
+      ],
+      promotion: ["1. CAT 1, 2 and PDP (from OD unit)"],
+      "re-evaluation of existing job": [
+        "1. Prior to processing the data change, a job evaluation must be conducted to determine the appropriate job level.",
+      ],
+      upgrading: [
+        "1. Prior to processing the data change, a job evaluation must be conducted to determine the appropriate job level.",
+      ],
+    };
+
+    return instructionMap[normalizedName] || null;
+  }, [watchedMovementType]);
+
+  const shouldHideAttachmentField = useMemo(() => {
+    const movementTypeName =
+      watchedMovementType?.name || watchedMovementType?.type_name;
+
+    if (!movementTypeName) return false;
+
+    const normalizedName = movementTypeName.toLowerCase();
+
+    return normalizedName === "transfer due to promotion";
   }, [watchedMovementType]);
 
   useEffect(() => {
@@ -845,13 +888,46 @@ const DataChangeModalFields = ({
             </Box>
           )}
 
-          <Box sx={{ gridColumn: "1 / -1" }}>
-            <DataChangeAttachmentFields
-              isLoading={isLoading}
-              mode={mode}
-              selectedEntry={selectedEntry}
-            />
-          </Box>
+          {attachmentInstructions && (
+            <Box sx={{ gridColumn: "1 / -1", mb: 1 }}>
+              <Alert
+                severity="info"
+                sx={{
+                  backgroundColor: "rgba(33, 61, 112, 0.08)",
+                  border: "1px solid rgba(33, 61, 112, 0.2)",
+                  "& .MuiAlert-icon": {
+                    color: "rgb(33, 61, 112)",
+                  },
+                  "& .MuiAlert-message": {
+                    color: "rgb(33, 61, 112)",
+                  },
+                }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 600, mb: 0.5 }}>
+                  Required Attachments:
+                </Typography>
+                {attachmentInstructions.map((instruction, index) => (
+                  <Typography
+                    key={index}
+                    variant="body2"
+                    sx={{ fontSize: "13px" }}>
+                    {instruction}
+                  </Typography>
+                ))}
+              </Alert>
+            </Box>
+          )}
+
+          {!shouldHideAttachmentField && (
+            <Box sx={{ gridColumn: "1 / -1" }}>
+              <DataChangeAttachmentFields
+                isLoading={isLoading}
+                mode={mode}
+                selectedEntry={selectedEntry}
+              />
+            </Box>
+          )}
         </Box>
       </Box>
     </Box>

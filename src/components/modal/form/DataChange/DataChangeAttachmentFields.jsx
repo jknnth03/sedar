@@ -90,7 +90,7 @@ const DataChangeAttachmentFields = ({
       }
       event.target.value = "";
     },
-    [setValue]
+    [setValue],
   );
 
   const handleUploadBoxClick = (index) => {
@@ -105,7 +105,7 @@ const DataChangeAttachmentFields = ({
         document.getElementById(`attachment-upload-input-${index}`).click();
       }
     },
-    [isReadOnly]
+    [isReadOnly],
   );
 
   const hasAttachmentInField = useCallback(
@@ -119,7 +119,7 @@ const DataChangeAttachmentFields = ({
         attachment.existing_file_path
       );
     },
-    [watchedAttachments]
+    [watchedAttachments],
   );
 
   const canAddNewLine = useCallback(() => {
@@ -151,7 +151,7 @@ const DataChangeAttachmentFields = ({
         remove(index);
       }
     },
-    [getValues, remove]
+    [getValues, remove],
   );
 
   const getFileName = useCallback((fileData) => {
@@ -388,13 +388,12 @@ const DataChangeAttachmentFields = ({
                             sx={{
                               ...fileNameStyles,
                               cursor: "default",
-                              color: isNewFile ? "#f44336" : "#1976d2",
+                              color: isNewFile ? "rgb(33, 61, 112)" : "#1976d2",
                             }}
                             onClick={(e) => handleFilenameClick(e, index)}>
                             {isNewFile ? "New file selected: " : "File name: "}
                             <span
                               style={{
-                                ...labelWithRequired,
                                 color: isNewFile ? "#22c55e" : "#f44336",
                               }}>
                               {fileName}
@@ -415,8 +414,13 @@ const DataChangeAttachmentFields = ({
                         </>
                       ) : (
                         <>
-                          <Typography sx={uploadAttachmentTitleStyles}>
-                            UPLOAD ATTACHMENT (PDF ONLY) *
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              color: "rgb(33, 61, 112)",
+                              fontSize: "0.9rem",
+                            }}>
+                            UPLOAD ATTACHMENT (PDF ONLY)
                           </Typography>
                           <Typography sx={uploadAttachmentSubtextStyles}>
                             {isReadOnly

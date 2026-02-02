@@ -129,7 +129,6 @@ const BiAnnualPerformanceModal = ({
         setCurrentMode(mode);
         setOriginalMode(mode);
 
-        // PRE-LOAD prefill data before setting form data
         const submittable =
           selectedEntry.submittable || selectedEntry.result?.submittable;
         if (submittable?.employee_id) {
@@ -192,6 +191,20 @@ const BiAnnualPerformanceModal = ({
 
       const formattedData = formatFormDataForSubmission(data);
 
+      formattedData.form_id = 9;
+
+      if (!formattedData.demerits) {
+        formattedData.demerits = [];
+      }
+
+      if (!formattedData.discussions) {
+        formattedData.discussions = {
+          strengths: data.strengths_discussion || "",
+          development_areas: data.development_discussion || "",
+          learning_needs: data.learning_needs_discussion || "",
+        };
+      }
+
       if (onSave) {
         const entryId =
           currentMode === "edit"
@@ -225,7 +238,7 @@ const BiAnnualPerformanceModal = ({
             });
           } else if (path.includes("competency_assessment.answers[")) {
             const match = path.match(
-              /competency_assessment\.answers\[(\d+)\]\.(.+)/
+              /competency_assessment\.answers\[(\d+)\]\.(.+)/,
             );
             if (match) {
               const index = match[1];
@@ -252,7 +265,7 @@ const BiAnnualPerformanceModal = ({
         });
 
         const firstErrorElement = document.querySelector(
-          '[aria-invalid="true"]'
+          '[aria-invalid="true"]',
         );
         if (firstErrorElement) {
           firstErrorElement.scrollIntoView({
@@ -401,7 +414,7 @@ const BiAnnualPerformanceModal = ({
                       sx={styles.editIconButtonStyles}>
                       <EditIcon
                         sx={styles.editIconStyles(
-                          !shouldEnableEditButton() || isProcessing
+                          !shouldEnableEditButton() || isProcessing,
                         )}
                       />
                     </IconButton>
@@ -481,7 +494,7 @@ const BiAnnualPerformanceModal = ({
                   }
                   sx={styles.resubmitButtonStyles(
                     shouldEnableResubmitButton(),
-                    isProcessing
+                    isProcessing,
                   )}>
                   {isProcessing ? "Resubmitting..." : "Resubmit"}
                 </Button>

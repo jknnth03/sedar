@@ -45,16 +45,15 @@ const ForEvaluationProcessingModalFields = ({
     }
   }, [currentMode]);
 
-  // Populate form values when submissionData changes
   useEffect(() => {
     if (submissionData?.submittable) {
       setValue(
         "probation_start_date",
-        submissionData.submittable.probation_start_date || null
+        submissionData.submittable.probation_start_date || null,
       );
       setValue(
         "probation_end_date",
-        submissionData.submittable.probation_end_date || null
+        submissionData.submittable.probation_end_date || null,
       );
 
       if (
@@ -110,7 +109,7 @@ const ForEvaluationProcessingModalFields = ({
         return updatedKpis;
       });
     },
-    [setValue]
+    [setValue],
   );
 
   useEffect(() => {
@@ -135,7 +134,7 @@ const ForEvaluationProcessingModalFields = ({
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <TextField
-                label="EMPLOYEE NAME"
+                label="Employee Name"
                 value={submissionData?.submittable?.employee?.full_name || ""}
                 disabled
                 sx={{ bgcolor: "white", width: "348px" }}
@@ -144,7 +143,7 @@ const ForEvaluationProcessingModalFields = ({
 
             <Grid item xs={12} md={6}>
               <TextField
-                label="ID NUMBER"
+                label="ID Number"
                 value={submissionData?.submittable?.employee?.code || ""}
                 disabled
                 sx={{ bgcolor: "white", width: "348px" }}
@@ -153,7 +152,7 @@ const ForEvaluationProcessingModalFields = ({
 
             <Grid item xs={12} md={6}>
               <TextField
-                label="POSITION"
+                label="Position"
                 value={
                   submissionData?.submittable?.employee?.position?.position
                     ?.title?.name || ""
@@ -170,13 +169,15 @@ const ForEvaluationProcessingModalFields = ({
                 render={({ field }) => (
                   <DatePicker
                     {...field}
-                    label="PROBATION START DATE"
+                    label="Probation Start Date"
                     value={
                       field.value
                         ? dayjs(field.value)
                         : submissionData?.submittable?.probation_start_date
-                        ? dayjs(submissionData.submittable.probation_start_date)
-                        : null
+                          ? dayjs(
+                              submissionData.submittable.probation_start_date,
+                            )
+                          : null
                     }
                     onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
@@ -199,13 +200,13 @@ const ForEvaluationProcessingModalFields = ({
                 render={({ field }) => (
                   <DatePicker
                     {...field}
-                    label="PROBATION END DATE"
+                    label="Probation End Date"
                     value={
                       field.value
                         ? dayjs(field.value)
                         : submissionData?.submittable?.probation_end_date
-                        ? dayjs(submissionData.submittable.probation_end_date)
-                        : null
+                          ? dayjs(submissionData.submittable.probation_end_date)
+                          : null
                     }
                     onChange={(newValue) => field.onChange(newValue)}
                     disabled={isReadOnly}
@@ -390,7 +391,7 @@ const ForEvaluationProcessingModalFields = ({
                           handleKpiFieldChange(
                             index,
                             "actual_performance",
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         inputProps={{
@@ -419,37 +420,37 @@ const ForEvaluationProcessingModalFields = ({
                             backgroundColor: isReadOnly
                               ? "transparent"
                               : kpi.actual_performance !== null &&
-                                kpi.actual_performance !== undefined &&
-                                kpi.actual_performance !== ""
-                              ? "#f1f8f4"
-                              : "#fffef7",
+                                  kpi.actual_performance !== undefined &&
+                                  kpi.actual_performance !== ""
+                                ? "#f1f8f4"
+                                : "#fffef7",
                             "& fieldset": {
                               borderColor: isReadOnly
                                 ? "#e0e0e0"
                                 : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#4caf50"
-                                : "#ffa726",
+                                    kpi.actual_performance !== undefined &&
+                                    kpi.actual_performance !== ""
+                                  ? "#4caf50"
+                                  : "#ffa726",
                               borderWidth: isReadOnly ? "1px" : "2px",
                             },
                             "&:hover fieldset": {
                               borderColor: isReadOnly
                                 ? "#e0e0e0"
                                 : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#45a049"
-                                : "#ff9800",
+                                    kpi.actual_performance !== undefined &&
+                                    kpi.actual_performance !== ""
+                                  ? "#45a049"
+                                  : "#ff9800",
                             },
                             "&.Mui-focused fieldset": {
                               borderColor: isReadOnly
                                 ? "#e0e0e0"
                                 : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#45a049"
-                                : "#ff9800",
+                                    kpi.actual_performance !== undefined &&
+                                    kpi.actual_performance !== ""
+                                  ? "#45a049"
+                                  : "#ff9800",
                             },
                             "&.Mui-error fieldset": {
                               borderColor: "#d32f2f",
