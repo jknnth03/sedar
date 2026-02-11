@@ -9,7 +9,6 @@ const modalSlice = createSlice({
   initialState,
   reducers: {
     setUserModal: (state, action) => {
-      console.log("Redux setUserModal triggered:", action.payload); // 🔥 ADD THIS
       state.userModal = action.payload;
     },
     resetModal: () => {

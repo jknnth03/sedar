@@ -16,7 +16,9 @@ const blankData = {
     job_level: "",
     job_rate: "",
     allowance: "",
-    schedule: "",
+    work_hours: "",
+    rest_days: "",
+    work_weeks: "",
   },
   to: {
     department: "",
@@ -26,7 +28,9 @@ const blankData = {
     job_level: "",
     job_rate: "",
     allowance: "",
-    schedule: "",
+    work_hours: "",
+    rest_days: "",
+    work_weeks: "",
   },
   signatories: {
     requested_by: "",
@@ -168,19 +172,31 @@ export function DataChangeNoticePrinting({ data = blankData }) {
                     </td>
                   </tr>
                   <tr>
-                    <td>Work Schedule</td>
-                    <td className="text-center"></td>
-                    <td className="text-center"></td>
+                    <td>Work Hours</td>
+                    <td className="text-center">
+                      {actualData.from?.work_hours || ""}
+                    </td>
+                    <td className="text-center">
+                      {actualData.to?.work_hours || ""}
+                    </td>
                   </tr>
                   <tr>
                     <td>Rest Day/s</td>
-                    <td className="text-center"></td>
-                    <td className="text-center"></td>
+                    <td className="text-center">
+                      {actualData.from?.rest_days || ""}
+                    </td>
+                    <td className="text-center">
+                      {actualData.to?.rest_days || ""}
+                    </td>
                   </tr>
                   <tr>
                     <td>Workweek</td>
-                    <td className="text-center"></td>
-                    <td className="text-center"></td>
+                    <td className="text-center">
+                      {actualData.from?.work_weeks || ""}
+                    </td>
+                    <td className="text-center">
+                      {actualData.to?.work_weeks || ""}
+                    </td>
                   </tr>
                 </tbody>
               </table>

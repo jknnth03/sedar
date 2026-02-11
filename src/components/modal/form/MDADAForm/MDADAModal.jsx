@@ -249,7 +249,7 @@ const MDADAModal = ({
         {
           variant: "error",
           autoHideDuration: 3000,
-        }
+        },
       );
       return;
     }
@@ -260,7 +260,7 @@ const MDADAModal = ({
         {
           variant: "error",
           autoHideDuration: 3000,
-        }
+        },
       );
       return;
     }
@@ -398,6 +398,16 @@ const MDADAModal = ({
     return isViewMode && status === "AWAITING RESUBMISSION";
   };
 
+  const getInitialData = () => {
+    if (currentMode === "create" && prefillData) {
+      return prefillData.result || prefillData;
+    }
+    if ((currentMode === "view" || currentMode === "edit") && submissionData) {
+      return submissionData.result || submissionData;
+    }
+    return null;
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <FormProvider {...methods}>
@@ -425,7 +435,7 @@ const MDADAModal = ({
                       sx={editIconButtonStyles}>
                       <EditIcon
                         sx={editIconStyles(
-                          !shouldEnableEditButton() || isProcessing
+                          !shouldEnableEditButton() || isProcessing,
                         )}
                       />
                     </IconButton>
@@ -490,6 +500,7 @@ const MDADAModal = ({
                   currentMode={currentMode}
                   positions={positions}
                   jobLevels={jobLevels}
+                  initialData={getInitialData()}
                 />
               )}
             </DialogContent>
@@ -505,7 +516,7 @@ const MDADAModal = ({
                   }
                   sx={resubmitButtonStyles(
                     shouldEnableResubmitButton(),
-                    isProcessing
+                    isProcessing,
                   )}>
                   {isProcessing ? "Resubmitting..." : "Resubmit"}
                 </Button>
@@ -529,8 +540,8 @@ const MDADAModal = ({
                   {isProcessing
                     ? "Saving..."
                     : currentMode === "create"
-                    ? "Create"
-                    : "Update"}
+                      ? "Create"
+                      : "Update"}
                 </Button>
               )}
             </DialogActions>

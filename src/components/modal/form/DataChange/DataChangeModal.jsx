@@ -19,15 +19,12 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Send as SendIcon,
-  Print as PrintIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { useFormContext } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
-import { useLazyGetDataChangeNoticeQuery } from "../../../../features/api/forms/datachangeApi";
 import DataChangeModalFields from "./DataChangeModalFields";
-import DataChangeNoticePrinting from "./DataChangeNoticePrinting";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -141,11 +138,6 @@ const DataChangeModal = ({
   const [lastEntryId, setLastEntryId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
-  const [showPrintDialog, setShowPrintDialog] = useState(false);
-  const [printData, setPrintData] = useState(null);
-  const [isPrintLoading, setIsPrintLoading] = useState(false);
-
-  const [triggerGetNotice] = useLazyGetDataChangeNoticeQuery();
 
   useEffect(() => {
     if (open && selectedEntry?.result?.id) {
@@ -180,10 +172,6 @@ const DataChangeModal = ({
 
   const shouldEnableCreateMDAButton = () => {
     return selectedEntry?.result?.actions?.can_create_mda === true;
-  };
-
-  const shouldShowPrintButton = () => {
-    return selectedEntry?.result?.status === "COMPLETED";
   };
 
   const handleModeChange = (newMode) => {
@@ -257,7 +245,7 @@ const DataChangeModal = ({
       const hasValidAttachment = attachments.some(
         (att) =>
           att.file_attachment instanceof File ||
-          (att.existing_file_name && !att.is_new_file)
+          (att.existing_file_name && !att.is_new_file),
       );
 
       if (!hasValidAttachment) {
@@ -335,35 +323,6 @@ const DataChangeModal = ({
         handleClose();
       }, 100);
     }
-  };
-
-  const handlePrintClick = async () => {
-    try {
-      setIsPrintLoading(true);
-      const submissionId = selectedEntry?.result?.id;
-
-      if (!submissionId) {
-        alert("Submission ID not found");
-        setIsPrintLoading(false);
-        return;
-      }
-
-      const response = await triggerGetNotice(submissionId).unwrap();
-
-      if (response) {
-        setPrintData(response);
-        setShowPrintDialog(true);
-      }
-    } catch (error) {
-      alert("Failed to fetch notice data. Please try again.");
-    } finally {
-      setIsPrintLoading(false);
-    }
-  };
-
-  const handleClosePrintDialog = () => {
-    setShowPrintDialog(false);
-    setPrintData(null);
   };
 
   useEffect(() => {
@@ -506,240 +465,194 @@ const DataChangeModal = ({
     }
   }, [open, currentMode, selectedEntry, formInitialized, setValue]);
 
-  const isProcessing = isLoading || isUpdating || isPrintLoading;
+  const isProcessing = isLoading || isUpdating;
 
   return (
-    <>
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-          <StyledDialogTitle>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
-              <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-                {getModalTitle()}
-              </Typography>
-              {currentMode === "view" && (
-                <>
-                  <Tooltip
-                    title={
-                      shouldEnableEditButton()
-                        ? "EDIT FORM"
-                        : "Edit not available"
-                    }
-                    arrow
-                    placement="top">
-                    <span>
-                      <IconButton
-                        onClick={() => handleModeChange("edit")}
-                        disabled={!shouldEnableEditButton() || isProcessing}
-                        size="small"
-                        sx={{
-                          ml: 1,
-                          padding: "8px",
-                          "&:hover": {
-                            backgroundColor:
-                              shouldEnableEditButton() && !isProcessing
-                                ? "rgba(0, 136, 32, 0.08)"
-                                : "transparent",
-                            transform:
-                              shouldEnableEditButton() && !isProcessing
-                                ? "scale(1.1)"
-                                : "none",
-                            transition: "all 0.2s ease-in-out",
-                          },
-                        }}>
-                        <EditIcon
-                          sx={{
-                            fontSize: "20px",
-                            "& path": {
-                              fill:
-                                shouldEnableEditButton() && !isProcessing
-                                  ? "rgba(0, 136, 32, 1)"
-                                  : "rgba(0, 0, 0, 0.26)",
-                            },
-                          }}
-                        />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                  {shouldShowPrintButton() && (
-                    <IconButton
-                      onClick={handlePrintClick}
-                      disabled={isProcessing}
-                      size="small"
-                      sx={{
-                        ml: 1,
-                        padding: "8px",
-                        "&:hover": {
-                          backgroundColor: !isProcessing
-                            ? "rgba(33, 61, 112, 0.08)"
-                            : "transparent",
-                          transform: !isProcessing ? "scale(1.1)" : "none",
-                          transition: "all 0.2s ease-in-out",
-                        },
-                      }}>
-                      {isPrintLoading ? (
-                        <CircularProgress size={20} />
-                      ) : (
-                        <PrintIcon
-                          sx={{
-                            fontSize: "20px",
-                            "& path": {
-                              fill: "rgb(33, 61, 112)",
-                            },
-                          }}
-                        />
-                      )}
-                    </IconButton>
-                  )}
-                </>
-              )}
-              {currentMode === "edit" && originalMode === "view" && (
-                <Tooltip title="CANCEL EDIT">
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <StyledDialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
+            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+              {getModalTitle()}
+            </Typography>
+            {currentMode === "view" && (
+              <Tooltip
+                title={
+                  shouldEnableEditButton() ? "EDIT FORM" : "Edit not available"
+                }
+                arrow
+                placement="top">
+                <span>
                   <IconButton
-                    onClick={handleCancelEdit}
-                    disabled={isProcessing}
+                    onClick={() => handleModeChange("edit")}
+                    disabled={!shouldEnableEditButton() || isProcessing}
                     size="small"
                     sx={{
                       ml: 1,
                       padding: "8px",
                       "&:hover": {
-                        backgroundColor: "rgba(235, 0, 0, 0.08)",
-                        transform: "scale(1.1)",
+                        backgroundColor:
+                          shouldEnableEditButton() && !isProcessing
+                            ? "rgba(0, 136, 32, 0.08)"
+                            : "transparent",
+                        transform:
+                          shouldEnableEditButton() && !isProcessing
+                            ? "scale(1.1)"
+                            : "none",
                         transition: "all 0.2s ease-in-out",
                       },
                     }}>
-                    <EditOffIcon
+                    <EditIcon
                       sx={{
                         fontSize: "20px",
-                        "& path": { fill: "rgba(235, 0, 0, 1)" },
+                        "& path": {
+                          fill:
+                            shouldEnableEditButton() && !isProcessing
+                              ? "rgba(0, 136, 32, 1)"
+                              : "rgba(0, 0, 0, 0.26)",
+                        },
                       }}
                     />
                   </IconButton>
-                </Tooltip>
-              )}
-            </Box>
-            <IconButton
-              onClick={handleClose}
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                backgroundColor: "#fff",
-                "&:hover": { backgroundColor: "#f5f5f5" },
-                transition: "all 0.2s ease-in-out",
-              }}>
-              <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
-            </IconButton>
-          </StyledDialogTitle>
-
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <StyledDialogContent>
-              <DataChangeModalFields
-                isLoading={isProcessing}
-                mode={currentMode}
-                onFormDataCreate={handleFormDataCallback}
-                selectedEntry={selectedEntry}
-                formInitialized={formInitialized}
-                key={`${selectedEntry?.result?.id}-${currentMode}-${formInitialized}-${selectedEntry?.result?.updated_at}`}
-              />
-            </StyledDialogContent>
-
-            <StyledDialogActions>
-              {currentMode === "view" && shouldShowCreateMDAButton() && (
-                <Button
-                  onClick={handleCreateMDAClick}
-                  variant="contained"
-                  disabled={!shouldEnableCreateMDAButton() || isProcessing}
-                  startIcon={
-                    isProcessing ? <CircularProgress size={16} /> : <AddIcon />
-                  }
+                </span>
+              </Tooltip>
+            )}
+            {currentMode === "edit" && originalMode === "view" && (
+              <Tooltip title="CANCEL EDIT">
+                <IconButton
+                  onClick={handleCancelEdit}
+                  disabled={isProcessing}
+                  size="small"
                   sx={{
+                    ml: 1,
+                    padding: "8px",
+                    "&:hover": {
+                      backgroundColor: "rgba(235, 0, 0, 0.08)",
+                      transform: "scale(1.1)",
+                      transition: "all 0.2s ease-in-out",
+                    },
+                  }}>
+                  <EditOffIcon
+                    sx={{
+                      fontSize: "20px",
+                      "& path": { fill: "rgba(235, 0, 0, 1)" },
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+          <IconButton
+            onClick={handleClose}
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              backgroundColor: "#fff",
+              "&:hover": { backgroundColor: "#f5f5f5" },
+              transition: "all 0.2s ease-in-out",
+            }}>
+            <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
+          </IconButton>
+        </StyledDialogTitle>
+
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          <StyledDialogContent>
+            <DataChangeModalFields
+              isLoading={isProcessing}
+              mode={currentMode}
+              onFormDataCreate={handleFormDataCallback}
+              selectedEntry={selectedEntry}
+              formInitialized={formInitialized}
+              key={`${selectedEntry?.result?.id}-${currentMode}-${formInitialized}-${selectedEntry?.result?.updated_at}`}
+            />
+          </StyledDialogContent>
+
+          <StyledDialogActions>
+            {currentMode === "view" && shouldShowCreateMDAButton() && (
+              <Button
+                onClick={handleCreateMDAClick}
+                variant="contained"
+                disabled={!shouldEnableCreateMDAButton() || isProcessing}
+                startIcon={
+                  isProcessing ? <CircularProgress size={16} /> : <AddIcon />
+                }
+                sx={{
+                  backgroundColor:
+                    shouldEnableCreateMDAButton() && !isProcessing
+                      ? "#4CAF50"
+                      : "rgba(76, 175, 80, 0.3)",
+                  color: "white",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  "&:hover": {
                     backgroundColor:
                       shouldEnableCreateMDAButton() && !isProcessing
-                        ? "#4CAF50"
+                        ? "#45a049"
                         : "rgba(76, 175, 80, 0.3)",
-                    color: "white",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    "&:hover": {
-                      backgroundColor:
-                        shouldEnableCreateMDAButton() && !isProcessing
-                          ? "#45a049"
-                          : "rgba(76, 175, 80, 0.3)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "rgba(76, 175, 80, 0.3)",
-                      color: "rgba(255, 255, 255, 0.5)",
-                    },
-                    mr: 2,
-                  }}>
-                  {isProcessing ? "Processing..." : "Create MDA Form"}
-                </Button>
-              )}
+                  },
+                  "&:disabled": {
+                    backgroundColor: "rgba(76, 175, 80, 0.3)",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  },
+                  mr: 2,
+                }}>
+                {isProcessing ? "Processing..." : "Create MDA Form"}
+              </Button>
+            )}
 
-              {currentMode === "view" && shouldShowResubmitButton() && (
-                <Button
-                  onClick={handleResubmit}
-                  variant="contained"
-                  disabled={!shouldEnableResubmitButton() || isProcessing}
-                  startIcon={
-                    isProcessing ? <CircularProgress size={16} /> : <SendIcon />
-                  }
-                  sx={{
+            {currentMode === "view" && shouldShowResubmitButton() && (
+              <Button
+                onClick={handleResubmit}
+                variant="contained"
+                disabled={!shouldEnableResubmitButton() || isProcessing}
+                startIcon={
+                  isProcessing ? <CircularProgress size={16} /> : <SendIcon />
+                }
+                sx={{
+                  backgroundColor:
+                    shouldEnableResubmitButton() && !isProcessing
+                      ? "rgb(33, 61, 112)"
+                      : "rgba(33, 61, 112, 0.3)",
+                  "&:hover": {
                     backgroundColor:
                       shouldEnableResubmitButton() && !isProcessing
-                        ? "rgb(33, 61, 112)"
+                        ? "rgb(25, 45, 84)"
                         : "rgba(33, 61, 112, 0.3)",
-                    "&:hover": {
-                      backgroundColor:
-                        shouldEnableResubmitButton() && !isProcessing
-                          ? "rgb(25, 45, 84)"
-                          : "rgba(33, 61, 112, 0.3)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "rgba(33, 61, 112, 0.3)",
-                      color: "rgba(255, 255, 255, 0.5)",
-                    },
-                    mr: 2,
-                  }}>
-                  {isProcessing ? "Resubmitting..." : "Resubmit"}
-                </Button>
-              )}
+                  },
+                  "&:disabled": {
+                    backgroundColor: "rgba(33, 61, 112, 0.3)",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  },
+                  mr: 2,
+                }}>
+                {isProcessing ? "Resubmitting..." : "Resubmit"}
+              </Button>
+            )}
 
-              {(currentMode === "create" || currentMode === "edit") && (
-                <CreateButton type="submit" disabled={isProcessing}>
-                  {isProcessing ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <>
-                      {currentMode === "create" ? (
-                        <AddIcon sx={{ fontSize: 16 }} />
-                      ) : (
-                        <EditIcon sx={{ fontSize: 16 }} />
-                      )}
-                      {currentMode === "edit" ? "UPDATE" : "CREATE"}
-                    </>
-                  )}
-                </CreateButton>
-              )}
-            </StyledDialogActions>
-          </form>
-        </StyledDialog>
-      </LocalizationProvider>
-
-      <Dialog
-        open={showPrintDialog}
-        onClose={handleClosePrintDialog}
-        maxWidth="lg"
-        fullWidth>
-        <DialogContent sx={{ p: 0 }}>
-          {printData && <DataChangeNoticePrinting data={printData} />}
-        </DialogContent>
-      </Dialog>
-    </>
+            {(currentMode === "create" || currentMode === "edit") && (
+              <CreateButton type="submit" disabled={isProcessing}>
+                {isProcessing ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <>
+                    {currentMode === "create" ? (
+                      <AddIcon sx={{ fontSize: 16 }} />
+                    ) : (
+                      <EditIcon sx={{ fontSize: 16 }} />
+                    )}
+                    {currentMode === "edit" ? "UPDATE" : "CREATE"}
+                  </>
+                )}
+              </CreateButton>
+            )}
+          </StyledDialogActions>
+        </form>
+      </StyledDialog>
+    </LocalizationProvider>
   );
 };
 

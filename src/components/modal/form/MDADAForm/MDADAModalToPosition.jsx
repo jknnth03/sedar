@@ -126,7 +126,7 @@ export const ToPositionFields = ({
   useEffect(() => {
     if (currentMode === "edit" && !toJobLevelId && formValues.to_job_level) {
       const jobLevel = jobLevels.find(
-        (jl) => jl.name === formValues.to_job_level
+        (jl) => jl.name === formValues.to_job_level,
       );
       if (jobLevel) {
         setValue("to_job_level_id", jobLevel.id, { shouldValidate: false });

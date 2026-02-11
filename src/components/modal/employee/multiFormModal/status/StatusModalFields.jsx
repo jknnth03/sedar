@@ -1,16 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  FormHelperText,
   InputAdornment,
   Typography,
   Box,
   IconButton,
   Button,
+  Autocomplete,
+  CircularProgress,
 } from "@mui/material";
 import {
   CalendarToday as CalendarIcon,
@@ -19,15 +16,19 @@ import {
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { STATUS_OPTIONS } from "./statusUtils";
 
 const StatusModalFields = ({
   newStatusEntry,
   errors,
-  fieldsVisibility,
   onInputChange,
+  separationTypeOptions,
+  separationReasonOptions,
+  isLoadingSeparationTypes,
+  isLoadingSeparationReasons,
+  onFetchSeparationTypes,
+  onFetchSeparationReasons,
 }) => {
-  const [selectedFileName, setSelectedFileName] = React.useState("");
+  const [selectedFileName, setSelectedFileName] = useState("");
   const fileInputRef = React.useRef(null);
 
   const handleFileChange = (e) => {
@@ -67,105 +68,110 @@ const StatusModalFields = ({
           paddingTop: 2,
         }}>
         <Box>
-          <FormControl fullWidth error={!!errors.employee_status_label}>
-            <InputLabel>Employee Status *</InputLabel>
-            <Select
-              value={newStatusEntry.employee_status_label}
-              onChange={(e) =>
-                onInputChange("employee_status_label", e.target.value)
-              }
-              label="Employee Status *">
-              {STATUS_OPTIONS.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </Select>
-            {errors.employee_status_label && (
-              <FormHelperText>{errors.employee_status_label}</FormHelperText>
+          <Autocomplete
+            key={`separation-type-autocomplete-${separationTypeOptions.length}`}
+            options={separationTypeOptions}
+            getOptionLabel={(option) => option?.name || ""}
+            value={newStatusEntry.separation_type}
+            onChange={(event, newValue) => {
+              onInputChange("separation_type", newValue);
+            }}
+            onOpen={onFetchSeparationTypes}
+            loading={isLoadingSeparationTypes}
+            disabled={isLoadingSeparationTypes}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Separation Type *"
+                error={!!errors.separation_type}
+                helperText={errors.separation_type}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {isLoadingSeparationTypes ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
             )}
-          </FormControl>
+            isOptionEqualToValue={(option, value) => option?.id === value?.id}
+            noOptionsText={
+              isLoadingSeparationTypes
+                ? "Loading options..."
+                : "No options available"
+            }
+            fullWidth
+          />
         </Box>
 
-        {fieldsVisibility.startDate && (
-          <Box>
-            <DatePicker
-              label="Start Date *"
-              value={newStatusEntry.employee_status_start_date}
-              onChange={(date) =>
-                onInputChange("employee_status_start_date", date)
-              }
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.employee_status_start_date,
-                  helperText: errors.employee_status_start_date,
-                  InputProps: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarIcon />
-                      </InputAdornment>
-                    ),
-                  },
-                },
-              }}
-            />
-          </Box>
-        )}
+        <Box>
+          <Autocomplete
+            key={`separation-reason-autocomplete-${separationReasonOptions.length}`}
+            options={separationReasonOptions}
+            getOptionLabel={(option) => option?.name || ""}
+            value={newStatusEntry.separation_reason}
+            onChange={(event, newValue) => {
+              onInputChange("separation_reason", newValue);
+            }}
+            onOpen={onFetchSeparationReasons}
+            loading={isLoadingSeparationReasons}
+            disabled={isLoadingSeparationReasons}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Separation Reason *"
+                error={!!errors.separation_reason}
+                helperText={errors.separation_reason}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {isLoadingSeparationReasons ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            isOptionEqualToValue={(option, value) => option?.id === value?.id}
+            noOptionsText={
+              isLoadingSeparationReasons
+                ? "Loading options..."
+                : "No options available"
+            }
+            fullWidth
+          />
+        </Box>
 
-        {fieldsVisibility.endDate && (
-          <Box>
-            <DatePicker
-              label="End Date"
-              value={newStatusEntry.employee_status_end_date}
-              onChange={(date) =>
-                onInputChange("employee_status_end_date", date)
-              }
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.employee_status_end_date,
-                  helperText: errors.employee_status_end_date,
-                  InputProps: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarIcon />
-                      </InputAdornment>
-                    ),
-                  },
+        <Box>
+          <DatePicker
+            label="Effectivity Date *"
+            value={newStatusEntry.employee_status_effectivity_date}
+            onChange={(date) =>
+              onInputChange("employee_status_effectivity_date", date)
+            }
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                error: !!errors.employee_status_effectivity_date,
+                helperText: errors.employee_status_effectivity_date,
+                InputProps: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarIcon />
+                    </InputAdornment>
+                  ),
                 },
-              }}
-              minDate={newStatusEntry.employee_status_start_date}
-            />
-          </Box>
-        )}
-
-        {fieldsVisibility.effectivityDate && (
-          <Box>
-            <DatePicker
-              label="Effectivity Date *"
-              value={newStatusEntry.employee_status_effectivity_date}
-              onChange={(date) =>
-                onInputChange("employee_status_effectivity_date", date)
-              }
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.employee_status_effectivity_date,
-                  helperText: errors.employee_status_effectivity_date,
-                  InputProps: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarIcon />
-                      </InputAdornment>
-                    ),
-                  },
-                },
-              }}
-              minDate={newStatusEntry.employee_status_start_date}
-            />
-          </Box>
-        )}
+              },
+            }}
+          />
+        </Box>
 
         <Box sx={{ gridColumn: "1 / -1" }}>
           <Box

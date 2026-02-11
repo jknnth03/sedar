@@ -13,6 +13,7 @@ import {
   Card,
   CardContent,
   Stack,
+  Alert,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -27,16 +28,14 @@ import {
   useGetStatusesQuery,
   useCreateStatusMutation,
 } from "../../../../../features/api/employee/statusApi";
+import { useLazyGetAllShowSeparationTypesQuery } from "../../../../../features/api/extras/separationTypesApi";
+import { useLazyGetAllShowSeparationReasonsQuery } from "../../../../../features/api/extras/separationReasonsApi";
 import StatusModalFields from "./StatusModalFields";
 import StatusAttachmentDialog from "./StatusAttachmentDialog";
 import {
-  STATUS_WITH_START_END_DATES,
-  STATUS_WITH_EFFECTIVITY_DATE,
-  STATUS_WITH_MINIMAL_DATA,
   formatEmployeeName,
   formatDate,
   getAttachmentFilename,
-  handleDownloadAttachment,
 } from "./statusUtils";
 import { validateStatusForm } from "./statusValidation";
 
@@ -52,14 +51,32 @@ const StatusModal = ({
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const [createStatus, { isLoading: isCreating }] = useCreateStatusMutation();
+  const [
+    getAllSeparationTypes,
+    {
+      data: separationTypesData,
+      isLoading: isLoadingSeparationTypes,
+      error: separationTypesError,
+      isError: hasSeparationTypesError,
+    },
+  ] = useLazyGetAllShowSeparationTypesQuery();
+
+  const [
+    getAllSeparationReasons,
+    {
+      data: separationReasonsData,
+      isLoading: isLoadingSeparationReasons,
+      error: separationReasonsError,
+      isError: hasSeparationReasonsError,
+    },
+  ] = useLazyGetAllShowSeparationReasonsQuery();
 
   const [currentMode, setCurrentMode] = useState(mode);
   const [statusHistory, setStatusHistory] = useState([]);
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [newStatusEntry, setNewStatusEntry] = useState({
-    employee_status_label: "",
-    employee_status_start_date: null,
-    employee_status_end_date: null,
+    separation_type: null,
+    separation_reason: null,
     employee_status_effectivity_date: null,
     employee_status_attachment: null,
   });
@@ -67,9 +84,51 @@ const StatusModal = ({
 
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(null);
+  const [hasFetchedSeparationTypes, setHasFetchedSeparationTypes] =
+    useState(false);
+  const [hasFetchedSeparationReasons, setHasFetchedSeparationReasons] =
+    useState(false);
 
   const currentEmployeeId =
     employeeId || employeeData?.employee?.id || employeeData?.employee_id;
+
+  const separationTypeOptions = React.useMemo(() => {
+    if (!separationTypesData) return [];
+
+    if (Array.isArray(separationTypesData?.result?.data)) {
+      return separationTypesData.result.data;
+    }
+    if (Array.isArray(separationTypesData?.data)) {
+      return separationTypesData.data;
+    }
+    if (Array.isArray(separationTypesData?.result)) {
+      return separationTypesData.result;
+    }
+    if (Array.isArray(separationTypesData)) {
+      return separationTypesData;
+    }
+
+    return [];
+  }, [separationTypesData]);
+
+  const separationReasonOptions = React.useMemo(() => {
+    if (!separationReasonsData) return [];
+
+    if (Array.isArray(separationReasonsData?.result?.data)) {
+      return separationReasonsData.result.data;
+    }
+    if (Array.isArray(separationReasonsData?.data)) {
+      return separationReasonsData.data;
+    }
+    if (Array.isArray(separationReasonsData?.result)) {
+      return separationReasonsData.result;
+    }
+    if (Array.isArray(separationReasonsData)) {
+      return separationReasonsData;
+    }
+
+    return [];
+  }, [separationReasonsData]);
 
   const {
     data: apiResponse,
@@ -86,15 +145,25 @@ const StatusModal = ({
     },
   );
 
-  const getFieldsVisibility = (status) => {
-    if (STATUS_WITH_START_END_DATES.includes(status)) {
-      return { startDate: true, endDate: true, effectivityDate: false };
-    } else if (STATUS_WITH_EFFECTIVITY_DATE.includes(status)) {
-      return { startDate: false, endDate: false, effectivityDate: true };
-    } else if (STATUS_WITH_MINIMAL_DATA.includes(status)) {
-      return { startDate: true, endDate: false, effectivityDate: false };
+  useEffect(() => {
+    if (!open) {
+      setHasFetchedSeparationTypes(false);
+      setHasFetchedSeparationReasons(false);
     }
-    return { startDate: true, endDate: true, effectivityDate: true };
+  }, [open]);
+
+  const handleFetchSeparationTypes = () => {
+    if (!hasFetchedSeparationTypes) {
+      getAllSeparationTypes();
+      setHasFetchedSeparationTypes(true);
+    }
+  };
+
+  const handleFetchSeparationReasons = () => {
+    if (!hasFetchedSeparationReasons) {
+      getAllSeparationReasons();
+      setHasFetchedSeparationReasons(true);
+    }
   };
 
   const extractStatusHistory = (apiResponse, employeeData) => {
@@ -228,9 +297,6 @@ const StatusModal = ({
       if (statusEntriesToMap.length > 0) {
         const sortedEntries = [...statusEntriesToMap].sort((a, b) => {
           const getCompareDate = (item) => {
-            if (item.employee_status_start_date) {
-              return new Date(item.employee_status_start_date);
-            }
             if (item.employee_status_effectivity_date) {
               return new Date(item.employee_status_effectivity_date);
             }
@@ -257,9 +323,8 @@ const StatusModal = ({
 
     if (open && currentMode === "edit") {
       setNewStatusEntry({
-        employee_status_label: "",
-        employee_status_start_date: null,
-        employee_status_end_date: null,
+        separation_type: null,
+        separation_reason: null,
         employee_status_effectivity_date: null,
         employee_status_attachment: null,
       });
@@ -268,20 +333,10 @@ const StatusModal = ({
   }, [open, currentMode, apiResponse, employeeData, currentEmployeeId]);
 
   const handleInputChange = (field, value) => {
-    setNewStatusEntry((prev) => {
-      const updated = { ...prev, [field]: value };
-
-      if (field === "employee_status_label") {
-        const fieldsVisibility = getFieldsVisibility(value);
-        if (!fieldsVisibility.startDate)
-          updated.employee_status_start_date = null;
-        if (!fieldsVisibility.endDate) updated.employee_status_end_date = null;
-        if (!fieldsVisibility.effectivityDate)
-          updated.employee_status_effectivity_date = null;
-      }
-
-      return updated;
-    });
+    setNewStatusEntry((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
 
     if (errors[field]) {
       const updatedErrors = { ...errors };
@@ -316,22 +371,18 @@ const StatusModal = ({
 
       formData.append(
         "employee_status_label",
-        newStatusEntry.employee_status_label,
+        newStatusEntry.separation_type?.name || "",
       );
 
-      if (newStatusEntry.employee_status_start_date) {
-        formData.append(
-          "employee_status_start_date",
-          newStatusEntry.employee_status_start_date.format("YYYY-MM-DD"),
-        );
-      }
+      formData.append(
+        "separation_type_id",
+        newStatusEntry.separation_type?.id || "",
+      );
 
-      if (newStatusEntry.employee_status_end_date) {
-        formData.append(
-          "employee_status_end_date",
-          newStatusEntry.employee_status_end_date.format("YYYY-MM-DD"),
-        );
-      }
+      formData.append(
+        "separation_reason_id",
+        newStatusEntry.separation_reason?.id || "",
+      );
 
       if (newStatusEntry.employee_status_effectivity_date) {
         formData.append(
@@ -361,16 +412,23 @@ const StatusModal = ({
       setCurrentMode("view");
 
       setNewStatusEntry({
-        employee_status_label: "",
-        employee_status_start_date: null,
-        employee_status_end_date: null,
+        separation_type: null,
+        separation_reason: null,
         employee_status_effectivity_date: null,
         employee_status_attachment: null,
       });
       setErrors({});
     } catch (error) {
       let errorMessage = "Failed to create employee status";
-      if (error.data?.message) {
+
+      if (error.data?.errors) {
+        const backendErrors = {};
+        Object.keys(error.data.errors).forEach((key) => {
+          backendErrors[key] = error.data.errors[key][0];
+        });
+        setErrors(backendErrors);
+        errorMessage = error.data.message || "Validation failed";
+      } else if (error.data?.message) {
         errorMessage += `: ${error.data.message}`;
       } else if (error.message) {
         errorMessage += `: ${error.message}`;
@@ -389,9 +447,8 @@ const StatusModal = ({
     setStatusHistory([]);
     setCurrentEmployee(null);
     setNewStatusEntry({
-      employee_status_label: "",
-      employee_status_start_date: null,
-      employee_status_end_date: null,
+      separation_type: null,
+      separation_reason: null,
       employee_status_effectivity_date: null,
       employee_status_attachment: null,
     });
@@ -399,6 +456,8 @@ const StatusModal = ({
     setCurrentMode(mode);
     setAttachmentDialogOpen(false);
     setSelectedStatus(null);
+    setHasFetchedSeparationTypes(false);
+    setHasFetchedSeparationReasons(false);
     onClose();
   };
 
@@ -439,12 +498,7 @@ const StatusModal = ({
       <Box sx={{ mt: 2, position: "relative" }}>
         <Stack spacing={2}>
           {statusHistory.map((status, index) => {
-            const fieldsVisibility = getFieldsVisibility(
-              status.employee_status_label,
-            );
-
             const displayDate =
-              status.employee_status_start_date ||
               status.employee_status_effectivity_date ||
               status.created_at ||
               status.updated_at;
@@ -507,7 +561,9 @@ const StatusModal = ({
                         mb: 1.5,
                         fontSize: "1rem",
                       }}>
-                      {status.employee_status_label}
+                      {status.employee_status_label ||
+                        status.separation_type?.name ||
+                        "-"}
                     </Typography>
 
                     <Box
@@ -517,7 +573,7 @@ const StatusModal = ({
                         gap: 3,
                         flexWrap: "wrap",
                       }}>
-                      <Box sx={{ minWidth: "120px" }}>
+                      <Box sx={{ minWidth: "140px" }}>
                         <Typography
                           variant="body2"
                           sx={{
@@ -527,7 +583,7 @@ const StatusModal = ({
                             textTransform: "uppercase",
                             fontSize: "0.7rem",
                           }}>
-                          START DATE
+                          SEPARATION REASON
                         </Typography>
                         <Typography
                           variant="body2"
@@ -536,34 +592,7 @@ const StatusModal = ({
                             color: "#213D70",
                             fontSize: "0.875rem",
                           }}>
-                          {status.employee_status_start_date
-                            ? formatDate(status.employee_status_start_date)
-                            : "-"}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ minWidth: "120px" }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color: "#FE5313",
-                            mb: 0.5,
-                            textTransform: "uppercase",
-                            fontSize: "0.7rem",
-                          }}>
-                          END DATE
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 500,
-                            color: "#213D70",
-                            fontSize: "0.875rem",
-                          }}>
-                          {status.employee_status_end_date
-                            ? formatDate(status.employee_status_end_date)
-                            : "-"}
+                          {status.separation_reason?.name || "-"}
                         </Typography>
                       </Box>
 
@@ -768,16 +797,26 @@ const StatusModal = ({
             </Box>
           )}
 
+          {isEditMode &&
+            (hasSeparationTypesError || hasSeparationReasonsError) && (
+              <Alert severity="error" sx={{ mb: 2, ml: 2 }}>
+                Failed to load options. Please try again or contact support.
+              </Alert>
+            )}
+
           {isViewMode ? (
             renderStatusHistory()
           ) : (
             <StatusModalFields
               newStatusEntry={newStatusEntry}
               errors={errors}
-              fieldsVisibility={getFieldsVisibility(
-                newStatusEntry.employee_status_label,
-              )}
               onInputChange={handleInputChange}
+              separationTypeOptions={separationTypeOptions}
+              separationReasonOptions={separationReasonOptions}
+              isLoadingSeparationTypes={isLoadingSeparationTypes}
+              isLoadingSeparationReasons={isLoadingSeparationReasons}
+              onFetchSeparationTypes={handleFetchSeparationTypes}
+              onFetchSeparationReasons={handleFetchSeparationReasons}
             />
           )}
         </DialogContent>

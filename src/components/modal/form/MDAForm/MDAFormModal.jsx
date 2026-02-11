@@ -30,6 +30,7 @@ import {
   useGetAllJobLevelsQuery,
   useGetAllPositionsQuery,
 } from "../../../../features/api/forms/mdaApi";
+import { useLazyGetDataChangeNoticeQuery } from "../../../../features/api/forms/dataChangeApi";
 import MDAFormModalFields from "./MDAFormModalFields";
 import {
   UpdateConfirmationDialog,
@@ -60,6 +61,7 @@ import {
   printIconStyles,
   resubmitButtonStyles,
 } from "./MDAFornModal.styles";
+import { DataChangeNoticePrinting } from "./DataChangeNoticePrinting";
 
 const MDAFormModal = ({
   open = false,
@@ -108,10 +110,12 @@ const MDAFormModal = ({
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [printData, setPrintData] = useState(null);
   const [isPrintLoading, setIsPrintLoading] = useState(false);
+  const [showPrintView, setShowPrintView] = useState(false);
 
   const [triggerPrefill, { data: prefillData, isLoading: isPrefillLoading }] =
     useLazyGetMdaPrefillQuery();
   const [triggerGetSubmission] = useLazyGetSingleMdaSubmissionQuery();
+  const [triggerGetDataChangeNotice] = useLazyGetDataChangeNoticeQuery();
 
   useEffect(() => {
     if (open && selectedEntry) {
@@ -352,22 +356,35 @@ const MDAFormModal = ({
   const handlePrintClick = async () => {
     try {
       setIsPrintLoading(true);
-      const submissionId = selectedEntry?.result?.id || selectedEntry?.id;
 
-      if (!submissionId) {
-        alert("Submission ID not found");
+      const dataChangeId =
+        selectedEntry?.result?.data_change_id ||
+        selectedEntry?.data_change_id ||
+        selectedEntry?.result?.id ||
+        selectedEntry?.id;
+
+      console.log("Selected Entry:", selectedEntry);
+      console.log("Data Change ID:", dataChangeId);
+
+      if (!dataChangeId) {
+        alert("Data Change ID not found");
         setIsPrintLoading(false);
         return;
       }
 
-      const response = await triggerGetSubmission(submissionId).unwrap();
+      const response = await triggerGetDataChangeNotice(dataChangeId).unwrap();
 
       if (response) {
         setPrintData(response);
-        setShowPrintDialog(true);
+        setShowPrintView(true);
       }
     } catch (error) {
-      alert("Failed to fetch submission data. Please try again.");
+      console.error("Print error:", error);
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "Failed to fetch data change notice. Please try again.";
+      alert(errorMessage);
     } finally {
       setIsPrintLoading(false);
     }
@@ -375,6 +392,11 @@ const MDAFormModal = ({
 
   const handleClosePrintDialog = () => {
     setShowPrintDialog(false);
+    setPrintData(null);
+  };
+
+  const handleClosePrintView = () => {
+    setShowPrintView(false);
     setPrintData(null);
   };
 
@@ -395,6 +417,7 @@ const MDAFormModal = ({
     setPrintData(null);
     setIsPrintLoading(false);
     setHasInitialized(false);
+    setShowPrintView(false);
     if (submissionId) {
       triggerPrefill(submissionId);
     }
@@ -434,6 +457,34 @@ const MDAFormModal = ({
 
   const formKey = `mda-form-${currentMode}-${open ? "open" : "closed"}`;
 
+  if (showPrintView && printData) {
+    return (
+      <Dialog
+        open={showPrintView}
+        onClose={handleClosePrintView}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { minHeight: "90vh" },
+        }}>
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center">
+            <Typography variant="h6">Data Change Notice</Typography>
+            <IconButton onClick={handleClosePrintView}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DataChangeNoticePrinting data={printData} />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Dialog
@@ -462,7 +513,7 @@ const MDAFormModal = ({
                       sx={editIconButtonStyles}>
                       <EditIcon
                         sx={editIconStyles(
-                          !shouldEnableEditButton() || isProcessing
+                          !shouldEnableEditButton() || isProcessing,
                         )}
                       />
                     </IconButton>
@@ -551,7 +602,7 @@ const MDAFormModal = ({
                 }
                 sx={resubmitButtonStyles(
                   shouldEnableResubmitButton(),
-                  isProcessing
+                  isProcessing,
                 )}>
                 {isProcessing ? "Resubmitting..." : "Resubmit"}
               </Button>
@@ -575,8 +626,8 @@ const MDAFormModal = ({
                 {isProcessing
                   ? "Saving..."
                   : currentMode === "create"
-                  ? "Create"
-                  : "Update"}
+                    ? "Create"
+                    : "Update"}
               </Button>
             )}
           </DialogActions>

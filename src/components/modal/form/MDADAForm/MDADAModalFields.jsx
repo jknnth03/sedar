@@ -35,6 +35,7 @@ const MDADAModalFields = ({
   currentMode = "create",
   positions = [],
   jobLevels = [],
+  initialData = null,
 }) => {
   const {
     control,
@@ -136,6 +137,7 @@ const MDADAModalFields = ({
         formValues={formValues}
         formatCurrency={formatCurrency}
         currentMode={currentMode}
+        initialData={initialData}
       />
 
       <ToPositionFields

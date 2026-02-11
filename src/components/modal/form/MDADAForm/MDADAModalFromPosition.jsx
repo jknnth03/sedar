@@ -14,6 +14,7 @@ export const FromPositionFields = ({
   isCreate,
   showSummary,
   currentMode,
+  initialData,
 }) => {
   const { setValue, watch } = useFormContext();
 
@@ -47,25 +48,64 @@ export const FromPositionFields = ({
   };
 
   useEffect(() => {
+    if (initialData?.from) {
+      if (initialData.from.position_id) {
+        setValue("from_position_id", initialData.from.position_id, {
+          shouldValidate: true,
+        });
+      }
+      if (initialData.from.job_level_id) {
+        setValue("from_job_level_id", initialData.from.job_level_id, {
+          shouldValidate: true,
+        });
+      }
+      if (initialData.from.position_title) {
+        setValue("from_position_title", initialData.from.position_title, {
+          shouldValidate: true,
+        });
+      }
+      if (initialData.from.department) {
+        setValue("from_department", initialData.from.department, {
+          shouldValidate: true,
+        });
+      }
+      if (initialData.from.sub_unit) {
+        setValue("from_sub_unit", initialData.from.sub_unit, {
+          shouldValidate: true,
+        });
+      }
+      if (initialData.from.job_level) {
+        setValue("from_job_level", initialData.from.job_level, {
+          shouldValidate: true,
+        });
+      }
+    }
+  }, [initialData, setValue]);
+
+  useEffect(() => {
     if (shouldFetchData && fromPositionId && positions.length > 0) {
       const selectedPosition = positions.find((p) => p.id === fromPositionId);
+
       if (selectedPosition) {
         const positionTitle =
           typeof selectedPosition.title === "object"
             ? selectedPosition.title?.name || ""
             : selectedPosition.title || "";
+
         setValue("from_position_title", positionTitle, {
           shouldValidate: true,
         });
+
         setValue(
           "from_department",
           selectedPosition.charging?.department_name || "",
-          { shouldValidate: true }
+          { shouldValidate: true },
         );
+
         setValue(
           "from_sub_unit",
           selectedPosition.charging?.sub_unit_name || "",
-          { shouldValidate: true }
+          { shouldValidate: true },
         );
 
         const jobRate = selectedPosition.job_rate || "";
@@ -84,15 +124,21 @@ export const FromPositionFields = ({
   }, [fromPositionId, positions, setValue, shouldFetchData]);
 
   useEffect(() => {
-    if (shouldFetchData && fromJobLevelId && jobLevels.length > 0) {
+    if (
+      shouldFetchData &&
+      fromJobLevelId &&
+      jobLevels.length > 0 &&
+      !initialData?.from?.job_level
+    ) {
       const selectedJobLevel = jobLevels.find((jl) => jl.id === fromJobLevelId);
+
       if (selectedJobLevel) {
         setValue("from_job_level", selectedJobLevel.name || "", {
           shouldValidate: true,
         });
       }
     }
-  }, [fromJobLevelId, jobLevels, setValue, shouldFetchData]);
+  }, [fromJobLevelId, jobLevels, setValue, shouldFetchData, initialData]);
 
   if (showSummary) {
     return (
