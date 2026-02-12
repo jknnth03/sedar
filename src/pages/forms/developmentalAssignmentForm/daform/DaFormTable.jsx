@@ -22,8 +22,8 @@ import dayjs from "dayjs";
 import React from "react";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import NoDataFound from "../../../NoDataFound";
-import DAFormHistoryDialog from "./DAFormHistoryDialog";
 import { styles } from "../../manpowerform/FormSubmissionStyles";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 
 const DAFormTable = ({
   submissionsList,
@@ -462,7 +462,7 @@ const DAFormTable = ({
         </Table>
       </TableContainer>
 
-      <DAFormHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDaHistory={selectedDaHistory}

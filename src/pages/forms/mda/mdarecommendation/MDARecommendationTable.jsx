@@ -21,7 +21,7 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import NoDataFound from "../../../NoDataFound";
 import { styles } from "../../manpowerform/formSubmissionStyles";
@@ -424,10 +424,12 @@ const MDARecommendationTable = ({
         </Table>
       </TableContainer>
 
-      <MDAHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMdaHistory={selectedMdaHistory}
+      <ActivityHistoryDialog
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedMdaHistory}
+        type="datachange"
+        title="MDA ACTIVITY LOGS"
       />
 
       <ConfirmationDialog

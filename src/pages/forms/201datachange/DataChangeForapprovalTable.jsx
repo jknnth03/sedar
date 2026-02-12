@@ -22,9 +22,9 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import DataChangeDialog from "./DataChangeDialog";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
+import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 
 const DataChangeForApprovalTable = ({
   submissionsList = [],
@@ -200,7 +200,7 @@ const DataChangeForApprovalTable = ({
     if (!statusFilter) return submissionsList;
     return submissionsList.filter(
       (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+        submission.status?.toUpperCase() === statusFilter.toUpperCase(),
     );
   }, [submissionsList, statusFilter]);
 
@@ -232,7 +232,9 @@ const DataChangeForApprovalTable = ({
   const shouldShowActionsColumn =
     !shouldHideActionsHeader &&
     filteredSubmissions.some(
-      (submission) => submission.status !== "PENDING MDA CREATION"
+      (submission) =>
+        submission.status !== "PENDING MDA CREATION" &&
+        submission.status !== "COMPLETED",
     );
   const totalColumns = shouldShowActionsColumn ? 7 : 6;
 
@@ -251,7 +253,7 @@ const DataChangeForApprovalTable = ({
       if (onCancel) {
         const success = await onCancel(
           selectedSubmissionForCancel.id,
-          cancelRemarks.trim()
+          cancelRemarks.trim(),
         );
 
         if (success) {
@@ -394,7 +396,7 @@ const DataChangeForApprovalTable = ({
                     }}>
                     {renderEmployee(
                       submission.employee_name,
-                      submission.employee_code
+                      submission.employee_code,
                     )}
                   </TableCell>
                   <TableCell sx={styles.columnStyles.status}>
@@ -413,7 +415,8 @@ const DataChangeForApprovalTable = ({
                       : "-"}
                   </TableCell>
                   {!shouldHideActionsHeader &&
-                    submission.status !== "PENDING MDA CREATION" && (
+                    submission.status !== "PENDING MDA CREATION" &&
+                    submission.status !== "COMPLETED" && (
                       <TableCell
                         align="center"
                         sx={styles.columnStyles.actions}>
@@ -488,7 +491,7 @@ const DataChangeForApprovalTable = ({
         </Table>
       </TableContainer>
 
-      <DataChangeDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDataChangeHistory={selectedDataChangeHistory}

@@ -21,10 +21,11 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-import DAFormHistoryDialog from "../../developmentalAssignmentForm/daform/DAFormHistoryDialog";
+
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import NoDataFound from "../../../NoDataFound";
 import { styles } from "../../manpowerform/formSubmissionStyles";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 
 const MDAEvaluationRecommendationTable = ({
   submissionsList,
@@ -483,7 +484,7 @@ const MDAEvaluationRecommendationTable = ({
         </Table>
       </TableContainer>
 
-      <DAFormHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDaHistory={selectedEvaluationHistory}

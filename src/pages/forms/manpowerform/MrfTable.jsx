@@ -22,9 +22,9 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import MrfHistoryDialog from "./MrfHistoryDialog";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
+import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 
 const MrfTable = ({
   submissionsList,
@@ -520,7 +520,7 @@ const MrfTable = ({
         onSuccess={handleCancelSuccess}
       />
 
-      <MrfHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedMrfHistory={selectedMrfHistory}

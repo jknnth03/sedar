@@ -63,7 +63,7 @@ const formatTemplateData = (template) => {
     positionIds = template.positions.map((pos) => pos.id);
   } else if (Array.isArray(template.position_ids)) {
     positionIds = template.position_ids.map((pos) =>
-      typeof pos === "object" && pos.id ? pos.id : pos
+      typeof pos === "object" && pos.id ? pos.id : pos,
     );
   }
 
@@ -105,7 +105,7 @@ const CatTwoTemplateModal = ({
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [currentMode, setCurrentMode] = useState(
-    selectedTemplate ? "view" : "create"
+    selectedTemplate ? "view" : "create",
   );
   const [originalMode, setOriginalMode] = useState(currentMode);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -243,7 +243,7 @@ const CatTwoTemplateModal = ({
     } catch (error) {
       enqueueSnackbar(
         error?.data?.message || "An error occurred. Please try again.",
-        { variant: "error" }
+        { variant: "error" },
       );
     }
   };
@@ -307,7 +307,7 @@ const CatTwoTemplateModal = ({
                     sx={styles.editIconButtonStyles}>
                     <EditIcon
                       sx={styles.editIconStyles(
-                        !shouldEnableEditButton() || isProcessing
+                        !shouldEnableEditButton() || isProcessing,
                       )}
                     />
                   </IconButton>
@@ -376,8 +376,8 @@ const CatTwoTemplateModal = ({
                 {isProcessing
                   ? "Saving..."
                   : currentMode === "create"
-                  ? "CREATE"
-                  : "UPDATE"}
+                    ? "CREATE"
+                    : "UPDATE"}
               </Button>
             )}
           </DialogActions>

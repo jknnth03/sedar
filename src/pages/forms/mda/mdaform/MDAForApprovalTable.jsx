@@ -20,11 +20,10 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
-
-import MDAHistoryDialog from "./MDAHistoryDialog";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import NoDataFound from "../../../NoDataFound";
 import { styles } from "../../manpowerform/formSubmissionStyles";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 
 const MDAForApprovalTable = ({
   submissionsList,
@@ -425,10 +424,12 @@ const MDAForApprovalTable = ({
         </Table>
       </TableContainer>
 
-      <MDAHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMdaHistory={selectedMdaHistory}
+      <ActivityHistoryDialog
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedMdaHistory}
+        type="datachange"
+        title="MDA ACTIVITY LOGS"
       />
 
       <ConfirmationDialog

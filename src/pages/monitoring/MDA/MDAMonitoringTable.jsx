@@ -17,8 +17,8 @@ import {
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../../forms/mda/mdaform/MDAHistoryDialog";
 import NoDataFound from "../../NoDataFound";
+import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 
 const MDAMonitoringTable = ({
   submissionsList,
@@ -381,7 +381,7 @@ const MDAMonitoringTable = ({
         </Table>
       </TableContainer>
 
-      <MDAHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedMdaHistory={selectedMdaHistory}

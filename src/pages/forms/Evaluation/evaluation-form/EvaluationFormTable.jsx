@@ -21,9 +21,9 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../../manpowerform/FormSubmissionStyles";
-import EvaluationFormHistoryDialog from "./EvaluationFormHistoryDialog";
 import ConfirmationDialog from "../../../../styles/ConfirmationDialog";
 import NoDataFound from "../../../NoDataFound";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 
 const EvaluationFormTable = ({
   submissionsList,
@@ -467,7 +467,7 @@ const EvaluationFormTable = ({
         </Table>
       </TableContainer>
 
-      <EvaluationFormHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedEvaluationHistory={selectedEvaluationHistory}

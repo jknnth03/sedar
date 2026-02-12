@@ -20,8 +20,8 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import dayjs from "dayjs";
 import { styles } from "../../manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../mdaform/MDAHistoryDialog";
 import NoDataFound from "../../../NoDataFound";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 
 const DAForMDAProcessingTable = ({
   submissionsList = [],
@@ -392,10 +392,12 @@ const DAForMDAProcessingTable = ({
         </Table>
       </TableContainer>
 
-      <MDAHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMdaHistory={selectedMdaHistory}
+      <ActivityHistoryDialog
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedMdaHistory}
+        type="datachange"
+        title="MDA ACTIVITY LOGS"
       />
     </>
   );

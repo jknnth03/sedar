@@ -18,7 +18,7 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
 import { CONSTANT } from "../../../config";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import MDAHistoryDialog from "../../forms/mda/mdaform/MDAHistoryDialog";
+import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 
 const MDAForApprovalTable = ({
   submissionsList,
@@ -276,10 +276,12 @@ const MDAForApprovalTable = ({
         </Table>
       </TableContainer>
 
-      <MDAHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMdaHistory={selectedMdaHistory}
+      <ActivityHistoryDialog
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedMdaHistory}
+        type="datachange"
+        title="MDA ACTIVITY LOGS"
       />
     </>
   );

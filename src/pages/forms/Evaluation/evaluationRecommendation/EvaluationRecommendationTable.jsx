@@ -17,8 +17,8 @@ import {
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
 import { styles } from "../../manpowerform/FormSubmissionStyles";
-import DAFormHistoryDialog from "../../developmentalAssignmentForm/daform/DAFormHistoryDialog";
 import NoDataFound from "../../../NoDataFound";
+import ActivityHistoryDialog from "../../../zzzreusable/ActivityHistoryDialog";
 
 const EvaluationRecommendationTable = ({
   submissionsList,
@@ -378,7 +378,7 @@ const EvaluationRecommendationTable = ({
         </Table>
       </TableContainer>
 
-      <DAFormHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDaHistory={selectedEvaluationHistory}

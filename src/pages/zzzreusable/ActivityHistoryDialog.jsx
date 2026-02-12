@@ -19,44 +19,45 @@ import PrintIcon from "@mui/icons-material/Print";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import FulfilledIcon from "@mui/icons-material/CheckCircle";
 import dayjs from "dayjs";
 
-const DataChangeDialog = ({
-  historyDialogOpen,
-  onHistoryDialogClose,
-  selectedDataChangeHistory,
+const ActivityHistoryDialog = ({
+  open,
+  onClose,
+  data,
+  type = "default",
+  title = "Activity Logs",
 }) => {
-  const getFullName = (dataChange) => {
-    if (dataChange?.employee_name) {
-      return dataChange.employee_name;
+  const getHeaderFields = () => {
+    switch (type) {
+      case "mrf":
+        return [
+          { label: "Position Title", value: data?.position_title },
+          { label: "Job Level", value: data?.job_level },
+          { label: "Reference Number", value: data?.reference_number },
+          { label: "Requisition Type", value: data?.requisition_type },
+        ];
+      case "datachange":
+        return [
+          { label: "Full Name", value: data?.employee_name },
+          {
+            label: "Employee #",
+            value: data?.employee_number || data?.employee_code,
+          },
+          { label: "Reference Number", value: data?.reference_number },
+        ];
+      case "biannual":
+        return [
+          { label: "Employee Name", value: data?.employee_name },
+          { label: "Employee #", value: data?.employee_code },
+          { label: "Reference Number", value: data?.reference_number },
+          { label: "Position", value: data?.position_name, fullWidth: true },
+        ];
+      default:
+        return [{ label: "Reference Number", value: data?.reference_number }];
     }
-
-    const statusWords = [
-      "REJECTED",
-      "APPROVED",
-      "PENDING",
-      "AWAITING",
-      "RESUBMISSION",
-      "SUBMITTED",
-      "RETURNED",
-      "CANCELLED",
-    ];
-    let cleanName = dataChange?.employee_name || "";
-
-    statusWords.forEach((status) => {
-      const regex = new RegExp(`\\s+${status}\\s*$`, "i");
-      cleanName = cleanName.replace(regex, "");
-    });
-
-    return cleanName.trim() || "N/A";
-  };
-
-  const getEmployeeCode = (dataChange) => {
-    return dataChange?.employee_number || dataChange?.employee_code || "N/A";
-  };
-
-  const getReferenceNumber = (dataChange) => {
-    return dataChange?.reference_number || "N/A";
   };
 
   const getStatusColor = (status) => {
@@ -77,6 +78,13 @@ const DataChangeDialog = ({
       returned: "#f44336",
       "data updated": "#2196f3",
       "awaiting resubmission": "#4c00ffff",
+      "for approval": "#1976d2",
+      "awaiting approval": "#9c27b0",
+      "for receiving": "#ff9800",
+      "pending mda creation": "#f57c00",
+      "for mda processing": "#1976d2",
+      "mda for approval": "#9c27b0",
+      fulfilled: "#4CAF50",
     };
     return statusColors[status?.toLowerCase()] || "#f57c00";
   };
@@ -94,6 +102,8 @@ const DataChangeDialog = ({
         IconComponent = CloseIcon;
         break;
       case "approved":
+      case "completed":
+      case "received":
         IconComponent = CheckIcon;
         break;
       case "submitted":
@@ -107,12 +117,21 @@ const DataChangeDialog = ({
         IconComponent = PrintIcon;
         break;
       case "item received":
-      case "received":
         IconComponent = ReceiptIcon;
+        break;
+      case "fulfilled":
+        IconComponent = FulfilledIcon;
         break;
       case "pending":
       case "in progress":
       case "awaiting resubmission":
+      case "awaiting approval":
+      case "for approval":
+      case "for receiving":
+      case "upcoming":
+      case "pending mda creation":
+      case "for mda processing":
+      case "mda for approval":
         IconComponent = HourglassEmptyIcon;
         break;
       case "cancelled":
@@ -131,8 +150,22 @@ const DataChangeDialog = ({
   const TimelineStep = ({ activity, index, isLast, isCompleted }) => {
     const IconComponent = getStatusIcon(activity);
     const statusColor = getStatusColor(
-      activity?.event_type || activity?.status || activity?.action
+      activity?.event_type || activity?.status || activity?.action,
     );
+
+    const isRejectedOrReturned =
+      (
+        activity?.event_type ||
+        activity?.status ||
+        activity?.action ||
+        ""
+      ).toLowerCase() === "rejected" ||
+      (
+        activity?.event_type ||
+        activity?.status ||
+        activity?.action ||
+        ""
+      ).toLowerCase() === "returned";
 
     return (
       <Box
@@ -150,18 +183,7 @@ const DataChangeDialog = ({
               width: "2px",
               height: "40px",
               backgroundColor: isCompleted
-                ? (
-                    activity?.event_type ||
-                    activity?.status ||
-                    activity?.action ||
-                    ""
-                  ).toLowerCase() === "rejected" ||
-                  (
-                    activity?.event_type ||
-                    activity?.status ||
-                    activity?.action ||
-                    ""
-                  ).toLowerCase() === "returned"
+                ? isRejectedOrReturned
                   ? "#d32f2f"
                   : statusColor
                 : "#e0e0e0",
@@ -176,18 +198,7 @@ const DataChangeDialog = ({
             height: 32,
             borderRadius: "50%",
             backgroundColor: isCompleted
-              ? (
-                  activity?.event_type ||
-                  activity?.status ||
-                  activity?.action ||
-                  ""
-                ).toLowerCase() === "rejected" ||
-                (
-                  activity?.event_type ||
-                  activity?.status ||
-                  activity?.action ||
-                  ""
-                ).toLowerCase() === "returned"
+              ? isRejectedOrReturned
                 ? "#d32f2f"
                 : statusColor
               : "#e0e0e0",
@@ -221,26 +232,12 @@ const DataChangeDialog = ({
               justifyContent: "space-between",
               alignItems: "flex-start",
             }}>
-            <Box>
+            <Box sx={{ flex: 1 }}>
               <Typography
                 variant="h6"
                 sx={{
                   fontWeight: 600,
-                  color:
-                    (
-                      activity?.event_type ||
-                      activity?.status ||
-                      activity?.action ||
-                      ""
-                    ).toLowerCase() === "rejected" ||
-                    (
-                      activity?.event_type ||
-                      activity?.status ||
-                      activity?.action ||
-                      ""
-                    ).toLowerCase() === "returned"
-                      ? "#d32f2f"
-                      : "rgb(33, 61, 112)",
+                  color: isRejectedOrReturned ? "#d32f2f" : "rgb(33, 61, 112)",
                   fontSize: "16px",
                   textTransform: "uppercase",
                   mb: 1,
@@ -262,8 +259,38 @@ const DataChangeDialog = ({
                 sx={{ color: "#999", fontSize: "13px" }}>
                 {activity?.timestamp
                   ? dayjs(activity.timestamp).format("MMM D, YYYY • h:mm A")
-                  : ""}
+                  : (
+                        activity?.event_type ||
+                        activity?.status ||
+                        activity?.action
+                      )?.toLowerCase() === "upcoming"
+                    ? "Pending"
+                    : ""}
               </Typography>
+
+              {activity?.aging && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    mt: 1.5,
+                    backgroundColor: "#f5f5f5",
+                    padding: "6px 12px",
+                    borderRadius: 1,
+                    width: "fit-content",
+                  }}>
+                  <AccessTimeIcon sx={{ fontSize: 16, color: "#666", mr: 1 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#666",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                    }}>
+                    Processing Time: {activity.aging}
+                  </Typography>
+                </Box>
+              )}
             </Box>
 
             <Box sx={{ textAlign: "right" }}>
@@ -295,42 +322,38 @@ const DataChangeDialog = ({
     );
   };
 
-  if (
-    !selectedDataChangeHistory ||
-    !selectedDataChangeHistory.activity_log ||
-    !Array.isArray(selectedDataChangeHistory.activity_log)
-  ) {
+  if (!data || !data.activity_log || !Array.isArray(data.activity_log)) {
     return null;
   }
 
-  const sortedActivityLog = [...selectedDataChangeHistory.activity_log].sort(
-    (a, b) => {
-      const eventTypeA = (
-        a?.event_type ||
-        a?.status ||
-        a?.action ||
-        ""
-      ).toLowerCase();
-      const eventTypeB = (
-        b?.event_type ||
-        b?.status ||
-        b?.action ||
-        ""
-      ).toLowerCase();
+  const sortedActivityLog = [...data.activity_log].sort((a, b) => {
+    const eventTypeA = (
+      a?.event_type ||
+      a?.status ||
+      a?.action ||
+      ""
+    ).toLowerCase();
+    const eventTypeB = (
+      b?.event_type ||
+      b?.status ||
+      b?.action ||
+      ""
+    ).toLowerCase();
 
-      if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
-      if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
+    if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
+    if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
 
-      const dateA = new Date(a.timestamp || 0);
-      const dateB = new Date(b.timestamp || 0);
-      return dateB - dateA;
-    }
-  );
+    const dateA = new Date(a.timestamp || 0);
+    const dateB = new Date(b.timestamp || 0);
+    return dateB - dateA;
+  });
+
+  const headerFields = getHeaderFields();
 
   return (
     <Dialog
-      open={historyDialogOpen}
-      onClose={onHistoryDialogClose}
+      open={open}
+      onClose={onClose}
       maxWidth="md"
       fullWidth
       PaperProps={{
@@ -340,7 +363,7 @@ const DataChangeDialog = ({
         sx={{ px: 4, py: 4, backgroundColor: "white", position: "relative" }}>
         <Tooltip title="Close">
           <IconButton
-            onClick={onHistoryDialogClose}
+            onClick={onClose}
             sx={{
               position: "absolute",
               right: 16,
@@ -374,7 +397,7 @@ const DataChangeDialog = ({
                 mr: 2,
               }}
             />
-            DATA CHANGE ACTIVITY LOGS
+            {title}
             <TimelineIcon sx={{ color: "#FF4500", fontSize: 24, ml: 0.5 }} />
           </Typography>
 
@@ -382,72 +405,40 @@ const DataChangeDialog = ({
             sx={{
               mb: 4,
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
+              flexWrap: "wrap",
               pl: 3,
             }}>
-            <Box sx={{ flex: 1, mr: 3 }}>
-              <Typography
-                variant="h6"
+            {headerFields.map((field, index) => (
+              <Box
+                key={index}
                 sx={{
-                  color: "rgb(33, 61, 112)",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.3px",
-                  mb: 1,
-                  fontSize: "14px",
+                  flex: field.fullWidth ? "1 1 100%" : "1 1 auto",
+                  mr: field.fullWidth ? 0 : 3,
+                  mb: field.fullWidth ? 3 : 0,
+                  minWidth: field.fullWidth ? "100%" : "0",
                 }}>
-                Full Name
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: "#666", fontSize: "16px" }}>
-                {getFullName(selectedDataChangeHistory)}
-              </Typography>
-            </Box>
-
-            <Box sx={{ flex: 1, mr: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.3px",
-                  mb: 1,
-                  fontSize: "14px",
-                }}>
-                Employee #
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: "#666", fontSize: "16px" }}>
-                {getEmployeeCode(selectedDataChangeHistory)}
-              </Typography>
-            </Box>
-
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: "rgb(33, 61, 112)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.3px",
-                  mb: 1,
-                  fontSize: "14px",
-                }}>
-                Reference Number
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: "#666", fontSize: "16px" }}>
-                {getReferenceNumber(selectedDataChangeHistory)}
-              </Typography>
-            </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "rgb(33, 61, 112)",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                    mb: 1,
+                    fontSize: "14px",
+                  }}>
+                  {field.label}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ color: "#666", fontSize: "16px" }}>
+                  {field.value || "N/A"}
+                </Typography>
+              </Box>
+            ))}
           </Box>
 
-          {selectedDataChangeHistory?.submission_title && (
+          {data?.submission_title && (
             <Box sx={{ pl: 3, mb: 3 }}>
               <Typography
                 variant="h6"
@@ -464,7 +455,7 @@ const DataChangeDialog = ({
               <Typography
                 variant="body1"
                 sx={{ color: "#666", fontSize: "16px" }}>
-                {selectedDataChangeHistory.submission_title}
+                {data.submission_title}
               </Typography>
             </Box>
           )}
@@ -486,21 +477,9 @@ const DataChangeDialog = ({
             ))}
           </Box>
         </Box>
-
-        {selectedDataChangeHistory.activity_log.length === 0 && (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <AssignmentIcon sx={{ fontSize: 64, color: "#ccc", mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-              No Timeline History Available
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This data change request doesn't have any recorded activities yet.
-            </Typography>
-          </Box>
-        )}
       </DialogContent>
     </Dialog>
   );
 };
 
-export default DataChangeDialog;
+export default ActivityHistoryDialog;

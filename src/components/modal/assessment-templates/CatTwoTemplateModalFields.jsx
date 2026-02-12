@@ -125,12 +125,12 @@ const CatTwoTemplateFields = ({ isReadOnly, isCreate }) => {
     const currentSections = [...sections];
     currentSections[sectionIndex].items[itemIndex].children.splice(
       childIndex,
-      1
+      1,
     );
     currentSections[sectionIndex].items[itemIndex].children.forEach(
       (child, idx) => {
         child.display_order = idx + 1;
-      }
+      },
     );
 
     setValue("sections", currentSections, { shouldValidate: false });
@@ -284,7 +284,7 @@ const CatTwoTemplateFields = ({ isReadOnly, isCreate }) => {
                       .map((v) =>
                         typeof v === "object"
                           ? v
-                          : positions.find((p) => p.id === v)
+                          : positions.find((p) => p.id === v),
                       )
                       .filter(Boolean)
                   : [];
@@ -583,7 +583,7 @@ const CatTwoTemplateFields = ({ isReadOnly, isCreate }) => {
                                   handleChildDragStart(
                                     sectionIndex,
                                     itemIndex,
-                                    childIndex
+                                    childIndex,
                                   );
                                 }}
                                 onDragEnter={(e) => {
@@ -591,7 +591,7 @@ const CatTwoTemplateFields = ({ isReadOnly, isCreate }) => {
                                   handleChildDragEnter(
                                     sectionIndex,
                                     itemIndex,
-                                    childIndex
+                                    childIndex,
                                   );
                                 }}
                                 onDragEnd={(e) => {
@@ -638,7 +638,7 @@ const CatTwoTemplateFields = ({ isReadOnly, isCreate }) => {
                                   removeChildItem(
                                     sectionIndex,
                                     itemIndex,
-                                    childIndex
+                                    childIndex,
                                   )
                                 }
                                 sx={styles.deleteIconButton}>

@@ -17,8 +17,8 @@ import {
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
-import DataChangeDialog from "../../forms/201datachange/DataChangeDialog";
 import NoDataFound from "../../NoDataFound";
+import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 
 const DataChangeMonitoringTable = ({
   submissionsList,
@@ -285,7 +285,7 @@ const DataChangeMonitoringTable = ({
                     }}>
                     {renderEmployee(
                       submission.employee_name,
-                      submission.employee_code
+                      submission.employee_code,
                     )}
                   </TableCell>
                   <TableCell sx={styles.columnStyles.status}>
@@ -348,7 +348,7 @@ const DataChangeMonitoringTable = ({
         </Table>
       </TableContainer>
 
-      <DataChangeDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedDataChangeHistory={selectedDataChangeHistory}

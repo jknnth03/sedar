@@ -21,9 +21,9 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import { styles } from "../manpowerform/FormSubmissionStyles";
-import BiAnnualPerformanceHistoryDialog from "./BiAnnualPerformanceHistoryDialog";
 import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 import NoDataFound from "../../NoDataFound";
+import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 
 const BiAnnualPerformanceTable = ({
   submissionsList,
@@ -196,7 +196,7 @@ const BiAnnualPerformanceTable = ({
     if (!statusFilter) return submissionsList;
     return submissionsList.filter(
       (submission) =>
-        submission.status?.toUpperCase() === statusFilter.toUpperCase()
+        submission.status?.toUpperCase() === statusFilter.toUpperCase(),
     );
   }, [submissionsList, statusFilter]);
 
@@ -467,7 +467,7 @@ const BiAnnualPerformanceTable = ({
         </Table>
       </TableContainer>
 
-      <BiAnnualPerformanceHistoryDialog
+      <ActivityHistoryDialog
         historyDialogOpen={historyDialogOpen}
         onHistoryDialogClose={handleHistoryDialogClose}
         selectedEvaluationHistory={selectedEvaluationHistory}
