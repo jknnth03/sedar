@@ -46,6 +46,7 @@ import MovementTypes from "../../pages/extras/MovementTypes.jsx";
 import DataChangeApproval from "../../pages/approvals/dataChangeApproval/DataChangeApproval.jsx";
 import MASTERDATAAUTHORITY from "../../pages/forms/mda/mdaform/MDA.jsx";
 import EnableEdit from "../../components/modal/employee/multiFormModal/EnableEdit.jsx";
+import Statuses from "../../pages/employees/Statuses.jsx";
 import MRFMonitoring from "../../pages/monitoring/MRF/MRFMonitoring.jsx";
 import DataChangeMonitoring from "../../pages/monitoring/datachange/DataChangeMonitoring.jsx";
 import MDAMonitoring from "../../pages/monitoring/MDA/MDAMonitoring.jsx";
@@ -869,6 +870,14 @@ export const ROUTES = [
         element: <EnableEdit />,
         handle: {
           permission: MODULES.EMPLOYEES.children.ENABLEEDIT.permissionId,
+        },
+      },
+      {
+        id: "EMPLOYEES.STATUS",
+        path: `${MODULES.EMPLOYEES.path}/${MODULES.EMPLOYEES.children.STATUS.path}`,
+        element: <Statuses />,
+        handle: {
+          permission: MODULES.EMPLOYEES.children.STATUS.permissionId,
         },
       },
     ],

@@ -274,20 +274,21 @@ const ActivityHistoryDialog = ({
                     display: "flex",
                     alignItems: "center",
                     mt: 1.5,
-                    backgroundColor: "#f5f5f5",
                     padding: "6px 12px",
                     borderRadius: 1,
                     width: "fit-content",
                   }}>
-                  <AccessTimeIcon sx={{ fontSize: 16, color: "#666", mr: 1 }} />
+                  <AccessTimeIcon
+                    sx={{ fontSize: 16, color: "#d32f2f", mr: 1 }}
+                  />
                   <Typography
                     variant="body2"
                     sx={{
-                      color: "#666",
+                      color: "#d32f2f",
                       fontSize: "13px",
                       fontWeight: 500,
                     }}>
-                    Processing Time: {activity.aging}
+                    Aging: {activity.aging}
                   </Typography>
                 </Box>
               )}

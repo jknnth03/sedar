@@ -36,7 +36,8 @@ const Sidebar = ({
       }
     } else if (
       accessUserPermission?.includes(item.permissionId) &&
-      item.permissionId !== "EMPLOYEES.ENABLEEDIT"
+      item.permissionId !== "EMPLOYEES.ENABLEEDIT" &&
+      item.permissionId !== "EMPLOYEES.STATUS"
     ) {
       return item;
     }
@@ -58,7 +59,8 @@ const Sidebar = ({
           }
         } else if (
           accessUserPermission?.includes(MODULE.permissionId) &&
-          MODULE.permissionId !== "EMPLOYEES.ENABLEEDIT"
+          MODULE.permissionId !== "EMPLOYEES.ENABLEEDIT" &&
+          MODULE.permissionId !== "EMPLOYEES.STATUS"
         ) {
           return MODULE;
         }

@@ -232,33 +232,6 @@ function EmployeeInformation() {
 
   const [currentParams, setQueryParams] = useRememberQueryParams();
 
-  const tabMap = {
-    0: "general",
-    1: "address",
-    2: "position",
-    3: "emptype",
-    4: "attainment",
-    5: "account",
-    6: "contact",
-    7: "file",
-    8: "status",
-  };
-
-  const reverseTabMap = {
-    general: 0,
-    address: 1,
-    position: 2,
-    emptype: 3,
-    attainment: 4,
-    account: 5,
-    contact: 6,
-    file: 7,
-    status: 8,
-  };
-
-  const [activeTab, setActiveTab] = React.useState(
-    reverseTabMap[currentParams?.tab] ?? 0
-  );
   const [openModal, setOpenModal] = React.useState(false);
   const [modalMode, setModalMode] = React.useState("create");
   const [editData, setEditData] = React.useState(null);
@@ -290,6 +263,27 @@ function EmployeeInformation() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  const userPermissions = React.useMemo(() => {
+    try {
+      const userDataString = localStorage.getItem("user");
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        return userData?.role?.access_permissions || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Error parsing user permissions:", error);
+      return [];
+    }
+  }, []);
+
+  const hasPermission = React.useCallback(
+    (permission) => {
+      return userPermissions.includes(permission);
+    },
+    [userPermissions],
+  );
+
   const activeFilterCount = React.useMemo(() => {
     let count = 0;
     const defaultFilters = {
@@ -313,6 +307,107 @@ function EmployeeInformation() {
     return count;
   }, [filters]);
 
+  const sharedSearchProps = React.useMemo(
+    () => ({
+      searchQuery,
+      debounceValue: debouncedSearchQuery,
+      onSearchChange: (newSearchQuery) => {
+        setSearchQuery(newSearchQuery);
+        setQueryParams(
+          {
+            q: newSearchQuery,
+            tab: tabMap[activeTab],
+            ...filters,
+          },
+          { retain: true },
+        );
+      },
+      onEdit: (employeeData) => {
+        setModalMode("update");
+        setEditData(employeeData);
+        setOpenModal(true);
+      },
+      isLoading,
+      filters,
+    }),
+    [searchQuery, debouncedSearchQuery, isLoading, filters],
+  );
+
+  const tabsData = React.useMemo(() => {
+    const tabs = [
+      {
+        key: "general",
+        label: "GENERAL INFORMATION",
+        component: <GeneralInformation {...sharedSearchProps} />,
+      },
+      {
+        key: "address",
+        label: "ADDRESS",
+        component: <Address {...sharedSearchProps} />,
+      },
+      {
+        key: "position",
+        label: "EMPLOYEE POSITION",
+        component: <PositionsEmp {...sharedSearchProps} />,
+      },
+      {
+        key: "emptype",
+        label: "EMPLOYMENT TYPE",
+        component: <EmpTypes {...sharedSearchProps} />,
+      },
+      {
+        key: "attainment",
+        label: "ATTAINMENT",
+        component: <ATTAINMENTSEMP {...sharedSearchProps} />,
+      },
+      {
+        key: "account",
+        label: "ACCOUNT",
+        component: <ACCOUNTS {...sharedSearchProps} />,
+      },
+      {
+        key: "contact",
+        label: "CONTACT",
+        component: <CONTACTS {...sharedSearchProps} />,
+      },
+      {
+        key: "file",
+        label: "FILE",
+        component: <FILES {...sharedSearchProps} />,
+      },
+    ];
+
+    if (hasPermission("EMPLOYEES.STATUS")) {
+      tabs.push({
+        key: "status",
+        label: "STATUS",
+        component: <Status {...sharedSearchProps} />,
+      });
+    }
+
+    return tabs;
+  }, [sharedSearchProps, hasPermission]);
+
+  const tabMap = React.useMemo(() => {
+    const map = {};
+    tabsData.forEach((tab, index) => {
+      map[index] = tab.key;
+    });
+    return map;
+  }, [tabsData]);
+
+  const reverseTabMap = React.useMemo(() => {
+    const reverseMap = Object.entries(tabMap).reduce((acc, [key, value]) => {
+      acc[value] = parseInt(key);
+      return acc;
+    }, {});
+    return reverseMap;
+  }, [tabMap]);
+
+  const [activeTab, setActiveTab] = React.useState(
+    reverseTabMap[currentParams?.tab] ?? 0,
+  );
+
   const handleTabChange = React.useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
@@ -321,10 +416,10 @@ function EmployeeInformation() {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery, tabMap],
   );
 
   const handleOpenModal = React.useCallback((mode = "create", data = null) => {
@@ -369,7 +464,7 @@ function EmployeeInformation() {
         setIsLoading(false);
       }
     },
-    [editData, handleCloseModal]
+    [handleCloseModal],
   );
 
   const handleSearchChange = React.useCallback(
@@ -381,10 +476,10 @@ function EmployeeInformation() {
           tab: tabMap[activeTab],
           ...filters,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab, filters]
+    [setQueryParams, activeTab, filters, tabMap],
   );
 
   const handleOpenFilterDialog = React.useCallback(() => {
@@ -404,11 +499,11 @@ function EmployeeInformation() {
           tab: tabMap[activeTab],
           ...newFilters,
         },
-        { retain: true }
+        { retain: true },
       );
       setOpenFilterDialog(false);
     },
-    [setQueryParams, searchQuery, activeTab]
+    [setQueryParams, searchQuery, activeTab, tabMap],
   );
 
   const handleCloseNotification = React.useCallback((event, reason) => {
@@ -417,64 +512,6 @@ function EmployeeInformation() {
     }
     setNotification((prev) => ({ ...prev, open: false }));
   }, []);
-
-  const sharedSearchProps = React.useMemo(
-    () => ({
-      searchQuery,
-      debounceValue: debouncedSearchQuery,
-      onSearchChange: handleSearchChange,
-      onEdit: (employeeData) => handleOpenModal("update", employeeData),
-      isLoading,
-      filters,
-    }),
-    [
-      searchQuery,
-      debouncedSearchQuery,
-      handleSearchChange,
-      handleOpenModal,
-      isLoading,
-      filters,
-    ]
-  );
-
-  const tabsData = [
-    {
-      label: "GENERAL INFORMATION",
-      component: <GeneralInformation {...sharedSearchProps} />,
-    },
-    {
-      label: "ADDRESS",
-      component: <Address {...sharedSearchProps} />,
-    },
-    {
-      label: "EMPLOYEE POSITION",
-      component: <PositionsEmp {...sharedSearchProps} />,
-    },
-    {
-      label: "EMPLOYMENT TYPE",
-      component: <EmpTypes {...sharedSearchProps} />,
-    },
-    {
-      label: "ATTAINMENT",
-      component: <ATTAINMENTSEMP {...sharedSearchProps} />,
-    },
-    {
-      label: "ACCOUNT",
-      component: <ACCOUNTS {...sharedSearchProps} />,
-    },
-    {
-      label: "CONTACT",
-      component: <CONTACTS {...sharedSearchProps} />,
-    },
-    {
-      label: "FILE",
-      component: <FILES {...sharedSearchProps} />,
-    },
-    {
-      label: "STATUS",
-      component: <Status {...sharedSearchProps} />,
-    },
-  ];
 
   const a11yProps = (index) => {
     return {
@@ -531,7 +568,7 @@ function EmployeeInformation() {
           }}>
           {tabsData.map((tab, index) => (
             <StyledTab
-              key={index}
+              key={tab.key}
               label={
                 isVerySmall && tab.label.length > 12
                   ? tab.label
@@ -549,7 +586,7 @@ function EmployeeInformation() {
 
       <Box sx={styles.tabsContainer}>
         {tabsData.map((tab, index) => (
-          <TabPanel key={index} value={activeTab} index={index}>
+          <TabPanel key={tab.key} value={activeTab} index={index}>
             {tab.component}
           </TabPanel>
         ))}

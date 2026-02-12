@@ -193,7 +193,7 @@ const Roles = () => {
       searchQuery: debouncedSearchQuery,
       status: showArchived === false ? "active" : "inactive",
     }),
-    [page, rowsPerPage, debouncedSearchQuery, showArchived]
+    [page, rowsPerPage, debouncedSearchQuery, showArchived],
   );
 
   const {
@@ -217,13 +217,13 @@ const Roles = () => {
           {
             q: newSearchQuery,
           },
-          { retain: true }
+          { retain: true },
         );
       } else {
         setQueryParams({}, { retain: false });
       }
     },
-    [setQueryParams]
+    [setQueryParams],
   );
 
   const handleChangeArchived = useCallback((newShowArchived) => {
@@ -253,7 +253,7 @@ const Roles = () => {
         selectedRole.deleted_at
           ? "Role restored successfully!"
           : "Role archived successfully!",
-        { variant: "success" }
+        { variant: "success" },
       );
       refetch();
     } catch (error) {

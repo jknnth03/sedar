@@ -69,6 +69,7 @@ import RateReviewIcon from "@mui/icons-material/RateReview";
 import { calculateCounts } from "./NotificationBadge";
 import PublicIcon from "@mui/icons-material/Public";
 import DynamicFormIcon from "@mui/icons-material/DynamicForm";
+import DownloadingIcon from "@mui/icons-material/Downloading";
 
 export const createEnhancedModules = (dashboardData = {}) => {
   const counts = calculateCounts(dashboardData);
@@ -127,6 +128,13 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Enable Edit",
           path: "enableedit",
           icon: <BorderColorIcon sx={iconStyles.child} />,
+        },
+        STATUS: {
+          name: "Status",
+          displayName: "Status",
+          path: "status",
+          icon: <DownloadingIcon sx={iconStyles.child} />,
+          permissionId: "EMPLOYEES.STATUS",
         },
       },
     },
