@@ -268,7 +268,7 @@ export const ConfirmationDialog = ({
           onClick={onConfirm}
           variant="contained"
           sx={pendingRegistrationStyles.confirmActionButton(
-            getConfirmButtonColor()
+            getConfirmButtonColor(),
           )}
           disabled={modalLoading}>
           {modalLoading ? (
@@ -404,7 +404,7 @@ const ActivityHistoryDialog = ({
   const TimelineStep = ({ activity, index, isLast, isCompleted }) => {
     const IconComponent = getStatusIcon(activity);
     const statusColor = getStatusColor(
-      activity?.event_type || activity?.status || activity?.action
+      activity?.event_type || activity?.status || activity?.action,
     );
 
     return (
@@ -693,7 +693,7 @@ const ActivityHistoryDialog = ({
                 sx={{ color: "#666", fontSize: "16px" }}>
                 {selectedRegistrationHistory?.created_at
                   ? dayjs(selectedRegistrationHistory.created_at).format(
-                      "MMM D, YYYY"
+                      "MMM D, YYYY",
                     )
                   : "N/A"}
               </Typography>

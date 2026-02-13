@@ -520,11 +520,12 @@ const EvaluationForMDAProcessingTable = ({
       </TableContainer>
 
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedEvaluationHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedEvaluationHistory}
+        type="evaluation"
+        title="Activity Logs"
       />
-
       <Dialog
         open={cancelDialogOpen}
         onClose={handleCancelDialogClose}

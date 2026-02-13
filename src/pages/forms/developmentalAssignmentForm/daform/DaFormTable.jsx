@@ -463,9 +463,11 @@ const DAFormTable = ({
       </TableContainer>
 
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedDaHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedDaHistory}
+        type="datachange"
+        title="Activity Logs"
       />
 
       <ConfirmationDialog

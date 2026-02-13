@@ -521,9 +521,11 @@ const MrfTable = ({
       />
 
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMrfHistory={selectedMrfHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedMrfHistory}
+        type="mrf"
+        title="Activity Logs"
       />
     </>
   );

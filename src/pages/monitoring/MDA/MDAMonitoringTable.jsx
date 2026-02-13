@@ -380,11 +380,12 @@ const MDAMonitoringTable = ({
           </TableBody>
         </Table>
       </TableContainer>
-
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedMdaHistory={selectedMdaHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedMdaHistory}
+        type="datachange"
+        title="Activity Logs"
       />
     </>
   );

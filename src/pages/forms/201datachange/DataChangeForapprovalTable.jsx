@@ -492,9 +492,11 @@ const DataChangeForApprovalTable = ({
       </TableContainer>
 
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDataChangeHistory={selectedDataChangeHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedDataChangeHistory}
+        type="datachange"
+        title="Activity Logs"
       />
 
       <ConfirmationDialog

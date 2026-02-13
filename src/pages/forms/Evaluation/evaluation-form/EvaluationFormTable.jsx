@@ -468,11 +468,12 @@ const EvaluationFormTable = ({
       </TableContainer>
 
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedEvaluationHistory={selectedEvaluationHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedEvaluationHistory}
+        type="datachange"
+        title="Activity Logs"
       />
-
       <ConfirmationDialog
         open={cancelDialogOpen}
         onClose={handleCancelDialogClose}

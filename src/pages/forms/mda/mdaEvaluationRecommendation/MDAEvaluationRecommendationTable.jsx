@@ -485,11 +485,12 @@ const MDAEvaluationRecommendationTable = ({
       </TableContainer>
 
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedDaHistory={selectedEvaluationHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedEvaluationHistory}
+        type="datachange"
+        title="Activity Logs"
       />
-
       <ConfirmationDialog
         open={cancelDialogOpen}
         onClose={handleCancelDialogClose}

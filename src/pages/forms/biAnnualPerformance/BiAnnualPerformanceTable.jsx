@@ -466,13 +466,13 @@ const BiAnnualPerformanceTable = ({
           </TableBody>
         </Table>
       </TableContainer>
-
       <ActivityHistoryDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedEvaluationHistory={selectedEvaluationHistory}
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedEvaluationHistory}
+        type="evaluation"
+        title="Activity Logs"
       />
-
       <ConfirmationDialog
         open={cancelDialogOpen}
         onClose={handleCancelDialogClose}
