@@ -25,7 +25,6 @@ import {
   Cancel as CancelIcon,
   History as HistoryIcon,
 } from "@mui/icons-material";
-import PendingRegistrationDialog from "./PendingRegistrationDialog";
 import ConfirmationDialog from "../../styles/ConfirmationDialog";
 import { useCancelFormSubmissionMutation } from "../../features/api/approvalsetting/formSubmissionApi";
 import pendingApi from "../../features/api/employee/pendingApi";
@@ -34,6 +33,7 @@ import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import dayjs from "dayjs";
 import { styles } from "../forms/manpowerform/FormSubmissionStyles";
 import NoDataFound from "../NoDataFound";
+import ActivityHistoryDialog from "../zzzreusable/ActivityHistoryDialog";
 
 const PendingRegistrationTable = ({
   pendingList = [],
@@ -64,7 +64,7 @@ const PendingRegistrationTable = ({
   const filteredPendingList = statusFilter
     ? pendingList.filter(
         (registration) =>
-          registration?.status?.toLowerCase() === statusFilter.toLowerCase()
+          registration?.status?.toLowerCase() === statusFilter.toLowerCase(),
       )
     : pendingList;
 
@@ -90,7 +90,7 @@ const PendingRegistrationTable = ({
       const status = registration.status?.toLowerCase();
       return status !== "cancelled" && status !== "approved";
     },
-    [isProcessing, isCancelling]
+    [isProcessing, isCancelling],
   );
 
   const handleCancelRequest = async (registration) => {
@@ -447,7 +447,7 @@ const PendingRegistrationTable = ({
         open={Object.values(menuAnchor).some(Boolean)}
         onClose={() => {
           const openKey = Object.keys(menuAnchor).find(
-            (key) => menuAnchor[key]
+            (key) => menuAnchor[key],
           );
           if (openKey) handleMenuClose(openKey);
         }}
@@ -483,7 +483,7 @@ const PendingRegistrationTable = ({
               sx={{
                 color: (() => {
                   const selectedReg = pendingList.find(
-                    (reg) => menuAnchor[reg.id]
+                    (reg) => menuAnchor[reg.id],
                   );
                   return shouldEnableCancelButton(selectedReg)
                     ? "#d32f2f"
@@ -515,10 +515,12 @@ const PendingRegistrationTable = ({
         onSuccess={handleConfirmCancel}
       />
 
-      <PendingRegistrationDialog
-        historyDialogOpen={historyDialogOpen}
-        onHistoryDialogClose={handleHistoryDialogClose}
-        selectedRegistrationHistory={selectedRegistrationHistory}
+      <ActivityHistoryDialog
+        open={historyDialogOpen}
+        onClose={handleHistoryDialogClose}
+        data={selectedRegistrationHistory}
+        type="datachange"
+        title="Activity Logs"
       />
     </Box>
   );

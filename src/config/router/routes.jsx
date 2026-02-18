@@ -90,6 +90,7 @@ import MDA from "../../pages/approvals/mda/MDA.jsx";
 import DevelopmentalAssignment from "../../pages/approvals/developmentalAssignment/DevelopmentalAssignment.jsx";
 import Evaluation from "../../pages/approvals/evaluation/Evaluation.jsx";
 import Status from "../../pages/extras/Status.jsx";
+import PdpTwo from "../../pages/developmental-assignment/pdptwo/PdpTwo.jsx";
 
 export const ROUTES = [
   {
@@ -599,6 +600,15 @@ export const ROUTES = [
         element: <Pdp />,
         handle: {
           permission: MODULES.DEVELOPMENTALASSIGNMENT.children.PDP.permissionId,
+        },
+      },
+      {
+        id: "DEVELOPMENTALASSIGNMENT.PDPTWO",
+        path: `${MODULES.DEVELOPMENTALASSIGNMENT.path}/${MODULES.DEVELOPMENTALASSIGNMENT.children.PDPTWO.path}`,
+        element: <PdpTwo />,
+        handle: {
+          permission:
+            MODULES.DEVELOPMENTALASSIGNMENT.children.PDPTWO.permissionId,
         },
       },
       {

@@ -608,6 +608,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
+    // In the DEVELOPMENTALASSIGNMENT section, add PDPTWO after PDP:
 
     DEVELOPMENTALASSIGNMENT: {
       name: "DA Tasks",
@@ -633,6 +634,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.pdpTotal,
           hasOverdue: counts.pdpTotalOverdue > 0,
+        },
+        PDPTWO: {
+          name: "PDP 2",
+          permissionId: "DEVELOPMENTALASSIGNMENT.PDPTWO",
+          displayName: "PDP 2",
+          path: "pdptwo",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
+          notificationCount: counts.pdpTwoTotal || 0,
+          hasOverdue: (counts.pdpTwoTotalOverdue || 0) > 0,
         },
         CATTWO: {
           name: "CAT II",
