@@ -28,16 +28,15 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
 import {
-  useGetCatTwoApprovalsQuery,
-  useGetCatTwoTaskByIdQuery,
-  useApproveCatTwoMutation,
-  useReturnCatTwoMutation,
-  useCreatePdpTwoMutation,
-} from "../../../features/api/approving/catTwoApproval.js";
+  useGetPdpTwoApprovalsQuery,
+  useGetPdpTwoTaskByIdQuery,
+  useApprovePdpTwoMutation,
+  useReturnPdpTwoMutation,
+} from "../../../features/api/approving/pdpTwoApprovalApi.js";
 import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
-import CatTwoApprovalDialog from "./CatTwoApprovalDialog.jsx";
+import PdpApprovalDialog from "./PdpApprovalDialog.jsx";
 import NoDataFound from "../../NoDataFound";
 import {
   styles,
@@ -50,8 +49,8 @@ const TabPanel = ({ children, value, index, ...other }) => {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`cattwo-approval-tabpanel-${index}`}
-      aria-labelledby={`cattwo-approval-tab-${index}`}
+      id={`pdp-two-approval-tabpanel-${index}`}
+      aria-labelledby={`pdp-two-approval-tab-${index}`}
       style={{
         height: "100%",
         overflow: "hidden",
@@ -96,9 +95,7 @@ const CustomSearchBar = ({
         gap: isVerySmall ? 1 : 1.5,
       }}>
       <TextField
-        placeholder={
-          isVerySmall ? "Search..." : "Search Category 2 Approvals..."
-        }
+        placeholder={isVerySmall ? "Search..." : "Search PDP2 Approvals..."}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         disabled={isLoading}
@@ -155,7 +152,7 @@ const CustomSearchBar = ({
   );
 };
 
-const CatTwoApprovalTable = ({
+const PdpTwoApprovalTable = ({
   approvalStatus,
   searchQuery,
   isMobile,
@@ -183,18 +180,18 @@ const CatTwoApprovalTable = ({
   }, [debounceValue, page, rowsPerPage, approvalStatus]);
 
   const {
-    data: catTwoApprovalsData,
+    data: pdpApprovalsData,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useGetCatTwoApprovalsQuery(queryParams, {
+  } = useGetPdpTwoApprovalsQuery(queryParams, {
     refetchOnMountOrArgChange: true,
     skip: false,
   });
 
-  const catTwoApprovalsList = useMemo(
-    () => catTwoApprovalsData?.result?.data || [],
-    [catTwoApprovalsData],
+  const pdpApprovalsList = useMemo(
+    () => pdpApprovalsData?.result?.data || [],
+    [pdpApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -252,7 +249,7 @@ const CatTwoApprovalTable = ({
         <Table
           stickyHeader
           sx={{
-            height: catTwoApprovalsList.length === 0 ? "100%" : "auto",
+            height: pdpApprovalsList.length === 0 ? "100%" : "auto",
           }}>
           <TableHead>
             <TableRow>
@@ -315,7 +312,7 @@ const CatTwoApprovalTable = ({
           </TableHead>
           <TableBody
             sx={{
-              height: catTwoApprovalsList.length === 0 ? "100%" : "auto",
+              height: pdpApprovalsList.length === 0 ? "100%" : "auto",
             }}>
             {isLoadingState ? (
               <TableRow sx={{ height: "100%" }}>
@@ -342,15 +339,17 @@ const CatTwoApprovalTable = ({
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : catTwoApprovalsList.length > 0 ? (
-              catTwoApprovalsList.map((approval) => {
+            ) : pdpApprovalsList.length > 0 ? (
+              pdpApprovalsList.map((approval) => {
                 return (
                   <TableRow
                     key={approval.id}
                     onClick={() => onRowClick(approval)}
                     sx={{
                       cursor: "pointer",
-                      "&:hover": { backgroundColor: "#f8f9fa" },
+                      "&:hover": {
+                        backgroundColor: "#f8f9fa",
+                      },
                     }}>
                     <TableCell
                       sx={{
@@ -455,15 +454,19 @@ const CatTwoApprovalTable = ({
             },
             "& .MuiIconButton-root": {
               color: "rgb(33, 61, 112)",
-              "&:hover": { backgroundColor: "rgba(33, 61, 112, 0.04)" },
-              "&.Mui-disabled": { color: "#ccc" },
+              "&:hover": {
+                backgroundColor: "rgba(33, 61, 112, 0.04)",
+              },
+              "&.Mui-disabled": {
+                color: "#ccc",
+              },
             },
           },
         }}>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50, 100]}
           component="div"
-          count={catTwoApprovalsData?.result?.total || 0}
+          count={pdpApprovalsData?.result?.total || 0}
           rowsPerPage={rowsPerPage}
           page={Math.max(0, page - 1)}
           onPageChange={handlePageChange}
@@ -481,7 +484,7 @@ const CatTwoApprovalTable = ({
   );
 };
 
-const CatTwoApproval = () => {
+const PdpTwoApproval = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -502,15 +505,13 @@ const CatTwoApproval = () => {
     },
   });
 
-  const [approveCatTwo, { isLoading: approveLoading }] =
-    useApproveCatTwoMutation();
-  const [returnCatTwo, { isLoading: returnLoading }] =
-    useReturnCatTwoMutation();
-  const [createPdpTwo, { isLoading: createPdpTwoLoading }] =
-    useCreatePdpTwoMutation();
+  const [approvePdpTwo, { isLoading: approveLoading }] =
+    useApprovePdpTwoMutation();
+  const [returnPdpTwo, { isLoading: returnLoading }] =
+    useReturnPdpTwoMutation();
 
   const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
-    useGetCatTwoTaskByIdQuery(selectedApprovalId, {
+    useGetPdpTwoTaskByIdQuery(selectedApprovalId, {
       skip: !selectedApprovalId,
     });
 
@@ -535,59 +536,53 @@ const CatTwoApproval = () => {
     async ({ comments }) => {
       const { submission } = detailsDialog;
       try {
-        const payload = { id: submission.id };
+        const payload = {
+          id: submission.id,
+        };
+
         if (comments && comments.trim()) {
           payload.comments = comments.trim();
         }
-        await approveCatTwo(payload).unwrap();
-        enqueueSnackbar("Category 2 approved successfully!", {
-          variant: "success",
-        });
-        setDetailsDialog({ open: false, submission: null });
-        setSelectedApprovalId(null);
-      } catch (error) {
-        enqueueSnackbar(
-          error?.data?.message || "Failed to approve Category 2",
-          { variant: "error" },
-        );
-      }
-    },
-    [detailsDialog, approveCatTwo, enqueueSnackbar],
-  );
 
-  const handleReturn = useCallback(
-    async ({ correction_remarks }) => {
-      const { submission } = detailsDialog;
-      try {
-        const payload = { id: submission.id, correction_remarks };
-        await returnCatTwo(payload).unwrap();
-        enqueueSnackbar("Category 2 returned successfully!", {
+        await approvePdpTwo(payload).unwrap();
+        enqueueSnackbar("PDP2 approved successfully!", {
           variant: "success",
         });
         setDetailsDialog({ open: false, submission: null });
         setSelectedApprovalId(null);
       } catch (error) {
-        enqueueSnackbar(error?.data?.message || "Failed to return Category 2", {
+        enqueueSnackbar(error?.data?.message || "Failed to approve PDP2", {
           variant: "error",
         });
       }
     },
-    [detailsDialog, returnCatTwo, enqueueSnackbar],
+    [detailsDialog, approvePdpTwo, enqueueSnackbar],
   );
 
-  const handleCreatePdpTwo = useCallback(async () => {
-    const { submission } = detailsDialog;
-    try {
-      await createPdpTwo({ id: submission.da_submission_id }).unwrap();
-      enqueueSnackbar("PDP II created successfully!", { variant: "success" });
-      setDetailsDialog({ open: false, submission: null });
-      setSelectedApprovalId(null);
-    } catch (error) {
-      enqueueSnackbar(error?.data?.message || "Failed to create PDP II", {
-        variant: "error",
-      });
-    }
-  }, [detailsDialog, createPdpTwo, enqueueSnackbar]);
+  const handleReturn = useCallback(
+    async ({ reason }) => {
+      const { submission } = detailsDialog;
+
+      try {
+        const payload = {
+          id: submission.id,
+          correction_remarks: reason,
+        };
+
+        await returnPdpTwo(payload).unwrap();
+        enqueueSnackbar("PDP2 returned successfully!", {
+          variant: "success",
+        });
+        setDetailsDialog({ open: false, submission: null });
+        setSelectedApprovalId(null);
+      } catch (error) {
+        enqueueSnackbar(error?.data?.message || "Failed to return PDP2", {
+          variant: "error",
+        });
+      }
+    },
+    [detailsDialog, returnPdpTwo, enqueueSnackbar],
+  );
 
   const handleDetailsDialogClose = useCallback(() => {
     setDetailsDialog({ open: false, submission: null });
@@ -602,20 +597,17 @@ const CatTwoApproval = () => {
     },
     {
       label: "APPROVED",
-      approvalStatus: "FINAL_COMPLETE",
+      approvalStatus: "KICKOFF_COMPLETE",
       badgeCount: 0,
     },
   ];
 
   const a11yProps = (index) => {
     return {
-      id: `cattwo-approval-tab-${index}`,
-      "aria-controls": `cattwo-approval-tabpanel-${index}`,
+      id: `pdp-two-approval-tab-${index}`,
+      "aria-controls": `pdp-two-approval-tabpanel-${index}`,
     };
   };
-
-  const currentApproval =
-    selectedApprovalData?.result || detailsDialog.submission;
 
   return (
     <FormProvider {...methods}>
@@ -639,7 +631,7 @@ const CatTwoApproval = () => {
                 ...(isVerySmall && styles.headerTitleTextVerySmall),
                 paddingRight: "14px",
               }}>
-              CAT II APPROVAL
+              PDP2 APPROVAL
             </Typography>
           </Box>
 
@@ -654,7 +646,7 @@ const CatTwoApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="Category 2 Approval tabs"
+            aria-label="PDP2 Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile
@@ -689,7 +681,7 @@ const CatTwoApproval = () => {
         <Box sx={styles.tabsContainer}>
           {tabsData.map((tab, index) => (
             <TabPanel key={index} value={activeTab} index={index}>
-              <CatTwoApprovalTable
+              <PdpTwoApprovalTable
                 approvalStatus={tab.approvalStatus}
                 searchQuery={searchQuery}
                 isMobile={isMobile}
@@ -700,19 +692,17 @@ const CatTwoApproval = () => {
           ))}
         </Box>
 
-        <CatTwoApprovalDialog
+        <PdpApprovalDialog
           open={detailsDialog.open}
           onClose={handleDetailsDialogClose}
-          approval={currentApproval}
+          approval={selectedApprovalData?.result || detailsDialog.submission}
           onApprove={handleApprove}
           onReturn={handleReturn}
-          onCreatePdpTwo={handleCreatePdpTwo}
           isLoading={approveLoading || returnLoading || selectedApprovalLoading}
-          isCreatingPdpTwo={createPdpTwoLoading}
         />
       </Box>
     </FormProvider>
   );
 };
 
-export default CatTwoApproval;
+export default PdpTwoApproval;

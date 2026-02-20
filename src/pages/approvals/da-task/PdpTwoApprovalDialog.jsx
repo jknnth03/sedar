@@ -21,7 +21,7 @@ import HelpIcon from "@mui/icons-material/Help";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import EventIcon from "@mui/icons-material/Event";
 
-const PdpApprovalDialog = ({
+const PdpTwoApprovalDialog = ({
   open,
   onClose,
   approval,
@@ -357,7 +357,7 @@ const PdpApprovalDialog = ({
                   color: "rgb(33, 61, 112)",
                   fontSize: "16px",
                 }}>
-                VIEW PDP REQUEST
+                VIEW PDP2 REQUEST
               </Typography>
             </Box>
             <IconButton onClick={handleClose} size="small">
@@ -616,7 +616,7 @@ const PdpApprovalDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={{ fontSize: "16px" }}>
-                    This PDP request has already been approved
+                    This PDP2 request has already been approved
                   </Typography>
                 </Box>
               )}
@@ -727,14 +727,14 @@ const PdpApprovalDialog = ({
             gutterBottom
             sx={{ fontSize: "14px", mb: 2 }}>
             {confirmAction === "approve"
-              ? "Are you sure you want to Approve this PDP request?"
-              : "Are you sure you want to Return this PDP request?"}
+              ? "Are you sure you want to Approve this PDP2 request?"
+              : "Are you sure you want to Return this PDP2 request?"}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ fontSize: "13px", mb: 3 }}>
-            PDP Request ID: {approval?.id || "N/A"}
+            PDP2 Request ID: {approval?.id || "N/A"}
           </Typography>
 
           {confirmAction === "return" && (
@@ -807,4 +807,4 @@ const PdpApprovalDialog = ({
   );
 };
 
-export default PdpApprovalDialog;
+export default PdpTwoApprovalDialog;

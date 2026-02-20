@@ -1,745 +1,753 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  Box,
-  Badge,
-  Typography,
-  Button,
-  TextField,
-  Checkbox,
-  FormControlLabel,
-  Fade,
-  Tooltip,
-  CircularProgress,
-  IconButton,
-  useMediaQuery,
-} from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import SearchIcon from "@mui/icons-material/Search";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import AddIcon from "@mui/icons-material/Add";
-import { FormProvider, useForm } from "react-hook-form";
-import { useSnackbar } from "notistack";
-import {
-  styles,
-  StyledTabs,
-  StyledTab,
-} from "../manpowerform/FormSubmissionStyles";
+// import React, { useState, useCallback, useEffect, useMemo } from "react";
+// import {
+//   Box,
+//   Badge,
+//   Typography,
+//   Button,
+//   TextField,
+//   Checkbox,
+//   FormControlLabel,
+//   Fade,
+//   Tooltip,
+//   CircularProgress,
+//   IconButton,
+//   useMediaQuery,
+// } from "@mui/material";
+// import { useTheme } from "@mui/material/styles";
+// import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+// import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+// import SearchIcon from "@mui/icons-material/Search";
+// import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+// import AddIcon from "@mui/icons-material/Add";
+// import { FormProvider, useForm } from "react-hook-form";
+// import { useSnackbar } from "notistack";
+// import {
+//   styles,
+//   StyledTabs,
+//   StyledTab,
+// } from "../manpowerform/FormSubmissionStyles";
 
-import { format } from "date-fns";
-import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
-import useDebounce from "../../../hooks/useDebounce";
+// import { format } from "date-fns";
+// import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
+// import useDebounce from "../../../hooks/useDebounce";
 
-import BiAnnualPerformanceForApproval from "./BiAnnualPerformanceForApproval";
-import BiAnnualPerformanceAwaitingResubmission from "./BiAnnualPerformanceAwaitingResubmission";
-import BiAnnualPerformanceRejected from "./BiAnnualPerformanceRejected";
-import BiAnnualPerformanceApproved from "./BiAnnualPerformanceApproved";
-import BiAnnualPerformanceCancelled from "./BiAnnualPerformanceCancelled";
-import BiAnnualPerformanceModal from "../../../components/modal/form/BiAnnualPerformanceModal/BiAnnualPerformanceModal";
-import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
-import {
-  useCreatePerformanceEvaluationMutation,
-  useUpdatePerformanceEvaluationMutation,
-} from "../../../features/api/forms/biAnnualPerformanceApi";
-import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
-import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
+// import BiAnnualPerformanceForApproval from "./BiAnnualPerformanceForApproval";
+// import BiAnnualPerformanceAwaitingResubmission from "./BiAnnualPerformanceAwaitingResubmission";
+// import BiAnnualPerformanceRejected from "./BiAnnualPerformanceRejected";
+// import BiAnnualPerformanceApproved from "./BiAnnualPerformanceApproved";
+// import BiAnnualPerformanceCancelled from "./BiAnnualPerformanceCancelled";
+// import BiAnnualPerformanceModal from "../../../components/modal/form/BiAnnualPerformanceModal/BiAnnualPerformanceModal";
+// import DateFilterDialog from "../../zzzreusable/DateFilterDialog";
+// import {
+//   useCreatePerformanceEvaluationMutation,
+//   useUpdatePerformanceEvaluationMutation,
+// } from "../../../features/api/forms/biAnnualPerformanceApi";
+// import { useCancelFormSubmissionMutation } from "../../../features/api/approvalsetting/formSubmissionApi";
+// import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
 
-const TabPanel = ({ children, value, index, ...other }) => {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`biannual-tabpanel-${index}`}
-      aria-labelledby={`biannual-tab-${index}`}
-      style={{
-        height: "100%",
-        overflow: "hidden",
-        minWidth: 0,
-        display: value === index ? "flex" : "none",
-        flexDirection: "column",
-      }}
-      {...other}>
-      {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
-    </div>
-  );
-};
+// const TabPanel = ({ children, value, index, ...other }) => {
+//   return (
+//     <div
+//       role="tabpanel"
+//       hidden={value !== index}
+//       id={`biannual-tabpanel-${index}`}
+//       aria-labelledby={`biannual-tab-${index}`}
+//       style={{
+//         height: "100%",
+//         overflow: "hidden",
+//         minWidth: 0,
+//         display: value === index ? "flex" : "none",
+//         flexDirection: "column",
+//       }}
+//       {...other}>
+//       {value === index && <Box sx={styles.tabPanel}>{children}</Box>}
+//     </div>
+//   );
+// };
 
-const CustomSearchBar = ({
-  searchQuery,
-  setSearchQuery,
-  dateFilters,
-  onFilterClick,
-  isLoading = false,
-}) => {
-  const isVerySmall = useMediaQuery("(max-width:369px)");
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
+// const CustomSearchBar = ({
+//   searchQuery,
+//   setSearchQuery,
+//   dateFilters,
+//   onFilterClick,
+//   isLoading = false,
+// }) => {
+//   const isVerySmall = useMediaQuery("(max-width:369px)");
+//   const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
 
-  const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
-    }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
-    }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
-    }
-    return "FILTER";
-  };
+//   const getFilterLabel = () => {
+//     if (dateFilters.startDate && dateFilters.endDate) {
+//       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
+//         dateFilters.endDate,
+//         "MMM dd"
+//       )}`;
+//     }
+//     if (dateFilters.startDate) {
+//       return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
+//     }
+//     if (dateFilters.endDate) {
+//       return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
+//     }
+//     return "FILTER";
+//   };
 
-  const iconColor = hasActiveFilters
-    ? "rgba(0, 133, 49, 1)"
-    : "rgb(33, 61, 112)";
+//   const iconColor = hasActiveFilters
+//     ? "rgba(0, 133, 49, 1)"
+//     : "rgb(33, 61, 112)";
 
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-  };
+//   const handleSearchChange = (e) => {
+//     const value = e.target.value;
+//     setSearchQuery(value);
+//   };
 
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      {isVerySmall ? (
-        <IconButton
-          onClick={onFilterClick}
-          disabled={isLoading}
-          size="small"
-          sx={{
-            width: "36px",
-            height: "36px",
-            border: `1px solid ${
-              hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
-            }`,
-            borderRadius: "8px",
-            backgroundColor: hasActiveFilters
-              ? "rgba(0, 133, 49, 0.04)"
-              : "white",
-            color: iconColor,
-            position: "relative",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              backgroundColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 0.08)"
-                : "#f5f5f5",
-              borderColor: hasActiveFilters
-                ? "rgba(0, 133, 49, 1)"
-                : "rgb(33, 61, 112)",
-            },
-          }}>
-          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
-          {hasActiveFilters && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "-6px",
-                right: "-6px",
-                backgroundColor: "rgba(0, 133, 49, 1)",
-                color: "white",
-                borderRadius: "50%",
-                width: "16px",
-                height: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "10px",
-                fontWeight: 600,
-              }}>
-              1
-            </Box>
-          )}
-        </IconButton>
-      ) : (
-        <Tooltip title="Click here to filter by date range" arrow>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={hasActiveFilters}
-                onChange={onFilterClick}
-                disabled={isLoading}
-                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
-                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
-                size="small"
-              />
-            }
-            label={
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <span>{getFilterLabel()}</span>
-              </Box>
-            }
-            sx={{
-              margin: 0,
-              border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
-              borderRadius: "8px",
-              paddingLeft: "8px",
-              paddingRight: "12px",
-              height: "36px",
-              backgroundColor: hasActiveFilters
-                ? "rgba(76, 175, 80, 0.04)"
-                : "white",
-              transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                backgroundColor: hasActiveFilters
-                  ? "rgba(76, 175, 80, 0.08)"
-                  : "#f5f5f5",
-                borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
-              },
-              "& .MuiFormControlLabel-label": {
-                fontSize: "12px",
-                fontWeight: 600,
-                color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
-                letterSpacing: "0.5px",
-              },
-            }}
-          />
-        </Tooltip>
-      )}
+//   return (
+//     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+//       {isVerySmall ? (
+//         <IconButton
+//           onClick={onFilterClick}
+//           disabled={isLoading}
+//           size="small"
+//           sx={{
+//             width: "36px",
+//             height: "36px",
+//             border: `1px solid ${
+//               hasActiveFilters ? "rgba(0, 133, 49, 1)" : "#ccc"
+//             }`,
+//             borderRadius: "8px",
+//             backgroundColor: hasActiveFilters
+//               ? "rgba(0, 133, 49, 0.04)"
+//               : "white",
+//             color: iconColor,
+//             position: "relative",
+//             transition: "all 0.2s ease-in-out",
+//             "&:hover": {
+//               backgroundColor: hasActiveFilters
+//                 ? "rgba(0, 133, 49, 0.08)"
+//                 : "#f5f5f5",
+//               borderColor: hasActiveFilters
+//                 ? "rgba(0, 133, 49, 1)"
+//                 : "rgb(33, 61, 112)",
+//             },
+//           }}>
+//           <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+//           {hasActiveFilters && (
+//             <Box
+//               sx={{
+//                 position: "absolute",
+//                 top: "-6px",
+//                 right: "-6px",
+//                 backgroundColor: "rgba(0, 133, 49, 1)",
+//                 color: "white",
+//                 borderRadius: "50%",
+//                 width: "16px",
+//                 height: "16px",
+//                 display: "flex",
+//                 alignItems: "center",
+//                 justifyContent: "center",
+//                 fontSize: "10px",
+//                 fontWeight: 600,
+//               }}>
+//               1
+//             </Box>
+//           )}
+//         </IconButton>
+//       ) : (
+//         <Tooltip title="Click here to filter by date range" arrow>
+//           <FormControlLabel
+//             control={
+//               <Checkbox
+//                 checked={hasActiveFilters}
+//                 onChange={onFilterClick}
+//                 disabled={isLoading}
+//                 icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+//                 checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+//                 size="small"
+//               />
+//             }
+//             label={
+//               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+//                 <span>{getFilterLabel()}</span>
+//               </Box>
+//             }
+//             sx={{
+//               margin: 0,
+//               border: `1px solid ${hasActiveFilters ? "#4caf50" : "#ccc"}`,
+//               borderRadius: "8px",
+//               paddingLeft: "8px",
+//               paddingRight: "12px",
+//               height: "36px",
+//               backgroundColor: hasActiveFilters
+//                 ? "rgba(76, 175, 80, 0.04)"
+//                 : "white",
+//               transition: "all 0.2s ease-in-out",
+//               "&:hover": {
+//                 backgroundColor: hasActiveFilters
+//                   ? "rgba(76, 175, 80, 0.08)"
+//                   : "#f5f5f5",
+//                 borderColor: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+//               },
+//               "& .MuiFormControlLabel-label": {
+//                 fontSize: "12px",
+//                 fontWeight: 600,
+//                 color: hasActiveFilters ? "#4caf50" : "rgb(33, 61, 112)",
+//                 letterSpacing: "0.5px",
+//               },
+//             }}
+//           />
+//         </Tooltip>
+//       )}
 
-      <TextField
-        placeholder={
-          isVerySmall ? "Search..." : "Search Performance Evaluation..."
-        }
-        value={searchQuery}
-        onChange={handleSearchChange}
-        disabled={isLoading}
-        size="small"
-        InputProps={{
-          startAdornment: (
-            <SearchIcon
-              sx={{
-                color: isLoading ? "#ccc" : "#666",
-                marginRight: 1,
-                fontSize: "20px",
-              }}
-            />
-          ),
-          endAdornment: isLoading && (
-            <CircularProgress size={16} sx={{ marginLeft: 1 }} />
-          ),
-          sx: {
-            height: "36px",
-            width: "320px",
-            backgroundColor: "white",
-            transition: "all 0.2s ease-in-out",
-            "& .MuiOutlinedInput-root": {
-              height: "36px",
-              "& fieldset": {
-                borderColor: "#ccc",
-                transition: "border-color 0.2s ease-in-out",
-              },
-              "&:hover fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "rgb(33, 61, 112)",
-                borderWidth: "2px",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "#f5f5f5",
-              },
-            },
-          },
-        }}
-        sx={{
-          "& .MuiInputBase-input": {
-            fontSize: "14px",
-            "&::placeholder": {
-              opacity: 0.7,
-            },
-          },
-        }}
-      />
-    </Box>
-  );
-};
+//       <TextField
+//         placeholder={
+//           isVerySmall ? "Search..." : "Search Performance Evaluation..."
+//         }
+//         value={searchQuery}
+//         onChange={handleSearchChange}
+//         disabled={isLoading}
+//         size="small"
+//         InputProps={{
+//           startAdornment: (
+//             <SearchIcon
+//               sx={{
+//                 color: isLoading ? "#ccc" : "#666",
+//                 marginRight: 1,
+//                 fontSize: "20px",
+//               }}
+//             />
+//           ),
+//           endAdornment: isLoading && (
+//             <CircularProgress size={16} sx={{ marginLeft: 1 }} />
+//           ),
+//           sx: {
+//             height: "36px",
+//             width: "320px",
+//             backgroundColor: "white",
+//             transition: "all 0.2s ease-in-out",
+//             "& .MuiOutlinedInput-root": {
+//               height: "36px",
+//               "& fieldset": {
+//                 borderColor: "#ccc",
+//                 transition: "border-color 0.2s ease-in-out",
+//               },
+//               "&:hover fieldset": {
+//                 borderColor: "rgb(33, 61, 112)",
+//               },
+//               "&.Mui-focused fieldset": {
+//                 borderColor: "rgb(33, 61, 112)",
+//                 borderWidth: "2px",
+//               },
+//               "&.Mui-disabled": {
+//                 backgroundColor: "#f5f5f5",
+//               },
+//             },
+//           },
+//         }}
+//         sx={{
+//           "& .MuiInputBase-input": {
+//             fontSize: "14px",
+//             "&::placeholder": {
+//               opacity: 0.7,
+//             },
+//           },
+//         }}
+//       />
+//     </Box>
+//   );
+// };
 
-const BiAnnualPerformance = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
-  const isVerySmall = useMediaQuery("(max-width:369px)");
-  const { enqueueSnackbar } = useSnackbar();
-  const methods = useForm();
+// const BiAnnualPerformance = () => {
+//   const theme = useTheme();
+//   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+//   const isTablet = useMediaQuery(theme.breakpoints.between(600, 1038));
+//   const isVerySmall = useMediaQuery("(max-width:369px)");
+//   const { enqueueSnackbar } = useSnackbar();
+//   const methods = useForm();
 
-  const { data: dashboardData } = useShowDashboardQuery();
+//   const { data: dashboardData } = useShowDashboardQuery();
 
-  const [currentParams, setQueryParams] = useRememberQueryParams();
+//   const [currentParams, setQueryParams] = useRememberQueryParams();
 
-  const tabMap = {
-    0: "ForApproval",
-    1: "AwaitingResubmission",
-    2: "Rejected",
-    3: "Approved",
-    4: "Cancelled",
-  };
+//   const tabMap = {
+//     0: "ForApproval",
+//     1: "AwaitingResubmission",
+//     2: "Rejected",
+//     3: "Approved",
+//     4: "Cancelled",
+//   };
 
-  const reverseTabMap = {
-    ForApproval: 0,
-    AwaitingResubmission: 1,
-    Rejected: 2,
-    Approved: 3,
-    Cancelled: 4,
-  };
+//   const reverseTabMap = {
+//     ForApproval: 0,
+//     AwaitingResubmission: 1,
+//     Rejected: 2,
+//     Approved: 3,
+//     Cancelled: 4,
+//   };
 
-  const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
-  );
-  const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
-  const [dateFilters, setDateFilters] = useState({
-    startDate: null,
-    endDate: null,
-  });
-  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create");
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
+//   const [activeTab, setActiveTab] = useState(
+//     reverseTabMap[currentParams?.tab] ?? 0
+//   );
+//   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
+//   const [dateFilters, setDateFilters] = useState({
+//     startDate: null,
+//     endDate: null,
+//   });
+//   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [modalOpen, setModalOpen] = useState(false);
+//   const [modalMode, setModalMode] = useState("create");
+//   const [selectedEntry, setSelectedEntry] = useState(null);
+//   const [modalLoading, setModalLoading] = useState(false);
 
-  const [createPerformanceEvaluation] =
-    useCreatePerformanceEvaluationMutation();
-  const [updatePerformanceEvaluation] =
-    useUpdatePerformanceEvaluationMutation();
-  const [cancelPerformanceEvaluation] = useCancelFormSubmissionMutation();
+//   const [createPerformanceEvaluation] =
+//     useCreatePerformanceEvaluationMutation();
+//   const [updatePerformanceEvaluation] =
+//     useUpdatePerformanceEvaluationMutation();
+//   const [cancelPerformanceEvaluation] = useCancelFormSubmissionMutation();
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+//   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const apiDateFilters = useMemo(() => {
-    return {
-      start_date: dateFilters.startDate
-        ? format(dateFilters.startDate, "yyyy-MM-dd")
-        : undefined,
-      end_date: dateFilters.endDate
-        ? format(dateFilters.endDate, "yyyy-MM-dd")
-        : undefined,
-    };
-  }, [dateFilters]);
+//   const apiDateFilters = useMemo(() => {
+//     return {
+//       start_date: dateFilters.startDate
+//         ? format(dateFilters.startDate, "yyyy-MM-dd")
+//         : undefined,
+//       end_date: dateFilters.endDate
+//         ? format(dateFilters.endDate, "yyyy-MM-dd")
+//         : undefined,
+//     };
+//   }, [dateFilters]);
 
-  const evaluationCounts = useMemo(() => {
-    return {
-      forApproval:
-        dashboardData?.result?.approval?.biannual_performance_approval || 0,
-      awaitingResubmission: 0,
-      rejected: 0,
-      approved: 0,
-      cancelled: 0,
-    };
-  }, [dashboardData]);
+//   const evaluationCounts = useMemo(() => {
+//     return {
+//       forApproval:
+//         dashboardData?.result?.approval?.biannual_performance_approval || 0,
+//       awaitingResubmission: 0,
+//       rejected: 0,
+//       approved: 0,
+//       cancelled: 0,
+//     };
+//   }, [dashboardData]);
 
-  const handleTabChange = useCallback(
-    (event, newValue) => {
-      setActiveTab(newValue);
-      setQueryParams(
-        {
-          tab: tabMap[newValue],
-          q: searchQuery,
-        },
-        { retain: true }
-      );
-    },
-    [setQueryParams, searchQuery]
-  );
+//   const handleTabChange = useCallback(
+//     (event, newValue) => {
+//       setActiveTab(newValue);
+//       setQueryParams(
+//         {
+//           tab: tabMap[newValue],
+//           q: searchQuery,
+//         },
+//         { retain: true }
+//       );
+//     },
+//     [setQueryParams, searchQuery]
+//   );
 
-  const handleSearchChange = useCallback(
-    (newSearchQuery) => {
-      setSearchQuery(newSearchQuery);
-      setQueryParams(
-        {
-          tab: tabMap[activeTab],
-          q: newSearchQuery,
-        },
-        { retain: true }
-      );
-    },
-    [setQueryParams, activeTab]
-  );
+//   const handleSearchChange = useCallback(
+//     (newSearchQuery) => {
+//       setSearchQuery(newSearchQuery);
+//       setQueryParams(
+//         {
+//           tab: tabMap[activeTab],
+//           q: newSearchQuery,
+//         },
+//         { retain: true }
+//       );
+//     },
+//     [setQueryParams, activeTab]
+//   );
 
-  const handleFilterClick = useCallback(() => {
-    setFilterDialogOpen(true);
-  }, []);
+//   const handleFilterClick = useCallback(() => {
+//     setFilterDialogOpen(true);
+//   }, []);
 
-  const handleDateFiltersChange = useCallback((newDateFilters) => {
-    setDateFilters(newDateFilters);
-  }, []);
+//   const handleDateFiltersChange = useCallback((newDateFilters) => {
+//     setDateFilters(newDateFilters);
+//   }, []);
 
-  const handleAddNew = useCallback(() => {
-    setSelectedEntry(null);
-    setModalMode("create");
-    methods.reset();
-    setModalOpen(true);
-  }, [methods]);
+//   const handleAddNew = useCallback(() => {
+//     setSelectedEntry(null);
+//     setModalMode("create");
+//     methods.reset();
+//     setModalOpen(true);
+//   }, [methods]);
 
-  const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
-    setSelectedEntry(null);
-    setModalMode("create");
-    setModalLoading(false);
-    methods.reset();
-  }, [methods]);
+//   const handleCloseModal = useCallback(() => {
+//     setModalOpen(false);
+//     setSelectedEntry(null);
+//     setModalMode("create");
+//     setModalLoading(false);
+//     methods.reset();
+//   }, [methods]);
 
-  const handleModeChange = useCallback((newMode) => {
-    setModalMode(newMode);
-  }, []);
+//   const handleModeChange = useCallback((newMode) => {
+//     setModalMode(newMode);
+//   }, []);
 
-  const handleCancel = useCallback(
-    async (entryId, cancellationReason) => {
-      try {
-        await cancelPerformanceEvaluation({
-          id: entryId,
-          cancellation_reason: cancellationReason,
-        }).unwrap();
+//   const handleCancel = useCallback(
+//     async (entryId, cancellationReason) => {
+//       try {
+//         await cancelPerformanceEvaluation({
+//           id: entryId,
+//           cancellation_reason: cancellationReason,
+//         }).unwrap();
 
-        enqueueSnackbar("Performance Evaluation cancelled successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
+//         enqueueSnackbar("Performance Evaluation cancelled successfully!", {
+//           variant: "success",
+//           autoHideDuration: 2000,
+//         });
 
-        return true;
-      } catch (error) {
-        let errorMessage =
-          "Failed to cancel Performance Evaluation. Please try again.";
+//         return true;
+//       } catch (error) {
+//         let errorMessage =
+//           "Failed to cancel Performance Evaluation. Please try again.";
 
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
+//         if (error?.data?.message) {
+//           errorMessage = error.data.message;
+//         } else if (error?.message) {
+//           errorMessage = error.message;
+//         }
 
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
+//         enqueueSnackbar(errorMessage, {
+//           variant: "error",
+//           autoHideDuration: 3000,
+//         });
 
-        return false;
-      }
-    },
-    [cancelPerformanceEvaluation, enqueueSnackbar]
-  );
+//         return false;
+//       }
+//     },
+//     [cancelPerformanceEvaluation, enqueueSnackbar]
+//   );
 
-  const handleSave = useCallback(
-    async (formData, mode, entryId) => {
-      setModalLoading(true);
+//   const handleSave = useCallback(
+//     async (formData, mode, entryId) => {
+//       setModalLoading(true);
 
-      try {
-        let result;
+//       try {
+//         let result;
 
-        if (mode === "edit") {
-          if (!entryId) {
-            throw new Error("Entry ID is required for updating");
-          }
+//         if (mode === "edit") {
+//           if (!entryId) {
+//             throw new Error("Entry ID is required for updating");
+//           }
 
-          result = await updatePerformanceEvaluation({
-            id: entryId,
-            data: formData,
-          }).unwrap();
+//           result = await updatePerformanceEvaluation({
+//             id: entryId,
+//             data: formData,
+//           }).unwrap();
 
-          enqueueSnackbar("Performance Evaluation updated successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        } else {
-          result = await createPerformanceEvaluation(formData).unwrap();
+//           enqueueSnackbar("Performance Evaluation updated successfully!", {
+//             variant: "success",
+//             autoHideDuration: 2000,
+//           });
+//         } else {
+//           result = await createPerformanceEvaluation(formData).unwrap();
 
-          enqueueSnackbar("Performance Evaluation created successfully!", {
-            variant: "success",
-            autoHideDuration: 2000,
-          });
-        }
+//           enqueueSnackbar("Performance Evaluation created successfully!", {
+//             variant: "success",
+//             autoHideDuration: 2000,
+//           });
+//         }
 
-        handleCloseModal();
-      } catch (error) {
-        let errorMessage =
-          mode === "edit"
-            ? "Failed to update Performance Evaluation. Please try again."
-            : "Failed to create Performance Evaluation. Please try again.";
+//         handleCloseModal();
+//       } catch (error) {
+//         let errorMessage =
+//           mode === "edit"
+//             ? "Failed to update Performance Evaluation. Please try again."
+//             : "Failed to create Performance Evaluation. Please try again.";
 
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
+//         if (error?.data?.message) {
+//           errorMessage = error.data.message;
+//         } else if (error?.message) {
+//           errorMessage = error.message;
+//         }
 
-        enqueueSnackbar(errorMessage, {
-          variant: "error",
-          autoHideDuration: 3000,
-        });
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [
-      createPerformanceEvaluation,
-      updatePerformanceEvaluation,
-      enqueueSnackbar,
-      handleCloseModal,
-    ]
-  );
+//         enqueueSnackbar(errorMessage, {
+//           variant: "error",
+//           autoHideDuration: 3000,
+//         });
+//       } finally {
+//         setModalLoading(false);
+//       }
+//     },
+//     [
+//       createPerformanceEvaluation,
+//       updatePerformanceEvaluation,
+//       enqueueSnackbar,
+//       handleCloseModal,
+//     ]
+//   );
 
-  const tabsData = useMemo(
-    () => [
-      {
-        label: "FOR APPROVAL",
-        component: (
-          <BiAnnualPerformanceForApproval
-            key="for-approval"
-            searchQuery={debouncedSearchQuery}
-            dateFilters={apiDateFilters}
-            setQueryParams={setQueryParams}
-            currentParams={currentParams}
-            onCancel={handleCancel}
-          />
-        ),
-        badgeCount: evaluationCounts.forApproval,
-      },
-      {
-        label: "AWAITING RESUBMISSION",
-        component: (
-          <BiAnnualPerformanceAwaitingResubmission
-            key="awaiting-resubmission"
-            searchQuery={debouncedSearchQuery}
-            dateFilters={apiDateFilters}
-            setQueryParams={setQueryParams}
-            currentParams={currentParams}
-            onCancel={handleCancel}
-          />
-        ),
-        badgeCount: evaluationCounts.awaitingResubmission,
-      },
-      {
-        label: "REJECTED",
-        component: (
-          <BiAnnualPerformanceRejected
-            key="rejected"
-            searchQuery={debouncedSearchQuery}
-            dateFilters={apiDateFilters}
-            setQueryParams={setQueryParams}
-            currentParams={currentParams}
-            onCancel={handleCancel}
-          />
-        ),
-        badgeCount: evaluationCounts.rejected,
-      },
-      {
-        label: "APPROVED",
-        component: (
-          <BiAnnualPerformanceApproved
-            key="approved"
-            searchQuery={debouncedSearchQuery}
-            dateFilters={apiDateFilters}
-            setQueryParams={setQueryParams}
-            currentParams={currentParams}
-          />
-        ),
-        badgeCount: evaluationCounts.approved,
-      },
-      {
-        label: "CANCELLED",
-        component: (
-          <BiAnnualPerformanceCancelled
-            key="cancelled"
-            searchQuery={debouncedSearchQuery}
-            dateFilters={apiDateFilters}
-            setQueryParams={setQueryParams}
-            currentParams={currentParams}
-          />
-        ),
-        badgeCount: evaluationCounts.cancelled,
-      },
-    ],
-    [
-      debouncedSearchQuery,
-      apiDateFilters,
-      setQueryParams,
-      currentParams,
-      handleCancel,
-      evaluationCounts,
-    ]
-  );
+//   const tabsData = useMemo(
+//     () => [
+//       {
+//         label: "FOR APPROVAL",
+//         component: (
+//           <BiAnnualPerformanceForApproval
+//             key="for-approval"
+//             searchQuery={debouncedSearchQuery}
+//             dateFilters={apiDateFilters}
+//             setQueryParams={setQueryParams}
+//             currentParams={currentParams}
+//             onCancel={handleCancel}
+//           />
+//         ),
+//         badgeCount: evaluationCounts.forApproval,
+//       },
+//       {
+//         label: "AWAITING RESUBMISSION",
+//         component: (
+//           <BiAnnualPerformanceAwaitingResubmission
+//             key="awaiting-resubmission"
+//             searchQuery={debouncedSearchQuery}
+//             dateFilters={apiDateFilters}
+//             setQueryParams={setQueryParams}
+//             currentParams={currentParams}
+//             onCancel={handleCancel}
+//           />
+//         ),
+//         badgeCount: evaluationCounts.awaitingResubmission,
+//       },
+//       {
+//         label: "REJECTED",
+//         component: (
+//           <BiAnnualPerformanceRejected
+//             key="rejected"
+//             searchQuery={debouncedSearchQuery}
+//             dateFilters={apiDateFilters}
+//             setQueryParams={setQueryParams}
+//             currentParams={currentParams}
+//             onCancel={handleCancel}
+//           />
+//         ),
+//         badgeCount: evaluationCounts.rejected,
+//       },
+//       {
+//         label: "APPROVED",
+//         component: (
+//           <BiAnnualPerformanceApproved
+//             key="approved"
+//             searchQuery={debouncedSearchQuery}
+//             dateFilters={apiDateFilters}
+//             setQueryParams={setQueryParams}
+//             currentParams={currentParams}
+//           />
+//         ),
+//         badgeCount: evaluationCounts.approved,
+//       },
+//       {
+//         label: "CANCELLED",
+//         component: (
+//           <BiAnnualPerformanceCancelled
+//             key="cancelled"
+//             searchQuery={debouncedSearchQuery}
+//             dateFilters={apiDateFilters}
+//             setQueryParams={setQueryParams}
+//             currentParams={currentParams}
+//           />
+//         ),
+//         badgeCount: evaluationCounts.cancelled,
+//       },
+//     ],
+//     [
+//       debouncedSearchQuery,
+//       apiDateFilters,
+//       setQueryParams,
+//       currentParams,
+//       handleCancel,
+//       evaluationCounts,
+//     ]
+//   );
 
-  const a11yProps = (index) => {
-    return {
-      id: `biannual-tab-${index}`,
-      "aria-controls": `biannual-tabpanel-${index}`,
-    };
-  };
+//   const a11yProps = (index) => {
+//     return {
+//       id: `biannual-tab-${index}`,
+//       "aria-controls": `biannual-tabpanel-${index}`,
+//     };
+//   };
 
-  const isLoadingState = isLoading;
+//   const isLoadingState = isLoading;
 
-  return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <FormProvider {...methods}>
-        <Box sx={styles.mainContainer}>
-          <Box
-            sx={{
-              ...styles.headerContainer,
-              ...(isMobile && styles.headerContainerMobile),
-              ...(isTablet && styles.headerContainerTablet),
-            }}>
-            <Box
-              sx={{
-                ...styles.headerTitle,
-                ...(isMobile && styles.headerTitleMobile),
-              }}>
-              <Typography
-                className="header"
-                sx={{
-                  ...styles.headerTitleText,
-                  ...(isMobile && styles.headerTitleTextMobile),
-                  ...(isVerySmall && styles.headerTitleTextVerySmall),
-                  paddingRight: "14px",
-                }}>
-                {isVerySmall ? "BI-ANNUAL" : "BI-ANNUAL PERFORMANCE"}
-              </Typography>
+//   return (
+//     <LocalizationProvider dateAdapter={AdapterDateFns}>
+//       <FormProvider {...methods}>
+//         <Box sx={styles.mainContainer}>
+//           <Box
+//             sx={{
+//               ...styles.headerContainer,
+//               ...(isMobile && styles.headerContainerMobile),
+//               ...(isTablet && styles.headerContainerTablet),
+//             }}>
+//             <Box
+//               sx={{
+//                 ...styles.headerTitle,
+//                 ...(isMobile && styles.headerTitleMobile),
+//               }}>
+//               <Typography
+//                 className="header"
+//                 sx={{
+//                   ...styles.headerTitleText,
+//                   ...(isMobile && styles.headerTitleTextMobile),
+//                   ...(isVerySmall && styles.headerTitleTextVerySmall),
+//                   paddingRight: "14px",
+//                 }}>
+//                 {isVerySmall ? "BI-ANNUAL" : "BI-ANNUAL PERFORMANCE"}
+//               </Typography>
 
-              <Fade in={!isLoading}>
-                <Box>
-                  {isVerySmall ? (
-                    <IconButton
-                      onClick={handleAddNew}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        color: "white",
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      <AddIcon sx={{ fontSize: "18px" }} />
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={handleAddNew}
-                      startIcon={<AddIcon />}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: "rgb(33, 61, 112)",
-                        height: isMobile ? "36px" : "38px",
-                        width: isMobile ? "auto" : "140px",
-                        minWidth: isMobile ? "100px" : "140px",
-                        padding: isMobile ? "0 16px" : "0 20px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "12px" : "14px",
-                        borderRadius: "8px",
-                        boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
-                        transition: "all 0.2s ease-in-out",
-                        "& .MuiButton-startIcon": {
-                          marginRight: isMobile ? "4px" : "8px",
-                        },
-                        "&:hover": {
-                          backgroundColor: "rgb(25, 45, 84)",
-                          boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
-                          transform: "translateY(-1px)",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "#ccc",
-                          boxShadow: "none",
-                        },
-                      }}>
-                      CREATE
-                    </Button>
-                  )}
-                </Box>
-              </Fade>
-            </Box>
+//               <Fade in={!isLoading}>
+//                 <Box>
+//                   {isVerySmall ? (
+//                     <IconButton
+//                       onClick={handleAddNew}
+//                       disabled={isLoading}
+//                       sx={{
+//                         backgroundColor: "rgb(33, 61, 112)",
+//                         color: "white",
+//                         width: "36px",
+//                         height: "36px",
+//                         borderRadius: "8px",
+//                         boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+//                         transition: "all 0.2s ease-in-out",
+//                         "&:hover": {
+//                           backgroundColor: "rgb(25, 45, 84)",
+//                           boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+//                           transform: "translateY(-1px)",
+//                         },
+//                         "&:disabled": {
+//                           backgroundColor: "#ccc",
+//                           boxShadow: "none",
+//                         },
+//                       }}>
+//                       <AddIcon sx={{ fontSize: "18px" }} />
+//                     </IconButton>
+//                   ) : (
+//                     <Button
+//                       variant="contained"
+//                       onClick={handleAddNew}
+//                       startIcon={<AddIcon />}
+//                       disabled={isLoading}
+//                       sx={{
+//                         backgroundColor: "rgb(33, 61, 112)",
+//                         height: isMobile ? "36px" : "38px",
+//                         width: isMobile ? "auto" : "140px",
+//                         minWidth: isMobile ? "100px" : "140px",
+//                         padding: isMobile ? "0 16px" : "0 20px",
+//                         textTransform: "none",
+//                         fontWeight: 600,
+//                         fontSize: isMobile ? "12px" : "14px",
+//                         borderRadius: "8px",
+//                         boxShadow: "0 2px 8px rgba(33, 61, 112, 0.2)",
+//                         transition: "all 0.2s ease-in-out",
+//                         "& .MuiButton-startIcon": {
+//                           marginRight: isMobile ? "4px" : "8px",
+//                         },
+//                         "&:hover": {
+//                           backgroundColor: "rgb(25, 45, 84)",
+//                           boxShadow: "0 4px 12px rgba(33, 61, 112, 0.3)",
+//                           transform: "translateY(-1px)",
+//                         },
+//                         "&:disabled": {
+//                           backgroundColor: "#ccc",
+//                           boxShadow: "none",
+//                         },
+//                       }}>
+//                       CREATE
+//                     </Button>
+//                   )}
+//                 </Box>
+//               </Fade>
+//             </Box>
 
-            <CustomSearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={handleSearchChange}
-              dateFilters={dateFilters}
-              onFilterClick={handleFilterClick}
-              isLoading={isLoadingState}
-            />
-          </Box>
+//             <CustomSearchBar
+//               searchQuery={searchQuery}
+//               setSearchQuery={handleSearchChange}
+//               dateFilters={dateFilters}
+//               onFilterClick={handleFilterClick}
+//               isLoading={isLoadingState}
+//             />
+//           </Box>
 
-          <Box sx={styles.tabsSection}>
-            <StyledTabs
-              value={activeTab}
-              onChange={handleTabChange}
-              aria-label="Bi-Annual Performance submissions tabs"
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-              sx={{
-                ...styles.tabsStyled,
-                ...(isVerySmall && styles.tabsStyledVerySmall),
-              }}>
-              {tabsData.map((tab, index) => (
-                <StyledTab
-                  key={index}
-                  label={
-                    tab.badgeCount > 0 ? (
-                      <Badge
-                        badgeContent={tab.badgeCount}
-                        color="error"
-                        sx={{
-                          ...styles.tabBadge,
-                          ...(isVerySmall && styles.tabBadgeVerySmall),
-                        }}>
-                        {isVerySmall && tab.label.length > 12
-                          ? tab.label
-                              .replace("AWAITING ", "")
-                              .replace("RESUBMISSION", "RESUB")
-                          : tab.label}
-                      </Badge>
-                    ) : isVerySmall && tab.label.length > 12 ? (
-                      tab.label
-                        .replace("AWAITING ", "")
-                        .replace("RESUBMISSION", "RESUB")
-                    ) : (
-                      tab.label
-                    )
-                  }
-                  {...a11yProps(index)}
-                />
-              ))}
-            </StyledTabs>
-          </Box>
+//           <Box sx={styles.tabsSection}>
+//             <StyledTabs
+//               value={activeTab}
+//               onChange={handleTabChange}
+//               aria-label="Bi-Annual Performance submissions tabs"
+//               variant="scrollable"
+//               scrollButtons="auto"
+//               allowScrollButtonsMobile
+//               sx={{
+//                 ...styles.tabsStyled,
+//                 ...(isVerySmall && styles.tabsStyledVerySmall),
+//               }}>
+//               {tabsData.map((tab, index) => (
+//                 <StyledTab
+//                   key={index}
+//                   label={
+//                     tab.badgeCount > 0 ? (
+//                       <Badge
+//                         badgeContent={tab.badgeCount}
+//                         color="error"
+//                         sx={{
+//                           ...styles.tabBadge,
+//                           ...(isVerySmall && styles.tabBadgeVerySmall),
+//                         }}>
+//                         {isVerySmall && tab.label.length > 12
+//                           ? tab.label
+//                               .replace("AWAITING ", "")
+//                               .replace("RESUBMISSION", "RESUB")
+//                           : tab.label}
+//                       </Badge>
+//                     ) : isVerySmall && tab.label.length > 12 ? (
+//                       tab.label
+//                         .replace("AWAITING ", "")
+//                         .replace("RESUBMISSION", "RESUB")
+//                     ) : (
+//                       tab.label
+//                     )
+//                   }
+//                   {...a11yProps(index)}
+//                 />
+//               ))}
+//             </StyledTabs>
+//           </Box>
 
-          <Box sx={styles.tabsContainer}>
-            {tabsData.map((tab, index) => (
-              <TabPanel key={index} value={activeTab} index={index}>
-                {tab.component}
-              </TabPanel>
-            ))}
-          </Box>
+//           <Box sx={styles.tabsContainer}>
+//             {tabsData.map((tab, index) => (
+//               <TabPanel key={index} value={activeTab} index={index}>
+//                 {tab.component}
+//               </TabPanel>
+//             ))}
+//           </Box>
 
-          <DateFilterDialog
-            open={filterDialogOpen}
-            onClose={() => setFilterDialogOpen(false)}
-            dateFilters={dateFilters}
-            onDateFiltersChange={handleDateFiltersChange}
-            styles={styles}
-          />
+//           <DateFilterDialog
+//             open={filterDialogOpen}
+//             onClose={() => setFilterDialogOpen(false)}
+//             dateFilters={dateFilters}
+//             onDateFiltersChange={handleDateFiltersChange}
+//             styles={styles}
+//           />
 
-          <BiAnnualPerformanceModal
-            key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
-            open={modalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-            selectedEntry={selectedEntry}
-            isLoading={modalLoading}
-            mode={modalMode}
-            onModeChange={handleModeChange}
-          />
-        </Box>
-      </FormProvider>
-    </LocalizationProvider>
-  );
-};
+//           <BiAnnualPerformanceModal
+//             key={`${modalMode}-${selectedEntry?.result?.id || "new"}`}
+//             open={modalOpen}
+//             onClose={handleCloseModal}
+//             onSave={handleSave}
+//             selectedEntry={selectedEntry}
+//             isLoading={modalLoading}
+//             mode={modalMode}
+//             onModeChange={handleModeChange}
+//           />
+//         </Box>
+//       </FormProvider>
+//     </LocalizationProvider>
+//   );
+// };
+
+// export default BiAnnualPerformance;
+import React from "react";
+import { Outlet } from "react-router";
+
+function BiAnnualPerformance() {
+  return <Outlet />;
+}
 
 export default BiAnnualPerformance;

@@ -27,11 +27,12 @@ const CatOneApprovalDialog = ({
   isLoading = false,
   isLoadingData = false,
 }) => {
+  const [comments, setComments] = useState("");
   const [reason, setReason] = useState("");
+  const [reasonError, setReasonError] = useState(false);
   const [actionType, setActionType] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [reasonError, setReasonError] = useState(false);
 
   const handleApprove = () => {
     setActionType("approve");
@@ -47,9 +48,8 @@ const CatOneApprovalDialog = ({
 
   const handleActionConfirm = async () => {
     if (confirmAction === "approve") {
-      const approveData = {};
       setConfirmOpen(false);
-      await onApprove(approveData);
+      await onApprove({ comments });
       handleReset();
     } else if (confirmAction === "return") {
       const trimmedReason = reason.trim();
@@ -57,9 +57,8 @@ const CatOneApprovalDialog = ({
         setReasonError(true);
         return;
       }
-      const returnData = { reason: trimmedReason };
       setConfirmOpen(false);
-      await onReturn(returnData);
+      await onReturn({ reason: trimmedReason });
       handleReset();
     }
   };
@@ -70,6 +69,7 @@ const CatOneApprovalDialog = ({
   };
 
   const handleReset = () => {
+    setComments("");
     setReason("");
     setReasonError(false);
     setActionType(null);
@@ -90,7 +90,6 @@ const CatOneApprovalDialog = ({
     if (!ratingId || !ratingScale) return "#9e9e9e";
     const rating = ratingScale.find((r) => r.id === ratingId);
     if (!rating) return "#9e9e9e";
-
     const label = rating.label.toLowerCase();
     if (label.includes("exceeds")) return "#28a745";
     if (label.includes("meets")) return "#ffc107";
@@ -98,11 +97,13 @@ const CatOneApprovalDialog = ({
     return "#9e9e9e";
   };
 
-  const status = approval?.status?.toLowerCase() || "pending";
-  const isProcessed = status === "approved" || status === "returned";
+  const status = approval?.status || "";
+  const isProcessed = status === "KICKOFF_COMPLETE";
+
   const template = approval?.template || {};
   const ratingScale = template.rating_scale || [];
   const sections = template.sections || [];
+  const da = approval?.developmental_assignment || {};
 
   const renderSkeletonField = () => (
     <Box sx={{ flex: 1, minHeight: "60px" }}>
@@ -120,16 +121,32 @@ const CatOneApprovalDialog = ({
   );
 
   const renderSkeletonSection = (title, rows = 2) => (
-    <Box
-      sx={{
-        backgroundColor: "#ffffff",
-        p: 3,
-        mb: 0,
-      }}>
+    <Box sx={{ backgroundColor: "#ffffff", p: 3, mb: 0 }}>
       <Skeleton variant="text" width="30%" height={24} sx={{ mb: 2 }} />
       {Array.from({ length: rows }).map((_, index) => (
         <React.Fragment key={index}>{renderSkeletonRow()}</React.Fragment>
       ))}
+    </Box>
+  );
+
+  const InfoField = ({ label, value }) => (
+    <Box sx={{ flex: 1 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "rgb(33, 61, 112)",
+          fontSize: "11px",
+          fontWeight: 600,
+          display: "block",
+          mb: 0.5,
+        }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ color: "#000000ff", fontSize: "13px", fontWeight: 700 }}>
+        {value || "N/A"}
+      </Typography>
     </Box>
   );
 
@@ -150,7 +167,7 @@ const CatOneApprovalDialog = ({
             sx={{
               color: "#000000",
               fontSize: "13px",
-              fontWeight: item.is_rateable ? 400 : 600,
+              fontWeight: item.is_header ? 600 : 400,
               lineHeight: 1.8,
               flex: 1,
             }}>
@@ -223,7 +240,7 @@ const CatOneApprovalDialog = ({
                   color: "rgb(33, 61, 112)",
                   fontSize: "16px",
                 }}>
-                VIEW CATEGORY 1 REQUEST
+                VIEW CAT 1 REQUEST
               </Typography>
             </Box>
             <IconButton onClick={handleClose} size="small">
@@ -240,14 +257,7 @@ const CatOneApprovalDialog = ({
             </Box>
           ) : (
             <>
-              <Box
-                sx={{
-                  backgroundColor: "#ffffff",
-                  px: 4,
-                  pt: 2,
-                  pb: 2,
-                  mb: -3,
-                }}>
+              <Box sx={{ backgroundColor: "#ffffff", px: 4, pt: 2, pb: 2 }}>
                 <Typography
                   variant="subtitle2"
                   sx={{
@@ -259,183 +269,109 @@ const CatOneApprovalDialog = ({
                   Employee Information
                 </Typography>
 
-                <Box>
-                  <Box sx={{ display: "flex", gap: 2, mb: 1.5 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          display: "block",
-                          mb: 0.5,
-                        }}>
-                        EMPLOYEE NAME
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#000000ff",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                        }}>
-                        {approval?.employee_name || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          display: "block",
-                          mb: 0.5,
-                        }}>
-                        SUPERIOR NAME
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#000000ff",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                        }}>
-                        {approval?.superior_name || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          display: "block",
-                          mb: 0.5,
-                        }}>
-                        DEPARTMENT
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#000000ff",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                        }}>
-                        {approval?.department || "N/A"}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: "flex", gap: 2, mb: 1.5 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          display: "block",
-                          mb: 0.5,
-                        }}>
-                        DATE ASSESSED
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#000000ff",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                        }}>
-                        {formatDate(approval?.date_assessed)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 2 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "rgb(33, 61, 112)",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          display: "block",
-                          mb: 0.5,
-                        }}>
-                        TEMPLATE NAME
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "#000000ff",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                        }}>
-                        {template.name || "N/A"}
-                      </Typography>
-                    </Box>
-                  </Box>
+                <Box sx={{ display: "flex", gap: 2, mb: 1.5 }}>
+                  <InfoField
+                    label="EMPLOYEE NAME"
+                    value={approval?.employee_name}
+                  />
+                  <InfoField
+                    label="SUPERIOR NAME"
+                    value={approval?.superior_name}
+                  />
+                  <InfoField label="DEPARTMENT" value={approval?.department} />
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 2, mb: 1.5 }}>
+                  <InfoField
+                    label="DATE ASSESSED"
+                    value={formatDate(approval?.date_assessed)}
+                  />
+                  <InfoField
+                    label="FROM POSITION"
+                    value={approval?.from_position_title}
+                  />
+                  <InfoField
+                    label="TO POSITION"
+                    value={approval?.to_position_title}
+                  />
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 2, mb: 1.5 }}>
+                  <InfoField label="TEMPLATE NAME" value={template?.name} />
+                  <InfoField
+                    label="DA REFERENCE NO."
+                    value={da?.reference_number}
+                  />
+                  <InfoField label="DA STATUS" value={da?.status} />
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 2, mb: 0.5 }}>
+                  <InfoField
+                    label="DA START DATE"
+                    value={formatDate(da?.start_date)}
+                  />
+                  <InfoField
+                    label="DA END DATE"
+                    value={formatDate(da?.end_date)}
+                  />
+                  <Box sx={{ flex: 1 }} />
                 </Box>
               </Box>
 
-              <Box
-                sx={{
-                  backgroundColor: "#ffffff",
-                  px: 4,
-                  pt: 2,
-                  pb: 3,
-                  mb: 0,
-                }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: 600,
-                    color: "rgb(33, 61, 112)",
-                    mb: 1.5,
-                    fontSize: "14px",
-                  }}>
-                  Assessment Details
-                </Typography>
+              {sections.length > 0 && (
+                <Box sx={{ backgroundColor: "#ffffff", px: 4, pt: 2, pb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 600,
+                      color: "rgb(33, 61, 112)",
+                      mb: 1.5,
+                      fontSize: "14px",
+                    }}>
+                    Assessment Details
+                  </Typography>
 
-                {ratingScale.length > 0 && (
-                  <Box sx={{ mb: 3 }}>
-                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                      {ratingScale.map((rating) => (
-                        <Chip
-                          key={rating.id}
-                          label={rating.label.toUpperCase()}
-                          size="small"
-                          sx={{
-                            backgroundColor: getRatingColor(
-                              rating.id,
-                              ratingScale
-                            ),
-                            color: "white",
-                            fontWeight: 600,
-                            fontSize: "10px",
-                            padding: "2px",
-                          }}
-                        />
-                      ))}
+                  {ratingScale.length > 0 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                        {ratingScale.map((rating) => (
+                          <Chip
+                            key={rating.id}
+                            label={rating.label.toUpperCase()}
+                            size="small"
+                            sx={{
+                              backgroundColor: getRatingColor(
+                                rating.id,
+                                ratingScale,
+                              ),
+                              color: "white",
+                              fontWeight: 600,
+                              fontSize: "10px",
+                              padding: "2px",
+                            }}
+                          />
+                        ))}
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  )}
 
-                {sections.map((section) => (
-                  <Box key={section.id} sx={{ mb: 3 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        color: "rgb(33, 61, 112)",
-                        mb: 2,
-                        fontSize: "13px",
-                      }}>
-                      {section.title}
-                    </Typography>
-                    {section.items.map((item) => renderItem(item))}
-                  </Box>
-                ))}
-              </Box>
+                  {sections.map((section) => (
+                    <Box key={section.id} sx={{ mb: 3 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "rgb(33, 61, 112)",
+                          mb: 2,
+                          fontSize: "13px",
+                        }}>
+                        {section.title}
+                      </Typography>
+                      {section.items.map((item) => renderItem(item))}
+                    </Box>
+                  ))}
+                </Box>
+              )}
 
               {isProcessed && (
                 <Box
@@ -449,7 +385,7 @@ const CatOneApprovalDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={{ fontSize: "16px" }}>
-                    This Category 1 request has already been {status}
+                    This CAT 1 request has already been processed.
                   </Typography>
                 </Box>
               )}
@@ -479,9 +415,7 @@ const CatOneApprovalDialog = ({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#c82333",
-                  },
+                  "&:hover": { backgroundColor: "#c82333" },
                 }}
                 disabled={isLoading}
                 startIcon={
@@ -507,9 +441,7 @@ const CatOneApprovalDialog = ({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#218838",
-                  },
+                  "&:hover": { backgroundColor: "#218838" },
                 }}
                 disabled={isLoading}
                 startIcon={
@@ -564,19 +496,19 @@ const CatOneApprovalDialog = ({
             gutterBottom
             sx={{ fontSize: "14px", mb: 2 }}>
             {confirmAction === "approve"
-              ? "Are you sure you want to Approve this Category 1 request?"
-              : "Are you sure you want to Return this Category 1 request?"}
+              ? "Are you sure you want to Approve this CAT 1 request?"
+              : "Are you sure you want to Return this CAT 1 request?"}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ fontSize: "13px", mb: 3 }}>
-            Category 1 Request ID: {approval?.id || "N/A"}
+            CAT 1 Request ID: {approval?.id || "N/A"}
           </Typography>
 
           {confirmAction === "return" && (
             <TextField
-              label="Reason for Return"
+              label="Reason"
               placeholder="Please provide a reason for returning this request..."
               value={reason}
               onChange={(e) => {
@@ -590,11 +522,21 @@ const CatOneApprovalDialog = ({
               error={reasonError}
               helperText={reasonError ? "Reason is required" : ""}
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                },
-              }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+            />
+          )}
+
+          {confirmAction === "approve" && (
+            <TextField
+              label="Comments (Optional)"
+              placeholder="Add any comments..."
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
+              variant="outlined"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
             />
           )}
         </DialogContent>

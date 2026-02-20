@@ -91,6 +91,9 @@ import DevelopmentalAssignment from "../../pages/approvals/developmentalAssignme
 import Evaluation from "../../pages/approvals/evaluation/Evaluation.jsx";
 import Status from "../../pages/extras/Status.jsx";
 import PdpTwo from "../../pages/developmental-assignment/pdptwo/PdpTwo.jsx";
+import RandFile from "../../pages/forms/biAnnualPerformance/rank/RankandFile.jsx";
+import SupervisoryLevel from "../../pages/forms/biAnnualPerformance/supervisory/SupervisoryLevel.jsx";
+import PdpTwoApproval from "../../pages/approvals/da-task/PdpTwoApproval.jsx";
 
 export const ROUTES = [
   {
@@ -337,6 +340,28 @@ export const ROUTES = [
         handle: {
           permission: MODULES.REQUEST.children.BIANNUALPERFORMANCE.permissionId,
         },
+        children: [
+          {
+            id: "REQUEST.BIANNUALPERFORMANCE.RANKANDFILE",
+            path: "rankandfile",
+            element: <RandFile />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.BIANNUALPERFORMANCE.children
+                  .RANKANDFILE.permissionId,
+            },
+          },
+          {
+            id: "REQUEST.BIANNUALPERFORMANCE.SUPERVISORYLEVEL",
+            path: "supervisorylevel",
+            element: <SupervisoryLevel />,
+            handle: {
+              permission:
+                MODULES.REQUEST.children.BIANNUALPERFORMANCE.children
+                  .SUPERVISORYLEVEL.permissionId,
+            },
+          },
+        ],
       },
       {
         id: "REQUESTMONITORING.MRFMONITORING",
@@ -542,6 +567,14 @@ export const ROUTES = [
         element: <PdpApproval />,
         handle: {
           permission: MODULES.APPROVING.children.PDPAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.PDPTWOAPPROVAL",
+        path: `${MODULES.APPROVING.path}/pdptwoapproval`,
+        element: <PdpTwoApproval />,
+        handle: {
+          permission: "APPROVING.PDPTWOAPPROVAL",
         },
       },
       {

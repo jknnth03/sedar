@@ -88,8 +88,7 @@ const CustomSearchBar = ({
     : "rgb(33, 61, 112)";
 
   const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
+    setSearchQuery(e.target.value);
   };
 
   return (
@@ -297,7 +296,7 @@ const PdpTwo = () => {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const apiDateFilters = useMemo(() => {
-    const filters = {
+    return {
       start_date: dateFilters.startDate
         ? format(dateFilters.startDate, "yyyy-MM-dd")
         : undefined,
@@ -305,8 +304,6 @@ const PdpTwo = () => {
         ? format(dateFilters.endDate, "yyyy-MM-dd")
         : undefined,
     };
-
-    return filters;
   }, [dateFilters]);
 
   const pdpTwoCounts = {
@@ -333,10 +330,7 @@ const PdpTwo = () => {
     (event, newValue) => {
       setActiveTab(newValue);
       setQueryParams(
-        {
-          tab: tabMap[newValue],
-          q: searchQuery,
-        },
+        { tab: tabMap[newValue], q: searchQuery },
         { retain: true },
       );
     },
@@ -347,10 +341,7 @@ const PdpTwo = () => {
     (newSearchQuery) => {
       setSearchQuery(newSearchQuery);
       setQueryParams(
-        {
-          tab: tabMap[activeTab],
-          q: newSearchQuery,
-        },
+        { tab: tabMap[activeTab], q: newSearchQuery },
         { retain: true },
       );
     },
@@ -392,16 +383,6 @@ const PdpTwo = () => {
     return false;
   }, []);
 
-  const handleConfirmationRequest = useCallback(
-    (action, itemName, formData) => {
-      setConfirmAction(action);
-      setConfirmItemName(itemName);
-      setPendingFormData(formData);
-      setConfirmOpen(true);
-    },
-    [],
-  );
-
   const handleActionConfirm = async () => {
     if (!confirmAction || !pendingFormData) return;
 
@@ -409,8 +390,8 @@ const PdpTwo = () => {
 
     try {
       const payload = {
-        id: pendingFormData.taskId || selectedEntry?.id,
-        data: pendingFormData.data || pendingFormData,
+        id: selectedEntry?.id,
+        data: pendingFormData,
       };
 
       if (confirmAction === "draft") {
@@ -419,36 +400,23 @@ const PdpTwo = () => {
           variant: "success",
           autoHideDuration: 2000,
         });
-      } else if (confirmAction === "update") {
+      } else if (
+        confirmAction === "update" ||
+        confirmAction === "submit" ||
+        confirmAction === "approve" ||
+        confirmAction === "reject" ||
+        confirmAction === "resubmit"
+      ) {
         await submitPdpTwo(payload).unwrap();
-        enqueueSnackbar("PDP 2 updated successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-      } else if (confirmAction === "submit") {
-        await submitPdpTwo(payload).unwrap();
-        enqueueSnackbar("PDP 2 submitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-      } else if (confirmAction === "approve") {
-        await submitPdpTwo(payload).unwrap();
-        enqueueSnackbar("PDP 2 approved successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-      } else if (confirmAction === "reject") {
-        await submitPdpTwo(payload).unwrap();
-        enqueueSnackbar("PDP 2 rejected successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-      } else if (confirmAction === "resubmit") {
-        await submitPdpTwo(payload).unwrap();
-        enqueueSnackbar("PDP 2 resubmitted successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
+        enqueueSnackbar(
+          `PDP 2 ${
+            confirmAction === "update" ? "updated" : confirmAction + "ted"
+          } successfully!`,
+          {
+            variant: "success",
+            autoHideDuration: 2000,
+          },
+        );
       } else if (confirmAction === "cancel") {
         enqueueSnackbar("PDP 2 cancelled successfully!", {
           variant: "success",
@@ -464,13 +432,10 @@ const PdpTwo = () => {
         pendingFormData.onSuccess();
       }
     } catch (error) {
-      let errorMessage = `Failed to ${confirmAction}. Please try again.`;
-
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        `Failed to ${confirmAction}. Please try again.`;
 
       enqueueSnackbar(errorMessage, {
         variant: "error",
@@ -492,29 +457,23 @@ const PdpTwo = () => {
     setConfirmItemName("");
   }, []);
 
-  const handleApprove = useCallback(
-    async (entryId) => {
-      try {
-        handleRefreshDetails();
-        return true;
-      } catch (error) {
-        return false;
-      }
-    },
-    [handleRefreshDetails],
-  );
+  const handleApprove = useCallback(async () => {
+    try {
+      handleRefreshDetails();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleRefreshDetails]);
 
-  const handleReject = useCallback(
-    async (entryId) => {
-      try {
-        handleRefreshDetails();
-        return true;
-      } catch (error) {
-        return false;
-      }
-    },
-    [handleRefreshDetails],
-  );
+  const handleReject = useCallback(async () => {
+    try {
+      handleRefreshDetails();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleRefreshDetails]);
 
   const handleCancel = useCallback(
     async (entryId, cancellationReason = "") => {
@@ -523,23 +482,17 @@ const PdpTwo = () => {
           variant: "success",
           autoHideDuration: 2000,
         });
-
         handleRefreshDetails();
         return true;
       } catch (error) {
-        let errorMessage = "Failed to cancel PDP 2. Please try again.";
-
-        if (error?.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to cancel PDP 2. Please try again.";
         enqueueSnackbar(errorMessage, {
           variant: "error",
           autoHideDuration: 3000,
         });
-
         return false;
       }
     },
@@ -638,14 +591,10 @@ const PdpTwo = () => {
     ],
   );
 
-  const a11yProps = (index) => {
-    return {
-      id: `pdp-two-tab-${index}`,
-      "aria-controls": `pdp-two-tabpanel-${index}`,
-    };
-  };
-
-  const isLoadingState = isLoading;
+  const a11yProps = (index) => ({
+    id: `pdp-two-tab-${index}`,
+    "aria-controls": `pdp-two-tabpanel-${index}`,
+  });
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -679,7 +628,7 @@ const PdpTwo = () => {
               setSearchQuery={handleSearchChange}
               dateFilters={apiDateFilters}
               onFilterClick={handleFilterClick}
-              isLoading={isLoadingState}
+              isLoading={isLoading}
             />
           </Box>
 

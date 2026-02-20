@@ -363,9 +363,6 @@ const MDAFormModal = ({
         selectedEntry?.result?.id ||
         selectedEntry?.id;
 
-      console.log("Selected Entry:", selectedEntry);
-      console.log("Data Change ID:", dataChangeId);
-
       if (!dataChangeId) {
         alert("Data Change ID not found");
         setIsPrintLoading(false);

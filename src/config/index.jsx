@@ -70,6 +70,7 @@ import { calculateCounts } from "./NotificationBadge";
 import PublicIcon from "@mui/icons-material/Public";
 import DynamicFormIcon from "@mui/icons-material/DynamicForm";
 import DownloadingIcon from "@mui/icons-material/Downloading";
+import Filter2Icon from "@mui/icons-material/Filter2";
 
 export const createEnhancedModules = (dashboardData = {}) => {
   const counts = calculateCounts(dashboardData);
@@ -107,6 +108,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
+
     EMPLOYEES: {
       name: "Employees",
       permissionId: "EMPLOYEES",
@@ -138,6 +140,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
+
     RECEIVING: {
       name: "Receiving",
       permissionId: "RECEIVING",
@@ -152,7 +155,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Manpower Form",
           path: "pendingforms",
           icon: <NoteAddIcon sx={iconStyles.child} />,
-
           notificationCount: counts.pendingMrfReceiving,
         },
         DAFORMRECEIVING: {
@@ -161,7 +163,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Form",
           path: "daformreceiving",
           icon: <DescriptionIcon sx={iconStyles.child} />,
-
           notificationCount: counts.daReceiving,
         },
       },
@@ -395,8 +396,17 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.daPdpApprovals,
         },
+        PDPTWOAPPROVAL: {
+          name: "PDP 2",
+          permissionId: "APPROVING.PDPTWOAPPROVAL",
+          displayName: "PDP 2",
+          path: "pdptwoapproval",
+          icon: <Filter2Icon sx={iconStyles.child} />,
+          notificationCount: counts.daPdpTwoApprovals || 0,
+        },
       },
     },
+
     REQUEST: {
       name: "Requisition Form",
       permissionId: "REQUEST",
@@ -535,9 +545,28 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "biannualperformance",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: 0,
+          children: {
+            RANKANDFILE: {
+              name: "Rank and File",
+              permissionId: "REQUEST.BIANNUALPERFORMANCE.RANKANDFILE",
+              displayName: "Rank and File",
+              path: "rankandfile",
+              icon: <AssessmentIcon sx={iconStyles.child} />,
+              notificationCount: 0,
+            },
+            SUPERVISORYLEVEL: {
+              name: "Supervisory Level",
+              permissionId: "REQUEST.BIANNUALPERFORMANCE.SUPERVISORYLEVEL",
+              displayName: "Supervisory Level",
+              path: "supervisorylevel",
+              icon: <AssessmentIcon sx={iconStyles.child} />,
+              notificationCount: 0,
+            },
+          },
         },
       },
     },
+
     REQUESTMONITORING: {
       name: "Request Monitoring",
       permissionId: "REQUESTMONITORING",
@@ -552,7 +581,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MRF (HR)",
           path: "mrfmonitoring",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
-
           notificationCount: 0,
         },
         DATACHANGEMONITORING: {
@@ -561,7 +589,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Data Change (HR)",
           path: "datachangemonitoring",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
-
           notificationCount: counts.hrDataChangeMda,
         },
         MDAMONITORING: {
@@ -570,7 +597,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (HR)",
           path: "mdamonitoring",
           icon: <VerifiedIcon sx={iconStyles.child} />,
-
           notificationCount: counts.hrDaMda + counts.hrEvaluationMda,
         },
       },
@@ -603,12 +629,10 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "KPI",
           path: "kpi",
           icon: <VpnKeyIcon sx={iconStyles.child} />,
-
           notificationCount: 0,
         },
       },
     },
-    // In the DEVELOPMENTALASSIGNMENT section, add PDPTWO after PDP:
 
     DEVELOPMENTALASSIGNMENT: {
       name: "DA Tasks",
@@ -972,4 +996,5 @@ export const CONSTANT = {
     },
   },
 };
+
 export default CONSTANT;

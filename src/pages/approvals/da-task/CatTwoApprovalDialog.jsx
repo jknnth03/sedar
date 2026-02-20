@@ -17,6 +17,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import HelpIcon from "@mui/icons-material/Help";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 
 const CatTwoApprovalDialog = ({
   open,
@@ -24,14 +25,17 @@ const CatTwoApprovalDialog = ({
   approval,
   onApprove,
   onReturn,
+  onCreatePdpTwo,
   isLoading = false,
   isLoadingData = false,
+  isCreatingPdpTwo = false,
 }) => {
   const [correctionRemarks, setCorrectionRemarks] = useState("");
   const [actionType, setActionType] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [correctionRemarksError, setCorrectionRemarksError] = useState(false);
+  const [pdpConfirmOpen, setPdpConfirmOpen] = useState(false);
 
   const handleApprove = () => {
     setActionType("approve");
@@ -64,6 +68,15 @@ const CatTwoApprovalDialog = ({
     }
   };
 
+  const handleCreatePdpTwo = () => {
+    setPdpConfirmOpen(true);
+  };
+
+  const handlePdpConfirm = async () => {
+    setPdpConfirmOpen(false);
+    await onCreatePdpTwo();
+  };
+
   const handleClose = () => {
     onClose();
     handleReset();
@@ -90,7 +103,6 @@ const CatTwoApprovalDialog = ({
     if (!ratingId || !ratingScale) return "#9e9e9e";
     const rating = ratingScale.find((r) => r.id === ratingId);
     if (!rating) return "#9e9e9e";
-
     const label = rating.label.toLowerCase();
     if (label.includes("exceeds")) return "#28a745";
     if (label.includes("meets")) return "#ffc107";
@@ -98,8 +110,12 @@ const CatTwoApprovalDialog = ({
     return "#9e9e9e";
   };
 
-  const status = approval?.status?.toLowerCase() || "pending";
-  const isProcessed = status === "approved" || status === "returned";
+  const status = approval?.status || "";
+  const isProcessed = status === "FINAL_COMPLETE";
+  const isFailed = approval?.is_failed === true;
+  const canCreatePdpTwo = approval?.actions?.can_create_pdp2 === true;
+  const pdpTwoAlreadyCreated = isFailed && !canCreatePdpTwo;
+
   const template = approval?.template || {};
   const ratingScale = template.rating_scale || [];
   const sections = template.sections || [];
@@ -120,12 +136,7 @@ const CatTwoApprovalDialog = ({
   );
 
   const renderSkeletonSection = (title, rows = 2) => (
-    <Box
-      sx={{
-        backgroundColor: "#ffffff",
-        p: 3,
-        mb: 0,
-      }}>
+    <Box sx={{ backgroundColor: "#ffffff", p: 3, mb: 0 }}>
       <Skeleton variant="text" width="30%" height={24} sx={{ mb: 2 }} />
       {Array.from({ length: rows }).map((_, index) => (
         <React.Fragment key={index}>{renderSkeletonRow()}</React.Fragment>
@@ -280,7 +291,9 @@ const CatTwoApprovalDialog = ({
                           fontSize: "13px",
                           fontWeight: 700,
                         }}>
-                        {approval?.employee_name || "N/A"}
+                        {approval?.employee?.employee_name ||
+                          approval?.employee_name ||
+                          "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -302,7 +315,9 @@ const CatTwoApprovalDialog = ({
                           fontSize: "13px",
                           fontWeight: 700,
                         }}>
-                        {approval?.superior_name || "N/A"}
+                        {approval?.superior?.name ||
+                          approval?.superior_name ||
+                          "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -324,7 +339,9 @@ const CatTwoApprovalDialog = ({
                           fontSize: "13px",
                           fontWeight: 700,
                         }}>
-                        {approval?.department || "N/A"}
+                        {approval?.employee?.department ||
+                          approval?.department ||
+                          "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -370,7 +387,7 @@ const CatTwoApprovalDialog = ({
                           fontSize: "13px",
                           fontWeight: 700,
                         }}>
-                        {template.name || "N/A"}
+                        {template.name || approval?.name || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -378,13 +395,7 @@ const CatTwoApprovalDialog = ({
               </Box>
 
               <Box
-                sx={{
-                  backgroundColor: "#ffffff",
-                  px: 4,
-                  pt: 2,
-                  pb: 3,
-                  mb: 0,
-                }}>
+                sx={{ backgroundColor: "#ffffff", px: 4, pt: 2, pb: 3, mb: 0 }}>
                 <Typography
                   variant="subtitle2"
                   sx={{
@@ -407,7 +418,7 @@ const CatTwoApprovalDialog = ({
                           sx={{
                             backgroundColor: getRatingColor(
                               rating.id,
-                              ratingScale
+                              ratingScale,
                             ),
                             color: "white",
                             fontWeight: 600,
@@ -420,21 +431,30 @@ const CatTwoApprovalDialog = ({
                   </Box>
                 )}
 
-                {sections.map((section) => (
-                  <Box key={section.id} sx={{ mb: 3 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        color: "rgb(33, 61, 112)",
-                        mb: 2,
-                        fontSize: "13px",
-                      }}>
-                      {section.title}
-                    </Typography>
-                    {section.items.map((item) => renderItem(item))}
-                  </Box>
-                ))}
+                {sections.length > 0 ? (
+                  sections.map((section) => (
+                    <Box key={section.id} sx={{ mb: 3 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "rgb(33, 61, 112)",
+                          mb: 2,
+                          fontSize: "13px",
+                        }}>
+                        {section.title}
+                      </Typography>
+                      {section.items.map((item) => renderItem(item))}
+                    </Box>
+                  ))
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ textAlign: "center", py: 2 }}>
+                    No assessment details available
+                  </Typography>
+                )}
               </Box>
 
               {isProcessed && (
@@ -449,7 +469,9 @@ const CatTwoApprovalDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={{ fontSize: "16px" }}>
-                    This Category 2 request has already been {status}
+                    {pdpTwoAlreadyCreated
+                      ? "PDP II has been created."
+                      : "This Category 2 request has already been approved."}
                   </Typography>
                 </Box>
               )}
@@ -458,13 +480,7 @@ const CatTwoApprovalDialog = ({
         </DialogContent>
 
         <DialogActions
-          sx={{
-            px: 4.4,
-            pb: 2,
-            pt: 2,
-            justifyContent: "flex-end",
-            gap: 2,
-          }}>
+          sx={{ px: 4.4, pb: 2, pt: 2, justifyContent: "flex-end", gap: 2 }}>
           {!isLoadingData && !isProcessed && (
             <>
               <Button
@@ -479,9 +495,7 @@ const CatTwoApprovalDialog = ({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#c82333",
-                  },
+                  "&:hover": { backgroundColor: "#c82333" },
                 }}
                 disabled={isLoading}
                 startIcon={
@@ -507,9 +521,7 @@ const CatTwoApprovalDialog = ({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#218838",
-                  },
+                  "&:hover": { backgroundColor: "#218838" },
                 }}
                 disabled={isLoading}
                 startIcon={
@@ -524,6 +536,33 @@ const CatTwoApprovalDialog = ({
                   : "APPROVE"}
               </Button>
             </>
+          )}
+
+          {!isLoadingData && isProcessed && canCreatePdpTwo && (
+            <Button
+              onClick={handleCreatePdpTwo}
+              variant="contained"
+              sx={{
+                backgroundColor: "rgb(33, 61, 112)",
+                color: "white",
+                minWidth: "140px",
+                height: "40px",
+                fontSize: "14px",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                borderRadius: 1,
+                "&:hover": { backgroundColor: "rgb(25, 48, 90)" },
+              }}
+              disabled={isCreatingPdpTwo}
+              startIcon={
+                isCreatingPdpTwo ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <AddCircleOutlineIcon />
+                )
+              }>
+              {isCreatingPdpTwo ? "Creating..." : "CREATE PDP II"}
+            </Button>
           )}
         </DialogActions>
       </Dialog>
@@ -592,11 +631,7 @@ const CatTwoApprovalDialog = ({
                 correctionRemarksError ? "Correction remarks is required" : ""
               }
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                },
-              }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
             />
           )}
         </DialogContent>
@@ -641,6 +676,89 @@ const CatTwoApprovalDialog = ({
                 "APPROVE"
               ) : (
                 "RETURN"
+              )}
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={pdpConfirmOpen}
+        onClose={() => setPdpConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          },
+        }}>
+        <DialogTitle sx={{ textAlign: "center", pt: 3 }}>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            mb={2}>
+            <HelpIcon sx={{ fontSize: 60, color: "#ff4400" }} />
+          </Box>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            textAlign="center"
+            sx={{ color: "#213d70", fontSize: "18px" }}>
+            Confirm Create PDP II
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ textAlign: "center", px: 3 }}>
+          <Typography
+            variant="body1"
+            gutterBottom
+            sx={{ fontSize: "14px", mb: 2 }}>
+            Are you sure you want to create PDP II for this Category 2 request?
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: "13px", mb: 1 }}>
+            Category 2 Request ID: {approval?.id || "N/A"}
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: "center", pb: 3, px: 3 }}>
+          <Box display="flex" gap={2}>
+            <Button
+              onClick={() => setPdpConfirmOpen(false)}
+              variant="outlined"
+              sx={{
+                borderRadius: 2,
+                minWidth: 80,
+                height: "40px",
+                borderColor: "#dc3545",
+                color: "#dc3545",
+                "&:hover": {
+                  borderColor: "#c82333",
+                  backgroundColor: "rgba(220, 53, 69, 0.04)",
+                },
+              }}
+              disabled={isCreatingPdpTwo}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePdpConfirm}
+              variant="contained"
+              sx={{
+                borderRadius: 2,
+                minWidth: 80,
+                height: "40px",
+                backgroundColor: "rgb(33, 61, 112)",
+                "&:hover": { backgroundColor: "rgb(25, 48, 90)" },
+              }}
+              disabled={isCreatingPdpTwo}>
+              {isCreatingPdpTwo ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "CONFIRM"
               )}
             </Button>
           </Box>
