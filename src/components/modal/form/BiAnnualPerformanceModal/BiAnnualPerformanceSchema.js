@@ -3,21 +3,9 @@ import * as yup from "yup";
 export const biAnnualPerformanceSchema = yup.object().shape({
   employee_id: yup.number().nullable().required("Employee is required"),
 
-  employee_name: yup.string().required("Employee name is required"),
+  year: yup.mixed().nullable().required("Year is required"),
 
-  employee_code: yup.string().required("Employee ID number is required"),
-
-  position_title: yup.string().required("Position title is required"),
-
-  evaluation_period_start_date: yup
-    .mixed()
-    .nullable()
-    .required("Evaluation period start date is required"),
-
-  evaluation_period_end_date: yup
-    .mixed()
-    .nullable()
-    .required("Evaluation period end date is required"),
+  position_history_id: yup.number().nullable().required("Position is required"),
 
   kpis: yup
     .array()
@@ -38,7 +26,7 @@ export const biAnnualPerformanceSchema = yup.object().shape({
           .required("Actual performance is required")
           .matches(/^[0-9]+(\.[0-9]+)?$/, "Only numbers are allowed"),
         remarks: yup.string().nullable(),
-      })
+      }),
     )
     .min(1, "At least one KPI is required")
     .required("KPIs are required"),
@@ -80,7 +68,7 @@ export const biAnnualPerformanceSchema = yup.object().shape({
               .nullable()
               .required("Rating is required"),
             rating_scale_name: yup.string().nullable(),
-          })
+          }),
         )
         .min(1, "At least one competency rating is required")
         .test(
@@ -90,9 +78,10 @@ export const biAnnualPerformanceSchema = yup.object().shape({
             if (!answers || answers.length === 0) return false;
             return answers.every(
               (answer) =>
-                answer.rating_scale_id !== null && answer.rating_scale_id !== ""
+                answer.rating_scale_id !== null &&
+                answer.rating_scale_id !== "",
             );
-          }
+          },
         )
         .required("Competency assessment is required"),
     })

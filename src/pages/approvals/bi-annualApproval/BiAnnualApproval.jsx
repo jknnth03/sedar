@@ -289,7 +289,7 @@ const BiAnnualApprovalTable = ({
                       ? "180px"
                       : "220px",
                 }}>
-                PERIOD
+                JOB BAND
               </TableCell>
               <TableCell
                 sx={{
@@ -300,7 +300,7 @@ const BiAnnualApprovalTable = ({
                       ? "180px"
                       : "220px",
                 }}>
-                {isVerySmall ? "SUBMITTED BY" : "SUBMITTED BY"}
+                SUBMITTED BY
               </TableCell>
               <TableCell
                 sx={{
@@ -379,7 +379,7 @@ const BiAnnualApprovalTable = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
-                      {approval.period || "-"}
+                      {approval.job_band || "-"}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -575,9 +575,7 @@ const BiAnnualApproval = () => {
       } catch (error) {
         enqueueSnackbar(
           error?.data?.message || "Failed to approve performance evaluation",
-          {
-            variant: "error",
-          },
+          { variant: "error" },
         );
       }
     },
@@ -604,9 +602,7 @@ const BiAnnualApproval = () => {
       } catch (error) {
         enqueueSnackbar(
           error?.data?.message || "Failed to return performance evaluation",
-          {
-            variant: "error",
-          },
+          { variant: "error" },
         );
       }
     },
@@ -645,12 +641,10 @@ const BiAnnualApproval = () => {
     },
   ];
 
-  const a11yProps = (index) => {
-    return {
-      id: `biannual-approval-tab-${index}`,
-      "aria-controls": `biannual-approval-tabpanel-${index}`,
-    };
-  };
+  const a11yProps = (index) => ({
+    id: `biannual-approval-tab-${index}`,
+    "aria-controls": `biannual-approval-tabpanel-${index}`,
+  });
 
   return (
     <FormProvider {...methods}>
@@ -675,8 +669,8 @@ const BiAnnualApproval = () => {
                 paddingRight: "14px",
               }}>
               {isVerySmall
-                ? "PERFORMANCE EVAL"
-                : "PERFORMANCE EVALUATION APPROVAL"}
+                ? "ANNUAL PERFORMACNCE APPROVALS"
+                : "ANNUAL PERFORMANCE EVALUATION APPROVALS"}
             </Typography>
           </Box>
 
@@ -691,7 +685,7 @@ const BiAnnualApproval = () => {
           <StyledTabs
             value={activeTab}
             onChange={handleTabChange}
-            aria-label="Performance Evaluation Approval tabs"
+            aria-label="Annual Performance Evaluation Approval tabs"
             variant="scrollable"
             scrollButtons="auto"
             allowScrollButtonsMobile

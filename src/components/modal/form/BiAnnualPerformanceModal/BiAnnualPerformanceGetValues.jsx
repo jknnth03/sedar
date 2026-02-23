@@ -5,9 +5,11 @@ export const getCreateModeInitialValues = () => {
     employee_id: null,
     employee_name: "",
     employee_code: "",
+    position_history_id: null,
     position_title: "",
-    evaluation_period_start_date: null,
-    evaluation_period_end_date: null,
+    year: null,
+    start_date: "",
+    end_date: "",
     kpis: [],
     strengths_discussion: "",
     development_discussion: "",
@@ -32,27 +34,23 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const employee = submittable.employee || {};
 
   const employeeCode =
-    employee.code || employee.employee_code || employee.id_number || "";
-  const employeeName = employee.full_name || employee.employee_name || "";
+    employee.id_number || employee.code || employee.employee_code || "";
+  const employeeName =
+    employee.name || employee.full_name || employee.employee_name || "";
   const positionTitle =
-    employee.position?.position?.title?.name ||
-    employee.position_title ||
-    employee.current_position?.title ||
-    employee.position?.title?.name ||
-    "";
+    typeof employee.position === "string"
+      ? employee.position
+      : employee.position?.title?.name || employee.position_title || "";
 
-  const startDate = submittable.evaluation_period_start_date
-    ? dayjs(submittable.evaluation_period_start_date)
-    : null;
-  const endDate = submittable.evaluation_period_end_date
-    ? dayjs(submittable.evaluation_period_end_date)
+  const year = submittable.evaluation_year
+    ? dayjs().year(submittable.evaluation_year)
     : null;
 
-  const kpis = Array.isArray(submittable.objectives)
-    ? submittable.objectives.map((kpi) => ({
+  const kpis = Array.isArray(submittable.kpis)
+    ? submittable.kpis.map((kpi) => ({
         source_kpi_id: kpi.source_kpi_id || kpi.id || null,
         objective_id: kpi.objective_id || null,
-        objective_name: kpi.objective_name || kpi.objective?.name || "",
+        objective_name: kpi.objective_name || "",
         deliverable: kpi.deliverable || "",
         distribution_percentage: kpi.distribution_percentage || 0,
         target_percentage: kpi.target_percentage || 0,
@@ -70,8 +68,8 @@ export const getViewEditModeFormData = (selectedEntry) => {
     const compAssessment = submittable.competency_assessment;
 
     const templateId =
-      compAssessment.assessment_template_id ||
       compAssessment.template_id ||
+      compAssessment.assessment_template_id ||
       compAssessment.template?.id ||
       null;
 
@@ -119,7 +117,13 @@ export const getViewEditModeFormData = (selectedEntry) => {
       template_id: templateId,
       answers: answers,
       assessment_template_id: compAssessment.assessment_template_id || null,
-      template: compAssessment.template || null,
+      template: {
+        ...(compAssessment.template || {}),
+        rating_scale:
+          compAssessment.rating_scale ||
+          compAssessment.template?.rating_scale ||
+          [],
+      },
       sections: compAssessment.sections || null,
     };
   }
@@ -132,26 +136,38 @@ export const getViewEditModeFormData = (selectedEntry) => {
     employee_id: submittable.employee_id || employee.id || null,
     employee_name: employeeName,
     employee_code: employeeCode,
+    position_history_id:
+      submittable.history_id || submittable.position_history_id || null,
     position_title: positionTitle,
-    evaluation_period_start_date: startDate,
-    evaluation_period_end_date: endDate,
+    year: year,
+    start_date: submittable.period_start || submittable.start_date || "",
+    end_date: submittable.period_end || submittable.end_date || "",
     kpis: kpis,
-    strengths_discussion: submittable.strengths_discussion || "",
-    development_discussion: submittable.development_discussion || "",
-    learning_needs_discussion: submittable.learning_needs_discussion || "",
+    strengths_discussion:
+      submittable.discussions?.strengths ||
+      submittable.discussions?.strengths_areas ||
+      submittable.strengths_discussion ||
+      "",
+    development_discussion:
+      submittable.discussions?.development_areas ||
+      submittable.discussions?.development_needs ||
+      submittable.development_discussion ||
+      "",
+    learning_needs_discussion:
+      submittable.discussions?.learning_needs ||
+      submittable.learning_needs_discussion ||
+      "",
     competency_assessment: competencyAssessment,
     demerits: demerits,
   };
 };
 
 export const formatFormDataForSubmission = (formData) => {
-  const formatDate = (date) => {
-    if (!date) return null;
-    if (dayjs.isDayjs(date)) {
-      return date.format("YYYY-MM-DD");
-    }
-    return dayjs(date).format("YYYY-MM-DD");
-  };
+  const yearValue = formData.year
+    ? dayjs.isDayjs(formData.year)
+      ? formData.year.year()
+      : Number(formData.year)
+    : null;
 
   const formattedKpis = Array.isArray(formData.kpis)
     ? formData.kpis.map((kpi) => ({
@@ -177,14 +193,14 @@ export const formatFormDataForSubmission = (formData) => {
 
   const payload = {
     employee_id: formData.employee_id,
-    evaluation_period_start_date: formatDate(
-      formData.evaluation_period_start_date,
-    ),
-    evaluation_period_end_date: formatDate(formData.evaluation_period_end_date),
+    evaluation_year: yearValue,
+    employee_position_history_id: formData.position_history_id || null,
     kpis: formattedKpis,
-    strengths_discussion: formData.strengths_discussion || "",
-    development_discussion: formData.development_discussion || "",
-    learning_needs_discussion: formData.learning_needs_discussion || "",
+    discussions: {
+      strengths: formData.strengths_discussion || "",
+      development_areas: formData.development_discussion || "",
+      learning_needs: formData.learning_needs_discussion || "",
+    },
     competency_assessment: {
       template_id: formData.competency_assessment?.template_id || null,
       answers: formattedCompetencyAnswers,
@@ -212,12 +228,12 @@ export const validateFormData = (formData) => {
     errors.push("Employee is required");
   }
 
-  if (!formData.evaluation_period_start_date) {
-    errors.push("Evaluation start date is required");
+  if (!formData.year) {
+    errors.push("Year is required");
   }
 
-  if (!formData.evaluation_period_end_date) {
-    errors.push("Evaluation end date is required");
+  if (!formData.position_history_id) {
+    errors.push("Position is required");
   }
 
   if (!Array.isArray(formData.kpis) || formData.kpis.length === 0) {
@@ -260,11 +276,9 @@ export const resetFormSection = (section) => {
       employee_id: null,
       employee_name: "",
       employee_code: "",
+      position_history_id: null,
       position_title: "",
-    },
-    dates: {
-      evaluation_period_start_date: null,
-      evaluation_period_end_date: null,
+      year: null,
     },
     kpis: {
       kpis: [],

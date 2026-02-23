@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -102,14 +102,12 @@ const BiAnnualApprovalDialog = ({
     return null;
   }
 
-  const formDetails = approval?.form_details || {};
-  const discussions = formDetails?.discussions || {};
-  const scores = formDetails?.scores || {};
+  const submission = approval?.submission || {};
+  const formDetails = submission?.form_details || {};
   const kpis = formDetails?.kpis || [];
-  const demerits = formDetails?.demerits || [];
-  const competencyAssessment = formDetails?.competency_assessment || {};
-  const approvalHistory = approval?.approval_history || [];
-  const activityLog = approval?.activity_log || [];
+  const discussions = formDetails?.discussions || {};
+  const competencyAssessment = formDetails?.competency_assessment || null;
+  const competencyTemplate = competencyAssessment?.template || null;
 
   const renderSkeletonField = () => (
     <Box sx={styles.fieldBoxStyles}>
@@ -198,7 +196,7 @@ const BiAnnualApprovalDialog = ({
   };
 
   const renderCompetencyAssessment = () => {
-    if (!competencyAssessment?.template) {
+    if (!competencyAssessment || !competencyTemplate) {
       return (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
           No competency assessment available
@@ -206,21 +204,21 @@ const BiAnnualApprovalDialog = ({
       );
     }
 
-    const template = competencyAssessment.template;
+    const ratingScale = competencyTemplate?.rating_scale || [];
+    const sections = competencyTemplate?.sections || [];
+
+    const getRatingLabel = (ratingId) => {
+      const found = ratingScale.find((r) => r.id === ratingId);
+      return found ? found.label : null;
+    };
 
     return (
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          {template.name}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mb: 2 }}>
-          Status: {competencyAssessment.status?.replace(/_/g, " ")}
+          {competencyTemplate?.name || "Competency Assessment"}
         </Typography>
 
-        {template.sections?.map((section, sectionIndex) => (
+        {sections.map((section, sectionIndex) => (
           <Accordion key={section.id} defaultExpanded={sectionIndex === 0}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -238,105 +236,58 @@ const BiAnnualApprovalDialog = ({
                         {item.text}
                       </Typography>
                     )}
-                    {item.children?.map((child) => (
-                      <Box
-                        key={child.id}
-                        sx={{
-                          pl: 2,
-                          py: 0.5,
-                          borderLeft: "2px solid #e0e0e0",
-                          ml: 1,
-                          mb: 1,
-                        }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {child.text}
-                        </Typography>
-                        {child.rating_id && (
-                          <Chip
-                            label={
-                              template.rating_scale?.find(
-                                (r) => r.id === child.rating_id
-                              )?.label || "Not Rated"
-                            }
-                            size="small"
-                            sx={{ mt: 0.5, fontSize: "0.7rem" }}
-                          />
-                        )}
-                      </Box>
-                    ))}
+                    {item.children?.map((child) => {
+                      const ratingLabel = child.rating_id
+                        ? getRatingLabel(child.rating_id)
+                        : null;
+
+                      return (
+                        <Box
+                          key={child.id}
+                          sx={{
+                            pl: 2,
+                            py: 0.5,
+                            borderLeft: "2px solid #e0e0e0",
+                            ml: 1,
+                            mb: 1,
+                          }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {child.text}
+                          </Typography>
+                          {ratingLabel ? (
+                            <Chip
+                              label={ratingLabel}
+                              size="small"
+                              sx={{ mt: 0.5, fontSize: "0.7rem" }}
+                            />
+                          ) : (
+                            <Chip
+                              label="Not Rated"
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                mt: 0.5,
+                                fontSize: "0.7rem",
+                                color: "#999",
+                              }}
+                            />
+                          )}
+                          {child.comments && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: "block", mt: 0.5 }}>
+                              {child.comments}
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Box>
                 ))}
               </Box>
             </AccordionDetails>
           </Accordion>
-        ))}
-      </Box>
-    );
-  };
-
-  const renderApprovalHistory = () => {
-    if (!approvalHistory || approvalHistory.length === 0) {
-      return (
-        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-          No approval history available
-        </Typography>
-      );
-    }
-
-    return (
-      <Box sx={{ mt: 2 }}>
-        {approvalHistory.map((history) => (
-          <Box
-            key={history.id}
-            sx={{
-              p: 2,
-              mb: 1,
-              border: "1px solid #e0e0e0",
-              borderRadius: 1,
-              backgroundColor: history.is_current ? "#f0f7ff" : "transparent",
-            }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 1,
-              }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {history.approver?.full_name || "N/A"}
-              </Typography>
-              <Chip
-                label={history.status}
-                size="small"
-                color={
-                  history.status === "APPROVED"
-                    ? "success"
-                    : history.status === "REJECTED"
-                    ? "error"
-                    : "warning"
-                }
-              />
-            </Box>
-            <Typography variant="caption" color="text.secondary">
-              Round: {history.approval_round}
-              {history.is_current && " (Current)"}
-            </Typography>
-            {history.reason && (
-              <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-                Reason: {history.reason}
-              </Typography>
-            )}
-            {history.comments && (
-              <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-                Comments: {history.comments}
-              </Typography>
-            )}
-            {history.completed_at && (
-              <Typography variant="caption" color="text.secondary">
-                Completed: {formatDate(history.completed_at)}
-              </Typography>
-            )}
-          </Box>
         ))}
       </Box>
     );
@@ -371,7 +322,6 @@ const BiAnnualApprovalDialog = ({
             </>
           ) : (
             <>
-              {/* Request Information */}
               <Box sx={styles.sectionBoxStyles}>
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
                   Request Information
@@ -449,14 +399,10 @@ const BiAnnualApprovalDialog = ({
                       <Typography
                         variant="caption"
                         sx={styles.fieldLabelStyles}>
-                        EVALUATION PERIOD
+                        EVALUATION YEAR
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {formDetails?.period
-                          ? `${formatDate(
-                              formDetails.period.start_date
-                            )} - ${formatDate(formDetails.period.end_date)}`
-                          : "N/A"}
+                        {formDetails?.evaluation_year || "N/A"}
                       </Typography>
                     </Box>
                     <Box sx={styles.fieldBoxStyles}>
@@ -466,17 +412,25 @@ const BiAnnualApprovalDialog = ({
                         SUBMITTED BY
                       </Typography>
                       <Typography variant="body2" sx={styles.fieldValueStyles}>
-                        {approval?.requested_by || "N/A"}
+                        {submission?.requested_by || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={styles.fieldBoxStyles}></Box>
+                    <Box sx={styles.fieldBoxStyles}>
+                      <Typography
+                        variant="caption"
+                        sx={styles.fieldLabelStyles}>
+                        DATE SUBMITTED
+                      </Typography>
+                      <Typography variant="body2" sx={styles.fieldValueStyles}>
+                        {formatDate(submission?.created_at)}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
               </Box>
 
               <Divider sx={{ my: 3 }} />
 
-              {/* KPIs Section */}
               <Box sx={styles.sectionBoxStyles}>
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
                   Key Performance Indicators (KPIs)
@@ -486,7 +440,6 @@ const BiAnnualApprovalDialog = ({
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Performance Discussions Section */}
               <Box sx={styles.sectionBoxStyles}>
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
                   Performance Discussions
@@ -527,7 +480,6 @@ const BiAnnualApprovalDialog = ({
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Competency Assessment Section */}
               <Box sx={styles.sectionBoxStyles}>
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
                   Competency Assessment

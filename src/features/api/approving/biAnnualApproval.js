@@ -16,6 +16,7 @@ const biAnnualApprovalApi = sedarApi
             status = "active",
             approval_status,
             search,
+            period,
             ...otherParams
           } = params;
 
@@ -31,6 +32,10 @@ const biAnnualApprovalApi = sedarApi
 
           if (search && search.trim() !== "") {
             queryParams.append("search", search.trim());
+          }
+
+          if (period) {
+            queryParams.append("period", period);
           }
 
           Object.entries(otherParams).forEach(([key, value]) => {
@@ -83,7 +88,7 @@ const biAnnualApprovalApi = sedarApi
           try {
             await queryFulfilled;
             dispatch(
-              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"]),
             );
           } catch (err) {
             console.error("Failed to approve bi-annual submission:", err);
@@ -113,7 +118,7 @@ const biAnnualApprovalApi = sedarApi
           try {
             await queryFulfilled;
             dispatch(
-              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"]),
             );
           } catch (err) {
             console.error("Failed to reject bi-annual submission:", err);

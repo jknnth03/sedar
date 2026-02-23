@@ -3,10 +3,10 @@ import { Controller, useFormContext } from "react-hook-form";
 import { TextField, Box, Autocomplete, CircularProgress } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
-import { sectionTitleStyles } from "../DAForm/DAFormModal.styles";
 import {
   useGetProbationaryEmployeesQuery,
   useGetPerformanceEvaluationPrefillQuery,
+  useLazyGetPerformanceEvaluationPositionsQuery,
 } from "../../../../features/api/forms/biAnnualPerformanceApi";
 import FormSection, { KpiTable, CompetencyTable } from "./FormSection";
 
@@ -28,6 +28,8 @@ const BiAnnualPerformanceModalFields = ({
   const [competencyItems, setCompetencyItems] = useState([]);
   const [ratingScales, setRatingScales] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [positionOptions, setPositionOptions] = useState([]);
   const [employeeSearchInput, setEmployeeSearchInput] = useState("");
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
   const [templateId, setTemplateId] = useState(null);
@@ -42,11 +44,41 @@ const BiAnnualPerformanceModalFields = ({
     ? watch("employee_id")
     : formValues.employee_id;
 
+  const selectedYear = watch("year");
+
   const { data: prefillData, isLoading: isLoadingPrefill } =
     useGetPerformanceEvaluationPrefillQuery(
       { employee_id: selectedEmployeeId },
       { skip: !selectedEmployeeId },
     );
+
+  const [
+    fetchPositions,
+    { data: positionsData, isLoading: isLoadingPositions },
+  ] = useLazyGetPerformanceEvaluationPositionsQuery();
+
+  // Fetch positions when both employee and year are selected (create mode)
+  useEffect(() => {
+    if (isCreate && selectedEmployeeId && selectedYear) {
+      const year = dayjs.isDayjs(selectedYear)
+        ? selectedYear.year()
+        : selectedYear;
+      fetchPositions({ employee_id: selectedEmployeeId, year });
+    }
+  }, [isCreate, selectedEmployeeId, selectedYear, fetchPositions]);
+
+  // Populate position options from API response
+  useEffect(() => {
+    if (positionsData?.result && Array.isArray(positionsData.result)) {
+      setPositionOptions(positionsData.result);
+      // Reset position selection when options change
+      setSelectedPosition(null);
+      setValue("position_history_id", null);
+      setValue("position_title", "");
+      setValue("start_date", "");
+      setValue("end_date", "");
+    }
+  }, [positionsData, setValue]);
 
   useEffect(() => {
     if (!isCreate && formValues.kpis && Array.isArray(formValues.kpis)) {
@@ -116,7 +148,6 @@ const BiAnnualPerformanceModalFields = ({
         const empData = prefillData.result.employee;
         setValue("employee_code", empData.code || empData.id_number || "");
         setValue("employee_name", empData.full_name);
-        setValue("position_title", empData.position_title);
       }
 
       if (prefillData.result.kpis && Array.isArray(prefillData.result.kpis)) {
@@ -185,19 +216,22 @@ const BiAnnualPerformanceModalFields = ({
 
   const handleEmployeeChange = (event, newValue) => {
     setSelectedEmployee(newValue);
+    // Reset position when employee changes
+    setSelectedPosition(null);
+    setPositionOptions([]);
+    setValue("position_history_id", null);
+    setValue("position_title", "");
+    setValue("start_date", "");
+    setValue("end_date", "");
+
     if (newValue) {
       setValue("employee_id", newValue.id);
       setValue("employee_name", newValue.employee_name || newValue.full_name);
       setValue("employee_code", newValue.code || newValue.id_number || "");
-      setValue(
-        "position_title",
-        newValue.position_title || newValue.position?.title?.name,
-      );
     } else {
       setValue("employee_id", null);
       setValue("employee_name", "");
       setValue("employee_code", "");
-      setValue("position_title", "");
       setValue("kpis", []);
       setValue("demerits", []);
       setKpisList([]);
@@ -206,6 +240,21 @@ const BiAnnualPerformanceModalFields = ({
       setTemplateId(null);
       setSelectedEmployee(null);
       setKpiErrors({});
+    }
+  };
+
+  const handlePositionChange = (event, newValue) => {
+    setSelectedPosition(newValue);
+    if (newValue) {
+      setValue("position_history_id", newValue.history_id);
+      setValue("position_title", newValue.position_title);
+      setValue("start_date", newValue.start_date);
+      setValue("end_date", newValue.end_date);
+    } else {
+      setValue("position_history_id", null);
+      setValue("position_title", "");
+      setValue("start_date", "");
+      setValue("end_date", "");
     }
   };
 
@@ -309,14 +358,15 @@ const BiAnnualPerformanceModalFields = ({
               gridTemplateColumns: {
                 xs: "1fr",
                 sm: "1fr",
-                md: "repeat(3, 1fr)",
+                md: "repeat(2, 1fr)",
               },
               "@media (min-width: 900px)": {
-                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateColumns: "repeat(2, 1fr)",
               },
               gap: 2,
               mb: 2,
             }}>
+            {/* Employee Name */}
             <Box>
               {isCreate ? (
                 <Controller
@@ -327,7 +377,11 @@ const BiAnnualPerformanceModalFields = ({
                     <Autocomplete
                       {...field}
                       options={employeeOptions}
-                      getOptionLabel={(option) => option?.employee_name || ""}
+                      getOptionLabel={(option) => {
+                        const name = option?.employee_name || "";
+                        const code = option?.code || option?.id_number || "";
+                        return code ? `${name} - ${code}` : name;
+                      }}
                       value={selectedEmployee}
                       onChange={handleEmployeeChange}
                       inputValue={employeeSearchInput}
@@ -373,23 +427,133 @@ const BiAnnualPerformanceModalFields = ({
               ) : (
                 <TextField
                   label="Employee Name"
-                  value={formValues.employee_name || ""}
+                  value={
+                    formValues.employee_name && formValues.employee_code
+                      ? `${formValues.employee_name} - ${formValues.employee_code}`
+                      : formValues.employee_name || ""
+                  }
                   disabled
                   fullWidth
                   sx={{ bgcolor: "white" }}
                 />
               )}
             </Box>
+
+            {/* Year Picker */}
             <Box>
-              <TextField
-                label="ID Number"
-                value={formValues.employee_code || ""}
-                disabled
-                fullWidth
-                sx={{ bgcolor: "white" }}
-              />
+              {isCreate ? (
+                <Controller
+                  name="year"
+                  control={control}
+                  rules={{ required: "Year is required" }}
+                  render={({ field }) => (
+                    <DatePicker
+                      {...field}
+                      views={["year"]}
+                      value={
+                        field.value && dayjs.isDayjs(field.value)
+                          ? field.value
+                          : field.value
+                            ? dayjs().year(field.value)
+                            : null
+                      }
+                      onChange={(date) => {
+                        field.onChange(date);
+                        // Reset position when year changes
+                        setSelectedPosition(null);
+                        setValue("position_history_id", null);
+                        setValue("position_title", "");
+                        setValue("start_date", "");
+                        setValue("end_date", "");
+                      }}
+                      label={
+                        <span>
+                          Year <span style={{ color: "red" }}>*</span>
+                        </span>
+                      }
+                      disabled={isReadOnly}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          error: !!errors.year,
+                          helperText: errors.year?.message,
+                          sx: { bgcolor: "white" },
+                        },
+                      }}
+                    />
+                  )}
+                />
+              ) : (
+                <TextField
+                  label="Year"
+                  value={formValues.year || ""}
+                  disabled
+                  fullWidth
+                  sx={{ bgcolor: "white" }}
+                />
+              )}
             </Box>
-            <Box>
+          </Box>
+
+          {/* Position Row */}
+          <Box>
+            {isCreate ? (
+              <Controller
+                name="position_history_id"
+                control={control}
+                rules={{ required: "Position is required" }}
+                render={({ field }) => (
+                  <Autocomplete
+                    {...field}
+                    options={positionOptions}
+                    getOptionLabel={(option) =>
+                      option?.position_title
+                        ? `${option.position_title} (${option.period_label})`
+                        : ""
+                    }
+                    value={selectedPosition}
+                    onChange={handlePositionChange}
+                    loading={isLoadingPositions}
+                    isOptionEqualToValue={(option, value) =>
+                      option?.history_id === value?.history_id
+                    }
+                    disabled={
+                      isReadOnly || !selectedEmployeeId || !selectedYear
+                    }
+                    noOptionsText={
+                      !selectedEmployeeId || !selectedYear
+                        ? "Select an employee and year first"
+                        : "No positions available"
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <span>
+                            Position <span style={{ color: "red" }}>*</span>
+                          </span>
+                        }
+                        error={!!errors.position_history_id}
+                        helperText={errors.position_history_id?.message}
+                        fullWidth
+                        sx={{ bgcolor: "white" }}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {isLoadingPositions ? (
+                                <CircularProgress size={20} />
+                              ) : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                )}
+              />
+            ) : (
               <TextField
                 label="Position"
                 value={formValues.position_title || ""}
@@ -397,92 +561,7 @@ const BiAnnualPerformanceModalFields = ({
                 fullWidth
                 sx={{ bgcolor: "white" }}
               />
-            </Box>
-          </Box>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "1fr",
-                md: "repeat(2, 1fr)",
-              },
-              "@media (min-width: 750px)": {
-                gridTemplateColumns: "repeat(2, 1fr)",
-              },
-              gap: 2,
-            }}>
-            <Box>
-              <Controller
-                name="evaluation_period_start_date"
-                control={control}
-                rules={{ required: "Start date is required" }}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    value={
-                      field.value && dayjs.isDayjs(field.value)
-                        ? field.value
-                        : field.value
-                          ? dayjs(field.value)
-                          : null
-                    }
-                    onChange={(date) => field.onChange(date)}
-                    label={
-                      <span>
-                        Evaluation Period Start Date{" "}
-                        <span style={{ color: "red" }}>*</span>
-                      </span>
-                    }
-                    disabled={isReadOnly}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        error: !!errors.evaluation_period_start_date,
-                        helperText:
-                          errors.evaluation_period_start_date?.message,
-                        sx: { bgcolor: "white" },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Box>
-            <Box>
-              <Controller
-                name="evaluation_period_end_date"
-                control={control}
-                rules={{ required: "End date is required" }}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    value={
-                      field.value && dayjs.isDayjs(field.value)
-                        ? field.value
-                        : field.value
-                          ? dayjs(field.value)
-                          : null
-                    }
-                    onChange={(date) => field.onChange(date)}
-                    label={
-                      <span>
-                        Evaluation Period End Date{" "}
-                        <span style={{ color: "red" }}>*</span>
-                      </span>
-                    }
-                    disabled={isReadOnly}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        error: !!errors.evaluation_period_end_date,
-                        helperText: errors.evaluation_period_end_date?.message,
-                        sx: { bgcolor: "white" },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Box>
+            )}
           </Box>
         </Box>
       </FormSection>

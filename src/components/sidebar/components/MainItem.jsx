@@ -1,4 +1,4 @@
-import { Box, Collapse, Typography } from "@mui/material";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import PropTypes from "prop-types";
@@ -90,86 +90,108 @@ const MenuItem = ({
       </Box>
 
       {sidebarOpen && (
-        <Box
-          className="label-container"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            flex: 1,
-            minWidth: 0,
-            overflow: "hidden",
-            paddingRight: "16px",
+        <Tooltip
+          title={name}
+          placement="right"
+          arrow
+          enterDelay={500}
+          componentsProps={{
+            tooltip: {
+              sx: {
+                bgcolor: "rgb(33, 61, 112)",
+                color: "white",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                borderRadius: "6px",
+                px: 1.5,
+                py: 0.75,
+                "& .MuiTooltip-arrow": {
+                  color: "rgb(33, 61, 112)",
+                },
+              },
+            },
           }}>
-          <Typography
-            className="text"
-            sx={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-              minWidth: 0,
-              marginRight: "4px",
-            }}>
-            {name}
-          </Typography>
           <Box
+            className="label-container"
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: "4px",
-              flexShrink: 0,
+              flex: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              paddingRight: "16px",
             }}>
-            {hasOverdue && (
-              <img
-                src={Overdue}
-                style={{ width: "18px", height: "18px", color: "red" }}
-              />
-            )}
-            {notificationCount > 0 && (
-              <Box sx={{ flexShrink: 0 }}>
-                {showDotOnly ? (
-                  <Box
-                    sx={{
-                      backgroundColor: "#ff5252",
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                    }}
-                  />
-                ) : (
-                  <Box
-                    sx={{
-                      backgroundColor: "#ff5252",
-                      color: "white",
-                      fontSize: isChild ? "0.6rem" : "0.65rem",
-                      height: isChild ? "16px" : "18px",
-                      minWidth: isChild ? "16px" : "18px",
-                      borderRadius: isChild ? "8px" : "9px",
-                      fontWeight: "bold",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "0 4px",
-                    }}>
-                    {notificationCount > 99 ? "99+" : notificationCount}
-                  </Box>
-                )}
-              </Box>
-            )}
-            {hasChildren && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  color: active ? "inherit" : "rgb(33, 61, 112)",
-                  transition: "transform 0.2s ease",
-                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                }}>
-                <ArrowDropDownIcon sx={{ fontSize: "24px" }} />
-              </Box>
-            )}
+            <Typography
+              className="text"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1,
+                minWidth: 0,
+                marginRight: "4px",
+              }}>
+              {name}
+            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                flexShrink: 0,
+              }}>
+              {hasOverdue && (
+                <img
+                  src={Overdue}
+                  style={{ width: "18px", height: "18px", color: "red" }}
+                />
+              )}
+              {notificationCount > 0 && (
+                <Box sx={{ flexShrink: 0 }}>
+                  {showDotOnly ? (
+                    <Box
+                      sx={{
+                        backgroundColor: "#ff5252",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        backgroundColor: "#ff5252",
+                        color: "white",
+                        fontSize: isChild ? "0.6rem" : "0.65rem",
+                        height: isChild ? "16px" : "18px",
+                        minWidth: isChild ? "16px" : "18px",
+                        borderRadius: isChild ? "8px" : "9px",
+                        fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "0 4px",
+                      }}>
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </Box>
+                  )}
+                </Box>
+              )}
+              {hasChildren && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    color: active ? "inherit" : "rgb(33, 61, 112)",
+                    transition: "transform 0.2s ease",
+                    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}>
+                  <ArrowDropDownIcon sx={{ fontSize: "24px" }} />
+                </Box>
+              )}
+            </Box>
           </Box>
-        </Box>
+        </Tooltip>
       )}
     </Box>
   );

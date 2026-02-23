@@ -6,6 +6,7 @@ const biAnnualPerformanceApi = sedarApi
       "performanceEvaluations",
       "positionKpis",
       "probationaryEmployees",
+      "performancePositions",
     ],
   })
   .injectEndpoints({
@@ -150,10 +151,37 @@ const biAnnualPerformanceApi = sedarApi
 
       getProbationaryEmployees: build.query({
         query: () => ({
-          url: "employees/bi-annual",
+          url: "employees/annual",
           method: "GET",
         }),
         providesTags: ["probationaryEmployees"],
+      }),
+
+      getPerformanceEvaluationPositions: build.query({
+        query: (params = {}) => {
+          const { employee_id, year } = params;
+
+          const queryParams = new URLSearchParams();
+
+          if (employee_id) {
+            queryParams.append("employee_id", employee_id);
+          }
+
+          if (year) {
+            queryParams.append("year", year);
+          }
+
+          const queryString = queryParams.toString();
+          const url = queryString
+            ? `performance-evaluations/positions?${queryString}`
+            : "performance-evaluations/positions";
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["performancePositions"],
       }),
 
       resubmitPerformanceEvaluation: build.mutation({
@@ -195,6 +223,8 @@ export const {
   useLazyGetPerformanceEvaluationPrefillQuery,
   useGetProbationaryEmployeesQuery,
   useLazyGetProbationaryEmployeesQuery,
+  useGetPerformanceEvaluationPositionsQuery,
+  useLazyGetPerformanceEvaluationPositionsQuery,
   useResubmitPerformanceEvaluationMutation,
   useCancelPerformanceEvaluationMutation,
 } = biAnnualPerformanceApi;

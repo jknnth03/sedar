@@ -70,7 +70,6 @@ import { calculateCounts } from "./NotificationBadge";
 import PublicIcon from "@mui/icons-material/Public";
 import DynamicFormIcon from "@mui/icons-material/DynamicForm";
 import DownloadingIcon from "@mui/icons-material/Downloading";
-import Filter2Icon from "@mui/icons-material/Filter2";
 
 export const createEnhancedModules = (dashboardData = {}) => {
   const counts = calculateCounts(dashboardData);
@@ -108,7 +107,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
-
     EMPLOYEES: {
       name: "Employees",
       permissionId: "EMPLOYEES",
@@ -140,7 +138,6 @@ export const createEnhancedModules = (dashboardData = {}) => {
         },
       },
     },
-
     RECEIVING: {
       name: "Receiving",
       permissionId: "RECEIVING",
@@ -155,6 +152,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Manpower Form",
           path: "pendingforms",
           icon: <NoteAddIcon sx={iconStyles.child} />,
+
           notificationCount: counts.pendingMrfReceiving,
         },
         DAFORMRECEIVING: {
@@ -163,6 +161,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "DA Form",
           path: "daformreceiving",
           icon: <DescriptionIcon sx={iconStyles.child} />,
+
           notificationCount: counts.daReceiving,
         },
       },
@@ -221,9 +220,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <AssessmentIcon sx={iconStyles.child} />,
         },
         BIANNUALTEMPLATE: {
-          name: "Bi-Annual Template",
+          name: "Annual Template",
           permissionId: "ASSESSMENTTEMPLATES.BIANNUALTEMPLATE",
-          displayName: "Bi-Annual Template",
+          displayName: "Annual Template",
           path: "bi-annual-template",
           icon: <AssessmentIcon sx={iconStyles.child} />,
         },
@@ -365,9 +364,9 @@ export const createEnhancedModules = (dashboardData = {}) => {
           },
         },
         BIANNUALAPPROVAL: {
-          name: "Bi-Annual Approval",
+          name: "Annual Performance Approval",
           permissionId: "APPROVING.BIANNUALAPPROVAL",
-          displayName: "Bi-Annual Approval",
+          displayName: "Annual Performance Approval",
           path: "biannualapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.performanceApprovals,
@@ -396,17 +395,8 @@ export const createEnhancedModules = (dashboardData = {}) => {
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.daPdpApprovals,
         },
-        PDPTWOAPPROVAL: {
-          name: "PDP 2",
-          permissionId: "APPROVING.PDPTWOAPPROVAL",
-          displayName: "PDP 2",
-          path: "pdptwoapproval",
-          icon: <Filter2Icon sx={iconStyles.child} />,
-          notificationCount: counts.daPdpTwoApprovals || 0,
-        },
       },
     },
-
     REQUEST: {
       name: "Requisition Form",
       permissionId: "REQUEST",
@@ -539,34 +529,15 @@ export const createEnhancedModules = (dashboardData = {}) => {
           },
         },
         BIANNUALPERFORMANCE: {
-          name: "Bi-Annual Performance",
+          name: "Annual Performance Evaluation",
           permissionId: "REQUEST.BIANNUALPERFORMANCE",
-          displayName: "Bi-Annual Performance",
+          displayName: "Annual Performance Evaluation",
           path: "biannualperformance",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: 0,
-          children: {
-            RANKANDFILE: {
-              name: "Rank and File",
-              permissionId: "REQUEST.BIANNUALPERFORMANCE.RANKANDFILE",
-              displayName: "Rank and File",
-              path: "rankandfile",
-              icon: <AssessmentIcon sx={iconStyles.child} />,
-              notificationCount: 0,
-            },
-            SUPERVISORYLEVEL: {
-              name: "Supervisory Level",
-              permissionId: "REQUEST.BIANNUALPERFORMANCE.SUPERVISORYLEVEL",
-              displayName: "Supervisory Level",
-              path: "supervisorylevel",
-              icon: <AssessmentIcon sx={iconStyles.child} />,
-              notificationCount: 0,
-            },
-          },
         },
       },
     },
-
     REQUESTMONITORING: {
       name: "Request Monitoring",
       permissionId: "REQUESTMONITORING",
@@ -581,6 +552,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MRF (HR)",
           path: "mrfmonitoring",
           icon: <MarkEmailReadIcon sx={iconStyles.child} />,
+
           notificationCount: 0,
         },
         DATACHANGEMONITORING: {
@@ -589,6 +561,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "Data Change (HR)",
           path: "datachangemonitoring",
           icon: <CloudSyncIcon sx={iconStyles.child} />,
+
           notificationCount: counts.hrDataChangeMda,
         },
         MDAMONITORING: {
@@ -597,6 +570,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "MDA (HR)",
           path: "mdamonitoring",
           icon: <VerifiedIcon sx={iconStyles.child} />,
+
           notificationCount: counts.hrDaMda + counts.hrEvaluationMda,
         },
       },
@@ -629,6 +603,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           displayName: "KPI",
           path: "kpi",
           icon: <VpnKeyIcon sx={iconStyles.child} />,
+
           notificationCount: 0,
         },
       },
@@ -996,5 +971,4 @@ export const CONSTANT = {
     },
   },
 };
-
 export default CONSTANT;
