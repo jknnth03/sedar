@@ -28,7 +28,7 @@ import {
 } from "../../features/api/employee/attainmentsempApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -49,11 +49,13 @@ const Attainmentsemp = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -198,7 +200,7 @@ const Attainmentsemp = ({
 
       setPage(1);
     },
-    [onSearchChange]
+    [onSearchChange],
   );
 
   const handleMenuOpen = useCallback((event, attainmentId) => {
@@ -219,7 +221,7 @@ const Attainmentsemp = ({
       setConfirmOpen(true);
       handleMenuClose(attainment.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleArchiveRestoreConfirm = async () => {
@@ -230,7 +232,7 @@ const Attainmentsemp = ({
         selectedAttainment.deleted_at
           ? "Attainment restored successfully!"
           : "Attainment archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {
@@ -239,7 +241,7 @@ const Attainmentsemp = ({
         {
           variant: "error",
           autoHideDuration: 2000,
-        }
+        },
       );
     } finally {
       setConfirmOpen(false);
@@ -252,7 +254,7 @@ const Attainmentsemp = ({
       try {
         const response = await getSingleEmployee(
           attainment?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -266,7 +268,7 @@ const Attainmentsemp = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleViewEmployee = useCallback(
@@ -275,7 +277,7 @@ const Attainmentsemp = ({
       handleMenuClose(attainment.id);
       await openWizard(attainment, "view");
     },
-    [handleMenuClose, openWizard]
+    [handleMenuClose, openWizard],
   );
 
   const handleEditEmployee = useCallback(
@@ -284,14 +286,14 @@ const Attainmentsemp = ({
       handleMenuClose(attainment.id);
       await openWizard(attainment, "edit");
     },
-    [handleMenuClose, openWizard]
+    [handleMenuClose, openWizard],
   );
 
   const handleRowClick = useCallback(
     async (attainment) => {
       await openWizard(attainment, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -305,10 +307,10 @@ const Attainmentsemp = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handleAddAttainment = () => {
@@ -347,11 +349,11 @@ const Attainmentsemp = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -367,16 +369,16 @@ const Attainmentsemp = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -518,7 +520,7 @@ const Attainmentsemp = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -549,7 +551,7 @@ const Attainmentsemp = ({
                             mt: 0.3,
                           }}>
                           {safelyDisplayValue(
-                            attainment.employee?.employee_code
+                            attainment.employee?.employee_code,
                           )}
                         </Typography>
                         <Box sx={{ mt: 0.5 }}>
@@ -596,7 +598,7 @@ const Attainmentsemp = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(attainment.employee?.charging)
                           .length === 0 && (
@@ -620,7 +622,7 @@ const Attainmentsemp = ({
                       }}>
                       {formatAttainmentName(
                         attainment.attainment,
-                        attainment.attainment_id
+                        attainment.attainment_id,
                       )}
                     </TableCell>
                     <TableCell className="table-cell">
@@ -635,7 +637,7 @@ const Attainmentsemp = ({
                     <TableCell className="table-cell">
                       {formatAcademicYears(
                         attainment.academic_year_from,
-                        attainment.academic_year_to
+                        attainment.academic_year_to,
                       )}
                     </TableCell>
                     <TableCell className="table-cell">
@@ -699,10 +701,10 @@ const Attainmentsemp = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
-                              (v) => v && v !== "ACTIVE"
-                            )
-                          ? `No attainments with selected filters`
-                          : "No attainments"}
+                                (v) => v && v !== "ACTIVE",
+                              )
+                            ? `No attainments with selected filters`
+                            : "No attainments"}
                       </Typography>
                     </Box>
                   </TableCell>

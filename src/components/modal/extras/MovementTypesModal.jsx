@@ -15,7 +15,7 @@ import {
   usePostMovementTypesMutation,
   useUpdateMovementTypesMutation,
 } from "../../../features/api/extras/movementTypesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function MovementTypesModal({
   open,
@@ -87,7 +87,7 @@ export default function MovementTypesModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

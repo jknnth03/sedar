@@ -34,7 +34,7 @@ import {
   useRejectSubmissionMutation,
 } from "../../../features/api/approvalsetting/submissionApprovalApi.js";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../config/index.jsx";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "./SubmissionApprovalStyles.jsx";
 import SubmissionDetailsDialog from "./SubmissionDetailsDialog.jsx";

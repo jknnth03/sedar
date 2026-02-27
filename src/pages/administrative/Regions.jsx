@@ -35,7 +35,7 @@ import {
   useGetShowRegionsQuery,
   usePostRegionsMutation,
 } from "../../features/api/administrative/regionsApi";
-import { CONSTANT } from "../../config";
+import { CONSTANT } from "../../config/router";
 import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
 import NoDataFound from "../../pages/NoDataFound";
 import { styles } from "../forms/manpowerform/formSubmissionStyles";
@@ -108,7 +108,7 @@ const Regions = () => {
       per_page: rowsPerPage,
       status: "active",
     }),
-    [debouncedSearchQuery, page, rowsPerPage]
+    [debouncedSearchQuery, page, rowsPerPage],
   );
 
   const {

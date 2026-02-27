@@ -18,7 +18,7 @@ import { useSnackbar } from "notistack";
 import { useGetAddressQuery } from "../../features/api/employee/addressApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -38,11 +38,13 @@ const Address = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -133,7 +135,7 @@ const Address = ({
 
       setPage(1);
     },
-    [onSearchChange]
+    [onSearchChange],
   );
 
   const openWizard = useCallback(
@@ -141,7 +143,7 @@ const Address = ({
       try {
         const response = await getSingleEmployee(
           address?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -155,14 +157,14 @@ const Address = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleRowClick = useCallback(
     async (address) => {
       await openWizard(address, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -176,10 +178,10 @@ const Address = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handlePageChange = useCallback(
@@ -193,11 +195,11 @@ const Address = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -213,16 +215,16 @@ const Address = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -333,7 +335,7 @@ const Address = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -409,7 +411,7 @@ const Address = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(address.employee?.charging).length ===
                           0 && (
@@ -505,10 +507,10 @@ const Address = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
-                              (v) => v && v !== "ACTIVE"
-                            )
-                          ? `No addresses with selected filters`
-                          : "No addresses"}
+                                (v) => v && v !== "ACTIVE",
+                              )
+                            ? `No addresses with selected filters`
+                            : "No addresses"}
                       </Typography>
                     </Box>
                   </TableCell>

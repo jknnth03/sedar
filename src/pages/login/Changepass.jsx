@@ -17,7 +17,7 @@ import { useChangePasswordMutation } from "../../features/api/changepassApi";
 import logo from "../../assets/sedar.png";
 import img from "../../assets/business.png";
 import login_logo from "../../assets/login_logo.png";
-import { CONSTANT } from "../../config";
+import { CONSTANT } from "../../config/router";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import "./Login.scss";
 

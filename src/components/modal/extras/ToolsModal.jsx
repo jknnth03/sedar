@@ -14,7 +14,7 @@ import {
   usePostToolsMutation,
   useUpdateToolsMutation,
 } from "../../../features/api/extras/toolsApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import EditIcon from "@mui/icons-material/Edit";
 
 export default function ToolsModal({
@@ -69,7 +69,7 @@ export default function ToolsModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

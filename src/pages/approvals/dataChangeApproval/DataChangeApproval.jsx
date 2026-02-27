@@ -34,7 +34,7 @@ import {
   useRejectDataChangeMutation,
 } from "../../../features/api/approving/dataChangeApproval.js";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import DataChangeApprovalDialog from "./DataChangeApprovalDialog.jsx";
@@ -196,7 +196,7 @@ const DataChangeApprovalTable = ({
 
   const dataChangeApprovalsList = useMemo(
     () => dataChangeApprovalsData?.result?.data || [],
-    [dataChangeApprovalsData]
+    [dataChangeApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -264,8 +264,8 @@ const DataChangeApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "REF #" : "REFERENCE NO."}
               </TableCell>
@@ -275,8 +275,8 @@ const DataChangeApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -286,8 +286,8 @@ const DataChangeApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "MOVEMENT" : "MOVEMENT TYPE"}
               </TableCell>
@@ -297,8 +297,8 @@ const DataChangeApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -308,8 +308,8 @@ const DataChangeApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "DATE" : "DATE REQUESTED"}
               </TableCell>
@@ -392,7 +392,7 @@ const DataChangeApprovalTable = ({
                     <TableCell>
                       {approval.created_at
                         ? dayjs(approval.created_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -499,7 +499,7 @@ const DataChangeApproval = () => {
   const customStyles = useMemo(
     () =>
       createSubmissionApprovalStyles(theme, isMobile, isTablet, isVerySmall),
-    [theme, isMobile, isTablet, isVerySmall]
+    [theme, isMobile, isTablet, isVerySmall],
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -577,11 +577,11 @@ const DataChangeApproval = () => {
           error?.data?.message || "Failed to approve data change",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveDataChange, enqueueSnackbar, refetchDashboard]
+    [detailsDialog, approveDataChange, enqueueSnackbar, refetchDashboard],
   );
 
   const handleReject = useCallback(
@@ -606,11 +606,11 @@ const DataChangeApproval = () => {
           error?.data?.message || "Failed to return data change",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, rejectDataChange, enqueueSnackbar, refetchDashboard]
+    [detailsDialog, rejectDataChange, enqueueSnackbar, refetchDashboard],
   );
 
   const handleDetailsDialogClose = useCallback(() => {
@@ -629,7 +629,7 @@ const DataChangeApproval = () => {
         />
       );
     },
-    [customStyles]
+    [customStyles],
   );
 
   const tabsData = [

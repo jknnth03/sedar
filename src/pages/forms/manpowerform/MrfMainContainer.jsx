@@ -80,7 +80,7 @@ const CustomSearchBar = ({
     if (dateFilters.startDate && dateFilters.endDate) {
       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
         dateFilters.endDate,
-        "MMM dd"
+        "MMM dd",
       )}`;
     }
     if (dateFilters.startDate) {
@@ -289,7 +289,7 @@ const MrfMainContainer = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -343,10 +343,10 @@ const MrfMainContainer = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery],
   );
 
   const handleSearchChange = useCallback(
@@ -357,10 +357,10 @@ const MrfMainContainer = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -445,7 +445,7 @@ const MrfMainContainer = () => {
         return false;
       }
     },
-    [cancelFormSubmission, enqueueSnackbar]
+    [cancelFormSubmission, enqueueSnackbar],
   );
 
   const handleSave = useCallback(
@@ -480,7 +480,7 @@ const MrfMainContainer = () => {
         setFormIsLoading(false);
       }
     },
-    [createSubmission, enqueueSnackbar, handleCloseModal]
+    [createSubmission, enqueueSnackbar, handleCloseModal],
   );
 
   const tabsData = useMemo(
@@ -599,7 +599,7 @@ const MrfMainContainer = () => {
       handleCancel,
       handleRowClick,
       mrfCounts,
-    ]
+    ],
   );
 
   const a11yProps = (index) => {

@@ -1,4 +1,4 @@
-import { CONSTANT, MODULES } from "..";
+import { CONSTANT, MODULES } from "./index.jsx";
 import PrivateRoutes from "../../pages/index.jsx";
 import Login from "../../pages/login/Login";
 import Dashboard from "../../pages/dashboard/Dashboard";

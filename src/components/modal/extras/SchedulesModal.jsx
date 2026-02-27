@@ -14,7 +14,7 @@ import {
   usePostSchedulesMutation,
   useUpdateSchedulesMutation,
 } from "../../../features/api/extras/schedulesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function SchedulesModal({
   open,

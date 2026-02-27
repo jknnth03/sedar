@@ -14,7 +14,7 @@ import {
   usePostProgramsMutation,
   useUpdateProgramsMutation,
 } from "../../../features/api/extras/programsApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function ProgramsModal({
   open,
@@ -86,7 +86,7 @@ export default function ProgramsModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

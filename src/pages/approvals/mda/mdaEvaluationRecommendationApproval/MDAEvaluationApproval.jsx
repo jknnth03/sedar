@@ -35,7 +35,7 @@ import {
   useRejectMDAEvaluationApprovalMutation,
 } from "../../../../features/api/approving/mdaEvaluationApprovalApi.js";
 import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi.js";
-import { CONSTANT } from "../../../../config/index.jsx";
+import { CONSTANT } from "../../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../../mrfApproval/SubmissionApprovalStyles.jsx";
 import MDAEvaluationApprovalDialog from "./MDAEvaluationApprovalDialog.jsx";

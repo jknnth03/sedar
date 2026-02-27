@@ -17,7 +17,7 @@ import {
 import { useSnackbar } from "notistack";
 import { useGetGeneralsQuery } from "../../features/api/employee/generalApi";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -37,11 +37,13 @@ const General = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -118,7 +120,7 @@ const General = ({
 
   const employeeList = useMemo(
     () => employees?.result?.data || [],
-    [employees]
+    [employees],
   );
 
   const totalCount = useMemo(() => employees?.result?.total || 0, [employees]);
@@ -133,7 +135,7 @@ const General = ({
 
       setPage(1);
     },
-    [onSearchChange]
+    [onSearchChange],
   );
 
   const openWizard = useCallback(
@@ -152,14 +154,14 @@ const General = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleRowClick = useCallback(
     async (general) => {
       await openWizard(general, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -173,10 +175,10 @@ const General = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handlePageChange = useCallback(
@@ -190,11 +192,11 @@ const General = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -210,16 +212,16 @@ const General = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatDate = useCallback((dateString) => {
@@ -334,7 +336,7 @@ const General = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -408,7 +410,7 @@ const General = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(employee.charging).length === 0 && (
                           <Typography
@@ -482,10 +484,10 @@ const General = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
-                              (v) => v && v !== "ACTIVE"
-                            )
-                          ? `No employees with selected filters`
-                          : "No employees"}
+                                (v) => v && v !== "ACTIVE",
+                              )
+                            ? `No employees with selected filters`
+                            : "No employees"}
                       </Typography>
                     </Box>
                   </TableCell>

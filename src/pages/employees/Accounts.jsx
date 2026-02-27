@@ -27,7 +27,7 @@ import {
 } from "../../features/api/employee/accountsApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -49,11 +49,13 @@ const Accounts = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const showArchived =
     parentShowArchived !== undefined ? parentShowArchived : false;
   const debounceValue =
@@ -157,7 +159,7 @@ const Accounts = ({
         selectedAccount.deleted_at
           ? "Account restored successfully!"
           : "Account archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {
@@ -176,7 +178,7 @@ const Accounts = ({
       try {
         const response = await getSingleEmployee(
           account?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -189,7 +191,7 @@ const Accounts = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleViewEmployee = useCallback(
@@ -197,7 +199,7 @@ const Accounts = ({
       if (event) event.stopPropagation();
       await openWizard(account, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleEditEmployee = useCallback(
@@ -205,7 +207,7 @@ const Accounts = ({
       if (event) event.stopPropagation();
       await openWizard(account, "edit");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleRowClick = useCallback(
@@ -213,7 +215,7 @@ const Accounts = ({
       try {
         const response = await getSingleEmployee(
           account?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -226,7 +228,7 @@ const Accounts = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -240,10 +242,10 @@ const Accounts = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handlePageChange = useCallback(
@@ -257,11 +259,11 @@ const Accounts = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -277,16 +279,16 @@ const Accounts = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -402,7 +404,7 @@ const Accounts = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -476,7 +478,7 @@ const Accounts = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(account.employee?.charging).length ===
                           0 && (
@@ -528,8 +530,8 @@ const Accounts = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : showArchived
-                          ? "No archived accounts"
-                          : "No active accounts"}
+                            ? "No archived accounts"
+                            : "No active accounts"}
                       </Typography>
                     </Box>
                   </TableCell>

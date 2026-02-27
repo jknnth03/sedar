@@ -14,7 +14,7 @@ import {
   usePostReligionsMutation,
   useUpdateReligionsMutation,
 } from "../../../features/api/extras/religionsApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import EditIcon from "@mui/icons-material/Edit";
 
 export default function ReligionsModal({
@@ -84,7 +84,7 @@ export default function ReligionsModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

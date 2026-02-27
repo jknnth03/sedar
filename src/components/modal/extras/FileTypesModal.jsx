@@ -13,7 +13,7 @@ import {
   usePostFileTypesMutation,
   useUpdateFileTypesMutation,
 } from "../../../features/api/extras/filetypesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function FileTypeModal({
   open,
@@ -84,7 +84,7 @@ export default function FileTypeModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different one."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

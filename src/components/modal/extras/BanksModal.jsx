@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useSnackbar } from "notistack";
 
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import EditIcon from "@mui/icons-material/Edit";
 import {
   usePostBanksMutation,
@@ -96,7 +96,7 @@ const BanksModal = ({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

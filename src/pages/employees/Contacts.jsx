@@ -27,7 +27,7 @@ import {
 } from "../../features/api/employee/contactsApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -49,11 +49,13 @@ const Contacts = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const showArchived =
     parentShowArchived !== undefined ? parentShowArchived : false;
   const debounceValue =
@@ -159,7 +161,7 @@ const Contacts = ({
       setConfirmOpen(true);
       handleMenuClose(contact.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleArchiveRestoreConfirm = async () => {
@@ -171,7 +173,7 @@ const Contacts = ({
         selectedContact.deleted_at
           ? "Contact restored successfully!"
           : "Contact archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {
@@ -190,7 +192,7 @@ const Contacts = ({
       try {
         const response = await getSingleEmployee(
           contact?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -203,7 +205,7 @@ const Contacts = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleViewEmployee = useCallback(
@@ -212,7 +214,7 @@ const Contacts = ({
       handleMenuClose(contact.id);
       await openWizard(contact, "view");
     },
-    [handleMenuClose, openWizard]
+    [handleMenuClose, openWizard],
   );
 
   const handleEditEmployee = useCallback(
@@ -221,14 +223,14 @@ const Contacts = ({
       handleMenuClose(contact.id);
       await openWizard(contact, "edit");
     },
-    [handleMenuClose, openWizard]
+    [handleMenuClose, openWizard],
   );
 
   const handleRowClick = useCallback(
     async (contact) => {
       await openWizard(contact, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -242,10 +244,10 @@ const Contacts = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handlePageChange = useCallback(
@@ -259,11 +261,11 @@ const Contacts = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -279,16 +281,16 @@ const Contacts = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -397,7 +399,7 @@ const Contacts = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -471,7 +473,7 @@ const Contacts = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(contact.employee?.charging).length ===
                           0 && (
@@ -552,8 +554,8 @@ const Contacts = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : showArchived
-                          ? "No archived contacts"
-                          : "No active contacts"}
+                            ? "No archived contacts"
+                            : "No active contacts"}
                       </Typography>
                     </Box>
                   </TableCell>

@@ -486,7 +486,13 @@ const BiAnnualPerformanceModalFields = ({
               ) : (
                 <TextField
                   label="Year"
-                  value={formValues.year || ""}
+                  value={
+                    formValues.year
+                      ? dayjs.isDayjs(formValues.year)
+                        ? formValues.year.year()
+                        : formValues.year
+                      : ""
+                  }
                   disabled
                   fullWidth
                   sx={{ bgcolor: "white" }}

@@ -31,6 +31,7 @@ import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/e
 import Status from "./Statuses.jsx";
 import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi.js";
 import FilterDialog from "./FilterDialog.jsx";
+import EmployeesExportButton from "./EmployeesExportButton.jsx";
 import {
   styles,
   StyledTabs,
@@ -73,6 +74,8 @@ const CustomSearchBar = ({
         alignItems: "center",
         gap: isVerySmall ? 1 : 1.5,
       }}>
+      <EmployeesExportButton isLoading={isLoading} />
+
       {isVerySmall ? (
         <IconButton
           onClick={onOpenFilter}

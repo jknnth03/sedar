@@ -35,7 +35,7 @@ import {
   useGetShowProvincesQuery,
   usePostProvincesMutation,
 } from "../../features/api/administrative/provincesApi";
-import { CONSTANT } from "../../config";
+import { CONSTANT } from "../../config/router";
 import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
 import NoDataFound from "../../pages/NoDataFound";
 import { styles } from "../forms/manpowerform/formSubmissionStyles";
@@ -109,7 +109,7 @@ const Provinces = () => {
       per_page: rowsPerPage,
       status: "active",
     }),
-    [debouncedSearchQuery, page, rowsPerPage]
+    [debouncedSearchQuery, page, rowsPerPage],
   );
 
   const {
@@ -124,7 +124,7 @@ const Provinces = () => {
 
   const provinces = useMemo(
     () => backendData?.result?.data || [],
-    [backendData]
+    [backendData],
   );
   const totalCount = backendData?.result?.total || 0;
 
@@ -337,7 +337,7 @@ const Provinces = () => {
                             sx={styles.historyIconButton(theme)}
                             onClick={() =>
                               handleOpenDialog(
-                                province.cities_and_municipalities || []
+                                province.cities_and_municipalities || [],
                               )
                             }>
                             <VisibilityIcon sx={{ fontSize: "20px" }} />

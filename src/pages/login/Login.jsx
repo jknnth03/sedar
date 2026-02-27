@@ -16,7 +16,7 @@ import { useSnackbar } from "notistack";
 import logo from "../../assets/sedar.png";
 import img from "../../assets/business.png";
 import workImg from "../../assets/Work.png";
-import { CONSTANT } from "../../config";
+import { CONSTANT } from "../../config/router";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../features/slice/authSlice";
 import { useLoginMutation } from "../../features/api/authApi";

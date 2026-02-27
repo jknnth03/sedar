@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 
 const StatusesTable = ({
   employeeStatusList,
@@ -31,7 +31,7 @@ const StatusesTable = ({
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -139,7 +139,7 @@ const StatusesTable = ({
           return false;
       }
     },
-    [validateDate]
+    [validateDate],
   );
 
   const formatDate = useCallback((dateString) => {
@@ -183,7 +183,7 @@ const StatusesTable = ({
 
       return formatDate(dateString);
     },
-    [shouldShowDate, formatDate]
+    [shouldShowDate, formatDate],
   );
 
   const getEmployeeStatusChipStyle = useCallback((status) => {
@@ -283,7 +283,7 @@ const StatusesTable = ({
     (employeeStatus) => {
       onRowClick?.(employeeStatus);
     },
-    [onRowClick]
+    [onRowClick],
   );
 
   const handleFilterIconClick = useCallback(
@@ -291,7 +291,7 @@ const StatusesTable = ({
       event.stopPropagation();
       onFilterIconClick?.(event);
     },
-    [onFilterIconClick]
+    [onFilterIconClick],
   );
 
   return (
@@ -418,7 +418,7 @@ const StatusesTable = ({
                           mt: 0.3,
                         }}>
                         {safelyDisplayValue(
-                          employeeStatus.employee?.employee_code
+                          employeeStatus.employee?.employee_code,
                         )}
                       </Typography>
                       <Box sx={{ mt: 0.5 }}>
@@ -546,7 +546,7 @@ const StatusesTable = ({
                     }}>
                     <Chip
                       label={safelyDisplayValue(
-                        employeeStatus.employee_status_label
+                        employeeStatus.employee_status_label,
                       )}
                       variant="filled"
                       size="small"
@@ -561,7 +561,7 @@ const StatusesTable = ({
                         border: "none",
                         boxShadow: "none",
                         ...getEmployeeStatusChipStyle(
-                          employeeStatus.employee_status_label
+                          employeeStatus.employee_status_label,
                         ),
                         "& .MuiChip-label": {
                           overflow: "hidden",
@@ -578,21 +578,21 @@ const StatusesTable = ({
                     {formatDateWithStatus(
                       employeeStatus.employee_status_start_date,
                       employeeStatus.employee_status_label,
-                      "start_date"
+                      "start_date",
                     )}
                   </TableCell>
                   <TableCell className="table-cell" sx={{ width: "10%" }}>
                     {formatDateWithStatus(
                       employeeStatus.employee_status_end_date,
                       employeeStatus.employee_status_label,
-                      "end_date"
+                      "end_date",
                     )}
                   </TableCell>
                   <TableCell className="table-cell" sx={{ width: "10%" }}>
                     {formatDateWithStatus(
                       employeeStatus.employee_status_effectivity_date,
                       employeeStatus.employee_status_label,
-                      "effectivity_date"
+                      "effectivity_date",
                     )}
                   </TableCell>
                 </TableRow>

@@ -14,7 +14,7 @@ import {
   usePostWorkHoursMutation,
   useUpdateWorkHoursMutation,
 } from "../../../features/api/extras/workhoursApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import EditIcon from "@mui/icons-material/Edit";
 
 export default function WorkHoursModal({
@@ -74,7 +74,7 @@ export default function WorkHoursModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

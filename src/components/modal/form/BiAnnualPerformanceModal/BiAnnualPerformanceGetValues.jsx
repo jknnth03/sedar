@@ -43,7 +43,7 @@ export const getViewEditModeFormData = (selectedEntry) => {
       : employee.position?.title?.name || employee.position_title || "";
 
   const year = submittable.evaluation_year
-    ? dayjs().year(submittable.evaluation_year)
+    ? dayjs(`${submittable.evaluation_year}`, "YYYY")
     : null;
 
   const kpis = Array.isArray(submittable.kpis)

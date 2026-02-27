@@ -13,7 +13,7 @@ import {
   usePostObjectiveMutation,
   useUpdateObjectiveMutation,
 } from "../../../features/api/extras/objectivesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function ObjectivesModal({
   open,
@@ -81,7 +81,7 @@ export default function ObjectivesModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

@@ -157,6 +157,25 @@ const generalApi = sedarApi
         }),
         invalidatesTags: ["general"],
       }),
+      getExportAlphalist: build.query({
+        query: ({ status = "active", year, month }) => {
+          const params = new URLSearchParams({ status });
+
+          if (year) {
+            params.append("year", year);
+          }
+
+          if (month) {
+            params.append("month", month);
+          }
+
+          return {
+            url: `employees/export/alphalist?${params.toString()}`,
+            responseHandler: (response) => response.blob(),
+          };
+        },
+        providesTags: ["general"],
+      }),
     }),
   });
 
@@ -176,4 +195,6 @@ export const {
   useLazyGetAllEmployeeStatusesQuery,
   useUpdateGeneralMutation,
   useDeleteGeneralMutation,
+  useGetExportAlphalistQuery,
+  useLazyGetExportAlphalistQuery,
 } = generalApi;

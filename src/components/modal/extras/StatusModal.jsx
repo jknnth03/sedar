@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useSnackbar } from "notistack";
 
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import EditIcon from "@mui/icons-material/Edit";
 import {
   usePostStatusMutation,

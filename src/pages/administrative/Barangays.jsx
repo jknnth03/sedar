@@ -26,7 +26,7 @@ import {
   useGetShowBarangaysQuery,
   usePostBarangaysMutation,
 } from "../../features/api/administrative/barangaysApi";
-import { CONSTANT } from "../../config";
+import { CONSTANT } from "../../config/router";
 import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
 import NoDataFound from "../../pages/NoDataFound";
 import { styles } from "../forms/manpowerform/formSubmissionStyles";
@@ -98,7 +98,7 @@ const Barangays = () => {
       per_page: rowsPerPage,
       status: "active",
     }),
-    [debouncedSearchQuery, page, rowsPerPage]
+    [debouncedSearchQuery, page, rowsPerPage],
   );
 
   const {
@@ -113,7 +113,7 @@ const Barangays = () => {
 
   const barangays = useMemo(
     () => backendData?.result?.data || [],
-    [backendData]
+    [backendData],
   );
   const totalCount = backendData?.result?.total || 0;
 

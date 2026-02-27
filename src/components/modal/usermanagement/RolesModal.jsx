@@ -32,7 +32,7 @@ import {
   usePostRoleMutation,
   useUpdateRoleMutation,
 } from "../../../features/api/usermanagement/rolesApi";
-import { useEnhancedModules } from "../../../config/index.jsx";
+import { useEnhancedModules } from "../../../config/router/index.jsx";
 
 export default function RolesModal({
   open,

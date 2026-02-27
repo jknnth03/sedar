@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import RestoreIcon from "@mui/icons-material/Restore";
 import dayjs from "dayjs";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import { styles } from "../../forms/manpowerform/FormSubmissionStyles";
 import ActivityHistoryDialog from "../../zzzreusable/ActivityHistoryDialog";
 

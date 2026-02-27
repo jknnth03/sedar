@@ -33,7 +33,7 @@ import {
   useApprovePdpMutation,
   useReturnPdpMutation,
 } from "../../../features/api/approving/pdpApproval.js";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import PdpApprovalDialog from "./PdpApprovalDialog.jsx";
@@ -191,7 +191,7 @@ const PdpApprovalTable = ({
 
   const pdpApprovalsList = useMemo(
     () => pdpApprovalsData?.result?.data || [],
-    [pdpApprovalsData]
+    [pdpApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -259,8 +259,8 @@ const PdpApprovalTable = ({
                   minWidth: isVerySmall
                     ? "180px"
                     : isMobile
-                    ? "220px"
-                    : "280px",
+                      ? "220px"
+                      : "280px",
                 }}>
                 {isVerySmall ? "NAME" : "TEMPLATE NAME"}
               </TableCell>
@@ -270,8 +270,8 @@ const PdpApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -281,8 +281,8 @@ const PdpApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "DEPT" : "DEPARTMENT"}
               </TableCell>
@@ -292,8 +292,8 @@ const PdpApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "SUPERIOR" : "SUPERIOR NAME"}
               </TableCell>
@@ -303,8 +303,8 @@ const PdpApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "SUBMITTED" : "SUBMITTED AT"}
               </TableCell>
@@ -387,7 +387,7 @@ const PdpApprovalTable = ({
                     <TableCell>
                       {approval.submitted_at
                         ? dayjs(approval.submitted_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -554,7 +554,7 @@ const PdpApproval = () => {
         });
       }
     },
-    [detailsDialog, approvePdp, enqueueSnackbar]
+    [detailsDialog, approvePdp, enqueueSnackbar],
   );
 
   const handleReturn = useCallback(
@@ -579,7 +579,7 @@ const PdpApproval = () => {
         });
       }
     },
-    [detailsDialog, returnPdp, enqueueSnackbar]
+    [detailsDialog, returnPdp, enqueueSnackbar],
   );
 
   const handleDetailsDialogClose = useCallback(() => {

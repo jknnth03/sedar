@@ -13,7 +13,7 @@ import {
   usePostCabinetsMutation,
   useUpdateCabinetsMutation,
 } from "../../../features/api/extras/cabinets";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function CabinetsModal({
   open,
@@ -90,7 +90,7 @@ export default function CabinetsModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

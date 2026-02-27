@@ -33,7 +33,7 @@ import {
   useApproveCatOneMutation,
   useReturnCatOneMutation,
 } from "../../../features/api/approving/catOneApproval.js";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import CatOneApprovalDialog from "./CatOneApprovalDialog.jsx";
@@ -193,7 +193,7 @@ const CatOneApprovalTable = ({
 
   const catOneApprovalsList = useMemo(
     () => catOneApprovalsData?.result?.data || [],
-    [catOneApprovalsData]
+    [catOneApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -261,8 +261,8 @@ const CatOneApprovalTable = ({
                   minWidth: isVerySmall
                     ? "180px"
                     : isMobile
-                    ? "220px"
-                    : "280px",
+                      ? "220px"
+                      : "280px",
                 }}>
                 {isVerySmall ? "NAME" : "TEMPLATE NAME"}
               </TableCell>
@@ -272,8 +272,8 @@ const CatOneApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 EMPLOYEE NAME
               </TableCell>
@@ -283,8 +283,8 @@ const CatOneApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "DEPT" : "DEPARTMENT"}
               </TableCell>
@@ -294,8 +294,8 @@ const CatOneApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "180px"
-                    : "220px",
+                      ? "180px"
+                      : "220px",
                 }}>
                 {isVerySmall ? "SUPERIOR" : "SUPERIOR NAME"}
               </TableCell>
@@ -305,8 +305,8 @@ const CatOneApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "140px"
-                    : "170px",
+                      ? "140px"
+                      : "170px",
                 }}>
                 {isVerySmall ? "SUBMITTED" : "SUBMITTED AT"}
               </TableCell>
@@ -389,7 +389,7 @@ const CatOneApprovalTable = ({
                     <TableCell>
                       {approval.submitted_at
                         ? dayjs(approval.submitted_at).format(
-                            isVerySmall ? "M/D/YY" : "MMM D, YYYY"
+                            isVerySmall ? "M/D/YY" : "MMM D, YYYY",
                           )
                         : "-"}
                     </TableCell>
@@ -557,11 +557,11 @@ const CatOneApproval = () => {
           error?.data?.message || "Failed to approve Category 1",
           {
             variant: "error",
-          }
+          },
         );
       }
     },
-    [detailsDialog, approveCatOne, enqueueSnackbar]
+    [detailsDialog, approveCatOne, enqueueSnackbar],
   );
 
   const handleReturn = useCallback(
@@ -586,7 +586,7 @@ const CatOneApproval = () => {
         });
       }
     },
-    [detailsDialog, returnCatOne, enqueueSnackbar]
+    [detailsDialog, returnCatOne, enqueueSnackbar],
   );
 
   const handleDetailsDialogClose = useCallback(() => {

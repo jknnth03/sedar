@@ -34,7 +34,7 @@ import {
   useReturnCatTwoMutation,
   useCreatePdpTwoMutation,
 } from "../../../features/api/approving/catTwoApproval.js";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import CatTwoApprovalDialog from "./CatTwoApprovalDialog.jsx";

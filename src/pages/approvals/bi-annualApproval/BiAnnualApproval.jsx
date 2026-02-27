@@ -34,7 +34,7 @@ import {
   useRejectBiAnnualSubmissionMutation,
 } from "../../../features/api/approving/biAnnualApproval.js";
 import { useShowDashboardQuery } from "../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import BiAnnualApprovalDialog from "./BiAnnualApprovalDialog.jsx";

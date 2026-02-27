@@ -29,7 +29,7 @@ import {
   usePostSubMunicipalitiesMutation,
 } from "../../features/api/administrative/subMunicipalitiesApi";
 import { useGetSubmunicipalitiesQuery } from "../../features/api/masterlist/onerdfApi";
-import { CONSTANT } from "../../config";
+import { CONSTANT } from "../../config/router";
 import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
 import NoDataFound from "../../pages/NoDataFound";
 import { styles } from "../forms/manpowerform/formSubmissionStyles";
@@ -144,7 +144,7 @@ const SubMunicipalities = () => {
       per_page: rowsPerPage,
       status,
     }),
-    [debouncedSearchQuery, page, rowsPerPage, status]
+    [debouncedSearchQuery, page, rowsPerPage, status],
   );
 
   const {
@@ -160,7 +160,7 @@ const SubMunicipalities = () => {
 
   const subMunicipalities = useMemo(
     () => subMunicipalitiesData?.result?.data || [],
-    [subMunicipalitiesData]
+    [subMunicipalitiesData],
   );
   const totalCount = subMunicipalitiesData?.result?.total || 0;
 
@@ -395,8 +395,8 @@ const SubMunicipalities = () => {
                           searchQuery
                             ? `No sub municipalities found for "${searchQuery}"`
                             : showArchived
-                            ? "No archived sub municipalities"
-                            : "No sub municipalities available"
+                              ? "No archived sub municipalities"
+                              : "No sub municipalities available"
                         }
                       />
                     </TableCell>

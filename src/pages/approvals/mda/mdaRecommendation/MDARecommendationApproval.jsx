@@ -35,7 +35,7 @@ import {
   useRejectMdaRecommendationSubmissionMutation,
 } from "../../../../features/api/approving/mdaRecommendationApproval.js";
 import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi";
-import { CONSTANT } from "../../../../config";
+import { CONSTANT } from "../../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../../mrfApproval/SubmissionApprovalStyles.jsx";
 import MdaRecommendationApprovalDialog from "./MdaRecommendationApprovalDialog.jsx";

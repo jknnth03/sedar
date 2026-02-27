@@ -28,7 +28,7 @@ import {
   useApproveSubmissionMutation,
   useRejectSubmissionMutation,
 } from "../../../features/api/approvalsetting/submissionApprovalApi.js";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createRegistrationApprovalStyles } from "./RegistrationApprovalStyles.jsx";
 import RegistrationDetailsDialog from "./RegistrationApprovalDialog.jsx";
@@ -190,7 +190,7 @@ const RegistrationApprovalTable = ({
 
   const registrationApprovalsList = useMemo(
     () => registrationApprovalsData?.result?.data || [],
-    [registrationApprovalsData]
+    [registrationApprovalsData],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -266,8 +266,8 @@ const RegistrationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 FULL NAME
               </TableCell>
@@ -277,8 +277,8 @@ const RegistrationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "120px"
                     : isMobile
-                    ? "150px"
-                    : "180px",
+                      ? "150px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "ID #" : "ID NUMBER"}
               </TableCell>
@@ -288,8 +288,8 @@ const RegistrationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "100px"
                     : isMobile
-                    ? "140px"
-                    : "180px",
+                      ? "140px"
+                      : "180px",
                 }}>
                 {isVerySmall ? "DEPT" : "DEPARTMENT"}
               </TableCell>
@@ -299,8 +299,8 @@ const RegistrationApprovalTable = ({
                   minWidth: isVerySmall
                     ? "150px"
                     : isMobile
-                    ? "200px"
-                    : "250px",
+                      ? "200px"
+                      : "250px",
                 }}>
                 {isVerySmall ? "REQ BY" : "REQUESTED BY"}
               </TableCell>
@@ -546,11 +546,11 @@ const RegistrationApproval = () => {
       } catch (error) {
         enqueueSnackbar(
           error?.data?.message || "Failed to approve registration",
-          { variant: "error" }
+          { variant: "error" },
         );
       }
     },
-    [detailsDialog, approveRegistration, enqueueSnackbar]
+    [detailsDialog, approveRegistration, enqueueSnackbar],
   );
 
   const handleReject = useCallback(
@@ -572,11 +572,11 @@ const RegistrationApproval = () => {
       } catch (error) {
         enqueueSnackbar(
           error?.data?.message || "Failed to return registration",
-          { variant: "error" }
+          { variant: "error" },
         );
       }
     },
-    [detailsDialog, rejectRegistration, enqueueSnackbar]
+    [detailsDialog, rejectRegistration, enqueueSnackbar],
   );
 
   const handleDetailsDialogClose = useCallback(() => {

@@ -15,7 +15,7 @@ import {
   usePostJobrateMutation,
   useUpdateJobrateMutation,
 } from "../../../features/api/masterlist/jobratesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import { useGetAllPositionsQuery } from "../../../features/api/masterlist/positionsApi";
 import { useGetAllJobLevelsQuery } from "../../../features/api/masterlist/joblevelsApi";
 
@@ -47,12 +47,12 @@ export default function JobRatesModal({
       setJobrateCode(selectedJobRate?.code || "");
       setPosition(
         positions?.result?.find((p) => p.id === selectedJobRate?.position_id) ||
-          null
+          null,
       );
       setJobLevel(
         jobLevels?.result?.find(
-          (jl) => jl.id === selectedJobRate?.job_level_id
-        ) || null
+          (jl) => jl.id === selectedJobRate?.job_level_id,
+        ) || null,
       );
       setJobRate(selectedJobRate?.job_rate || "");
       setAllowance(selectedJobRate?.allowance || "");
@@ -113,7 +113,7 @@ export default function JobRatesModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The job rate code already exists."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

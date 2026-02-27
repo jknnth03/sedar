@@ -18,7 +18,7 @@ import { useSnackbar } from "notistack";
 import { useGetPositionQuery } from "../../features/api/employee/positionsempApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -38,11 +38,13 @@ const Positions = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -121,7 +123,7 @@ const Positions = ({
 
   const positionList = useMemo(
     () => positions?.result?.data || [],
-    [positions]
+    [positions],
   );
 
   const totalCount = useMemo(() => positions?.result?.total || 0, [positions]);
@@ -136,7 +138,7 @@ const Positions = ({
 
       setPage(1);
     },
-    [onSearchChange]
+    [onSearchChange],
   );
 
   const openWizard = useCallback(
@@ -144,7 +146,7 @@ const Positions = ({
       try {
         const response = await getSingleEmployee(
           position?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -158,14 +160,14 @@ const Positions = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleRowClick = useCallback(
     async (position) => {
       await openWizard(position, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -179,10 +181,10 @@ const Positions = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handlePageChange = useCallback(
@@ -196,11 +198,11 @@ const Positions = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -216,16 +218,16 @@ const Positions = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -337,7 +339,7 @@ const Positions = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -413,7 +415,7 @@ const Positions = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(position.employee?.charging).length ===
                           0 && (
@@ -493,10 +495,10 @@ const Positions = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
-                              (v) => v && v !== "ACTIVE"
-                            )
-                          ? `No positions with selected filters`
-                          : "No positions"}
+                                (v) => v && v !== "ACTIVE",
+                              )
+                            ? `No positions with selected filters`
+                            : "No positions"}
                       </Typography>
                     </Box>
                   </TableCell>

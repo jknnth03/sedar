@@ -34,7 +34,7 @@ import {
   useRejectDaRecommendationSubmissionMutation,
 } from "../../../../features/api/approving/daRecommendationApproval.js";
 import { useShowDashboardQuery } from "../../../../features/api/usermanagement/dashboardApi.js";
-import { CONSTANT } from "../../../../config/index.jsx";
+import { CONSTANT } from "../../../../config/router/index.jsx";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../../mrfApproval/SubmissionApprovalStyles.jsx";
 import DaRecommendationApprovalDialog from "./DaRecommendationApprovalDialog.jsx";

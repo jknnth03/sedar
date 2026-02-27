@@ -13,7 +13,7 @@ import {
   usePostDegreesMutation,
   useUpdateDegreesMutation,
 } from "../../../features/api/extras/degreesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function DegreesModal({
   open,
@@ -87,7 +87,7 @@ export default function DegreesModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

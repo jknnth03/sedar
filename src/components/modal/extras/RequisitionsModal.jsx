@@ -14,7 +14,7 @@ import {
   usePostRequisitionsMutation,
   useUpdateRequisitionsMutation,
 } from "../../../features/api/extras/requisitionsApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 const RequisitionsModal = ({
   open,
@@ -106,7 +106,7 @@ const RequisitionsModal = ({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

@@ -32,7 +32,7 @@ import {
 import { useLazyGetAllShowTitlesQuery } from "../../../features/api/extras/titleApi";
 import { useLazyGetAllShowTeamsQuery } from "../../../features/api/extras/teamsApi";
 import { useLazyGetAllShowSchedulesQuery } from "../../../features/api/extras/schedulesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import { useLazyGetAllShowToolsQuery } from "../../../features/api/extras/toolsApi";
 import { useLazyGetAllOneRdfQuery } from "../../../features/api/masterlist/realonerdfApi";
 import RequestorSequence from "./RequestorSequence";

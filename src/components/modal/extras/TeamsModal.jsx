@@ -14,7 +14,7 @@ import {
   usePostTeamsMutation,
   useUpdateTeamsMutation,
 } from "../../../features/api/extras/teamsApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function TeamsModal({
   open,
@@ -81,7 +81,7 @@ export default function TeamsModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

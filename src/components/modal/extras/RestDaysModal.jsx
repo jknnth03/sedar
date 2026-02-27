@@ -14,7 +14,7 @@ import {
   usePostRestDaysMutation,
   useUpdateRestDaysMutation,
 } from "../../../features/api/extras/restdaysApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import EditIcon from "@mui/icons-material/Edit";
 
 export default function RestDaysModal({
@@ -73,7 +73,7 @@ export default function RestDaysModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

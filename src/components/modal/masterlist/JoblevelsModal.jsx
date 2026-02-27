@@ -11,7 +11,7 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { useSnackbar } from "notistack";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 import {
   usePostJoblevelMutation,
   useUpdateJoblevelMutation,
@@ -124,7 +124,7 @@ export default function JoblevelsModal({
       setErrorMessage(
         error?.data?.errors?.name
           ? "The joblevel name already exists. Please use a different name."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

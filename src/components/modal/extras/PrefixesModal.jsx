@@ -13,7 +13,7 @@ import {
   usePostPrefixesMutation,
   useUpdatePrefixesMutation,
 } from "../../../features/api/extras/prefixesApi";
-import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function PrefixesModal({
   open,
@@ -75,7 +75,7 @@ export default function PrefixesModal({
       setErrorMessage(
         error?.data?.errors?.code
           ? "The code has already been taken. Please use a different code."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

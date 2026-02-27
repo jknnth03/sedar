@@ -11,7 +11,7 @@ import logo from "../../assets/sedar.png";
 import icon from "../../assets/logo2.png";
 import businessLogo from "../../assets/business.png";
 import "../../components/sidebar/styles/Sidebar.scss";
-import { useEnhancedModules } from "../../config/index";
+import { useEnhancedModules } from "../../config/router/index";
 import { MainItem } from "./components/MainItem";
 
 const Sidebar = ({

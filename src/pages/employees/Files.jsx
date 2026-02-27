@@ -34,7 +34,7 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
 
@@ -50,7 +50,7 @@ const Files = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [employeeDetails, setEmployeeDetails] = useState(null);
@@ -207,7 +207,7 @@ const Files = ({
       try {
         const response = await getSingleEmployee(
           employeeRecord?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -220,13 +220,13 @@ const Files = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   useEffect(() => {
     if (selectedEmployeeId && employeeList.length > 0) {
       const selectedEmployee = employeeList.find(
-        (emp) => emp.employee?.id === selectedEmployeeId
+        (emp) => emp.employee?.id === selectedEmployeeId,
       );
       if (selectedEmployee) {
         openWizard(selectedEmployee, "view");
@@ -245,7 +245,7 @@ const Files = ({
         });
       }
     },
-    [enqueueSnackbar]
+    [enqueueSnackbar],
   );
 
   const handleEditEmployee = useCallback((employeeData, editStep = 8) => {
@@ -279,7 +279,7 @@ const Files = ({
         });
       }
     },
-    [enqueueSnackbar, refetch, handleWizardClose]
+    [enqueueSnackbar, refetch, handleWizardClose],
   );
 
   const handleDetailsDialogClose = () => {
@@ -332,11 +332,11 @@ const Files = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -352,11 +352,11 @@ const Files = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = (value) =>
@@ -502,7 +502,7 @@ const Files = ({
                         "&:hover": {
                           backgroundColor: alpha(
                             theme.palette.primary.main,
-                            0.04
+                            0.04,
                           ),
                           "& .MuiTableCell-root": {
                             backgroundColor: "transparent",
@@ -532,7 +532,7 @@ const Files = ({
                               mt: 0.3,
                             }}>
                             {safelyDisplayValue(
-                              employeeRecord.employee?.employee_code
+                              employeeRecord.employee?.employee_code,
                             )}
                           </Typography>
                           <Box sx={{ mt: 0.5 }}>
@@ -568,7 +568,7 @@ const Files = ({
                         }}>
                         <Box>
                           {formatCharging(
-                            employeeRecord.employee?.charging
+                            employeeRecord.employee?.charging,
                           ).map((item, index) => (
                             <Typography
                               key={index}
@@ -629,10 +629,10 @@ const Files = ({
                         {debounceValue && debounceValue.trim() !== ""
                           ? `No results for "${debounceValue}"`
                           : Object.values(filters).some(
-                              (v) => v && v !== "ACTIVE"
-                            )
-                          ? `No files with selected filters`
-                          : "No files"}
+                                (v) => v && v !== "ACTIVE",
+                              )
+                            ? `No files with selected filters`
+                            : "No files"}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -798,7 +798,7 @@ const Files = ({
                                     color="primary"
                                     size="small"
                                     href={getFileAttachmentUrl(
-                                      file.file_attachment
+                                      file.file_attachment,
                                     )}
                                     target="_blank"
                                     rel="noopener noreferrer"

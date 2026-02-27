@@ -18,7 +18,7 @@ import { useSnackbar } from "notistack";
 import { useGetEmploymentTypesQuery } from "../../features/api/employee/employeetypesApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/index";
+import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
@@ -38,11 +38,13 @@ const EmployeeTypes = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
 
   const searchQuery =
-    parentSearchQuery !== undefined ? parentSearchQuery : queryParams?.q ?? "";
+    parentSearchQuery !== undefined
+      ? parentSearchQuery
+      : (queryParams?.q ?? "");
   const debounceValue =
     parentDebounceValue !== undefined ? parentDebounceValue : searchQuery;
 
@@ -121,12 +123,12 @@ const EmployeeTypes = ({
 
   const employmentTypeList = useMemo(
     () => employmentTypes?.result?.data || [],
-    [employmentTypes]
+    [employmentTypes],
   );
 
   const totalCount = useMemo(
     () => employmentTypes?.result?.total || 0,
-    [employmentTypes]
+    [employmentTypes],
   );
 
   const handleSearchChange = useCallback(
@@ -139,7 +141,7 @@ const EmployeeTypes = ({
 
       setPage(1);
     },
-    [onSearchChange]
+    [onSearchChange],
   );
 
   const openWizard = useCallback(
@@ -147,7 +149,7 @@ const EmployeeTypes = ({
       try {
         const response = await getSingleEmployee(
           employmentType?.employee?.id,
-          true
+          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -161,14 +163,14 @@ const EmployeeTypes = ({
         });
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleRowClick = useCallback(
     async (employmentType) => {
       await openWizard(employmentType, "view");
     },
-    [openWizard]
+    [openWizard],
   );
 
   const handleWizardClose = useCallback(() => {
@@ -182,10 +184,10 @@ const EmployeeTypes = ({
       await refetch();
       enqueueSnackbar(
         `Employee ${mode === "create" ? "created" : "updated"} successfully!`,
-        { variant: "success", autoHideDuration: 3000 }
+        { variant: "success", autoHideDuration: 3000 },
       );
     },
-    [refetch, enqueueSnackbar]
+    [refetch, enqueueSnackbar],
   );
 
   const handlePageChange = useCallback(
@@ -199,11 +201,11 @@ const EmployeeTypes = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -219,16 +221,16 @@ const EmployeeTypes = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const safelyDisplayValue = useCallback(
     (value) => (value === null || value === undefined ? "N/A" : String(value)),
-    []
+    [],
   );
 
   const formatEmployeeName = useCallback((employee) => {
@@ -366,7 +368,7 @@ const EmployeeTypes = ({
                       "&:hover": {
                         backgroundColor: alpha(
                           theme.palette.primary.main,
-                          0.04
+                          0.04,
                         ),
                         "& .MuiTableCell-root": {
                           backgroundColor: "transparent",
@@ -396,7 +398,7 @@ const EmployeeTypes = ({
                             mt: 0.3,
                           }}>
                           {safelyDisplayValue(
-                            employmentType.employee?.employee_code
+                            employmentType.employee?.employee_code,
                           )}
                         </Typography>
                         <Box sx={{ mt: 0.5 }}>
@@ -442,7 +444,7 @@ const EmployeeTypes = ({
                               }}>
                               ({item.code}) - {item.name}
                             </Typography>
-                          )
+                          ),
                         )}
                         {formatCharging(employmentType.employee?.charging)
                           .length === 0 && (
@@ -459,10 +461,10 @@ const EmployeeTypes = ({
                     <TableCell className="table-cell2" sx={{ width: "15%" }}>
                       <Chip
                         label={safelyDisplayValue(
-                          employmentType.employment_type_label
+                          employmentType.employment_type_label,
                         )}
                         color={getEmploymentTypeChipColor(
-                          employmentType.employment_type_label
+                          employmentType.employment_type_label,
                         )}
                         variant="outlined"
                         size="small"
@@ -472,13 +474,13 @@ const EmployeeTypes = ({
                     <TableCell className="table-cell2" sx={{ width: "12%" }}>
                       {formatDate(
                         employmentType.employment_start_date ||
-                          employmentType.start_date
+                          employmentType.start_date,
                       )}
                     </TableCell>
                     <TableCell className="table-cell2" sx={{ width: "13%" }}>
                       {formatDate(
                         employmentType.employment_end_date ||
-                          employmentType.end_date
+                          employmentType.end_date,
                       )}
                     </TableCell>
                     <TableCell
@@ -512,10 +514,10 @@ const EmployeeTypes = ({
                         {searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
-                              (v) => v && v !== "ACTIVE"
-                            )
-                          ? `No employment types with selected filters`
-                          : "No employment types"}
+                                (v) => v && v !== "ACTIVE",
+                              )
+                            ? `No employment types with selected filters`
+                            : "No employment types"}
                       </Typography>
                     </Box>
                   </TableCell>
