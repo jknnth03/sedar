@@ -143,7 +143,6 @@ const Address = ({
       try {
         const response = await getSingleEmployee(
           address?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

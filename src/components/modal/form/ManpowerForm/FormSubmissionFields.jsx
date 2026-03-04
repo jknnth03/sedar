@@ -8,6 +8,8 @@ import {
   FormControlLabel,
   Checkbox,
   CircularProgress,
+  Alert,
+  Typography,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
@@ -100,23 +102,94 @@ const FormSubmissionFields = ({
 
   const positions = useMemo(
     () => normalizeApiData(positionsData),
-    [positionsData, normalizeApiData]
+    [positionsData, normalizeApiData],
   );
 
   const jobLevels = useMemo(
     () => normalizeApiData(jobLevelsData),
-    [jobLevelsData, normalizeApiData]
+    [jobLevelsData, normalizeApiData],
   );
 
   const requisitions = useMemo(
     () => normalizeApiData(requisitionsData),
-    [requisitionsData, normalizeApiData]
+    [requisitionsData, normalizeApiData],
   );
 
   const employees = useMemo(
     () => normalizeApiData(employeesData),
-    [employeesData, normalizeApiData]
+    [employeesData, normalizeApiData],
   );
+
+  const attachmentInstructions = useMemo(() => {
+    const requisitionName = watchedRequisitionType?.name;
+    if (!requisitionName) return null;
+
+    const normalizedName = requisitionName.toLowerCase();
+
+    const instructionMap = {
+      resigned: {
+        attachments: [
+          "1. Resignation Letter",
+          "2. KPI for the position",
+          "3. Job Profile for the position",
+        ],
+        remarks: "Need this 3 before moving to the next step",
+      },
+      additional: {
+        attachments: [
+          "1. Organizational Structure",
+          "2. KPI for the position",
+          "3. Job Profile for the position",
+        ],
+        remarks: "Need this 3 before moving to the next step",
+      },
+      "additional manpower": {
+        attachments: [
+          "1. Organizational Structure",
+          "2. KPI for the position",
+          "3. Job Profile for the position",
+        ],
+        remarks: "Need this 3 before moving to the next step",
+      },
+      "end of contract": {
+        attachments: [
+          "1. Performance Evaluation",
+          "2. KPI for the position",
+          "3. Job Profile for the position",
+        ],
+        remarks: "Need this 3 before moving to the next step",
+      },
+      retirement: {
+        attachments: [
+          "1. KPI for the position",
+          "2. Job Profile for the position",
+        ],
+        remarks: "Need this 2 before moving to the next step",
+      },
+      "terminated (dismissed, backout, blacklisted)": {
+        attachments: ["1. Incident Report", "2. NOD if available"],
+        remarks: null,
+      },
+      awol: {
+        attachments: ["1. Incident Report"],
+        remarks: null,
+      },
+      "returned to agency": {
+        attachments: ["1. Incident Report"],
+        remarks: null,
+      },
+      deceased: {
+        attachments: ["-"],
+        remarks: null,
+      },
+    };
+
+    const matchedKey = Object.keys(instructionMap).find((key) =>
+      normalizedName.includes(key),
+    );
+
+    return matchedKey ? instructionMap[matchedKey] : null;
+  }, [watchedRequisitionType]);
 
   useEffect(() => {
     if (mode === "view" && selectedEntry?.submittable) {
@@ -127,7 +200,7 @@ const FormSubmissionFields = ({
         setValue(
           "position_id",
           submittable.position || { id: submittable.position_id },
-          { shouldValidate: false }
+          { shouldValidate: false },
         );
       }
 
@@ -135,7 +208,7 @@ const FormSubmissionFields = ({
         setValue(
           "job_level_id",
           submittable.job_level || { id: submittable.job_level_id },
-          { shouldValidate: false }
+          { shouldValidate: false },
         );
       }
 
@@ -145,7 +218,7 @@ const FormSubmissionFields = ({
           submittable.requisition_type || {
             id: submittable.requisition_type_id,
           },
-          { shouldValidate: false }
+          { shouldValidate: false },
         );
       }
 
@@ -192,7 +265,7 @@ const FormSubmissionFields = ({
                   full_name: employeeData.full_name,
                   employee_code: employeeData.employee_code,
                 },
-                { shouldValidate: false }
+                { shouldValidate: false },
               );
             }
 
@@ -205,7 +278,7 @@ const FormSubmissionFields = ({
                   title: newPositionData.title,
                   title_with_unit: newPositionData.title_with_unit,
                 },
-                { shouldValidate: false }
+                { shouldValidate: false },
               );
             }
 
@@ -213,13 +286,13 @@ const FormSubmissionFields = ({
               setValue(
                 "movement_reason_for_change",
                 replacementInfo.details.reason_for_change,
-                { shouldValidate: false }
+                { shouldValidate: false },
               );
             }
 
             if (replacementInfo.details.da_start_date) {
               const startDate = parseDateValue(
-                replacementInfo.details.da_start_date
+                replacementInfo.details.da_start_date,
               );
               setValue("movement_da_start_date", startDate, {
                 shouldValidate: false,
@@ -228,7 +301,7 @@ const FormSubmissionFields = ({
 
             if (replacementInfo.details.da_end_date) {
               const endDate = parseDateValue(
-                replacementInfo.details.da_end_date
+                replacementInfo.details.da_end_date,
               );
               setValue("movement_da_end_date", endDate, {
                 shouldValidate: false,
@@ -253,7 +326,7 @@ const FormSubmissionFields = ({
                 full_name: employeeData.full_name,
                 employee_code: employeeData.employee_code,
               },
-              { shouldValidate: false }
+              { shouldValidate: false },
             );
           }
         });
@@ -273,7 +346,7 @@ const FormSubmissionFields = ({
                 full_name: employeeData.full_name,
                 employee_code: employeeData.employee_code,
               },
-              { shouldValidate: false }
+              { shouldValidate: false },
             );
           }
 
@@ -286,7 +359,7 @@ const FormSubmissionFields = ({
                 title: newPositionData.title,
                 title_with_unit: newPositionData.title_with_unit,
               },
-              { shouldValidate: false }
+              { shouldValidate: false },
             );
           }
 
@@ -294,13 +367,13 @@ const FormSubmissionFields = ({
             setValue(
               "movement_reason_for_change",
               replacementInfo.details.reason_for_change,
-              { shouldValidate: false }
+              { shouldValidate: false },
             );
           }
 
           if (replacementInfo.details.da_start_date) {
             const startDate = parseDateValue(
-              replacementInfo.details.da_start_date
+              replacementInfo.details.da_start_date,
             );
             setValue("movement_da_start_date", startDate, {
               shouldValidate: false,
@@ -332,7 +405,7 @@ const FormSubmissionFields = ({
               full_name: employeeData.full_name,
               employee_code: employeeData.employee_code,
             },
-            { shouldValidate: false }
+            { shouldValidate: false },
           );
         }
       }
@@ -388,7 +461,7 @@ const FormSubmissionFields = ({
       triggerGetRequisitions,
       triggerGetPositions,
       triggerGetJobLevels,
-    ]
+    ],
   );
 
   const isReplacementDueToEmployeeMovement = useCallback(() => {
@@ -439,7 +512,7 @@ const FormSubmissionFields = ({
         clearErrors("employment_type");
       }
     },
-    [disabled, setValue, clearErrors]
+    [disabled, setValue, clearErrors],
   );
 
   const handleReasonForChangeChange = useCallback(
@@ -451,7 +524,7 @@ const FormSubmissionFields = ({
         clearErrors("movement_reason_for_change");
       }
     },
-    [disabled, setValue, clearErrors]
+    [disabled, setValue, clearErrors],
   );
 
   const getErrorMessage = useCallback((error) => {
@@ -480,7 +553,7 @@ const FormSubmissionFields = ({
         }
       />
     ),
-    [isViewMode]
+    [isViewMode],
   );
 
   const employmentTypeOptions = useMemo(
@@ -492,7 +565,7 @@ const FormSubmissionFields = ({
       "FIXED-TERM",
       "CASUAL",
     ],
-    []
+    [],
   );
 
   const reasonForChangeOptions = useMemo(
@@ -505,7 +578,7 @@ const FormSubmissionFields = ({
       "ACTING CAPACITY",
       "SECONDMENT",
     ],
-    []
+    [],
   );
 
   return (
@@ -562,7 +635,7 @@ const FormSubmissionFields = ({
                         sx={
                           formStyles?.autocompleteTextField?.(
                             isReadOnly,
-                            isEditMode
+                            isEditMode,
                           ) || {}
                         }
                         InputProps={{
@@ -634,7 +707,7 @@ const FormSubmissionFields = ({
                         sx={
                           formStyles?.autocompleteTextField?.(
                             isReadOnly,
-                            isEditMode
+                            isEditMode,
                           ) || {}
                         }
                         InputProps={{
@@ -684,7 +757,7 @@ const FormSubmissionFields = ({
                         safeStringRender(
                           option?.full_name ||
                             option?.name ||
-                            option?.employee_name
+                            option?.employee_name,
                         )
                       }
                       isOptionEqualToValue={(option, value) => {
@@ -708,7 +781,7 @@ const FormSubmissionFields = ({
                           sx={
                             formStyles?.autocompleteTextField?.(
                               isReadOnly,
-                              isEditMode
+                              isEditMode,
                             ) || {}
                           }
                           InputProps={{
@@ -728,8 +801,8 @@ const FormSubmissionFields = ({
                         isLoadingEmployees || employeesLoading
                           ? "Loading employees..."
                           : !watchedPositionId || !watchedRequisitionType
-                          ? "Select position and requisition type first"
-                          : "No employees found"
+                            ? "Select position and requisition type first"
+                            : "No employees found"
                       }
                     />
                   )}
@@ -759,7 +832,7 @@ const FormSubmissionFields = ({
                         safeStringRender(
                           option?.full_name ||
                             option?.name ||
-                            option?.employee_name
+                            option?.employee_name,
                         )
                       }
                       isOptionEqualToValue={(option, value) => {
@@ -778,7 +851,7 @@ const FormSubmissionFields = ({
                             isAdditionalManpower()
                               ? "Not required for Additional Manpower"
                               : getErrorMessage(
-                                  errors.employee_to_be_replaced_id
+                                  errors.employee_to_be_replaced_id,
                                 ) ||
                                 (!watchedPositionId || !watchedRequisitionType
                                   ? "Please select Position and Requisition Type first"
@@ -802,8 +875,8 @@ const FormSubmissionFields = ({
                         isLoadingEmployees || employeesLoading
                           ? "Loading employees..."
                           : !watchedPositionId || !watchedRequisitionType
-                          ? "Select position and requisition type first"
-                          : "No employees found"
+                            ? "Select position and requisition type first"
+                            : "No employees found"
                       }
                     />
                   )}
@@ -843,7 +916,7 @@ const FormSubmissionFields = ({
                           fullWidth
                           error={!!errors.movement_new_position_id}
                           helperText={getErrorMessage(
-                            errors.movement_new_position_id
+                            errors.movement_new_position_id,
                           )}
                           sx={formStyles?.textField?.(isReadOnly) || {}}
                           InputProps={{
@@ -922,6 +995,52 @@ const FormSubmissionFields = ({
                 )}
               />
             </Box>
+
+            {attachmentInstructions && (
+              <Box sx={{ gridColumn: "1 / -1", mb: 1 }}>
+                <Alert
+                  severity="info"
+                  sx={{
+                    backgroundColor: "rgba(33, 61, 112, 0.08)",
+                    border: "1px solid rgba(33, 61, 112, 0.2)",
+                    "& .MuiAlert-icon": {
+                      color: "rgb(33, 61, 112)",
+                    },
+                    "& .MuiAlert-message": {
+                      color: "rgb(33, 61, 112)",
+                    },
+                  }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 600, mb: 0.5 }}>
+                    Required Attachments:
+                  </Typography>
+                  {attachmentInstructions.attachments.map(
+                    (attachment, index) => (
+                      <Typography
+                        key={index}
+                        variant="body2"
+                        sx={{ fontSize: "13px" }}>
+                        {attachment}
+                      </Typography>
+                    ),
+                  )}
+                  {attachmentInstructions.remarks && (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: "12px",
+                        fontStyle: "italic",
+                        mt: 0.5,
+                        color: "rgb(33, 61, 112)",
+                        fontWeight: 600,
+                      }}>
+                      * {attachmentInstructions.remarks}
+                    </Typography>
+                  )}
+                </Alert>
+              </Box>
+            )}
           </Box>
         </Box>
 
@@ -994,7 +1113,7 @@ const FormSubmissionFields = ({
                       required={true}
                       error={!!errors.movement_reason_for_change}
                       helperText={getErrorMessage(
-                        errors.movement_reason_for_change
+                        errors.movement_reason_for_change,
                       )}
                       disabled={isReadOnly}
                       sx={formStyles?.textField?.(isReadOnly) || {}}
@@ -1097,7 +1216,7 @@ const FormSubmissionFields = ({
                           fullWidth: true,
                           error: !!errors.movement_da_start_date,
                           helperText: getErrorMessage(
-                            errors.movement_da_start_date
+                            errors.movement_da_start_date,
                           ),
                           sx: formStyles?.textField?.(isReadOnly) || {},
                         },
@@ -1133,7 +1252,7 @@ const FormSubmissionFields = ({
                           fullWidth: true,
                           error: !!errors.movement_da_end_date,
                           helperText: getErrorMessage(
-                            errors.movement_da_end_date
+                            errors.movement_da_end_date,
                           ),
                           sx: formStyles?.textField?.(isReadOnly) || {},
                         },

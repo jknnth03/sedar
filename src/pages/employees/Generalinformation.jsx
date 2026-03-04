@@ -141,7 +141,7 @@ const General = ({
   const openWizard = useCallback(
     async (general, mode) => {
       try {
-        const response = await getSingleEmployee(general?.id, true).unwrap();
+        const response = await getSingleEmployee(general?.id).unwrap();
 
         setWizardInitialData(response?.result);
         setWizardMode(mode);

@@ -192,7 +192,6 @@ const Contacts = ({
       try {
         const response = await getSingleEmployee(
           contact?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

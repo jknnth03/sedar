@@ -30,7 +30,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import StarIcon from "@mui/icons-material/Star";
 import EditIcon from "@mui/icons-material/Edit";
-import NoDataGIF from "../assets/no-data.gif";
+// import NoDataGIF from "../assets/no-data.gif";
 import CancelIcon from "@mui/icons-material/Cancel";
 import InfoIcon from "@mui/icons-material/Info";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
@@ -394,6 +394,14 @@ export const createEnhancedModules = (dashboardData = {}) => {
           path: "pdpapproval",
           icon: <AssessmentIcon sx={iconStyles.child} />,
           notificationCount: counts.daPdpApprovals,
+        },
+        PDPTWOAPPROVAL: {
+          name: "PDP 2",
+          permissionId: "APPROVING.PDPTWOAPPROVAL",
+          displayName: "PDP 2",
+          path: "pdptwoapproval",
+          icon: <AssessmentIcon sx={iconStyles.child} />,
+          notificationCount: counts.pdpTwoApprovals || 0,
         },
       },
     },
@@ -952,9 +960,9 @@ export const CONSTANT = {
     LOGIN: {
       label: "Log In",
     },
-    NODATA: {
-      icon: <img src={NoDataGIF} alt="No Data" style={imageStyles.noData} />,
-    },
+    // NODATA: {
+    //   icon: <img src={NoDataGIF} alt="No Data" style={imageStyles.noData} />,
+    // },
     ADD: {
       label1: "Save",
       label2: "Update",

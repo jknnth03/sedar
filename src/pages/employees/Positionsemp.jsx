@@ -146,7 +146,6 @@ const Positions = ({
       try {
         const response = await getSingleEmployee(
           position?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

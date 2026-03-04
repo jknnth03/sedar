@@ -36,17 +36,9 @@ const kpiApi = sedarApi
           });
 
           const queryString = queryParams.toString();
-          // Added 'me/' prefix back
           const url = queryString
             ? `me/positions?${queryString}`
             : "me/positions";
-
-          // Add debugging
-          console.log("Generated URL:", url);
-          console.log("Full query object:", {
-            url,
-            method: "GET",
-          });
 
           return {
             url,
@@ -55,38 +47,37 @@ const kpiApi = sedarApi
         },
         providesTags: ["kpis"],
       }),
-      updatePositionKpis: build.mutation({
-        query: (body) => {
-          // Added 'me/' prefix back
-          const url = `me/positions/${body?.id}/kpis`;
-          console.log("Update KPI URL:", url);
 
-          return {
-            url,
-            method: "PUT",
-            body: body?.data,
-          };
-        },
+      updatePositionKpis: build.mutation({
+        query: (body) => ({
+          url: `me/positions/${body?.id}/kpis`,
+          method: "POST",
+          body: body?.data,
+        }),
         invalidatesTags: (result, error, { id }) => [
           { type: "kpis", id },
           "kpis",
         ],
       }),
-      getPositionKpis: build.query({
-        query: (positionId) => {
-          // Added 'me/' prefix back
-          const url = `me/positions/${positionId}/kpis`;
-          console.log("Get Position KPIs URL:", url);
 
-          return {
-            url,
-            method: "GET",
-          };
-        },
+      getPositionKpis: build.query({
+        query: (positionId) => ({
+          url: `me/positions/${positionId}/kpis`,
+          method: "GET",
+        }),
         providesTags: (result, error, positionId) => [
           { type: "kpis", id: positionId },
           "kpis",
         ],
+      }),
+
+      getKpiAttachment: build.query({
+        query: (positionId) => ({
+          url: `positions/${positionId}/kpi-attachment`,
+          method: "GET",
+          responseHandler: async (response) => await response.blob(),
+          cache: "no-cache",
+        }),
       }),
     }),
   });
@@ -95,6 +86,7 @@ export const {
   useGetTablePositionsQuery,
   useUpdatePositionKpisMutation,
   useGetPositionKpisQuery,
+  useGetKpiAttachmentQuery,
 } = kpiApi;
 
 export default kpiApi;

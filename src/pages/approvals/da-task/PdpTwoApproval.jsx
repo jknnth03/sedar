@@ -33,7 +33,6 @@ import {
   useApprovePdpTwoMutation,
   useReturnPdpTwoMutation,
 } from "../../../features/api/approving/pdpTwoApprovalApi.js";
-import { CONSTANT } from "../../../config";
 import dayjs from "dayjs";
 import { createSubmissionApprovalStyles } from "../mrfApproval/SubmissionApprovalStyles.jsx";
 import PdpApprovalDialog from "./PdpApprovalDialog.jsx";

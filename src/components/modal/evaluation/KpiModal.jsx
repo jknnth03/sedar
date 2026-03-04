@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useFormContext, Controller, useFieldArray } from "react-hook-form";
 import {
   Dialog,
@@ -25,6 +25,8 @@ import {
   TableRow,
   Paper,
   InputAdornment,
+  Chip,
+  Skeleton,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -32,11 +34,15 @@ import {
   Add as AddIcon,
   Description as DescriptionIcon,
   Remove as RemoveIcon,
+  AttachFile as AttachFileIcon,
+  InsertDriveFile as InsertDriveFileIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import EditOffIcon from "@mui/icons-material/EditOff";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useGetAllShowObjectivesQuery } from "../../../features/api/extras/objectivesApi";
+import { useGetKpiAttachmentQuery } from "../../../features/api/evaluation/kpiApi";
 import { kpiModalStyles } from "./KpiModalStyles";
 
 const KpiModal = ({
@@ -66,6 +72,14 @@ const KpiModal = ({
   const [originalMode, setOriginalMode] = useState(mode);
   const [shouldFetchObjectives, setShouldFetchObjectives] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null);
+  const [existingAttachmentUrl, setExistingAttachmentUrl] = useState(null);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fetchAttachment, setFetchAttachment] = useState(false);
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [blobLoading, setBlobLoading] = useState(false);
+  const [blobError, setBlobError] = useState(false);
+  const fileInputRef = useRef(null);
 
   const {
     data: objectivesData,
@@ -73,10 +87,45 @@ const KpiModal = ({
     error: objectivesError,
   } = useGetAllShowObjectivesQuery(
     { status: "active" },
-    {
-      skip: !shouldFetchObjectives,
-    }
+    { skip: !shouldFetchObjectives },
   );
+
+  const {
+    data: attachmentData,
+    isLoading: attachmentLoading,
+    error: attachmentFetchError,
+  } = useGetKpiAttachmentQuery(selectedEntry?.id, {
+    skip: !fetchAttachment || !selectedEntry?.id || !existingAttachmentUrl,
+  });
+
+  useEffect(() => {
+    if (!fileViewerOpen) {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        setBlobUrl(null);
+      }
+      setBlobError(false);
+      return;
+    }
+
+    if (attachmentLoading) {
+      setBlobLoading(true);
+      return;
+    }
+
+    setBlobLoading(false);
+
+    if (attachmentFetchError) {
+      setBlobError(true);
+      return;
+    }
+
+    if (attachmentData instanceof Blob) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      const url = URL.createObjectURL(attachmentData);
+      setBlobUrl(url);
+    }
+  }, [fileViewerOpen, attachmentData, attachmentLoading, attachmentFetchError]);
 
   const objectives = React.useMemo(() => {
     if (
@@ -85,7 +134,6 @@ const KpiModal = ({
     ) {
       return [];
     }
-
     return objectivesData.result.data.map((objective) => ({
       id: objective.id,
       name: objective.name,
@@ -112,20 +160,23 @@ const KpiModal = ({
       setCurrentMode(mode);
       setOriginalMode(mode);
       setShowValidation(false);
+      setAttachedFile(null);
 
       if (mode === "create") {
+        setExistingAttachmentUrl(null);
         reset({
           kpis: [
-            {
-              objective: "",
-              distribution: "",
-              deliverable: "",
-              target: "",
-            },
+            { objective: "", distribution: "", deliverable: "", target: "" },
           ],
         });
         setTimeout(() => setShowValidation(true), 100);
       } else if (selectedEntry && (mode === "view" || mode === "edit")) {
+        const downloadUrl = positionKpisData?.result?.kpi_download_url || null;
+        const fileName =
+          positionKpisData?.result?.kpi_attachment_file_name || null;
+        setExistingAttachmentUrl(downloadUrl);
+        setExistingAttachmentFileName(fileName);
+
         let existingKpis = [];
         let kpiData = null;
 
@@ -144,7 +195,6 @@ const KpiModal = ({
 
         if (kpiData && Array.isArray(kpiData)) {
           setShouldFetchObjectives(true);
-
           existingKpis = kpiData.map((kpi) => {
             const objective = getObjectiveById(kpi.objective_id);
             return {
@@ -162,23 +212,27 @@ const KpiModal = ({
 
         if (existingKpis.length === 0) {
           existingKpis = [
-            {
-              objective: "",
-              distribution: "",
-              deliverable: "",
-              target: "",
-            },
+            { objective: "", distribution: "", deliverable: "", target: "" },
           ];
         }
 
-        reset({
-          kpis: existingKpis,
-        });
+        reset({ kpis: existingKpis });
         setTimeout(() => setShowValidation(true), 100);
       }
     } else {
       setShouldFetchObjectives(false);
       setShowValidation(false);
+      setAttachedFile(null);
+      setExistingAttachmentUrl(null);
+      setFetchAttachment(false);
+      setFileViewerOpen(false);
+      setBlobError(false);
+      setBlobLoading(false);
+      setExistingAttachmentFileName(null);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        setBlobUrl(null);
+      }
     }
   }, [open, mode, selectedEntry, positionKpisData, reset]);
 
@@ -236,6 +290,7 @@ const KpiModal = ({
 
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
+    setAttachedFile(null);
     if (selectedEntry) {
       let existingKpis = [];
       let kpiData = null;
@@ -266,29 +321,17 @@ const KpiModal = ({
 
       if (existingKpis.length === 0) {
         existingKpis = [
-          {
-            objective: "",
-            distribution: "",
-            deliverable: "",
-            target: "",
-          },
+          { objective: "", distribution: "", deliverable: "", target: "" },
         ];
       }
 
-      reset({
-        kpis: existingKpis,
-      });
+      reset({ kpis: existingKpis });
     }
   };
 
   const addKpiLine = () => {
     if (totalDistribution < 99.9) {
-      append({
-        objective: "",
-        distribution: "",
-        deliverable: "",
-        target: "",
-      });
+      append({ objective: "", distribution: "", deliverable: "", target: "" });
     }
   };
 
@@ -296,6 +339,38 @@ const KpiModal = ({
     if (fields.length > 1) {
       remove(index);
     }
+  };
+
+  const handleViewAttachment = () => {
+    if (!existingAttachmentUrl) return;
+    setBlobUrl(null);
+    setBlobError(false);
+    setBlobLoading(true);
+    setFetchAttachment(true);
+    setFileViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    setBlobLoading(false);
+    setBlobError(false);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      setBlobUrl(null);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAttachedFile(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
   };
 
   const onSubmit = (data) => {
@@ -309,6 +384,7 @@ const KpiModal = ({
           target_percentage: parseFloat(kpi.target) || 0,
         };
       }),
+      attachment: attachedFile || null,
     };
 
     if (onSave) {
@@ -322,6 +398,17 @@ const KpiModal = ({
     setOriginalMode(mode);
     setShouldFetchObjectives(false);
     setShowValidation(false);
+    setAttachedFile(null);
+    setExistingAttachmentUrl(null);
+    setExistingAttachmentFileName(null);
+    setFetchAttachment(false);
+    setFileViewerOpen(false);
+    setBlobError(false);
+    setBlobLoading(false);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      setBlobUrl(null);
+    }
     onClose();
   };
 
@@ -351,28 +438,18 @@ const KpiModal = ({
   const isDistributionValid =
     totalDistribution <= 100.01 && totalDistribution >= 99.99;
   const shouldDisableAddButton = totalDistribution >= 99.9;
-
   const canSubmit = isDistributionValid;
 
   const safeGetValue = (obj, key, fallback = "N/A") => {
     if (!obj || typeof obj !== "object") return fallback;
     const value = obj[key];
-
     if (value === null || value === undefined || value === "") return fallback;
-
     if (typeof value === "object" && value !== null) {
-      if (value.name && typeof value.name === "string") {
-        return value.name;
-      }
-      if (value.title && typeof value.title === "string") {
-        return value.title;
-      }
-      if (value.code && typeof value.code === "string") {
-        return value.code;
-      }
+      if (value.name && typeof value.name === "string") return value.name;
+      if (value.title && typeof value.title === "string") return value.title;
+      if (value.code && typeof value.code === "string") return value.code;
       return fallback;
     }
-
     return String(value);
   };
 
@@ -380,21 +457,19 @@ const KpiModal = ({
     if (positionKpisData?.result?.position?.title) {
       return positionKpisData.result.position.title;
     }
-
     return safeGetValue(positionKpisData, "position_name") !== "N/A"
       ? safeGetValue(positionKpisData, "position_name")
       : safeGetValue(selectedEntry, "position_name") !== "N/A"
-      ? safeGetValue(selectedEntry, "position_name")
-      : safeGetValue(selectedEntry, "title") !== "N/A"
-      ? safeGetValue(selectedEntry, "title")
-      : safeGetValue(selectedEntry, "name", "N/A");
+        ? safeGetValue(selectedEntry, "position_name")
+        : safeGetValue(selectedEntry, "title") !== "N/A"
+          ? safeGetValue(selectedEntry, "title")
+          : safeGetValue(selectedEntry, "name", "N/A");
   };
 
   const getCharging = () => {
     if (positionKpisData?.result?.position?.charging) {
       return positionKpisData.result.position.charging;
     }
-
     return safeGetValue(positionKpisData, "charging") !== "N/A"
       ? safeGetValue(positionKpisData, "charging")
       : safeGetValue(selectedEntry, "charging", "N/A");
@@ -404,20 +479,33 @@ const KpiModal = ({
     if (positionKpisData?.result?.position?.superior_name) {
       return positionKpisData.result.position.superior_name;
     }
-
     return safeGetValue(positionKpisData, "immediate_superior") !== "N/A"
       ? safeGetValue(positionKpisData, "immediate_superior")
       : safeGetValue(selectedEntry, "immediate_superior") !== "N/A"
-      ? safeGetValue(selectedEntry, "immediate_superior")
-      : safeGetValue(selectedEntry, "superior_name", "N/A");
+        ? safeGetValue(selectedEntry, "immediate_superior")
+        : safeGetValue(selectedEntry, "superior_name", "N/A");
   };
 
   const handleDistributionChange = (index, value) => {
     setValue(`kpis.${index}.distribution`, value);
-
     if (!value || parseFloat(value) === 0) {
       setValue(`kpis.${index}.target`, "");
     }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const [existingAttachmentFileName, setExistingAttachmentFileName] =
+    useState(null);
+
+  const getAttachmentFilename = () => {
+    if (existingAttachmentFileName) return existingAttachmentFileName;
+    if (!existingAttachmentUrl) return "Attachment";
+    return existingAttachmentUrl.split("/").pop() || "Attachment";
   };
 
   return (
@@ -427,9 +515,7 @@ const KpiModal = ({
         onClose={handleClose}
         maxWidth="lg"
         fullWidth
-        PaperProps={{
-          sx: kpiModalStyles.dialog,
-        }}>
+        PaperProps={{ sx: kpiModalStyles.dialog }}>
         <DialogTitle sx={kpiModalStyles.dialogTitle}>
           <Box sx={kpiModalStyles.titleBox}>
             <DescriptionIcon sx={kpiModalStyles.titleIcon} />
@@ -439,7 +525,7 @@ const KpiModal = ({
               sx={kpiModalStyles.titleText}>
               {getModalTitle()}
             </Typography>
-            {isViewMode && (
+            {isViewMode && !isLoading && (
               <Tooltip title="EDIT KPI" arrow placement="top">
                 <IconButton
                   onClick={() => handleModeChange("edit")}
@@ -468,7 +554,6 @@ const KpiModal = ({
               </Tooltip>
             )}
           </Box>
-
           <Box sx={kpiModalStyles.closeButtonBox}>
             <IconButton onClick={handleClose} sx={kpiModalStyles.closeButton}>
               <CloseIcon sx={kpiModalStyles.closeIcon} />
@@ -477,320 +562,504 @@ const KpiModal = ({
         </DialogTitle>
 
         <DialogContent sx={kpiModalStyles.dialogContent}>
-          <Box sx={kpiModalStyles.infoBox}>
-            <Grid container spacing={8}>
-              <Grid item xs={12} md={4}>
-                <Typography {...kpiModalStyles.infoSubtitle}>
-                  Position Name
-                </Typography>
-                <Typography {...kpiModalStyles.infoText}>
-                  {getPositionName()}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography {...kpiModalStyles.infoSubtitle}>
-                  Charging
-                </Typography>
-                <Typography {...kpiModalStyles.infoText}>
-                  {getCharging()}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography {...kpiModalStyles.infoSubtitle}>
-                  Immediate Superior
-                </Typography>
-                <Typography {...kpiModalStyles.infoText}>
-                  {getImmediateSuperior()}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
-
-          <Box sx={kpiModalStyles.distributionBox}>
-            <Typography {...kpiModalStyles.distributionText}>
-              Total Distribution: {totalDistribution.toFixed(2)}%
-            </Typography>
-            {showValidation && (
-              <Box sx={kpiModalStyles.distributionStatus(isDistributionValid)}>
-                {isDistributionValid
-                  ? "✓ Valid"
-                  : totalDistribution > 100.01
-                  ? "⚠ Must not be lower than 99.99% or higher than 100.01%"
-                  : "⚠ Must not be lower than 99.99% or higher than 100.01%"}
+          {isLoading && !positionKpisData ? (
+            <Box sx={{ p: 1 }}>
+              <Box sx={{ display: "flex", gap: 4, mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton
+                    variant="text"
+                    width="40%"
+                    height={18}
+                    sx={{ mb: 0.5 }}
+                  />
+                  <Skeleton variant="text" width="80%" height={22} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton
+                    variant="text"
+                    width="40%"
+                    height={18}
+                    sx={{ mb: 0.5 }}
+                  />
+                  <Skeleton variant="text" width="70%" height={22} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton
+                    variant="text"
+                    width="50%"
+                    height={18}
+                    sx={{ mb: 0.5 }}
+                  />
+                  <Skeleton variant="text" width="75%" height={22} />
+                </Box>
               </Box>
-            )}
-          </Box>
+              <Skeleton
+                variant="rounded"
+                height={48}
+                sx={{ mb: 2, borderRadius: 2 }}
+              />
+              <Skeleton variant="rounded" height={36} sx={{ mb: 1 }} />
+              {[...Array(3)].map((_, i) => (
+                <Skeleton
+                  key={i}
+                  variant="rounded"
+                  height={64}
+                  sx={{ mb: 1 }}
+                />
+              ))}
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ ...kpiModalStyles.infoBox, mb: 1.5 }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <Typography {...kpiModalStyles.infoSubtitle}>
+                      Position Name
+                    </Typography>
+                    <Typography {...kpiModalStyles.infoText}>
+                      {getPositionName()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography {...kpiModalStyles.infoSubtitle}>
+                      Charging
+                    </Typography>
+                    <Typography {...kpiModalStyles.infoText}>
+                      {getCharging()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography {...kpiModalStyles.infoSubtitle}>
+                      Immediate Superior
+                    </Typography>
+                    <Typography {...kpiModalStyles.infoText}>
+                      {getImmediateSuperior()}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <TableContainer
-              component={Paper}
-              sx={kpiModalStyles.tableContainer}>
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={kpiModalStyles.tableHeader}>
-                      Objective
-                    </TableCell>
-                    <TableCell sx={kpiModalStyles.tableHeaderDistribution}>
-                      Distribution (%)
-                    </TableCell>
-                    <TableCell sx={kpiModalStyles.tableHeader}>
-                      Deliverable / KPI
-                    </TableCell>
-                    <TableCell sx={kpiModalStyles.tableHeaderTarget}>
-                      Target (%)
-                    </TableCell>
+              <Box
+                sx={{
+                  mb: 1.5,
+                  border: "1.5px dashed #c8ccd4",
+                  borderRadius: 2,
+                  py: 1.5,
+                  px: 2,
+                  textAlign: "center",
+                  backgroundColor: "#f9fafb",
+                  cursor:
+                    !isReadOnly && !existingAttachmentUrl
+                      ? "pointer"
+                      : "default",
+                  display: "block",
+                }}
+                onClick={
+                  !isReadOnly && !existingAttachmentUrl
+                    ? () => fileInputRef.current?.click()
+                    : undefined
+                }>
+                <input
+                  ref={fileInputRef}
+                  id="kpi-file-upload"
+                  type="file"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                  disabled={isReadOnly}
+                />
+
+                {attachedFile ? (
+                  <>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: "#22c55e", mb: 0.3 }}>
+                      {attachedFile.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#6b7280" }}>
+                      {formatFileSize(attachedFile.size)}
+                      {!isReadOnly && " · Click to change"}
+                    </Typography>
                     {!isReadOnly && (
-                      <TableCell sx={kpiModalStyles.tableHeaderActions}>
-                        Actions
-                      </TableCell>
+                      <Box sx={{ mt: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFile();
+                          }}
+                          sx={{ color: "error.main", p: 0.3 }}>
+                          <CloseIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      </Box>
                     )}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {fields.map((field, index) => {
-                    const currentDistribution =
-                      parseFloat(watchedKpis[index]?.distribution) || 0;
-                    const isTargetDisabled =
-                      isReadOnly || currentDistribution === 0;
+                  </>
+                ) : existingAttachmentUrl ? (
+                  <>
+                    <Typography
+                      variant="body2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewAttachment();
+                      }}
+                      sx={{
+                        fontWeight: 600,
+                        color: "#1976d2",
+                        mb: 0.3,
+                        cursor: "pointer",
+                        "&:hover": { textDecoration: "underline" },
+                      }}>
+                      {getAttachmentFilename()}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#6b7280" }}>
+                      {isReadOnly
+                        ? "Click to view file"
+                        : "Click to view file \u2022 Upload new file to replace"}
+                    </Typography>
+                    {!isReadOnly && (
+                      <Box sx={{ mt: 0.5 }}>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fileInputRef.current?.click();
+                          }}
+                          sx={{
+                            fontSize: "0.7rem",
+                            color: "#6b7280",
+                            p: 0,
+                            minWidth: 0,
+                            textTransform: "none",
+                          }}>
+                          Replace
+                        </Button>
+                      </Box>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: isReadOnly ? "#9ca3af" : "#374151",
+                        mb: 0.3,
+                      }}>
+                      {isReadOnly ? "No attachment" : "Upload Attachment"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#9ca3af" }}>
+                      {isReadOnly
+                        ? "No file was attached"
+                        : "Click to browse files"}
+                    </Typography>
+                  </>
+                )}
+              </Box>
 
-                    return (
-                      <TableRow key={field.id}>
-                        <TableCell>
-                          <Controller
-                            name={`kpis.${index}.objective`}
-                            control={control}
-                            rules={{ required: "Objective is required" }}
-                            render={({ field }) => (
-                              <FormControl
-                                fullWidth
-                                size="small"
-                                error={!!errors.kpis?.[index]?.objective}
-                                disabled={isReadOnly}>
-                                <Select
-                                  {...field}
-                                  displayEmpty
-                                  onFocus={handleObjectiveFieldClick}
-                                  onClick={handleObjectiveFieldClick}
-                                  sx={kpiModalStyles.selectField(isReadOnly)}>
-                                  <MenuItem value="">
-                                    <em>
-                                      {isLoadingObjectives
-                                        ? "Loading objectives..."
-                                        : objectives.length > 0
-                                        ? "Select Objective"
-                                        : "Click to load objectives"}
-                                    </em>
-                                  </MenuItem>
-                                  {isLoadingObjectives ? (
-                                    <MenuItem disabled>
-                                      <CircularProgress
-                                        size={16}
-                                        sx={{ mr: 1 }}
-                                      />
-                                      Loading...
-                                    </MenuItem>
-                                  ) : objectivesError ? (
-                                    <MenuItem disabled>
-                                      <em>Error loading objectives</em>
-                                    </MenuItem>
-                                  ) : objectives.length > 0 ? (
-                                    objectives.map((objective) => (
-                                      <MenuItem
-                                        key={objective.id}
-                                        value={objective.name}>
-                                        {objective.name}
-                                      </MenuItem>
-                                    ))
-                                  ) : shouldFetchObjectives ? (
-                                    <MenuItem disabled>
-                                      <em>No objectives found</em>
-                                    </MenuItem>
-                                  ) : null}
-                                </Select>
-                                {errors.kpis?.[index]?.objective && (
-                                  <FormHelperText>
-                                    {String(
-                                      errors.kpis[index].objective.message
-                                    )}
-                                  </FormHelperText>
-                                )}
-                              </FormControl>
-                            )}
-                          />
+              <Box sx={kpiModalStyles.distributionBox}>
+                <Typography {...kpiModalStyles.distributionText}>
+                  Total Distribution: {totalDistribution.toFixed(2)}%
+                </Typography>
+                {showValidation && (
+                  <Box
+                    sx={kpiModalStyles.distributionStatus(isDistributionValid)}>
+                    {isDistributionValid
+                      ? "✓ Valid"
+                      : "⚠ Must not be lower than 99.99% or higher than 100.01%"}
+                  </Box>
+                )}
+              </Box>
+
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <TableContainer
+                  component={Paper}
+                  sx={kpiModalStyles.tableContainer}>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={kpiModalStyles.tableHeader}>
+                          Objective
                         </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`kpis.${index}.distribution`}
-                            control={control}
-                            rules={{
-                              required: "Distribution is required",
-                              pattern: {
-                                value: /^\d*\.?\d+$/,
-                                message: "Enter valid number",
-                              },
-                            }}
-                            render={({
-                              field: { onChange, value, ...rest },
-                            }) => (
-                              <TextField
-                                {...rest}
-                                value={value}
-                                onChange={(e) => {
-                                  onChange(e);
-                                  handleDistributionChange(
-                                    index,
-                                    e.target.value
-                                  );
-                                }}
-                                size="small"
-                                fullWidth
-                                type="number"
-                                inputProps={{
-                                  step: "0.01",
-                                  min: "0",
-                                  max: "100",
-                                }}
-                                onInput={(e) => {
-                                  const value = e.target.value;
-                                  if (value.includes(".")) {
-                                    const decimalPart = value.split(".")[1];
-                                    if (decimalPart && decimalPart.length > 2) {
-                                      e.target.value =
-                                        parseFloat(value).toFixed(2);
-                                    }
-                                  }
-                                }}
-                                InputProps={{
-                                  endAdornment: (
-                                    <InputAdornment position="end">
-                                      %
-                                    </InputAdornment>
-                                  ),
-                                }}
-                                error={!!errors.kpis?.[index]?.distribution}
-                                helperText={
-                                  errors.kpis?.[index]?.distribution?.message
-                                    ? String(
-                                        errors.kpis[index].distribution.message
-                                      )
-                                    : ""
-                                }
-                                disabled={isReadOnly}
-                                sx={kpiModalStyles.percentageField(isReadOnly)}
-                              />
-                            )}
-                          />
+                        <TableCell sx={kpiModalStyles.tableHeaderDistribution}>
+                          Distribution (%)
                         </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`kpis.${index}.deliverable`}
-                            control={control}
-                            rules={{ required: "Deliverable/KPI is required" }}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                size="small"
-                                fullWidth
-                                multiline
-                                rows={2}
-                                error={!!errors.kpis?.[index]?.deliverable}
-                                helperText={
-                                  errors.kpis?.[index]?.deliverable?.message
-                                    ? String(
-                                        errors.kpis[index].deliverable.message
-                                      )
-                                    : ""
-                                }
-                                disabled={isReadOnly}
-                                sx={kpiModalStyles.textField(isReadOnly)}
-                              />
-                            )}
-                          />
+                        <TableCell sx={kpiModalStyles.tableHeader}>
+                          Deliverable / KPI
                         </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`kpis.${index}.target`}
-                            control={control}
-                            rules={{
-                              required: "Target is required",
-                              pattern: {
-                                value: /^\d*\.?\d+$/,
-                                message: "Enter valid number",
-                              },
-                              validate: (value) => {
-                                const targetValue = parseFloat(value);
-                                if (targetValue > 100) {
-                                  return "Target cannot exceed 100%";
-                                }
-                                return true;
-                              },
-                            }}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                size="small"
-                                fullWidth
-                                type="number"
-                                inputProps={{
-                                  step: "0.1",
-                                  min: "0",
-                                  max: "100",
-                                }}
-                                InputProps={{
-                                  endAdornment: (
-                                    <InputAdornment position="end">
-                                      %
-                                    </InputAdornment>
-                                  ),
-                                }}
-                                error={!!errors.kpis?.[index]?.target}
-                                helperText={
-                                  errors.kpis?.[index]?.target?.message
-                                    ? String(errors.kpis[index].target.message)
-                                    : ""
-                                }
-                                disabled={isTargetDisabled}
-                                sx={kpiModalStyles.percentageField(
-                                  isTargetDisabled
-                                )}
-                              />
-                            )}
-                          />
+                        <TableCell sx={kpiModalStyles.tableHeaderTarget}>
+                          Target (%)
                         </TableCell>
                         {!isReadOnly && (
-                          <TableCell>
-                            <Tooltip title="Remove Line">
-                              <IconButton
-                                onClick={() => removeKpiLine(index)}
-                                disabled={fields.length === 1}
-                                size="small"
-                                color="error">
-                                <RemoveIcon />
-                              </IconButton>
-                            </Tooltip>
+                          <TableCell sx={kpiModalStyles.tableHeaderActions}>
+                            Actions
                           </TableCell>
                         )}
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {fields.map((field, index) => {
+                        const currentDistribution =
+                          parseFloat(watchedKpis[index]?.distribution) || 0;
+                        const isTargetDisabled =
+                          isReadOnly || currentDistribution === 0;
 
-            {!isReadOnly && (
-              <Box sx={kpiModalStyles.addButtonBox}>
-                <Button
-                  onClick={addKpiLine}
-                  startIcon={<AddIcon />}
-                  variant="outlined"
-                  disabled={shouldDisableAddButton}
-                  sx={kpiModalStyles.addButton}>
-                  Add KPI Line
-                </Button>
-              </Box>
-            )}
-          </form>
+                        return (
+                          <TableRow key={field.id}>
+                            <TableCell>
+                              <Controller
+                                name={`kpis.${index}.objective`}
+                                control={control}
+                                rules={{ required: "Objective is required" }}
+                                render={({ field }) => (
+                                  <FormControl
+                                    fullWidth
+                                    size="small"
+                                    error={!!errors.kpis?.[index]?.objective}
+                                    disabled={isReadOnly}>
+                                    <Select
+                                      {...field}
+                                      displayEmpty
+                                      onFocus={handleObjectiveFieldClick}
+                                      onClick={handleObjectiveFieldClick}
+                                      sx={kpiModalStyles.selectField(
+                                        isReadOnly,
+                                      )}>
+                                      <MenuItem value="">
+                                        <em>
+                                          {isLoadingObjectives
+                                            ? "Loading objectives..."
+                                            : objectives.length > 0
+                                              ? "Select Objective"
+                                              : "Click to load objectives"}
+                                        </em>
+                                      </MenuItem>
+                                      {isLoadingObjectives ? (
+                                        <MenuItem disabled>
+                                          <CircularProgress
+                                            size={16}
+                                            sx={{ mr: 1 }}
+                                          />
+                                          Loading...
+                                        </MenuItem>
+                                      ) : objectivesError ? (
+                                        <MenuItem disabled>
+                                          <em>Error loading objectives</em>
+                                        </MenuItem>
+                                      ) : objectives.length > 0 ? (
+                                        objectives.map((objective) => (
+                                          <MenuItem
+                                            key={objective.id}
+                                            value={objective.name}>
+                                            {objective.name}
+                                          </MenuItem>
+                                        ))
+                                      ) : shouldFetchObjectives ? (
+                                        <MenuItem disabled>
+                                          <em>No objectives found</em>
+                                        </MenuItem>
+                                      ) : null}
+                                    </Select>
+                                    {errors.kpis?.[index]?.objective && (
+                                      <FormHelperText>
+                                        {String(
+                                          errors.kpis[index].objective.message,
+                                        )}
+                                      </FormHelperText>
+                                    )}
+                                  </FormControl>
+                                )}
+                              />
+                            </TableCell>
+
+                            <TableCell>
+                              <Controller
+                                name={`kpis.${index}.distribution`}
+                                control={control}
+                                rules={{
+                                  required: "Distribution is required",
+                                  pattern: {
+                                    value: /^\d*\.?\d+$/,
+                                    message: "Enter valid number",
+                                  },
+                                }}
+                                render={({
+                                  field: { onChange, value, ...rest },
+                                }) => (
+                                  <TextField
+                                    {...rest}
+                                    value={value}
+                                    onChange={(e) => {
+                                      onChange(e);
+                                      handleDistributionChange(
+                                        index,
+                                        e.target.value,
+                                      );
+                                    }}
+                                    size="small"
+                                    fullWidth
+                                    type="number"
+                                    inputProps={{
+                                      step: "0.01",
+                                      min: "0",
+                                      max: "100",
+                                    }}
+                                    onInput={(e) => {
+                                      const value = e.target.value;
+                                      if (value.includes(".")) {
+                                        const decimalPart = value.split(".")[1];
+                                        if (
+                                          decimalPart &&
+                                          decimalPart.length > 2
+                                        ) {
+                                          e.target.value =
+                                            parseFloat(value).toFixed(2);
+                                        }
+                                      }
+                                    }}
+                                    InputProps={{
+                                      endAdornment: (
+                                        <InputAdornment position="end">
+                                          %
+                                        </InputAdornment>
+                                      ),
+                                    }}
+                                    error={!!errors.kpis?.[index]?.distribution}
+                                    helperText={
+                                      errors.kpis?.[index]?.distribution
+                                        ?.message
+                                        ? String(
+                                            errors.kpis[index].distribution
+                                              .message,
+                                          )
+                                        : ""
+                                    }
+                                    disabled={isReadOnly}
+                                    sx={kpiModalStyles.percentageField(
+                                      isReadOnly,
+                                    )}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+
+                            <TableCell>
+                              <Controller
+                                name={`kpis.${index}.deliverable`}
+                                control={control}
+                                rules={{
+                                  required: "Deliverable/KPI is required",
+                                }}
+                                render={({ field }) => (
+                                  <TextField
+                                    {...field}
+                                    size="small"
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                    error={!!errors.kpis?.[index]?.deliverable}
+                                    helperText={
+                                      errors.kpis?.[index]?.deliverable?.message
+                                        ? String(
+                                            errors.kpis[index].deliverable
+                                              .message,
+                                          )
+                                        : ""
+                                    }
+                                    disabled={isReadOnly}
+                                    sx={kpiModalStyles.textField(isReadOnly)}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+
+                            <TableCell>
+                              <Controller
+                                name={`kpis.${index}.target`}
+                                control={control}
+                                rules={{
+                                  required: "Target is required",
+                                  pattern: {
+                                    value: /^\d*\.?\d+$/,
+                                    message: "Enter valid number",
+                                  },
+                                  validate: (value) => {
+                                    const targetValue = parseFloat(value);
+                                    if (targetValue > 100)
+                                      return "Target cannot exceed 100%";
+                                    return true;
+                                  },
+                                }}
+                                render={({ field }) => (
+                                  <TextField
+                                    {...field}
+                                    size="small"
+                                    fullWidth
+                                    type="number"
+                                    inputProps={{
+                                      step: "0.1",
+                                      min: "0",
+                                      max: "100",
+                                    }}
+                                    InputProps={{
+                                      endAdornment: (
+                                        <InputAdornment position="end">
+                                          %
+                                        </InputAdornment>
+                                      ),
+                                    }}
+                                    error={!!errors.kpis?.[index]?.target}
+                                    helperText={
+                                      errors.kpis?.[index]?.target?.message
+                                        ? String(
+                                            errors.kpis[index].target.message,
+                                          )
+                                        : ""
+                                    }
+                                    disabled={isTargetDisabled}
+                                    sx={kpiModalStyles.percentageField(
+                                      isTargetDisabled,
+                                    )}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+
+                            {!isReadOnly && (
+                              <TableCell>
+                                <Tooltip title="Remove Line">
+                                  <IconButton
+                                    onClick={() => removeKpiLine(index)}
+                                    disabled={fields.length === 1}
+                                    size="small"
+                                    color="error">
+                                    <RemoveIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {!isReadOnly && (
+                  <Box sx={kpiModalStyles.addButtonBox}>
+                    <Button
+                      onClick={addKpiLine}
+                      startIcon={<AddIcon />}
+                      variant="outlined"
+                      disabled={shouldDisableAddButton}
+                      sx={kpiModalStyles.addButton}>
+                      Add KPI Line
+                    </Button>
+                  </Box>
+                )}
+              </form>
+            </>
+          )}
         </DialogContent>
 
         <DialogActions sx={kpiModalStyles.dialogActions}>
@@ -812,11 +1081,82 @@ const KpiModal = ({
               {isLoading
                 ? "Saving..."
                 : currentMode === "create"
-                ? "Create"
-                : "Update"}
+                  ? "Create"
+                  : "Update"}
             </Button>
           )}
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={fileViewerOpen}
+        onClose={handleCloseViewer}
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            width: "77vw",
+            height: "92vh",
+            maxWidth: "80vw",
+            maxHeight: "92vh",
+            borderRadius: 2,
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            py: 1.5,
+            backgroundColor: "#f8f9fa",
+          }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+            {getAttachmentFilename()}
+          </Typography>
+          <IconButton size="small" onClick={handleCloseViewer}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: "100%", overflow: "hidden" }}>
+          {blobLoading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={2}>
+              <CircularProgress size={48} />
+              <Typography variant="body1" color="text.secondary">
+                Loading attachment...
+              </Typography>
+            </Box>
+          ) : blobError ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <Typography variant="h6" color="error">
+                Error loading attachment
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to load the file. Please try again.
+              </Typography>
+            </Box>
+          ) : blobUrl ? (
+            <iframe
+              src={blobUrl}
+              width="100%"
+              height="100%"
+              style={{ border: "none" }}
+              title="KPI Attachment"
+            />
+          ) : null}
+        </DialogContent>
       </Dialog>
     </LocalizationProvider>
   );

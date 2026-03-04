@@ -125,12 +125,19 @@ const biAnnualPerformanceApi = sedarApi
 
       getPerformanceEvaluationPrefill: build.query({
         query: (params = {}) => {
-          const { employee_id, period } = params;
+          const { employee_id, period, employee_position_history_id } = params;
 
           const queryParams = new URLSearchParams();
 
           if (employee_id) {
             queryParams.append("employee_id", employee_id);
+          }
+
+          if (employee_position_history_id) {
+            queryParams.append(
+              "employee_position_history_id",
+              employee_position_history_id,
+            );
           }
 
           if (period) {

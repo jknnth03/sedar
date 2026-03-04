@@ -10,6 +10,8 @@ import {
   Box,
   Typography,
   TextField,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import IconButton from "@mui/material/IconButton";
@@ -26,6 +28,7 @@ const EmployeesExportButton = ({ isLoading = false }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isChecked, setIsChecked] = useState(false);
 
   const [
     triggerExport,
@@ -82,26 +85,27 @@ const EmployeesExportButton = ({ isLoading = false }) => {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedMonth(null);
+    setIsChecked(false);
   };
 
   const handleExport = async () => {
-    if (!selectedMonth) {
-      enqueueSnackbar("Please select a month", {
-        variant: "warning",
-        autoHideDuration: 2000,
-      });
-      return;
-    }
-
     setIsExporting(true);
 
-    const params = {
-      year: format(selectedMonth, "yyyy"),
-      month: format(selectedMonth, "MMMM").toLowerCase(),
-    };
+    const params = {};
+
+    if (isChecked) {
+      params.exportAll = true;
+    }
+
+    if (selectedMonth) {
+      params.year = format(selectedMonth, "yyyy");
+      params.month = format(selectedMonth, "MMMM").toLowerCase();
+    }
 
     await triggerExport(params);
   };
+
+  const isExportEnabled = isChecked || !!selectedMonth;
 
   const dialogContent = (
     <Dialog
@@ -135,6 +139,30 @@ const EmployeesExportButton = ({ isLoading = false }) => {
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isChecked}
+                  onChange={(e) => setIsChecked(e.target.checked)}
+                  sx={{
+                    color: "rgb(33, 61, 112)",
+                    "&.Mui-checked": {
+                      color: "rgb(33, 61, 112)",
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: "rgb(33, 61, 112)",
+                  }}>
+                  Export All
+                </Typography>
+              }
+            />
             <DatePicker
               label="Month"
               value={selectedMonth}
@@ -175,7 +203,7 @@ const EmployeesExportButton = ({ isLoading = false }) => {
             onClick={handleExport}
             variant="contained"
             fullWidth
-            disabled={!selectedMonth || isExporting}
+            disabled={!isExportEnabled || isExporting}
             sx={{
               height: "40px",
               textTransform: "none",

@@ -10,7 +10,7 @@ const pdpApi = sedarApi
         query: (params) => ({
           url: "da-tasks/pdp",
           method: "GET",
-          params: params,
+          params: { ...params, type: "PDP1" },
         }),
         providesTags: ["pdpList"],
       }),

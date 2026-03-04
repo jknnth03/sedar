@@ -5,7 +5,7 @@ export const getCreateModeInitialValues = () => {
     employee_id: null,
     employee_name: "",
     employee_code: "",
-    position_history_id: null,
+    employee_position_history_id: null,
     position_title: "",
     year: null,
     start_date: "",
@@ -27,7 +27,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const submittable = entry?.submittable || entry;
 
   if (!submittable) {
-    console.warn("No submittable data found in selectedEntry");
     return getCreateModeInitialValues();
   }
 
@@ -136,8 +135,11 @@ export const getViewEditModeFormData = (selectedEntry) => {
     employee_id: submittable.employee_id || employee.id || null,
     employee_name: employeeName,
     employee_code: employeeCode,
-    position_history_id:
-      submittable.history_id || submittable.position_history_id || null,
+    employee_position_history_id:
+      submittable.history_id ||
+      submittable.position_history_id ||
+      submittable.employee_position_history_id ||
+      null,
     position_title: positionTitle,
     year: year,
     start_date: submittable.period_start || submittable.start_date || "",
@@ -194,7 +196,7 @@ export const formatFormDataForSubmission = (formData) => {
   const payload = {
     employee_id: formData.employee_id,
     evaluation_year: yearValue,
-    employee_position_history_id: formData.position_history_id || null,
+    employee_position_history_id: formData.employee_position_history_id || null,
     kpis: formattedKpis,
     discussions: {
       strengths: formData.strengths_discussion || "",
@@ -232,7 +234,7 @@ export const validateFormData = (formData) => {
     errors.push("Year is required");
   }
 
-  if (!formData.position_history_id) {
+  if (!formData.employee_position_history_id) {
     errors.push("Position is required");
   }
 
@@ -276,7 +278,7 @@ export const resetFormSection = (section) => {
       employee_id: null,
       employee_name: "",
       employee_code: "",
-      position_history_id: null,
+      employee_position_history_id: null,
       position_title: "",
       year: null,
     },

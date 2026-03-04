@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { Box, Button } from "@mui/material";
 import { Print as PrintIcon } from "@mui/icons-material";
 import * as styles from "./BiAnnualPrintingStyles";
+import RDFLogo from "../../../../assets/RDFLOGO.png";
 
 const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
   const printRef = useRef();
@@ -23,77 +24,96 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
   const employeeName = printData?.employee?.name || "";
   const position = printData?.employee?.position || "";
   const department = printData?.employee?.department || "";
-  const period = "";
-  const year = "";
+  const period = printData?.employee?.period || "";
+  const year = printData?.employee?.year || "";
 
-  const individualKPIWeight = "70%";
-  const coreCompetencyWeight = "20%";
-  const demeritWeight = "10%";
-  const totalWeight = "100%";
+  const individualKPIWeight = printData?.scores?.kpi_weight ?? 70;
+  const coreCompetencyWeight = printData?.scores?.competency_weight ?? 20;
+  const demeritWeight = printData?.scores?.demerit_weight ?? 10;
 
-  const individualKPIRawScore = printData?.scores?.kpi_total || "";
-  const coreCompetencyRawScore = printData?.scores?.competency_average || "";
-  const demeritRawScore = printData?.scores?.demerit_deduction || "";
+  const individualKPIRawScore = printData?.scores?.kpi_raw_score ?? "";
+  const coreCompetencyRawScore = printData?.scores?.competency_raw_score ?? "";
+  const demeritRawScore = printData?.scores?.demerit_raw_score;
 
-  const individualKPIOverall = "";
-  const coreCompetencyOverall = "";
-  const demeritOverall = "";
-  const totalOverall = printData?.scores?.final_score || "";
+  const individualKPIOverall = printData?.scores?.kpi_overall_points ?? "";
+  const coreCompetencyOverall =
+    printData?.scores?.competency_overall_points ?? "";
+  const demeritOverall = printData?.scores?.demerit_overall_points;
 
-  const finalRatingLabel = printData?.scores?.final_rating_label || "";
-  const exceedsExpectations = finalRatingLabel.toLowerCase().includes("exceed");
+  const totalOverall =
+    printData?.scores?.total !== null && printData?.scores?.total !== undefined
+      ? printData.scores.total
+      : "";
+
+  const finalRatingLabel =
+    printData?.scores?.final_rating_label ||
+    printData?.scores?.final_rating ||
+    printData?.final_rating ||
+    "";
+
+  const normalizedRating = finalRatingLabel.toLowerCase();
+  const exceedsExpectations = normalizedRating.includes("exceed");
   const meetsExpectations =
-    finalRatingLabel.toLowerCase().includes("satisfactory") ||
-    finalRatingLabel.toLowerCase().includes("meets");
+    normalizedRating.includes("satisfactory") ||
+    normalizedRating.includes("meets");
   const needsImprovement =
-    finalRatingLabel.toLowerCase().includes("needs") ||
-    finalRatingLabel.toLowerCase().includes("improvement");
+    normalizedRating.includes("needs") ||
+    normalizedRating.includes("improvement");
 
   const strengths = printData?.content?.discussions?.strengths || "";
   const developmentOpportunities =
-    printData?.content?.discussions?.development || "";
+    printData?.content?.discussions?.development ||
+    printData?.content?.discussions?.development_areas ||
+    "";
   const learningNeeds = printData?.content?.discussions?.learning_needs || "";
 
   const performanceMetrics = (printData?.content?.kpis || []).map((kpi) => ({
     deliverable: kpi.deliverable || "",
     target: kpi.target_percentage || "",
     actual: kpi.actual_performance || "",
+    score: kpi.score || "",
     remarks: kpi.remarks || "",
   }));
 
-  const totalDivision = "";
-  const overallPoints = printData?.scores?.kpi_total || "";
+  const kpiTotalScore = performanceMetrics
+    .reduce((sum, m) => sum + (parseFloat(m.score) || 0), 0)
+    .toFixed(2);
 
-  const minorOffensesWeight = "";
-  const minorOffensesScore = "";
-  const majorOffensesWeight = "";
-  const majorOffensesScore = "";
-  const demeritTotalWeight = "100%";
-  const demeritTotalScore = printData?.scores?.demerit_deduction || "";
+  const demerits = printData?.content?.demerits || [];
+
+  const minorOffenses = demerits.find(
+    (d) =>
+      d?.type?.toLowerCase().includes("minor") ||
+      d?.offense_type?.toLowerCase().includes("minor"),
+  );
+  const majorOffenses = demerits.find(
+    (d) =>
+      d?.type?.toLowerCase().includes("major") ||
+      d?.offense_type?.toLowerCase().includes("major"),
+  );
+
+  const minorOffensesWeight = minorOffenses?.weight ?? "";
+  const minorOffensesScore = minorOffenses?.score ?? "";
+  const majorOffensesWeight = majorOffenses?.weight ?? "";
+  const majorOffensesScore = majorOffenses?.score ?? "";
 
   const competencies = [];
-  if (
-    printData?.content?.competencies &&
-    Array.isArray(printData.content.competencies)
-  ) {
-    printData.content.competencies.forEach((section) => {
+  const competenciesSource = printData?.content?.competencies || [];
+
+  if (Array.isArray(competenciesSource)) {
+    competenciesSource.forEach((section) => {
       if (section.items && Array.isArray(section.items)) {
         section.items.forEach((item) => {
           if (item.is_header) {
-            competencies.push({
-              isHeader: true,
-              title: item.text,
-            });
+            competencies.push({ isHeader: true, title: item.text || "" });
           }
-
           if (item.children && Array.isArray(item.children)) {
-            item.children.forEach((child, idx) => {
+            item.children.forEach((child) => {
               if (!child.is_header) {
                 competencies.push({
                   isHeader: false,
-                  number: "",
-                  rating: child.saved_answer?.rating_scale?.value || "",
-                  description: child.text,
+                  rating: child.saved_answer?.rating_scale?.value ?? "",
+                  description: child.text || "",
                 });
               }
             });
@@ -103,13 +123,16 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
     });
   }
 
-  const coreCompetencyAverage = printData?.scores?.competency_average || "";
-  const competencyScaleMax = printData?.scores?.competency_scale_max || 3;
+  const coreCompetencyAverage = printData?.scores?.competency_avg_rating ?? "";
   const coreCompetencyGrade =
-    coreCompetencyAverage && competencyScaleMax
-      ? ((coreCompetencyAverage / competencyScaleMax) * 100).toFixed(2) + "%"
+    printData?.scores?.competency_raw_score !== null &&
+    printData?.scores?.competency_raw_score !== undefined
+      ? printData.scores.competency_raw_score + "%"
       : "";
-  const overallGrade = printData?.scores?.final_score || "";
+  const overallGrade =
+    printData?.scores?.total !== null && printData?.scores?.total !== undefined
+      ? printData.scores.total
+      : "";
 
   return (
     <Box sx={styles.containerStyles}>
@@ -130,7 +153,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
           <div style={styles.headerContainerStyles}>
             <div style={styles.logoStyles}>
               <img
-                src="/rdf.png"
+                src={RDFLogo}
                 alt="RDF Logo"
                 style={styles.logoImageStyles}
               />
@@ -187,7 +210,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
               <tr>
                 <td style={styles.tableCellStyles}>Individual KPI Score</td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
-                  {individualKPIWeight}
+                  {individualKPIWeight}%
                 </td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
                   {individualKPIRawScore}
@@ -199,7 +222,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
               <tr>
                 <td style={styles.tableCellStyles}>Core Competency Score</td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
-                  {coreCompetencyWeight}
+                  {coreCompetencyWeight}%
                 </td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
                   {coreCompetencyRawScore}
@@ -211,13 +234,17 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
               <tr>
                 <td style={styles.tableCellStyles}>Demerit Score</td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
-                  {demeritWeight}
+                  {demeritWeight}%
                 </td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
-                  {demeritRawScore}
+                  {demeritRawScore !== null && demeritRawScore !== undefined
+                    ? demeritRawScore
+                    : ""}
                 </td>
                 <td style={{ ...styles.tableCellStyles, textAlign: "center" }}>
-                  {demeritOverall}
+                  {demeritOverall !== null && demeritOverall !== undefined
+                    ? demeritOverall
+                    : ""}
                 </td>
               </tr>
               <tr>
@@ -227,7 +254,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                     ...styles.tableCellBoldStyles,
                     textAlign: "center",
                   }}>
-                  {totalWeight}
+                  100%
                 </td>
                 <td style={styles.tableCellStyles}></td>
                 <td
@@ -274,7 +301,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
             </h2>
             <div style={{ marginBottom: "12px" }}>
               <p style={styles.questionTextStyles}>
-                1. List the employee's strengths that s/he must continue:
+                1. List the employee&apos;s strengths that s/he must continue:
               </p>
               <div style={styles.answerLineStyles}>{strengths}</div>
             </div>
@@ -288,8 +315,8 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
             </div>
             <div style={{ marginBottom: "12px" }}>
               <p style={styles.questionTextStyles}>
-                3. List of employee's learning needs to develop his/her work
-                performance:
+                3. List of employee&apos;s learning needs to develop his/her
+                work performance:
               </p>
               <div style={styles.answerLineStyles}>{learningNeeds}</div>
             </div>
@@ -371,7 +398,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
               <tr>
                 <td
                   style={{ ...styles.headerCellStyles, textAlign: "left" }}
-                  colSpan={4}>
+                  colSpan={5}>
                   Evaluation Date:
                 </td>
               </tr>
@@ -379,7 +406,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                 <td style={styles.headerCellStyles} colSpan={2}>
                   PERFORMANCE METRICS
                 </td>
-                <td style={styles.headerCellStyles} colSpan={2}>
+                <td style={styles.headerCellStyles} colSpan={3}>
                   ASSESSMENT
                 </td>
               </tr>
@@ -388,17 +415,20 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                   style={{
                     ...styles.headerCellStyles,
                     textAlign: "left",
-                    width: "46%",
+                    width: "40%",
                   }}>
                   Deliverables / KPIs
                 </td>
-                <td style={{ ...styles.headerCellStyles, width: "18%" }}>
+                <td style={{ ...styles.headerCellStyles, width: "15%" }}>
                   Target
                 </td>
-                <td style={{ ...styles.headerCellStyles, width: "18%" }}>
+                <td style={{ ...styles.headerCellStyles, width: "15%" }}>
                   Actual
                 </td>
-                <td style={{ ...styles.headerCellStyles, width: "18%" }}>
+                <td style={{ ...styles.headerCellStyles, width: "15%" }}>
+                  Score
+                </td>
+                <td style={{ ...styles.headerCellStyles, width: "15%" }}>
                   Remarks
                 </td>
               </tr>
@@ -407,7 +437,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                     <tr key={index}>
                       <td
                         style={{ ...styles.tableCellStyles, fontSize: "10px" }}>
-                        {metric.deliverable || ""}
+                        {metric.deliverable}
                       </td>
                       <td
                         style={{
@@ -415,7 +445,7 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                           fontSize: "10px",
                           textAlign: "center",
                         }}>
-                        {metric.target || ""}
+                        {metric.target}
                       </td>
                       <td
                         style={{
@@ -423,11 +453,19 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                           fontSize: "10px",
                           textAlign: "center",
                         }}>
-                        {metric.actual || ""}
+                        {metric.actual}
+                      </td>
+                      <td
+                        style={{
+                          ...styles.tableCellStyles,
+                          fontSize: "10px",
+                          textAlign: "center",
+                        }}>
+                        {metric.score}
                       </td>
                       <td
                         style={{ ...styles.tableCellStyles, fontSize: "10px" }}>
-                        {metric.remarks || ""}
+                        {metric.remarks}
                       </td>
                     </tr>
                   ))
@@ -437,18 +475,23 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                       <td style={styles.tableCellStyles}></td>
                       <td style={styles.tableCellStyles}></td>
                       <td style={styles.tableCellStyles}></td>
+                      <td style={styles.tableCellStyles}></td>
                     </tr>
                   ))}
               <tr>
-                <td style={styles.tableCellBoldStyles}>TOTAL</td>
-                <td style={styles.totalCellBlueStyles} colSpan={3}>
-                  {totalDivision}
+                <td style={styles.tableCellBoldStyles} colSpan={3}>
+                  TOTAL
+                </td>
+                <td style={styles.totalCellBlueStyles} colSpan={2}>
+                  {kpiTotalScore}
                 </td>
               </tr>
               <tr>
-                <td style={styles.tableCellBoldStyles}>Overall points</td>
-                <td style={styles.totalCellYellowStyles} colSpan={3}>
-                  {overallPoints}
+                <td style={styles.tableCellBoldStyles} colSpan={3}>
+                  Overall points
+                </td>
+                <td style={styles.totalCellYellowStyles} colSpan={2}>
+                  {individualKPIOverall}
                 </td>
               </tr>
             </tbody>
@@ -500,14 +543,16 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                       ...styles.tableCellBoldStyles,
                       textAlign: "center",
                     }}>
-                    {demeritTotalWeight}
+                    100%
                   </td>
                   <td
                     style={{
                       ...styles.tableCellBoldStyles,
                       textAlign: "center",
                     }}>
-                    {demeritTotalScore}
+                    {demeritRawScore !== null && demeritRawScore !== undefined
+                      ? demeritRawScore
+                      : ""}
                   </td>
                 </tr>
               </tbody>
@@ -527,9 +572,9 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
             III. CORE COMPETENCY EVALUATION
           </h2>
           <p style={styles.instructionTextStyles}>
-            Rate employee's performance on his/her current goals and
+            Rate employee&apos;s performance on his/her current goals and
             expectations. Rate the employee based on the given point range on
-            the blank space provided, which best describe the employee's
+            the blank space provided, which best describe the employee&apos;s
             performance. Use the space provided for comments and explanation.{" "}
             <em>Make your rating an accurate description of the one rated.</em>
           </p>
@@ -562,44 +607,50 @@ const BiAnnualPrintingDialog = ({ data, selectedEntry }) => {
                 </td>
               </tr>
               {competencies.length > 0 ? (
-                competencies.map((competency, index) =>
-                  competency.isHeader ? (
-                    <tr key={index}>
-                      <td
-                        style={{
-                          ...styles.headerCellStyles,
-                          textAlign: "left",
-                          fontSize: "10px",
-                        }}
-                        colSpan={3}>
-                        {competency.title}
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={index}>
-                      <td
-                        style={{
-                          ...styles.tableCellStyles,
-                          textAlign: "center",
-                          fontSize: "10px",
-                        }}>
-                        {competency.number}
-                      </td>
-                      <td
-                        style={{
-                          ...styles.tableCellStyles,
-                          textAlign: "center",
-                          fontSize: "10px",
-                        }}>
-                        {competency.rating || ""}
-                      </td>
-                      <td
-                        style={{ ...styles.tableCellStyles, fontSize: "10px" }}>
-                        {competency.description}
-                      </td>
-                    </tr>
-                  )
-                )
+                (() => {
+                  let rowNumber = 0;
+                  return competencies.map((competency, index) =>
+                    competency.isHeader ? (
+                      <tr key={index}>
+                        <td
+                          style={{
+                            ...styles.headerCellStyles,
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                          colSpan={3}>
+                          {competency.title}
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={index}>
+                        <td
+                          style={{
+                            ...styles.tableCellStyles,
+                            textAlign: "center",
+                            fontSize: "10px",
+                          }}>
+                          {++rowNumber}
+                        </td>
+                        <td
+                          style={{
+                            ...styles.tableCellStyles,
+                            textAlign: "center",
+                            fontSize: "10px",
+                          }}>
+                          {competency.rating !== "" ? competency.rating : ""}
+                        </td>
+                        <td
+                          style={{
+                            ...styles.tableCellStyles,
+                            fontSize: "10px",
+                          }}>
+                          {competency.description}
+                        </td>
+                      </tr>
+                    ),
+                  );
+                })()
               ) : (
                 <>
                   <tr>

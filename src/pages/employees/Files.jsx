@@ -207,7 +207,6 @@ const Files = ({
       try {
         const response = await getSingleEmployee(
           employeeRecord?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

@@ -254,7 +254,6 @@ const Attainmentsemp = ({
       try {
         const response = await getSingleEmployee(
           attainment?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

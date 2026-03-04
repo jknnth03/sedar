@@ -29,7 +29,6 @@ import {
   getViewEditModeFormData,
   formatFormDataForSubmission,
 } from "./BiAnnualPerformanceGetValues";
-import { biAnnualPerformanceSchema } from "./BiAnnualPerformanceSchema";
 import * as styles from "../DAForm/DAFormModal.styles";
 import BiAnnualPrintingDialog from "./BiAnnualPrintingDialog";
 import {
@@ -187,10 +186,8 @@ const BiAnnualPerformanceModal = ({
   const handleFormSubmit = async (data) => {
     try {
       clearErrors();
-      await biAnnualPerformanceSchema.validate(data, { abortEarly: false });
 
       const formattedData = formatFormDataForSubmission(data);
-
       formattedData.form_id = 9;
 
       if (!formattedData.demerits) {
@@ -216,71 +213,16 @@ const BiAnnualPerformanceModal = ({
         await onSave(formattedData, currentMode, entryId);
       }
     } catch (error) {
-      if (error.name === "ValidationError") {
-        error.inner.forEach((err) => {
-          const path = err.path;
-          const message = err.message;
-
-          if (path.includes("kpis[")) {
-            const match = path.match(/kpis\[(\d+)\]\.(.+)/);
-            if (match) {
-              const index = match[1];
-              const field = match[2];
-              setError(`kpis.${index}.${field}`, {
-                type: "manual",
-                message: message,
-              });
-            }
-          } else if (path === "kpis") {
-            setError("kpis", {
-              type: "manual",
-              message: message,
-            });
-          } else if (path.includes("competency_assessment.answers[")) {
-            const match = path.match(
-              /competency_assessment\.answers\[(\d+)\]\.(.+)/,
-            );
-            if (match) {
-              const index = match[1];
-              const field = match[2];
-              setError(`competency_assessment.answers.${index}.${field}`, {
-                type: "manual",
-                message: message,
-              });
-            }
-          } else if (
-            path === "competency_assessment.answers" ||
-            path === "competency_assessment"
-          ) {
-            setError("competency_assessment.answers", {
-              type: "manual",
-              message: message,
-            });
-          } else {
-            setError(path, {
-              type: "manual",
-              message: message,
-            });
-          }
-        });
-
-        const firstErrorElement = document.querySelector(
-          '[aria-invalid="true"]',
-        );
-        if (firstErrorElement) {
-          firstErrorElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }
-      } else {
-        console.error("Form submission error:", error);
-        setError("root.serverError", {
-          type: "manual",
-          message: "An error occurred while submitting the form.",
-        });
-      }
+      console.error("Form submission error:", error);
+      setError("root.serverError", {
+        type: "manual",
+        message: "An error occurred while submitting the form.",
+      });
     }
+  };
+
+  const handleFormError = (errors) => {
+    console.log("REACT HOOK FORM VALIDATION ERRORS:", errors);
   };
 
   const handleResubmitClick = async () => {
@@ -352,11 +294,11 @@ const BiAnnualPerformanceModal = ({
 
   const getModalTitle = () => {
     const titles = {
-      create: "CREATE BI-ANNUAL PERFORMANCE EVALUATION",
-      view: "VIEW BI-ANNUAL PERFORMANCE EVALUATION",
-      edit: "EDIT BI-ANNUAL PERFORMANCE EVALUATION",
+      create: "CREATE ANNUAL PERFORMANCE EVALUATION",
+      view: "VIEW ANNUAL PERFORMANCE EVALUATION",
+      edit: "EDIT ANNUAL PERFORMANCE EVALUATION",
     };
-    return titles[currentMode] || "Bi-Annual Performance Evaluation";
+    return titles[currentMode] || "Annual Performance Evaluation";
   };
 
   const showResubmitButton = () => {
@@ -380,7 +322,7 @@ const BiAnnualPerformanceModal = ({
     return isProcessing ? "Updating..." : "Update";
   };
 
-  const formKey = `bi-annual-performance-${
+  const formKey = `annual-performance-${
     open ? "open" : "closed"
   }-${mode}-${hasInitialized}`;
 
@@ -403,7 +345,7 @@ const BiAnnualPerformanceModal = ({
               </Typography>
               {isViewMode && !isApprovedStatus() && (
                 <Tooltip
-                  title="EDIT BI-ANNUAL PERFORMANCE EVALUATION"
+                  title="EDIT ANNUAL PERFORMANCE EVALUATION"
                   arrow
                   placement="top">
                   <span>
@@ -423,7 +365,7 @@ const BiAnnualPerformanceModal = ({
               )}
               {isViewMode && isApprovedStatus() && (
                 <Tooltip
-                  title="PRINT BI-ANNUAL PERFORMANCE EVALUATION"
+                  title="PRINT ANNUAL PERFORMANCE EVALUATION"
                   arrow
                   placement="top">
                   <span>
@@ -460,7 +402,7 @@ const BiAnnualPerformanceModal = ({
             </IconButton>
           </DialogTitle>
 
-          <form onSubmit={handleSubmit(handleFormSubmit)} key={formKey}>
+          <form onSubmit={handleSubmit(handleFormSubmit, handleFormError)}>
             <DialogContent sx={styles.dialogContentStyles}>
               {isFormReady ? (
                 <BiAnnualPerformanceModalFields

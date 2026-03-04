@@ -91,6 +91,7 @@ import DevelopmentalAssignment from "../../pages/approvals/developmentalAssignme
 import Evaluation from "../../pages/approvals/evaluation/Evaluation.jsx";
 import Status from "../../pages/extras/Status.jsx";
 import PdpTwo from "../../pages/developmental-assignment/pdptwo/PdpTwo.jsx";
+import PdpTwoApproval from "../../pages/approvals/da-task/PdpTwoApproval.jsx";
 
 export const ROUTES = [
   {
@@ -542,6 +543,14 @@ export const ROUTES = [
         element: <PdpApproval />,
         handle: {
           permission: MODULES.APPROVING.children.PDPAPPROVAL.permissionId,
+        },
+      },
+      {
+        id: "APPROVING.PDPTWOAPPROVAL",
+        path: `${MODULES.APPROVING.path}/${MODULES.APPROVING.children.PDPTWOAPPROVAL.path}`,
+        element: <PdpTwoApproval />,
+        handle: {
+          permission: MODULES.APPROVING.children.PDPTWOAPPROVAL.permissionId,
         },
       },
       {

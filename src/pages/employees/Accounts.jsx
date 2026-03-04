@@ -178,7 +178,6 @@ const Accounts = ({
       try {
         const response = await getSingleEmployee(
           account?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);
@@ -215,7 +214,6 @@ const Accounts = ({
       try {
         const response = await getSingleEmployee(
           account?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

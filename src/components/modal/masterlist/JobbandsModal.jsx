@@ -14,7 +14,7 @@ import {
   usePostJobbandMutation,
   useUpdateJobbandMutation,
 } from "../../../features/api/masterlist/jobbandsApi";
-import { CONSTANT } from "../../../config";
+// import { CONSTANT } from "../../../config";
 
 export default function JobbandsModal({
   open,
@@ -103,7 +103,7 @@ export default function JobbandsModal({
       setErrorMessage(
         error?.data?.errors?.name
           ? "The jobband name already exists. Please use a different name."
-          : error?.data?.message || "An error occurred. Please try again."
+          : error?.data?.message || "An error occurred. Please try again.",
       );
     }
   };

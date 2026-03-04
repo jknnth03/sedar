@@ -149,7 +149,6 @@ const EmployeeTypes = ({
       try {
         const response = await getSingleEmployee(
           employmentType?.employee?.id,
-          true,
         ).unwrap();
 
         setWizardInitialData(response?.result);

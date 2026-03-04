@@ -66,7 +66,7 @@ const ActiveUserAccount = ({
       searchQuery: searchQuery,
       status: showArchived ? "inactive" : "active",
     }),
-    [page, rowsPerPage, searchQuery, showArchived]
+    [page, rowsPerPage, searchQuery, showArchived],
   );
 
   const {
@@ -104,7 +104,7 @@ const ActiveUserAccount = ({
       setSelectedUser(user);
       setModalOpen(true);
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleModalClose = useCallback(() => {
@@ -125,7 +125,7 @@ const ActiveUserAccount = ({
         selectedUser.deleted_at
           ? "User restored successfully!"
           : "User archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {

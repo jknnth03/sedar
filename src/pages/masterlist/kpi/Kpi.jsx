@@ -13,17 +13,12 @@ import {
   TextField,
   Button,
   IconButton,
-  Menu,
-  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   useTheme,
   useMediaQuery,
-  alpha,
-  Fade,
-  Chip,
   Skeleton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -105,6 +100,7 @@ const Kpi = () => {
   const [modalMode, setModalMode] = useState("view");
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [fetchedKpisData, setFetchedKpisData] = useState(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedPositionForAction, setSelectedPositionForAction] =
@@ -153,10 +149,28 @@ const Kpi = () => {
     skip: false,
   });
 
-  const { data: positionKpisData, isLoading: kpisLoading } =
-    useGetPositionKpisQuery(selectedPosition?.id, {
-      skip: !selectedPosition?.id || !modalOpen,
-    });
+  const [selectedPositionId, setSelectedPositionId] = useState(null);
+
+  const {
+    data: positionKpisData,
+    isLoading: kpisLoading,
+    isFetching: kpisFetching,
+  } = useGetPositionKpisQuery(selectedPositionId, {
+    skip: !selectedPositionId,
+    refetchOnMountOrArgChange: true,
+  });
+
+  useEffect(() => {
+    if (
+      selectedPositionId &&
+      positionKpisData &&
+      !kpisLoading &&
+      !kpisFetching
+    ) {
+      setFetchedKpisData(positionKpisData);
+      setModalLoading(false);
+    }
+  }, [positionKpisData, kpisLoading, kpisFetching, selectedPositionId]);
 
   const [updatePositionKpis] = useUpdatePositionKpisMutation();
 
@@ -190,14 +204,19 @@ const Kpi = () => {
 
   const handleRowClick = useCallback((position) => {
     setSelectedPosition(position);
+    setFetchedKpisData(null);
     setModalMode("view");
+    setModalLoading(true);
+    setSelectedPositionId(position.id);
     setModalOpen(true);
   }, []);
 
   const handleModalClose = useCallback(() => {
     setModalOpen(false);
     setSelectedPosition(null);
+    setSelectedPositionId(null);
     setModalMode("view");
+    setFetchedKpisData(null);
     methods.reset({
       kpis: [
         {
@@ -217,9 +236,30 @@ const Kpi = () => {
 
       try {
         if (mode === "edit") {
+          const payload = new FormData();
+
+          formData.kpis.forEach((kpi, index) => {
+            payload.append(`kpis[${index}][objective_id]`, kpi.objective_id);
+            payload.append(
+              `kpis[${index}][distribution_percentage]`,
+              kpi.distribution_percentage,
+            );
+            payload.append(`kpis[${index}][deliverable]`, kpi.deliverable);
+            payload.append(
+              `kpis[${index}][target_percentage]`,
+              kpi.target_percentage,
+            );
+          });
+
+          payload.append("_method", "PUT");
+
+          if (formData.attachment) {
+            payload.append("kpi_attachment", formData.attachment);
+          }
+
           await updatePositionKpis({
             id: selectedPosition.id,
-            data: formData,
+            data: payload,
           }).unwrap();
 
           enqueueSnackbar("KPIs updated successfully!", {
@@ -545,8 +585,8 @@ const Kpi = () => {
           onSave={handleModalSave}
           selectedEntry={selectedPosition}
           mode={modalMode}
-          positionKpisData={positionKpisData}
-          isLoading={modalLoading || kpisLoading}
+          positionKpisData={fetchedKpisData}
+          isLoading={modalLoading}
         />
 
         <Dialog

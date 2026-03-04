@@ -5,7 +5,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import {
   useGetProbationaryEmployeesQuery,
-  useGetPerformanceEvaluationPrefillQuery,
+  useLazyGetPerformanceEvaluationPrefillQuery,
   useLazyGetPerformanceEvaluationPositionsQuery,
 } from "../../../../features/api/forms/biAnnualPerformanceApi";
 import FormSection, { KpiTable, CompetencyTable } from "./FormSection";
@@ -34,6 +34,7 @@ const BiAnnualPerformanceModalFields = ({
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
   const [templateId, setTemplateId] = useState(null);
   const [kpiErrors, setKpiErrors] = useState({});
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   const { data: employeesData, isLoading: isLoadingEmployees } =
     useGetProbationaryEmployeesQuery(undefined, {
@@ -46,34 +47,31 @@ const BiAnnualPerformanceModalFields = ({
 
   const selectedYear = watch("year");
 
-  const { data: prefillData, isLoading: isLoadingPrefill } =
-    useGetPerformanceEvaluationPrefillQuery(
-      { employee_id: selectedEmployeeId },
-      { skip: !selectedEmployeeId },
-    );
+  const [fetchPrefill, { data: prefillData, isLoading: isLoadingPrefill }] =
+    useLazyGetPerformanceEvaluationPrefillQuery();
 
   const [
     fetchPositions,
     { data: positionsData, isLoading: isLoadingPositions },
   ] = useLazyGetPerformanceEvaluationPositionsQuery();
 
-  // Fetch positions when both employee and year are selected (create mode)
   useEffect(() => {
     if (isCreate && selectedEmployeeId && selectedYear) {
+      setIsLoadingData(true);
       const year = dayjs.isDayjs(selectedYear)
         ? selectedYear.year()
         : selectedYear;
-      fetchPositions({ employee_id: selectedEmployeeId, year });
+      fetchPositions({ employee_id: selectedEmployeeId, year }).finally(() => {
+        setIsLoadingData(false);
+      });
     }
   }, [isCreate, selectedEmployeeId, selectedYear, fetchPositions]);
 
-  // Populate position options from API response
   useEffect(() => {
     if (positionsData?.result && Array.isArray(positionsData.result)) {
       setPositionOptions(positionsData.result);
-      // Reset position selection when options change
       setSelectedPosition(null);
-      setValue("position_history_id", null);
+      setValue("employee_position_history_id", null);
       setValue("position_title", "");
       setValue("start_date", "");
       setValue("end_date", "");
@@ -89,8 +87,6 @@ const BiAnnualPerformanceModalFields = ({
   useEffect(() => {
     if (!isCreate && formValues.competency_assessment) {
       const compAssessment = formValues.competency_assessment;
-
-      console.log("Loading competency assessment:", compAssessment);
 
       if (compAssessment.assessment_template_id) {
         setTemplateId(compAssessment.assessment_template_id);
@@ -127,7 +123,6 @@ const BiAnnualPerformanceModalFields = ({
             });
           }
         });
-        console.log("Processed items from sections:", allItems);
         if (allItems.length > 0) {
           setCompetencyItems(allItems);
         }
@@ -136,7 +131,6 @@ const BiAnnualPerformanceModalFields = ({
         Array.isArray(compAssessment.answers) &&
         compAssessment.answers.length > 0
       ) {
-        console.log("Loading from answers:", compAssessment.answers);
         setCompetencyItems(compAssessment.answers);
       }
     }
@@ -216,45 +210,62 @@ const BiAnnualPerformanceModalFields = ({
 
   const handleEmployeeChange = (event, newValue) => {
     setSelectedEmployee(newValue);
-    // Reset position when employee changes
     setSelectedPosition(null);
     setPositionOptions([]);
-    setValue("position_history_id", null);
+    setValue("employee_position_history_id", null);
     setValue("position_title", "");
     setValue("start_date", "");
     setValue("end_date", "");
+    setKpisList([]);
+    setCompetencyItems([]);
+    setRatingScales([]);
+    setTemplateId(null);
+    setKpiErrors({});
 
     if (newValue) {
       setValue("employee_id", newValue.id);
       setValue("employee_name", newValue.employee_name || newValue.full_name);
       setValue("employee_code", newValue.code || newValue.id_number || "");
+      setValue("kpis", []);
+      setValue("demerits", []);
     } else {
       setValue("employee_id", null);
       setValue("employee_name", "");
       setValue("employee_code", "");
       setValue("kpis", []);
       setValue("demerits", []);
-      setKpisList([]);
-      setCompetencyItems([]);
-      setRatingScales([]);
-      setTemplateId(null);
       setSelectedEmployee(null);
-      setKpiErrors({});
     }
   };
 
   const handlePositionChange = (event, newValue) => {
     setSelectedPosition(newValue);
     if (newValue) {
-      setValue("position_history_id", newValue.history_id);
+      setValue("employee_position_history_id", newValue.history_id);
       setValue("position_title", newValue.position_title);
       setValue("start_date", newValue.start_date);
       setValue("end_date", newValue.end_date);
+
+      if (selectedEmployeeId) {
+        setIsLoadingData(true);
+        fetchPrefill({
+          employee_id: selectedEmployeeId,
+          employee_position_history_id: newValue.history_id,
+        }).finally(() => {
+          setIsLoadingData(false);
+        });
+      }
     } else {
-      setValue("position_history_id", null);
+      setValue("employee_position_history_id", null);
       setValue("position_title", "");
       setValue("start_date", "");
       setValue("end_date", "");
+      setKpisList([]);
+      setCompetencyItems([]);
+      setRatingScales([]);
+      setTemplateId(null);
+      setValue("kpis", []);
+      setValue("competency_assessment", { template_id: null, answers: [] });
     }
   };
 
@@ -322,7 +333,9 @@ const BiAnnualPerformanceModalFields = ({
 
   const employeeOptions = Array.isArray(employeesData?.result?.data)
     ? employeesData.result.data
-    : [];
+    : Array.isArray(employeesData?.result)
+      ? employeesData.result
+      : [];
 
   const getKpiErrorMessage = () => {
     if (
@@ -366,7 +379,6 @@ const BiAnnualPerformanceModalFields = ({
               gap: 2,
               mb: 2,
             }}>
-            {/* Employee Name */}
             <Box>
               {isCreate ? (
                 <Controller
@@ -385,9 +397,9 @@ const BiAnnualPerformanceModalFields = ({
                       value={selectedEmployee}
                       onChange={handleEmployeeChange}
                       inputValue={employeeSearchInput}
-                      onInputChange={(event, newInputValue) =>
-                        setEmployeeSearchInput(newInputValue)
-                      }
+                      onInputChange={(event, newInputValue) => {
+                        setEmployeeSearchInput(newInputValue);
+                      }}
                       onOpen={() => setIsAutocompleteOpen(true)}
                       onClose={() => setIsAutocompleteOpen(false)}
                       loading={isLoadingEmployees}
@@ -439,7 +451,6 @@ const BiAnnualPerformanceModalFields = ({
               )}
             </Box>
 
-            {/* Year Picker */}
             <Box>
               {isCreate ? (
                 <Controller
@@ -459,12 +470,20 @@ const BiAnnualPerformanceModalFields = ({
                       }
                       onChange={(date) => {
                         field.onChange(date);
-                        // Reset position when year changes
                         setSelectedPosition(null);
-                        setValue("position_history_id", null);
+                        setValue("employee_position_history_id", null);
                         setValue("position_title", "");
                         setValue("start_date", "");
                         setValue("end_date", "");
+                        setKpisList([]);
+                        setCompetencyItems([]);
+                        setRatingScales([]);
+                        setTemplateId(null);
+                        setValue("kpis", []);
+                        setValue("competency_assessment", {
+                          template_id: null,
+                          answers: [],
+                        });
                       }}
                       label={
                         <span>
@@ -501,11 +520,10 @@ const BiAnnualPerformanceModalFields = ({
             </Box>
           </Box>
 
-          {/* Position Row */}
           <Box>
             {isCreate ? (
               <Controller
-                name="position_history_id"
+                name="employee_position_history_id"
                 control={control}
                 rules={{ required: "Position is required" }}
                 render={({ field }) => (
@@ -519,7 +537,7 @@ const BiAnnualPerformanceModalFields = ({
                     }
                     value={selectedPosition}
                     onChange={handlePositionChange}
-                    loading={isLoadingPositions}
+                    loading={isLoadingPositions || isLoadingData}
                     isOptionEqualToValue={(option, value) =>
                       option?.history_id === value?.history_id
                     }
@@ -531,6 +549,7 @@ const BiAnnualPerformanceModalFields = ({
                         ? "Select an employee and year first"
                         : "No positions available"
                     }
+                    clearIcon={null}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -539,15 +558,17 @@ const BiAnnualPerformanceModalFields = ({
                             Position <span style={{ color: "red" }}>*</span>
                           </span>
                         }
-                        error={!!errors.position_history_id}
-                        helperText={errors.position_history_id?.message}
+                        error={!!errors.employee_position_history_id}
+                        helperText={
+                          errors.employee_position_history_id?.message
+                        }
                         fullWidth
                         sx={{ bgcolor: "white" }}
                         InputProps={{
                           ...params.InputProps,
                           endAdornment: (
                             <>
-                              {isLoadingPositions ? (
+                              {isLoadingPositions || isLoadingData ? (
                                 <CircularProgress size={20} />
                               ) : null}
                               {params.InputProps.endAdornment}
@@ -574,7 +595,7 @@ const BiAnnualPerformanceModalFields = ({
 
       <FormSection
         title="PART I - KEY PERFORMANCE INDICATORS"
-        isLoading={isLoadingPrefill}
+        isLoading={isLoadingPrefill || isLoadingData}
         loadingMessage="Loading Key Performance Indicators..."
         isEmpty={kpisList.length === 0}
         emptyMessage={
@@ -594,12 +615,7 @@ const BiAnnualPerformanceModalFields = ({
 
       <FormSection title="PART II - DISCUSSIONS">
         <Box sx={{ p: 0, pb: 0, borderRadius: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-            }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box>
               <Controller
                 name="strengths_discussion"
@@ -679,7 +695,7 @@ const BiAnnualPerformanceModalFields = ({
 
       <FormSection
         title="PART III - COMPETENCY ASSESSMENT"
-        isLoading={isLoadingPrefill}
+        isLoading={isLoadingPrefill || isLoadingData}
         loadingMessage="Loading Competency Assessment..."
         isEmpty={competencyItems.length === 0}
         emptyMessage={
