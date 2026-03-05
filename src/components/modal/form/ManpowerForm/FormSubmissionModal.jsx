@@ -11,6 +11,7 @@ import {
   Box,
   CircularProgress,
   Tooltip,
+  Skeleton,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -61,7 +62,6 @@ const FormContent = ({
     reset,
   } = useFormContext();
 
-  const [selectedFile, setSelectedFile] = useState(null);
   const [currentMode, setCurrentMode] = useState(mode);
   const [originalMode, setOriginalMode] = useState(mode);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -76,7 +76,6 @@ const FormContent = ({
   useEffect(() => {
     if (currentMode === "create") {
       reset(formSubmissionDefaultValues);
-      setSelectedFile(null);
     }
   }, [currentMode, reset]);
 
@@ -84,10 +83,7 @@ const FormContent = ({
     if (backendErrors && Object.keys(backendErrors).length > 0) {
       Object.entries(backendErrors).forEach(([field, messages]) => {
         if (Array.isArray(messages) && messages.length > 0) {
-          setError(field, {
-            type: "server",
-            message: messages[0],
-          });
+          setError(field, { type: "server", message: messages[0] });
         }
       });
     }
@@ -98,27 +94,17 @@ const FormContent = ({
 
   const handleModeChange = (newMode) => {
     setCurrentMode(newMode);
-    if (onModeChange) {
-      onModeChange(newMode);
-    }
-
-    if (newMode === "edit" && selectedEntry) {
-      setSelectedFile(null);
-      setValue("manpower_form_attachment", null, { shouldValidate: false });
-    }
+    if (onModeChange) onModeChange(newMode);
   };
 
   const handleCancelEdit = () => {
     setCurrentMode(originalMode);
-    if (onModeChange) {
-      onModeChange(originalMode);
-    }
+    if (onModeChange) onModeChange(originalMode);
   };
 
   const handleClose = () => {
     setCurrentMode("create");
     setOriginalMode("create");
-    setSelectedFile(null);
     reset(formSubmissionDefaultValues);
     onClose();
   };
@@ -141,14 +127,8 @@ const FormContent = ({
   const isEditMode = currentMode === "edit";
   const isViewMode = currentMode === "view";
 
-  const handleFileChange = (file) => {
-    setSelectedFile(file);
-    setValue("manpower_form_attachment", file);
-  };
-
   const handleResubmit = async () => {
     const isValid = await trigger();
-
     if (isValid) {
       setIsUpdating(true);
       try {
@@ -156,7 +136,6 @@ const FormContent = ({
         const resubmitData = buildResubmitPayload(data, watchedRequisitionType);
         const submissionId =
           selectedEntry?.id || selectedEntry?.submittable?.id;
-
         if (onResubmit && submissionId) {
           await onResubmit(resubmitData, "resubmit", submissionId);
         }
@@ -172,29 +151,24 @@ const FormContent = ({
       setIsUpdating(true);
       try {
         const data = getValues();
+        const attachments = data.attachments || [];
 
         if (currentMode === "create") {
           const payload = buildCreatePayload(
             data,
             currentMode,
-            selectedFile,
-            watchedRequisitionType
+            attachments,
+            watchedRequisitionType,
           );
-
-          if (onSave) {
-            await onSave(payload, currentMode);
-          }
+          if (onSave) await onSave(payload, currentMode);
         } else if (currentMode === "edit" && selectedEntry?.id) {
           const payload = buildEditPayload(
             data,
             selectedEntry,
-            selectedFile,
-            watchedRequisitionType
+            attachments,
+            watchedRequisitionType,
           );
-
-          if (onSave) {
-            await onSave(payload, currentMode, selectedEntry.id);
-          }
+          if (onSave) await onSave(payload, currentMode, selectedEntry.id);
         }
       } finally {
         setIsUpdating(false);
@@ -266,12 +240,44 @@ const FormContent = ({
           </Box>
         )}
 
-        <FormSubmissionFields
-          mode={currentMode}
-          selectedEntry={selectedEntry}
-          onFileChange={handleFileChange}
-          selectedFile={selectedFile}
-        />
+        {isLoading ||
+        (!selectedEntry &&
+          (currentMode === "view" || currentMode === "edit")) ? (
+          <Box sx={{ p: 1 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: 2,
+                mb: 2,
+              }}>
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={56} />
+            </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: 2,
+                mb: 2,
+              }}>
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={56} />
+              <Skeleton variant="rounded" height={100} />
+              <Skeleton variant="rounded" height={100} />
+            </Box>
+            <Skeleton variant="rounded" height={80} />
+          </Box>
+        ) : (
+          <FormSubmissionFields
+            mode={currentMode}
+            selectedEntry={selectedEntry}
+          />
+        )}
       </DialogContent>
 
       <DialogActions sx={modalStyles.dialogActions}>
@@ -323,7 +329,7 @@ const FormContent = ({
               }
               sx={modalStyles.saveButton}>
               {safeRenderText(
-                isProcessing ? "Saving..." : isCreateMode ? "Create" : "Update"
+                isProcessing ? "Saving..." : isCreateMode ? "Create" : "Update",
               )}
             </Button>
           </Box>
@@ -344,17 +350,9 @@ const FormSubmissionModal = ({
   onModeChange,
   backendErrors = {},
 }) => {
-  const hasExistingFile =
-    selectedEntry?.submittable?.manpower_attachment_filename ||
-    selectedEntry?.data?.manpower_attachment_filename ||
-    selectedEntry?.attributes?.manpower_attachment_filename ||
-    selectedEntry?.manpower_attachment_filename
-      ? true
-      : false;
-
   const methods = useForm({
     defaultValues: formSubmissionDefaultValues,
-    resolver: yupResolver(createFormSubmissionSchema(mode, hasExistingFile)),
+    resolver: yupResolver(createFormSubmissionSchema(mode)),
     mode: "onSubmit",
   });
 
@@ -370,22 +368,16 @@ const FormSubmissionModal = ({
   };
 
   const handleModeChange = (newMode) => {
-    if (onModeChange) {
-      onModeChange(newMode);
-    }
+    if (onModeChange) onModeChange(newMode);
   };
 
   const handleResubmit = (formData, mode, submissionId) => {
-    if (onResubmit) {
-      onResubmit(formData, mode, submissionId);
-    }
+    if (onResubmit) onResubmit(formData, mode, submissionId);
   };
 
   useEffect(() => {
     methods.clearErrors();
   }, [mode, selectedEntry, methods]);
-
-  if (!open) return null;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -394,9 +386,7 @@ const FormSubmissionModal = ({
         onClose={handleClose}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: modalStyles.dialogPaper,
-        }}>
+        PaperProps={{ sx: modalStyles.dialogPaper }}>
         <FormProvider {...methods}>
           <FormContent
             onSave={onSave}

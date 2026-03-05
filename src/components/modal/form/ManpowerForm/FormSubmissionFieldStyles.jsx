@@ -1,5 +1,97 @@
+import { styled } from "@mui/material/styles";
+import { Box } from "@mui/material";
+
+export const AttachmentBox = styled(Box)(({ theme, hasFile, isReadOnly }) => ({
+  border: hasFile ? "2px solid #ddd" : "2px dashed #ddd",
+  borderRadius: 8,
+  padding: "16px",
+  textAlign: "center",
+  cursor: isReadOnly ? "default" : "pointer",
+  transition: "all 0.3s ease",
+  backgroundColor: hasFile ? "#fff" : "#fafafa",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  "&:hover": !isReadOnly
+    ? {
+        borderColor: "#1976d2",
+        backgroundColor: hasFile ? "#f9f9f9" : "#f0f7ff",
+      }
+    : {},
+}));
+
+export const fileNameStyles = {
+  fontWeight: 600,
+  color: "#333",
+  fontSize: "0.9rem",
+};
+
+export const uploadAttachmentSubtextStyles = {
+  fontSize: "0.75rem",
+  color: "#666",
+  mt: 0.5,
+};
+
+export const attachmentBoxContentStyles = {
+  display: "flex",
+  alignItems: "center",
+  flex: 1,
+  cursor: "pointer",
+};
+
+export const attachmentBoxMainStyles = {
+  width: "100%",
+  minWidth: "100%",
+};
+
+const uploadIconStyles = {
+  mr: 2,
+  fontSize: 24,
+};
+
+export const uploadIconWithFileStyles = {
+  ...uploadIconStyles,
+  color: "#1976d2",
+};
+
+export const uploadIconNoFileStyles = {
+  ...uploadIconStyles,
+  color: "#bbb",
+};
+
+export const buttonStyles = {
+  addLine: {
+    textTransform: "none",
+    fontSize: "0.75rem",
+    px: 2,
+    py: 0.5,
+  },
+  deleteLine: {
+    ml: 2,
+    textTransform: "none",
+    fontSize: "0.75rem",
+    px: 2,
+    py: 0.5,
+  },
+};
+
+export const containerStyles = {
+  main: {
+    p: 2,
+  },
+  attachmentSection: {
+    mt: 0,
+  },
+  attachmentItem: {
+    mb: 1,
+  },
+};
+
+export const hiddenInputStyles = {
+  display: "none",
+};
+
 export const modalStyles = {
-  // Dialog Title Styles
   dialogTitle: {
     display: "flex",
     justifyContent: "space-between",
@@ -79,7 +171,6 @@ export const modalStyles = {
     color: "#333",
   },
 
-  // Dialog Content Styles
   dialogContent: {
     backgroundColor: "#fff",
     flex: 1,
@@ -119,7 +210,6 @@ export const modalStyles = {
     borderRadius: 1,
   },
 
-  // Dialog Actions Styles
   dialogActions: {
     px: 3,
     py: 2,
@@ -160,84 +250,6 @@ export const modalStyles = {
     },
   },
 
-  // Error Dialog Styles
-  errorDialogOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    paddingTop: "30vh",
-    zIndex: 9999,
-  },
-
-  errorDialogBox: {
-    backgroundColor: "white",
-    borderRadius: "8px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-    p: 3,
-    minWidth: "480px",
-    maxWidth: "520px",
-    minHeight: "120px",
-    border: "1px solid #e0e0e0",
-    position: "relative",
-  },
-
-  errorDialogCloseButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    padding: 0,
-    "&:hover": {
-      backgroundColor: "#f5f5f5",
-    },
-  },
-
-  errorDialogCloseIcon: {
-    fontSize: "16px",
-    color: "#666",
-  },
-
-  errorDialogContent: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    pr: 4,
-  },
-
-  errorDialogIconContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: "50%",
-    backgroundColor: "#f44336",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-
-  errorDialogIconText: {
-    color: "white",
-    fontSize: "12px",
-    fontWeight: "bold",
-  },
-
-  errorDialogMessage: {
-    color: "#333",
-    fontSize: "16px",
-    textAlign: "center",
-    width: "100%",
-  },
-
-  // Dialog Paper Props
   dialogPaper: {
     height: "80vh",
     maxHeight: "80vh",
@@ -249,7 +261,6 @@ export const modalStyles = {
   },
 };
 
-// Field Styles (original from FormSubmissionFieldStyles)
 export const formStyles = {
   container: {
     paddingTop: "12px",

@@ -13,98 +13,125 @@ import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
-import { useGetFormSubmissionAttachmentQuery } from "../../../../features/api/approvalsetting/formSubmissionApi";
 
 const FileViewerDialog = ({
   open,
   onClose,
   selectedEntry,
-  selectedFile,
   currentFormSubmissionId,
+  attachmentIndex,
 }) => {
   const { watch } = useFormContext();
   const [fileUrl, setFileUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  const watchedAttachmentFilename = watch("manpower_attachment_filename");
-  const watchedFormAttachment = watch("manpower_form_attachment");
-
-  const {
-    data: attachmentData,
-    isLoading: isLoadingAttachment,
-    error: attachmentError,
-  } = useGetFormSubmissionAttachmentQuery(currentFormSubmissionId, {
-    skip: !open || !currentFormSubmissionId,
-  });
+  const watchedAttachments = watch("attachments");
 
   const getDisplayFilename = () => {
-    if (selectedFile && selectedFile instanceof File) {
-      return selectedFile.name;
+    if (
+      attachmentIndex !== undefined &&
+      watchedAttachments?.[attachmentIndex]
+    ) {
+      const att = watchedAttachments[attachmentIndex];
+      if (att.file_attachment instanceof File) return att.file_attachment.name;
+      if (att.existing_file_name) return att.existing_file_name;
     }
-
-    if (selectedFile && typeof selectedFile === "string") {
-      return selectedFile;
+    if (
+      selectedEntry?.submittable?.attachments &&
+      attachmentIndex !== null &&
+      attachmentIndex !== undefined
+    ) {
+      const att = selectedEntry.submittable.attachments[attachmentIndex];
+      if (att) return att.filename || "Attachment";
     }
-
-    if (watchedAttachmentFilename) {
-      return watchedAttachmentFilename;
-    }
-
-    if (selectedEntry?.submittable?.manpower_attachment_filename) {
-      return selectedEntry.submittable.manpower_attachment_filename;
-    }
-
-    if (selectedEntry?.submittable?.manpower_form_attachment) {
-      return selectedEntry.submittable.manpower_form_attachment
-        .split("/")
-        .pop();
-    }
-
-    if (watchedFormAttachment && typeof watchedFormAttachment === "string") {
-      return watchedFormAttachment.split("/").pop();
-    }
-
-    return "Download File";
+    return "Attachment";
   };
 
   const getDownloadUrl = () => {
-    if (selectedEntry?.submittable?.manpower_form_attachment) {
-      return selectedEntry.submittable.manpower_form_attachment;
+    if (
+      attachmentIndex !== undefined &&
+      watchedAttachments?.[attachmentIndex]?.existing_file_path
+    ) {
+      return watchedAttachments[attachmentIndex].existing_file_path;
     }
-
-    if (watchedFormAttachment && typeof watchedFormAttachment === "string") {
-      return watchedFormAttachment;
+    if (
+      selectedEntry?.submittable?.attachments &&
+      attachmentIndex !== null &&
+      attachmentIndex !== undefined
+    ) {
+      const att = selectedEntry.submittable.attachments[attachmentIndex];
+      if (att?.download_url) return att.download_url;
     }
-
     return "";
   };
 
-  const handleFileDownload = (fileUrl, filename) => {
+  const handleFileDownload = () => {
+    const url = getDownloadUrl();
+    if (!url) return;
     const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = filename || "attachment";
+    link.href = url;
+    link.download = getDisplayFilename();
     link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const handleDownloadFromViewer = () => {
-    if (attachmentData) {
-      const filename = getDisplayFilename();
-      handleFileDownload(attachmentData, filename);
-    } else {
-      handleFileDownload(getDownloadUrl(), getDisplayFilename());
-    }
-  };
+  useEffect(() => {
+    return () => {
+      if (fileUrl && fileUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
 
   useEffect(() => {
-    if (attachmentData) {
-      const url = URL.createObjectURL(attachmentData);
-      setFileUrl(url);
-
-      return () => URL.revokeObjectURL(url);
+    if (!open) {
+      if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+      setIsLoading(false);
+      setLoadError(false);
+      return;
     }
-  }, [attachmentData]);
+
+    if (
+      attachmentIndex !== undefined &&
+      watchedAttachments?.[attachmentIndex]?.file_attachment instanceof File
+    ) {
+      const file = watchedAttachments[attachmentIndex].file_attachment;
+      if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(file));
+      setLoadError(false);
+      return;
+    }
+
+    const downloadUrl = getDownloadUrl();
+    if (downloadUrl) {
+      setIsLoading(true);
+      setLoadError(false);
+
+      fetch(downloadUrl, { credentials: "include" })
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch");
+          return res.blob();
+        })
+        .then((blob) => {
+          if (fileUrl && fileUrl.startsWith("blob:"))
+            URL.revokeObjectURL(fileUrl);
+          setFileUrl(URL.createObjectURL(blob));
+        })
+        .catch(() => {
+          setLoadError(true);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+      return;
+    }
+
+    setFileUrl(null);
+  }, [open, attachmentIndex, watchedAttachments]);
 
   return (
     <Dialog
@@ -128,9 +155,7 @@ const FileViewerDialog = ({
         },
       }}
       BackdropProps={{
-        sx: {
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-        },
+        sx: { backgroundColor: "rgba(0, 0, 0, 0.7)" },
       }}>
       <DialogTitle
         sx={{
@@ -150,9 +175,7 @@ const FileViewerDialog = ({
           size="small"
           sx={{
             color: "text.secondary",
-            "&:hover": {
-              backgroundColor: "rgba(0, 0, 0, 0.04)",
-            },
+            "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
           }}>
           <CloseIcon />
         </IconButton>
@@ -165,7 +188,7 @@ const FileViewerDialog = ({
           height: "calc(90vh - 140px)",
           overflow: "hidden",
         }}>
-        {isLoadingAttachment ? (
+        {isLoading ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -177,7 +200,7 @@ const FileViewerDialog = ({
               Loading attachment...
             </Typography>
           </Box>
-        ) : attachmentError ? (
+        ) : loadError ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -201,15 +224,12 @@ const FileViewerDialog = ({
               alignItems: "center",
               backgroundColor: "#f5f5f5",
             }}>
-            {attachmentData ? (
+            {fileUrl ? (
               <iframe
                 src={fileUrl}
                 width="100%"
                 height="100%"
-                style={{
-                  border: "none",
-                  borderRadius: "0 0 8px 8px",
-                }}
+                style={{ border: "none", borderRadius: "0 0 8px 8px" }}
                 title="File Attachment"
               />
             ) : (

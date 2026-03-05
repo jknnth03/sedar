@@ -36,13 +36,7 @@ const parseDateValue = (value) => {
   return parsed.isValid() ? parsed : null;
 };
 
-const FormSubmissionFields = ({
-  mode,
-  selectedEntry,
-  onFileChange,
-  selectedFile,
-  disabled = false,
-}) => {
+const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
   const {
     control,
     formState: { errors },
@@ -53,6 +47,7 @@ const FormSubmissionFields = ({
 
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [currentFormSubmissionId, setCurrentFormSubmissionId] = useState(null);
+  const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(null);
   const [dropdownsLoaded, setDropdownsLoaded] = useState({
     requisitions: false,
     positions: false,
@@ -104,17 +99,14 @@ const FormSubmissionFields = ({
     () => normalizeApiData(positionsData),
     [positionsData, normalizeApiData],
   );
-
   const jobLevels = useMemo(
     () => normalizeApiData(jobLevelsData),
     [jobLevelsData, normalizeApiData],
   );
-
   const requisitions = useMemo(
     () => normalizeApiData(requisitionsData),
     [requisitionsData, normalizeApiData],
   );
-
   const employees = useMemo(
     () => normalizeApiData(employeesData),
     [employeesData, normalizeApiData],
@@ -170,18 +162,12 @@ const FormSubmissionFields = ({
         attachments: ["1. Incident Report", "2. NOD if available"],
         remarks: null,
       },
-      awol: {
-        attachments: ["1. Incident Report"],
-        remarks: null,
-      },
+      awol: { attachments: ["1. Incident Report"], remarks: null },
       "returned to agency": {
         attachments: ["1. Incident Report"],
         remarks: null,
       },
-      deceased: {
-        attachments: ["-"],
-        remarks: null,
-      },
+      deceased: { attachments: ["-"], remarks: null },
     };
 
     const matchedKey = Object.keys(instructionMap).find((key) =>
@@ -203,7 +189,6 @@ const FormSubmissionFields = ({
           { shouldValidate: false },
         );
       }
-
       if (submittable.job_level_id || submittable.job_level) {
         setValue(
           "job_level_id",
@@ -211,7 +196,6 @@ const FormSubmissionFields = ({
           { shouldValidate: false },
         );
       }
-
       if (submittable.requisition_type_id || submittable.requisition_type) {
         setValue(
           "requisition_type_id",
@@ -221,27 +205,41 @@ const FormSubmissionFields = ({
           { shouldValidate: false },
         );
       }
-
-      if (submittable.expected_salary) {
+      if (submittable.expected_salary)
         setValue("expected_salary", submittable.expected_salary, {
           shouldValidate: false,
         });
-      }
-
-      if (submittable.employment_type) {
+      if (submittable.employment_type)
         setValue("employment_type", submittable.employment_type, {
           shouldValidate: false,
         });
-      }
-
-      if (submittable.justification) {
+      if (submittable.justification)
         setValue("justification", submittable.justification, {
           shouldValidate: false,
         });
-      }
-
-      if (submittable.remarks) {
+      if (submittable.remarks)
         setValue("remarks", submittable.remarks, { shouldValidate: false });
+
+      // API shape: submittable.attachments[].{ id, filename, download_url }
+      const existingAttachments = submittable.attachments;
+      if (
+        existingAttachments &&
+        Array.isArray(existingAttachments) &&
+        existingAttachments.length > 0
+      ) {
+        setValue(
+          "attachments",
+          existingAttachments.map((att) => ({
+            id: `existing_${att.id}`,
+            file_attachment: null,
+            existing_file_name: att.filename || "Unknown file",
+            existing_file_path: att.download_url || null,
+            existing_file_id: att.id,
+            is_new_file: false,
+            keep_existing: true,
+          })),
+          { shouldValidate: false },
+        );
       }
 
       if (submittable.position_id && submittable.requisition_type_id) {
@@ -250,156 +248,26 @@ const FormSubmissionFields = ({
           requisition_type_id: submittable.requisition_type_id,
           ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
         }).then(() => {
-          if (
-            replacementInfo?.type === "employee_movement" &&
-            replacementInfo.details
-          ) {
-            const employeeData = replacementInfo.details.employee;
-            const newPositionData = replacementInfo.details.new_position;
-
-            if (employeeData) {
-              setValue(
-                "movement_employee_id",
-                {
-                  id: employeeData.id,
-                  full_name: employeeData.full_name,
-                  employee_code: employeeData.employee_code,
-                },
-                { shouldValidate: false },
-              );
-            }
-
-            if (newPositionData) {
-              setValue(
-                "movement_new_position_id",
-                {
-                  id: newPositionData.id,
-                  code: newPositionData.code,
-                  title: newPositionData.title,
-                  title_with_unit: newPositionData.title_with_unit,
-                },
-                { shouldValidate: false },
-              );
-            }
-
-            if (replacementInfo.details.reason_for_change) {
-              setValue(
-                "movement_reason_for_change",
-                replacementInfo.details.reason_for_change,
-                { shouldValidate: false },
-              );
-            }
-
-            if (replacementInfo.details.da_start_date) {
-              const startDate = parseDateValue(
-                replacementInfo.details.da_start_date,
-              );
-              setValue("movement_da_start_date", startDate, {
-                shouldValidate: false,
-              });
-            }
-
-            if (replacementInfo.details.da_end_date) {
-              const endDate = parseDateValue(
-                replacementInfo.details.da_end_date,
-              );
-              setValue("movement_da_end_date", endDate, {
-                shouldValidate: false,
-              });
-            }
-
-            if (
-              replacementInfo.details.da_start_date ||
-              replacementInfo.details.da_end_date
-            ) {
-              setValue("movement_is_da", true, { shouldValidate: false });
-            }
-          } else if (
-            replacementInfo?.type === "direct_replacement" &&
-            replacementInfo.details?.employee
-          ) {
-            const employeeData = replacementInfo.details.employee;
-            setValue(
-              "employee_to_be_replaced_id",
-              {
-                id: employeeData.id,
-                full_name: employeeData.full_name,
-                employee_code: employeeData.employee_code,
-              },
-              { shouldValidate: false },
-            );
-          }
+          populateReplacementInfo(replacementInfo);
         });
       } else {
-        if (
-          replacementInfo?.type === "employee_movement" &&
-          replacementInfo.details
-        ) {
-          const employeeData = replacementInfo.details.employee;
-          const newPositionData = replacementInfo.details.new_position;
+        populateReplacementInfo(replacementInfo);
+      }
+    }
+  }, [mode, selectedEntry, setValue, triggerGetEmployees]);
 
-          if (employeeData) {
-            setValue(
-              "movement_employee_id",
-              {
-                id: employeeData.id,
-                full_name: employeeData.full_name,
-                employee_code: employeeData.employee_code,
-              },
-              { shouldValidate: false },
-            );
-          }
+  const populateReplacementInfo = useCallback(
+    (replacementInfo) => {
+      if (
+        replacementInfo?.type === "employee_movement" &&
+        replacementInfo.details
+      ) {
+        const employeeData = replacementInfo.details.employee;
+        const newPositionData = replacementInfo.details.new_position;
 
-          if (newPositionData) {
-            setValue(
-              "movement_new_position_id",
-              {
-                id: newPositionData.id,
-                code: newPositionData.code,
-                title: newPositionData.title,
-                title_with_unit: newPositionData.title_with_unit,
-              },
-              { shouldValidate: false },
-            );
-          }
-
-          if (replacementInfo.details.reason_for_change) {
-            setValue(
-              "movement_reason_for_change",
-              replacementInfo.details.reason_for_change,
-              { shouldValidate: false },
-            );
-          }
-
-          if (replacementInfo.details.da_start_date) {
-            const startDate = parseDateValue(
-              replacementInfo.details.da_start_date,
-            );
-            setValue("movement_da_start_date", startDate, {
-              shouldValidate: false,
-            });
-          }
-
-          if (replacementInfo.details.da_end_date) {
-            const endDate = parseDateValue(replacementInfo.details.da_end_date);
-            setValue("movement_da_end_date", endDate, {
-              shouldValidate: false,
-            });
-          }
-
-          if (
-            replacementInfo.details.da_start_date ||
-            replacementInfo.details.da_end_date
-          ) {
-            setValue("movement_is_da", true, { shouldValidate: false });
-          }
-        } else if (
-          replacementInfo?.type === "direct_replacement" &&
-          replacementInfo.details?.employee
-        ) {
-          const employeeData = replacementInfo.details.employee;
+        if (employeeData) {
           setValue(
-            "employee_to_be_replaced_id",
+            "movement_employee_id",
             {
               id: employeeData.id,
               full_name: employeeData.full_name,
@@ -408,9 +276,63 @@ const FormSubmissionFields = ({
             { shouldValidate: false },
           );
         }
+        if (newPositionData) {
+          setValue(
+            "movement_new_position_id",
+            {
+              id: newPositionData.id,
+              code: newPositionData.code,
+              title: newPositionData.title,
+              title_with_unit: newPositionData.title_with_unit,
+            },
+            { shouldValidate: false },
+          );
+        }
+        if (replacementInfo.details.reason_for_change) {
+          setValue(
+            "movement_reason_for_change",
+            replacementInfo.details.reason_for_change,
+            { shouldValidate: false },
+          );
+        }
+        if (replacementInfo.details.da_start_date) {
+          setValue(
+            "movement_da_start_date",
+            parseDateValue(replacementInfo.details.da_start_date),
+            { shouldValidate: false },
+          );
+        }
+        if (replacementInfo.details.da_end_date) {
+          setValue(
+            "movement_da_end_date",
+            parseDateValue(replacementInfo.details.da_end_date),
+            { shouldValidate: false },
+          );
+        }
+        if (
+          replacementInfo.details.da_start_date ||
+          replacementInfo.details.da_end_date
+        ) {
+          setValue("movement_is_da", true, { shouldValidate: false });
+        }
+      } else if (
+        replacementInfo?.type === "direct_replacement" &&
+        replacementInfo.details?.employee
+      ) {
+        const employeeData = replacementInfo.details.employee;
+        setValue(
+          "employee_to_be_replaced_id",
+          {
+            id: employeeData.id,
+            full_name: employeeData.full_name,
+            employee_code: employeeData.employee_code,
+          },
+          { shouldValidate: false },
+        );
       }
-    }
-  }, [mode, selectedEntry, setValue, triggerGetEmployees]);
+    },
+    [setValue],
+  );
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -424,7 +346,6 @@ const FormSubmissionFields = ({
         setIsLoadingEmployees(false);
       }
     };
-
     loadEmployees();
   }, [
     watchedRequisitionType?.id,
@@ -437,9 +358,7 @@ const FormSubmissionFields = ({
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
       if (!shouldLoadDropdowns || dropdownsLoaded[dropdownName]) return;
-
       setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
-
       switch (dropdownName) {
         case "requisitions":
           triggerGetRequisitions();
@@ -476,31 +395,36 @@ const FormSubmissionFields = ({
     return watchedRequisitionType.name === "ADDITIONAL MANPOWER";
   }, [watchedRequisitionType]);
 
-  const shouldShowMovementFields = useCallback(() => {
-    return isReplacementDueToEmployeeMovement();
-  }, [isReplacementDueToEmployeeMovement]);
+  const shouldShowMovementFields = useCallback(
+    () => isReplacementDueToEmployeeMovement(),
+    [isReplacementDueToEmployeeMovement],
+  );
+  const shouldShowDateFields = useCallback(
+    () =>
+      isReplacementDueToEmployeeMovement() && watchedForDevelopmentalAssignment,
+    [isReplacementDueToEmployeeMovement, watchedForDevelopmentalAssignment],
+  );
+  const shouldShowReasonForChange = useCallback(
+    () => isReplacementDueToEmployeeMovement(),
+    [isReplacementDueToEmployeeMovement],
+  );
 
-  const shouldShowDateFields = useCallback(() => {
-    return (
-      isReplacementDueToEmployeeMovement() && watchedForDevelopmentalAssignment
-    );
-  }, [isReplacementDueToEmployeeMovement, watchedForDevelopmentalAssignment]);
-
-  const shouldShowReasonForChange = useCallback(() => {
-    return isReplacementDueToEmployeeMovement();
-  }, [isReplacementDueToEmployeeMovement]);
-
-  const handleFileViewerOpen = useCallback(() => {
-    const formSubmissionId = selectedEntry?.id;
-    if (formSubmissionId) {
-      setCurrentFormSubmissionId(formSubmissionId);
-      setFileViewerOpen(true);
-    }
-  }, [selectedEntry?.id]);
+  const handleFileViewerOpen = useCallback(
+    (index) => {
+      const formSubmissionId = selectedEntry?.id;
+      if (formSubmissionId) {
+        setCurrentFormSubmissionId(formSubmissionId);
+        setCurrentAttachmentIndex(index);
+        setFileViewerOpen(true);
+      }
+    },
+    [selectedEntry?.id],
+  );
 
   const handleFileViewerClose = useCallback(() => {
     setFileViewerOpen(false);
     setCurrentFormSubmissionId(null);
+    setCurrentAttachmentIndex(null);
   }, []);
 
   const handleEmploymentTypeChange = useCallback(
@@ -508,9 +432,7 @@ const FormSubmissionFields = ({
       if (disabled) return;
       const value = event.target.value;
       setValue("employment_type", value, { shouldValidate: false });
-      if (value && value !== "") {
-        clearErrors("employment_type");
-      }
+      if (value && value !== "") clearErrors("employment_type");
     },
     [disabled, setValue, clearErrors],
   );
@@ -520,9 +442,7 @@ const FormSubmissionFields = ({
       if (disabled) return;
       const value = event.target.value;
       setValue("movement_reason_for_change", value, { shouldValidate: false });
-      if (value && value !== "") {
-        clearErrors("movement_reason_for_change");
-      }
+      if (value && value !== "") clearErrors("movement_reason_for_change");
     },
     [disabled, setValue, clearErrors],
   );
@@ -1003,12 +923,8 @@ const FormSubmissionFields = ({
                   sx={{
                     backgroundColor: "rgba(33, 61, 112, 0.08)",
                     border: "1px solid rgba(33, 61, 112, 0.2)",
-                    "& .MuiAlert-icon": {
-                      color: "rgb(33, 61, 112)",
-                    },
-                    "& .MuiAlert-message": {
-                      color: "rgb(33, 61, 112)",
-                    },
+                    "& .MuiAlert-icon": { color: "rgb(33, 61, 112)" },
+                    "& .MuiAlert-message": { color: "rgb(33, 61, 112)" },
                   }}>
                   <Typography
                     variant="subtitle2"
@@ -1207,9 +1123,7 @@ const FormSubmissionFields = ({
                       label="Start Date"
                       disabled={isReadOnly}
                       value={field.value || null}
-                      onChange={(newValue) => {
-                        field.onChange(newValue);
-                      }}
+                      onChange={(newValue) => field.onChange(newValue)}
                       slotProps={{
                         textField: {
                           required: true,
@@ -1238,9 +1152,7 @@ const FormSubmissionFields = ({
                       label="End Date"
                       disabled={isReadOnly}
                       value={field.value || null}
-                      onChange={(newValue) => {
-                        field.onChange(newValue);
-                      }}
+                      onChange={(newValue) => field.onChange(newValue)}
                       minDate={
                         watch("movement_da_start_date")
                           ? dayjs(watch("movement_da_start_date")).add(1, "day")
@@ -1268,8 +1180,6 @@ const FormSubmissionFields = ({
         <Box sx={{ mb: 3, ...(formStyles?.attachmentContainer || {}) }}>
           <AttachmentField
             selectedEntry={selectedEntry}
-            onFileChange={onFileChange}
-            selectedFile={selectedFile}
             disabled={isViewMode}
             onFileViewerOpen={handleFileViewerOpen}
           />
@@ -1280,8 +1190,8 @@ const FormSubmissionFields = ({
         open={fileViewerOpen}
         onClose={handleFileViewerClose}
         selectedEntry={selectedEntry}
-        selectedFile={selectedFile}
         currentFormSubmissionId={currentFormSubmissionId}
+        attachmentIndex={currentAttachmentIndex}
       />
     </>
   );
