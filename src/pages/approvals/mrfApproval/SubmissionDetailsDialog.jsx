@@ -8,19 +8,16 @@ import {
   TextField,
   Button,
   IconButton,
-  Stack,
-  Grid,
-  Divider,
   CircularProgress,
-  Autocomplete,
   Box,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import HelpIcon from "@mui/icons-material/Help";
-import { useGetMrfSubmissionAttachmentQuery } from "../../../features/api/forms/mrfApi";
+import { useGetMrfAttachmentByIdQuery } from "../../../features/api/forms/mrfApi";
 
 const SubmissionDetailsDialog = ({
   open,
@@ -38,19 +35,63 @@ const SubmissionDetailsDialog = ({
   const [confirmAction, setConfirmAction] = useState(null);
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
-  const [currentFormSubmissionId, setCurrentFormSubmissionId] = useState(null);
-
-  const isReasonRequired = actionType === "reject";
-  const canProceed =
-    actionType === "approve" || (actionType === "reject" && comments.trim());
+  const [selectedAttachment, setSelectedAttachment] = useState(null);
+  const [fetchAttachment, setFetchAttachment] = useState(false);
 
   const {
     data: attachmentData,
     isLoading: isLoadingAttachment,
     error: attachmentError,
-  } = useGetMrfSubmissionAttachmentQuery(currentFormSubmissionId, {
-    skip: !fileViewerOpen || !currentFormSubmissionId,
-  });
+  } = useGetMrfAttachmentByIdQuery(
+    {
+      submissionId: selectedAttachment?.submissionId,
+      attachmentId: selectedAttachment?.attachmentId,
+    },
+    {
+      skip:
+        !fetchAttachment ||
+        !selectedAttachment?.submissionId ||
+        !selectedAttachment?.attachmentId ||
+        !fileViewerOpen,
+    },
+  );
+
+  useEffect(() => {
+    if (!fileViewerOpen) {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+        setFileUrl(null);
+      }
+      return;
+    }
+    if (isLoadingAttachment || attachmentError) return;
+    if (attachmentData instanceof Blob) {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(attachmentData));
+    }
+  }, [fileViewerOpen, attachmentData, isLoadingAttachment, attachmentError]);
+
+  const handleViewAttachment = (attachment) => {
+    const submissionId = submission?.submission?.id || submission?.id;
+    setFileUrl(null);
+    setSelectedAttachment({
+      submissionId,
+      attachmentId: attachment.id,
+      filename: attachment.filename,
+    });
+    setFetchAttachment(true);
+    setFileViewerOpen(true);
+  };
+
+  const handleFileViewerClose = () => {
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    setSelectedAttachment(null);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+  };
 
   const handleApprove = () => {
     setActionType("approve");
@@ -68,10 +109,7 @@ const SubmissionDetailsDialog = ({
     if (confirmAction === "approve") {
       onApprove({ comments });
     } else if (confirmAction === "reject") {
-      onReject({
-        reason: reason.trim(),
-        comments,
-      });
+      onReject({ reason: reason.trim(), comments });
     }
     setConfirmOpen(false);
     handleReset();
@@ -89,54 +127,13 @@ const SubmissionDetailsDialog = ({
     setConfirmAction(null);
   };
 
-  const handleFileDownload = (fileUrl, filename) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = filename || "attachment";
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const getConfirmationTitle = () =>
+    confirmAction === "approve" ? "Confirm Approval" : "Confirm Rejection";
 
-  const handleFileViewerOpen = () => {
-    const formSubmissionId = submission?.submission?.id || submission?.id;
-    if (formSubmissionId) {
-      setCurrentFormSubmissionId(formSubmissionId);
-      setFileViewerOpen(true);
-    }
-  };
-
-  const handleFileViewerClose = () => {
-    setFileViewerOpen(false);
-    // Don't reset currentFormSubmissionId immediately to prevent query from being skipped
-    // Reset fileUrl to null but don't revoke it yet - let useEffect handle it
-    setFileUrl(null);
-
-    // Reset currentFormSubmissionId after a short delay to allow cleanup
-    setTimeout(() => {
-      setCurrentFormSubmissionId(null);
-    }, 100);
-  };
-
-  const getDisplayFilename = () => {
-    const submissionData = submission?.submission || submission;
-    return (
-      submissionData?.form_details?.manpower_attachment_filename || "dummy.pdf"
-    );
-  };
-
-  const getConfirmationTitle = () => {
-    return confirmAction === "approve"
-      ? "Confirm Approval"
-      : "Confirm Rejection";
-  };
-
-  const getConfirmationMessage = () => {
-    return confirmAction === "approve"
+  const getConfirmationMessage = () =>
+    confirmAction === "approve"
       ? "Are you sure you want to Approve this request?"
       : "Are you sure you want to Reject this request?";
-  };
 
   const getSubmissionDisplayName = () => {
     if (!submission) return "Unknown";
@@ -153,96 +150,37 @@ const SubmissionDetailsDialog = ({
     return submissionData.id || "N/A";
   };
 
-  const getConfirmButtonColor = () => {
-    return confirmAction === "approve" ? "success" : "error";
-  };
-
-  const getConfirmButtonText = () => {
-    return confirmAction === "approve" ? "APPROVE" : "REJECT";
-  };
+  const getConfirmButtonText = () =>
+    confirmAction === "approve" ? "APPROVE" : "REJECT";
 
   const canConfirmReject = confirmAction === "reject" ? reason.trim() : true;
-
-  // Handle attachment data and create blob URL
-  useEffect(() => {
-    if (attachmentData && attachmentData instanceof Blob && fileViewerOpen) {
-      // Revoke previous URL if it exists
-      if (fileUrl) {
-        URL.revokeObjectURL(fileUrl);
-      }
-
-      // Create new blob URL
-      const url = URL.createObjectURL(attachmentData);
-      setFileUrl(url);
-    }
-  }, [attachmentData, fileViewerOpen]);
-
-  // Cleanup blob URL when component unmounts or fileUrl changes
-  useEffect(() => {
-    return () => {
-      if (fileUrl) {
-        URL.revokeObjectURL(fileUrl);
-      }
-    };
-  }, [fileUrl]);
-
-  // Additional cleanup when file viewer closes
-  useEffect(() => {
-    if (!fileViewerOpen && fileUrl) {
-      // Small delay to ensure iframe has time to finish using the URL
-      const timeoutId = setTimeout(() => {
-        URL.revokeObjectURL(fileUrl);
-        setFileUrl(null);
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [fileViewerOpen, fileUrl]);
 
   if (!submission) return null;
 
   const submissionData = submission.submission || submission;
   const status = submission?.status?.toLowerCase() || "pending";
   const isProcessed = status === "approved" || status === "rejected";
+  const attachments = submissionData?.form_details?.attachments || [];
 
-  // Get actual data from the submission object
-  const getFormType = () => {
-    return "Manpower Requisition Form";
-  };
-
-  const getPosition = () => {
-    return submissionData?.form_details?.position?.title?.name || "N/A";
-  };
-
-  const getJobLevel = () => {
-    return submissionData?.form_details?.job_level?.name || "N/A";
-  };
-
+  const getPosition = () =>
+    submissionData?.form_details?.position?.title?.name || "N/A";
+  const getJobLevel = () =>
+    submissionData?.form_details?.job_level?.name || "N/A";
   const getExpectedSalary = () => {
     const salary = submissionData?.form_details?.expected_salary;
     return salary ? `₱${parseFloat(salary).toLocaleString()}` : "N/A";
   };
-
-  const getRequisitionType = () => {
-    return submissionData?.form_details?.requisition_type?.name || "N/A";
-  };
-
-  const getEmployeeToBeReplaced = () => {
-    return (
-      submissionData?.form_details?.employee_to_be_replaced?.full_name || "N/A"
-    );
-  };
-
-  const getJustification = () => {
-    return submissionData?.form_details?.justification || "N/A";
-  };
-
-  const getRemarks = () => {
-    return submissionData?.form_details?.remarks || "N/A";
-  };
+  const getRequisitionType = () =>
+    submissionData?.form_details?.requisition_type?.name || "N/A";
+  const getEmployeeToBeReplaced = () =>
+    submissionData?.form_details?.employee_to_be_replaced?.full_name || "N/A";
+  const getJustification = () =>
+    submissionData?.form_details?.justification || "N/A";
+  const getRemarks = () => submissionData?.form_details?.remarks || "N/A";
 
   return (
     <>
+      {/* Main Dialog */}
       <Dialog
         open={open}
         onClose={handleClose}
@@ -254,10 +192,7 @@ const SubmissionDetailsDialog = ({
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
           },
         }}>
-        <DialogTitle
-          sx={{
-            padding: "18px 26px",
-          }}>
+        <DialogTitle sx={{ padding: "18px 26px" }}>
           <Box
             sx={{
               display: "flex",
@@ -281,7 +216,9 @@ const SubmissionDetailsDialog = ({
             </IconButton>
           </Box>
         </DialogTitle>
+
         <DialogContent>
+          {/* Request Information */}
           <Box
             sx={{
               backgroundColor: "#ffffff",
@@ -300,10 +237,14 @@ const SubmissionDetailsDialog = ({
               }}>
               Request Information
             </Typography>
-
-            <Box>
-              <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
+            <Box sx={{ display: "flex", gap: 6, mb: 1.5 }}>
+              {[
+                { label: "FORM TYPE", value: "Manpower Requisition Form" },
+                { label: "POSITION", value: getPosition() },
+                { label: "JOB LEVEL", value: getJobLevel() },
+              ].map(({ label, value }) => (
                 <Box
+                  key={label}
                   sx={{
                     flex: 1,
                     minHeight: "60px",
@@ -319,23 +260,32 @@ const SubmissionDetailsDialog = ({
                       display: "block",
                       mb: 0.5,
                     }}>
-                    FORM TYPE
+                    {label}
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{
-                      color: "#000000ff",
+                      color: "#000",
                       fontSize: "13px",
                       lineHeight: 1.4,
-                      flex: 1,
                       wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
                     }}>
-                    Manpower Requisition Form
+                    {value}
                   </Typography>
                 </Box>
+              ))}
+            </Box>
+            <Box sx={{ display: "flex", gap: 6 }}>
+              {[
+                { label: "EXPECTED SALARY", value: getExpectedSalary() },
+                { label: "REQUISITION TYPE", value: getRequisitionType() },
+                {
+                  label: "EMPLOYEE TO BE REPLACED",
+                  value: getEmployeeToBeReplaced(),
+                },
+              ].map(({ label, value }) => (
                 <Box
+                  key={label}
                   sx={{
                     flex: 1,
                     minHeight: "60px",
@@ -351,159 +301,24 @@ const SubmissionDetailsDialog = ({
                       display: "block",
                       mb: 0.5,
                     }}>
-                    POSITION
+                    {label}
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{
-                      color: "#000000ff",
+                      color: "#000",
                       fontSize: "13px",
                       lineHeight: 1.4,
-                      flex: 1,
                       wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
                     }}>
-                    {getPosition()}
+                    {value}
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    JOB LEVEL
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getJobLevel()}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 6 }}>
-                <Box
-                  sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EXPECTED SALARY
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getExpectedSalary()}
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    REQUISITION TYPE
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getRequisitionType()}
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    flex: 1,
-                    minHeight: "60px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgb(33, 61, 112)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5,
-                    }}>
-                    EMPLOYEE TO BE REPLACED
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#000000ff",
-                      fontSize: "13px",
-                      lineHeight: 1.4,
-                      flex: 1,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                      overflow: "hidden",
-                    }}>
-                    {getEmployeeToBeReplaced()}
-                  </Typography>
-                </Box>
-              </Box>
+              ))}
             </Box>
           </Box>
 
+          {/* Justification & Remarks */}
           <Box
             sx={{
               backgroundColor: "#ffffff",
@@ -522,74 +337,40 @@ const SubmissionDetailsDialog = ({
               }}>
               Justification & Remarks
             </Typography>
-
             <Box sx={{ display: "flex", gap: 10 }}>
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: "60px",
-                  display: "flex",
-                  flexDirection: "column",
-                }}>
-                <Typography
-                  variant="caption"
+              {[
+                { label: "JUSTIFICATION", value: getJustification() },
+                { label: "REMARKS", value: getRemarks() },
+              ].map(({ label, value }) => (
+                <Box
+                  key={label}
                   sx={{
-                    color: "rgb(33, 61, 112)",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    mb: 0.5,
-                  }}>
-                  JUSTIFICATION
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#000000ff",
-                    fontSize: "13px",
-                    lineHeight: 1.4,
                     flex: 1,
-                    wordBreak: "break-word",
-                    whiteSpace: "normal",
-                    overflow: "hidden",
+                    minHeight: "60px",
+                    display: "flex",
+                    flexDirection: "column",
                   }}>
-                  {getJustification()}
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: "60px",
-                  display: "flex",
-                  flexDirection: "column",
-                }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "rgb(33, 61, 112)",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    mb: 0.5,
-                  }}>
-                  REMARKS
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#000000ff",
-                    fontSize: "13px",
-                    lineHeight: 1.4,
-                    flex: 1,
-                    wordBreak: "break-word",
-                    whiteSpace: "normal",
-                    overflow: "hidden",
-                  }}>
-                  {getRemarks()}
-                </Typography>
-              </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "rgb(33, 61, 112)",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      mb: 0.5,
+                    }}>
+                    {label}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "#000", fontSize: "13px", lineHeight: 1.4 }}>
+                    {value}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
           </Box>
 
+          {/* Supporting Documents */}
           <Box
             sx={{
               backgroundColor: "#ffffff",
@@ -609,43 +390,74 @@ const SubmissionDetailsDialog = ({
               Supporting Documents
             </Typography>
 
-            <Box
-              sx={{
-                border: "2px dashed #d1d5db",
-                borderRadius: 2,
-                p: 3,
-                textAlign: "center",
-                backgroundColor: "#ffffff",
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: "#f8f9fa",
-                },
-              }}
-              onClick={handleFileViewerOpen}>
-              <AttachFileIcon
-                sx={{ color: "#000000ff", fontSize: 32, mb: 0.5 }}
-              />
-              <Typography
+            {attachments.length > 0 ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {attachments.map((attachment) => (
+                  <Box
+                    key={attachment.id}
+                    sx={{
+                      border: "2px solid #ddd",
+                      borderRadius: 2,
+                      p: 1.5,
+                      backgroundColor: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}>
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <AttachFileIcon sx={{ color: "#1976d2", fontSize: 22 }} />
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            color: "rgb(33, 61, 112)",
+                            fontSize: "0.85rem",
+                          }}>
+                          {attachment.filename}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "#666", fontSize: "11px" }}>
+                          Click VIEW to preview the file
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleViewAttachment(attachment)}
+                      sx={{
+                        border: "1px solid #1976d2",
+                        color: "#1976d2",
+                        borderRadius: 1,
+                        px: 1.5,
+                        gap: 0.5,
+                        "&:hover": { backgroundColor: "#e3f2fd" },
+                      }}>
+                      <VisibilityIcon fontSize="small" />
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        VIEW
+                      </Typography>
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Box
                 sx={{
-                  color: "#007bff",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  mb: 0.5,
-                  textDecoration: "underline",
-                  cursor: "pointer",
+                  border: "2px dashed #d1d5db",
+                  borderRadius: 2,
+                  p: 3,
+                  textAlign: "center",
+                  backgroundColor: "#fafafa",
                 }}>
-                {getDisplayFilename()}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#000000ff",
-                  fontSize: "12px",
-                  display: "block",
-                }}>
-                Click to view file
-              </Typography>
-            </Box>
+                <AttachFileIcon sx={{ color: "#bbb", fontSize: 32, mb: 0.5 }} />
+                <Typography
+                  sx={{ color: "#9ca3af", fontSize: "14px", fontWeight: 500 }}>
+                  No supporting documents attached
+                </Typography>
+              </Box>
+            )}
           </Box>
 
           {!isProcessed &&
@@ -661,11 +473,7 @@ const SubmissionDetailsDialog = ({
                   fullWidth
                   placeholder="Add any additional comments..."
                   variant="outlined"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                    },
-                  }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                 />
               </Box>
             )}
@@ -697,13 +505,7 @@ const SubmissionDetailsDialog = ({
         </DialogContent>
 
         <DialogActions
-          sx={{
-            px: 4.4,
-            pb: 2,
-            pt: 2,
-            justifyContent: "flex-end",
-            gap: 2,
-          }}>
+          sx={{ px: 4.4, pb: 2, pt: 2, justifyContent: "flex-end", gap: 2 }}>
           {!isProcessed && (
             <>
               <Button
@@ -718,9 +520,7 @@ const SubmissionDetailsDialog = ({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#c82333",
-                  },
+                  "&:hover": { backgroundColor: "#c82333" },
                 }}
                 disabled={isLoading}
                 startIcon={
@@ -746,9 +546,7 @@ const SubmissionDetailsDialog = ({
                   fontWeight: 600,
                   textTransform: "uppercase",
                   borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "#218838",
-                  },
+                  "&:hover": { backgroundColor: "#218838" },
                 }}
                 disabled={isLoading}
                 startIcon={
@@ -767,6 +565,7 @@ const SubmissionDetailsDialog = ({
         </DialogActions>
       </Dialog>
 
+      {/* Confirm Dialog */}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -794,7 +593,6 @@ const SubmissionDetailsDialog = ({
             {getConfirmationTitle()}
           </Typography>
         </DialogTitle>
-
         <DialogContent sx={{ textAlign: "center", px: 3 }}>
           <Typography
             variant="body1"
@@ -808,10 +606,9 @@ const SubmissionDetailsDialog = ({
             sx={{ fontSize: "13px", mb: 3 }}>
             {getSubmissionDisplayName()} - ID: {getSubmissionId()}
           </Typography>
-
           {confirmAction === "reject" && (
             <TextField
-              label={<span>Reason for Rejection</span>}
+              label="Reason for Rejection"
               placeholder="Please provide a reason for rejecting this form..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -819,15 +616,10 @@ const SubmissionDetailsDialog = ({
               rows={3}
               fullWidth
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                },
-              }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
             />
           )}
         </DialogContent>
-
         <DialogActions sx={{ justifyContent: "center", pb: 3, px: 3 }}>
           <Box display="flex" gap={2}>
             <Button
@@ -874,6 +666,7 @@ const SubmissionDetailsDialog = ({
         </DialogActions>
       </Dialog>
 
+      {/* File Viewer Dialog */}
       <Dialog
         open={fileViewerOpen}
         onClose={handleFileViewerClose}
@@ -901,13 +694,12 @@ const SubmissionDetailsDialog = ({
             backgroundColor: "#f8f9fa",
           }}>
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "16px" }}>
-            Attachment - {getDisplayFilename()}
+            {selectedAttachment?.filename || "Attachment"}
           </Typography>
           <IconButton onClick={handleFileViewerClose} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <DialogContent
           sx={{ p: 0, height: "calc(90vh - 64px)", overflow: "hidden" }}>
           {isLoadingAttachment ? (
@@ -957,10 +749,7 @@ const SubmissionDetailsDialog = ({
                 src={fileUrl}
                 width="100%"
                 height="100%"
-                style={{
-                  border: "none",
-                  borderRadius: "0 0 8px 8px",
-                }}
+                style={{ border: "none", borderRadius: "0 0 8px 8px" }}
                 title="File Attachment"
               />
             </Box>
@@ -982,13 +771,7 @@ const SubmissionDetailsDialog = ({
                   variant="h6"
                   color="text.secondary"
                   sx={{ fontSize: "18px" }}>
-                  {getDisplayFilename()}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1, fontSize: "14px" }}>
-                  File preview not available
+                  {selectedAttachment?.filename}
                 </Typography>
               </Box>
             </Box>

@@ -25,11 +25,15 @@ import {
   Close as CloseIcon,
   Description as DescriptionIcon,
   Add as AddIcon,
+  AttachFile as AttachFileIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
+import CloseIconMui from "@mui/icons-material/Close";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import { useLazyGetSingleDaSubmissionQuery } from "../../../../features/api/forms/mdaDaApi";
+import { useGetKpiAttachmentQuery } from "../../../../features/api/evaluation/kpiApi";
 import MDADAModal from "./MDADAModal";
 import * as styles from "../DAForm/DAFormModal.styles";
 
@@ -60,8 +64,55 @@ const DAChangeModal = ({
   const [kpisList, setKpisList] = useState([]);
   const [isMDAModalOpen, setIsMDAModalOpen] = useState(false);
   const [daSubmittableId, setDaSubmittableId] = useState(null);
+  const [toPositionId, setToPositionId] = useState(null);
+  const [attachmentFilename, setAttachmentFilename] =
+    useState("KPI Attachment");
+
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fetchAttachment, setFetchAttachment] = useState(false);
+  const [fileUrl, setFileUrl] = useState(null);
 
   const formValues = watch();
+
+  const {
+    data: attachmentData,
+    isLoading: attachmentLoading,
+    error: attachmentFetchError,
+  } = useGetKpiAttachmentQuery(toPositionId, {
+    skip: !fetchAttachment || !toPositionId || !fileViewerOpen,
+  });
+
+  useEffect(() => {
+    if (!fileViewerOpen) {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+        setFileUrl(null);
+      }
+      return;
+    }
+    if (attachmentLoading) return;
+    if (attachmentFetchError) return;
+    if (attachmentData instanceof Blob) {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(attachmentData));
+    }
+  }, [fileViewerOpen, attachmentData, attachmentLoading, attachmentFetchError]);
+
+  const handleViewFile = () => {
+    if (!toPositionId) return;
+    setFileUrl(null);
+    setFetchAttachment(true);
+    setFileViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+  };
 
   useEffect(() => {
     const loadSubmissionData = async () => {
@@ -96,6 +147,16 @@ const DAChangeModal = ({
             reset(formData);
             setKpisList(submittable?.objectives || []);
             setDaSubmittableId(submittable?.id || null);
+            setToPositionId(
+              submittable?.to_position_id ||
+                submittable?.to_position?.id ||
+                null,
+            );
+            setAttachmentFilename(
+              submittable?.kpis_attachment?.filename ||
+                submittable?.to_position?.kpi_attachment_file_name ||
+                "KPI Attachment",
+            );
 
             setTimeout(() => {
               setIsFormReady(true);
@@ -124,6 +185,14 @@ const DAChangeModal = ({
     setIsFormReady(false);
     setKpisList([]);
     setDaSubmittableId(null);
+    setToPositionId(null);
+    setAttachmentFilename("KPI Attachment");
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
     onClose();
   };
 
@@ -167,11 +236,7 @@ const DAChangeModal = ({
                     <Typography variant="h6" sx={styles.sectionTitleStyles}>
                       EMPLOYEE INFORMATION
                     </Typography>
-                    <Box
-                      sx={{
-                        p: 3.5,
-                        borderRadius: 2,
-                      }}>
+                    <Box sx={{ p: 3.5, borderRadius: 2 }}>
                       <Grid container spacing={2}>
                         <Grid item xs={12}>
                           <TextField
@@ -246,31 +311,105 @@ const DAChangeModal = ({
 
                   <Grid item xs={12}>
                     <Typography variant="h6" sx={styles.sectionTitleStyles}>
+                      KPI ATTACHMENT
+                    </Typography>
+                    <Box
+                      sx={{
+                        border: toPositionId
+                          ? "2px solid #ddd"
+                          : "2px dashed #ddd",
+                        borderRadius: 2,
+                        p: 2,
+                        backgroundColor: toPositionId ? "#fff" : "#fafafa",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        width: 1140,
+                      }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1.5,
+                        }}>
+                        <AttachFileIcon
+                          sx={{
+                            color: toPositionId ? "#1976d2" : "#bbb",
+                            fontSize: 24,
+                          }}
+                        />
+                        <Box>
+                          {toPositionId ? (
+                            <>
+                              <Typography
+                                sx={{
+                                  fontWeight: 600,
+                                  color: "rgb(33, 61, 112)",
+                                  fontSize: "0.9rem",
+                                }}>
+                                File name:{" "}
+                                <span style={{ color: "#f44336" }}>
+                                  {attachmentFilename}
+                                </span>
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#666", fontSize: "11px" }}>
+                                Click VIEW to preview the file
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                color: "#9ca3af",
+                                fontSize: "0.9rem",
+                              }}>
+                              No KPI attachment available
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+
+                      {toPositionId && (
+                        <IconButton
+                          size="small"
+                          onClick={handleViewFile}
+                          sx={{
+                            border: "1px solid #1976d2",
+                            color: "#1976d2",
+                            borderRadius: 1,
+                            px: 1.5,
+                            gap: 0.5,
+                            "&:hover": { backgroundColor: "#e3f2fd" },
+                          }}>
+                          <VisibilityIcon fontSize="small" />
+                          <Typography
+                            variant="caption"
+                            sx={{ fontWeight: 600 }}>
+                            VIEW
+                          </Typography>
+                        </IconButton>
+                      )}
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="h6" sx={styles.sectionTitleStyles}>
                       PART I - SETTING OF OBJECTIVES
                     </Typography>
 
                     {kpisList.length > 0 ? (
-                      <TableContainer
-                        component={Paper}
-                        sx={{
-                          width: 1140,
-                        }}>
+                      <TableContainer component={Paper} sx={{ width: 1140 }}>
                         <Table>
                           <TableHead>
                             <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                              <TableCell
-                                sx={{
-                                  fontWeight: 700,
-                                  width: "50%",
-                                }}>
+                              <TableCell sx={{ fontWeight: 700, width: "50%" }}>
                                 PERFORMANCE METRICS
                               </TableCell>
                               <TableCell
                                 align="center"
-                                sx={{
-                                  fontWeight: 700,
-                                  width: "50%",
-                                }}>
+                                sx={{ fontWeight: 700, width: "50%" }}>
                                 ASSESSMENT
                                 <br />
                                 <span
@@ -429,6 +568,90 @@ const DAChangeModal = ({
           </Dialog>
         </FormProvider>
       </LocalizationProvider>
+
+      <Dialog
+        open={fileViewerOpen}
+        onClose={handleCloseViewer}
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            width: "77vw",
+            height: "92vh",
+            maxWidth: "80vw",
+            maxHeight: "92vh",
+            borderRadius: 2,
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            py: 1.5,
+            backgroundColor: "#f8f9fa",
+          }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+            {attachmentFilename}
+          </Typography>
+          <IconButton size="small" onClick={handleCloseViewer}>
+            <CloseIconMui />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: "100%", overflow: "hidden" }}>
+          {attachmentLoading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={2}>
+              <CircularProgress size={48} />
+              <Typography variant="body1" color="text.secondary">
+                Loading attachment...
+              </Typography>
+            </Box>
+          ) : attachmentFetchError ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <Typography variant="h6" color="error">
+                Error loading attachment
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to load the file. Please try again.
+              </Typography>
+            </Box>
+          ) : fileUrl ? (
+            <iframe
+              src={fileUrl}
+              width="100%"
+              height="100%"
+              style={{ border: "none" }}
+              title="KPI Attachment"
+            />
+          ) : (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <AttachFileIcon sx={{ fontSize: 64, color: "text.secondary" }} />
+              <Typography variant="h6" color="text.secondary">
+                {attachmentFilename}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <MDADAModal
         open={isMDAModalOpen}

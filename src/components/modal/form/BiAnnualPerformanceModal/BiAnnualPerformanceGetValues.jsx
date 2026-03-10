@@ -6,6 +6,9 @@ export const getCreateModeInitialValues = () => {
     employee_name: "",
     employee_code: "",
     employee_position_history_id: null,
+    kpi_position_id: null,
+    kpi_attachment_url: null,
+    kpi_attachment_filename: null,
     position_title: "",
     year: null,
     start_date: "",
@@ -43,6 +46,17 @@ export const getViewEditModeFormData = (selectedEntry) => {
 
   const year = submittable.evaluation_year
     ? dayjs(`${submittable.evaluation_year}`, "YYYY")
+    : null;
+
+  // Extract position_id from kpis_attachment download_url
+  // URL pattern: /api/positions/{id}/kpi-attachment
+  const kpiAttachmentUrl = submittable.kpis_attachment?.download_url || null;
+  const kpiAttachmentFilename = submittable.kpis_attachment?.filename || null;
+  const kpiPositionIdMatch = kpiAttachmentUrl?.match(
+    /\/positions\/(\d+)\/kpi-attachment/,
+  );
+  const kpiPositionId = kpiPositionIdMatch
+    ? parseInt(kpiPositionIdMatch[1])
     : null;
 
   const kpis = Array.isArray(submittable.kpis)
@@ -140,6 +154,9 @@ export const getViewEditModeFormData = (selectedEntry) => {
       submittable.position_history_id ||
       submittable.employee_position_history_id ||
       null,
+    kpi_position_id: kpiPositionId,
+    kpi_attachment_url: kpiAttachmentUrl,
+    kpi_attachment_filename: kpiAttachmentFilename,
     position_title: positionTitle,
     year: year,
     start_date: submittable.period_start || submittable.start_date || "",
@@ -279,6 +296,9 @@ export const resetFormSection = (section) => {
       employee_name: "",
       employee_code: "",
       employee_position_history_id: null,
+      kpi_position_id: null,
+      kpi_attachment_url: null,
+      kpi_attachment_filename: null,
       position_title: "",
       year: null,
     },

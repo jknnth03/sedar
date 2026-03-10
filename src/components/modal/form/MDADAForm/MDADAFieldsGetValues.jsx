@@ -37,13 +37,22 @@ export const getCreateModeInitialValues = () => {
     to_job_rate: "",
     to_allowance: "",
     to_additional_rate: "",
+    kpi_attachment_url: null,
+    kpi_attachment_filename: null,
   };
+};
+
+const resolveKpisAttachment = (result) => {
+  return (
+    result?.kpis_attachment || result?.submittable?.kpis_attachment || null
+  );
 };
 
 export const setPrefillFormValues = (setValue, prefillData) => {
   if (!prefillData?.result) return;
 
   const result = prefillData.result;
+  const kpisAttachment = resolveKpisAttachment(result);
 
   const formData = {
     form_id: 5,
@@ -81,6 +90,8 @@ export const setPrefillFormValues = (setValue, prefillData) => {
     to_job_rate: result.to?.job_rate || "",
     to_allowance: result.to?.allowance || "",
     to_additional_rate: result.to?.additional_rate || "",
+    kpi_attachment_url: kpisAttachment?.download_url || null,
+    kpi_attachment_filename: kpisAttachment?.filename || null,
   };
 
   Object.keys(formData).forEach((key) => {
@@ -93,6 +104,7 @@ export const setSubmissionFormValues = (setValue, submissionData) => {
 
   const result = submissionData.result;
   const submittable = result.submittable;
+  const kpisAttachment = resolveKpisAttachment(result);
 
   const formData = {
     form_id: 5,
@@ -132,6 +144,8 @@ export const setSubmissionFormValues = (setValue, submissionData) => {
     to_job_rate: submittable?.to_details?.job_rate || "",
     to_allowance: submittable?.to_details?.allowance || "",
     to_additional_rate: submittable?.to_details?.additional_rate || "",
+    kpi_attachment_url: kpisAttachment?.download_url || null,
+    kpi_attachment_filename: kpisAttachment?.filename || null,
   };
 
   Object.keys(formData).forEach((key) => {
@@ -147,11 +161,12 @@ export const getViewEditModeFormData = (selectedEntry, jobLevels = []) => {
   const dataSource = selectedEntry.submittable || selectedEntry;
   const fromDetails = dataSource.from_details || {};
   const toDetails = dataSource.to_details || {};
+  const kpisAttachment = resolveKpisAttachment(selectedEntry);
 
   let fromJobLevelId = fromDetails.job_level_id || null;
   if (!fromJobLevelId && fromDetails.job_level && jobLevels.length > 0) {
     const matchedJobLevel = jobLevels.find(
-      (jl) => jl.name === fromDetails.job_level
+      (jl) => jl.name === fromDetails.job_level,
     );
     fromJobLevelId = matchedJobLevel?.id || null;
   }
@@ -159,7 +174,7 @@ export const getViewEditModeFormData = (selectedEntry, jobLevels = []) => {
   let toJobLevelId = toDetails.job_level_id || null;
   if (!toJobLevelId && toDetails.job_level && jobLevels.length > 0) {
     const matchedJobLevel = jobLevels.find(
-      (jl) => jl.name === toDetails.job_level
+      (jl) => jl.name === toDetails.job_level,
     );
     toJobLevelId = matchedJobLevel?.id || null;
   }
@@ -210,5 +225,7 @@ export const getViewEditModeFormData = (selectedEntry, jobLevels = []) => {
     to_job_rate: toDetails.job_rate || "",
     to_allowance: toDetails.allowance || "",
     to_additional_rate: toDetails.additional_rate || "",
+    kpi_attachment_url: kpisAttachment?.download_url || null,
+    kpi_attachment_filename: kpisAttachment?.filename || null,
   };
 };

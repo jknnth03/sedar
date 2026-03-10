@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -19,6 +19,9 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
 import HelpIcon from "@mui/icons-material/Help";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useGetKpiAttachmentQuery } from "../../../../features/api/evaluation/kpiApi";
 import * as styles from "./DAFormApprovalStyles";
 
 const DAFormApprovalDialog = ({
@@ -35,6 +38,60 @@ const DAFormApprovalDialog = ({
   const [actionType, setActionType] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fetchAttachment, setFetchAttachment] = useState(false);
+  const [fileUrl, setFileUrl] = useState(null);
+
+  const formDetails = approval?.form_details || {};
+  const fromPosition = formDetails.from_position || {};
+  const toPosition = formDetails.to_position || {};
+  const objectives = formDetails.objectives || [];
+  const kpisAttachment = formDetails.kpis_attachment || {};
+  const attachmentUrl = kpisAttachment.download_url || null;
+  const attachmentFilename = kpisAttachment.filename || "KPI Attachment";
+  const toPositionId = toPosition.id || null;
+  const status = approval?.status?.toLowerCase() || "pending";
+  const isProcessed = status === "approved" || status === "rejected";
+
+  const {
+    data: attachmentData,
+    isLoading: attachmentLoading,
+    error: attachmentFetchError,
+  } = useGetKpiAttachmentQuery(toPositionId, {
+    skip: !fetchAttachment || !toPositionId || !fileViewerOpen,
+  });
+
+  useEffect(() => {
+    if (!fileViewerOpen) {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+        setFileUrl(null);
+      }
+      return;
+    }
+    if (attachmentLoading) return;
+    if (attachmentFetchError) return;
+    if (attachmentData instanceof Blob) {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(attachmentData));
+    }
+  }, [fileViewerOpen, attachmentData, attachmentLoading, attachmentFetchError]);
+
+  const handleViewFile = () => {
+    if (!attachmentUrl) return;
+    setFileUrl(null);
+    setFetchAttachment(true);
+    setFileViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+  };
 
   const handleApprove = () => {
     setActionType("approve");
@@ -79,13 +136,6 @@ const DAFormApprovalDialog = ({
       day: "numeric",
     });
   };
-
-  const formDetails = approval?.form_details || {};
-  const fromPosition = formDetails.from_position || {};
-  const toPosition = formDetails.to_position || {};
-  const objectives = formDetails.objectives || [];
-  const status = approval?.status?.toLowerCase() || "pending";
-  const isProcessed = status === "approved" || status === "rejected";
 
   const renderSkeletonField = () => (
     <Box sx={styles.fieldBoxStyles}>
@@ -147,7 +197,6 @@ const DAFormApprovalDialog = ({
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
                   Employee Information
                 </Typography>
-
                 <Box>
                   <Box sx={styles.fieldContainerStyles}>
                     <Box sx={styles.fieldBoxStyles}>
@@ -181,7 +230,6 @@ const DAFormApprovalDialog = ({
                       </Typography>
                     </Box>
                   </Box>
-
                   <Box sx={styles.lastFieldContainerStyles}>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
@@ -221,7 +269,6 @@ const DAFormApprovalDialog = ({
                 <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
                   Position Details
                 </Typography>
-
                 <Box>
                   <Box sx={styles.fieldContainerStyles}>
                     <Box sx={styles.fieldBoxStyles}>
@@ -255,7 +302,6 @@ const DAFormApprovalDialog = ({
                       </Typography>
                     </Box>
                   </Box>
-
                   <Box sx={styles.lastFieldContainerStyles}>
                     <Box sx={styles.fieldBoxStyles}>
                       <Typography
@@ -282,6 +328,82 @@ const DAFormApprovalDialog = ({
                 </Box>
               </Box>
 
+              <Box sx={styles.sectionBoxStyles}>
+                <Typography variant="subtitle2" sx={styles.sectionTitleStyles}>
+                  KPI Attachment
+                </Typography>
+                <Box
+                  sx={{
+                    border: attachmentUrl
+                      ? "2px solid #ddd"
+                      : "2px dashed #ddd",
+                    borderRadius: 2,
+                    p: 2,
+                    backgroundColor: attachmentUrl ? "#fff" : "#fafafa",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <AttachFileIcon
+                      sx={{
+                        color: attachmentUrl ? "#1976d2" : "#bbb",
+                        fontSize: 24,
+                      }}
+                    />
+                    <Box>
+                      {attachmentUrl ? (
+                        <>
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              color: "rgb(33, 61, 112)",
+                              fontSize: "0.9rem",
+                            }}>
+                            File name:{" "}
+                            <span style={{ color: "#f44336" }}>
+                              {attachmentFilename}
+                            </span>
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#666", fontSize: "11px" }}>
+                            Click VIEW to preview the file
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            color: "#9ca3af",
+                            fontSize: "0.9rem",
+                          }}>
+                          No KPI attachment available
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                  {attachmentUrl && (
+                    <IconButton
+                      size="small"
+                      onClick={handleViewFile}
+                      sx={{
+                        border: "1px solid #1976d2",
+                        color: "#1976d2",
+                        borderRadius: 1,
+                        px: 1.5,
+                        gap: 0.5,
+                        "&:hover": { backgroundColor: "#e3f2fd" },
+                      }}>
+                      <VisibilityIcon fontSize="small" />
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        VIEW
+                      </Typography>
+                    </IconButton>
+                  )}
+                </Box>
+              </Box>
+
               {objectives.length > 0 && (
                 <Box sx={styles.sectionBoxStyles}>
                   <Box
@@ -298,7 +420,6 @@ const DAFormApprovalDialog = ({
                       Key Performance Indicators ({objectives.length})
                     </Typography>
                   </Box>
-
                   <Box
                     sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {objectives.map((objective, index) => (
@@ -336,7 +457,6 @@ const DAFormApprovalDialog = ({
                             }}
                           />
                         </Box>
-
                         <Box
                           sx={{
                             display: "flex",
@@ -366,7 +486,6 @@ const DAFormApprovalDialog = ({
                               {objective.deliverable || "N/A"}
                             </Typography>
                           </Box>
-
                           <Box
                             sx={{
                               display: "flex",
@@ -394,7 +513,7 @@ const DAFormApprovalDialog = ({
                                   fontWeight: 600,
                                   mt: 0.5,
                                 }}>
-                                {objective.target_percentage || "N/A"}%
+                                {objective.target_percentage ?? "N/A"}%
                               </Typography>
                             </Box>
                             <Box sx={{ flex: 1 }}>
@@ -416,11 +535,10 @@ const DAFormApprovalDialog = ({
                                   fontWeight: 600,
                                   mt: 0.5,
                                 }}>
-                                {objective.actual_performance || "N/A"}
+                                {objective.actual_performance ?? "N/A"}
                               </Typography>
                             </Box>
                           </Box>
-
                           {objective.remarks && (
                             <Box sx={{ mt: 1 }}>
                               <Typography
@@ -525,7 +643,6 @@ const DAFormApprovalDialog = ({
               : "Confirm Rejection"}
           </Typography>
         </DialogTitle>
-
         <DialogContent sx={styles.confirmContentStyles}>
           <Typography
             variant="body1"
@@ -541,7 +658,6 @@ const DAFormApprovalDialog = ({
             sx={styles.confirmIdStyles}>
             DA Form Request ID: {approval?.id || "N/A"}
           </Typography>
-
           {confirmAction === "reject" && (
             <TextField
               label="Reason for Rejection"
@@ -557,7 +673,6 @@ const DAFormApprovalDialog = ({
             />
           )}
         </DialogContent>
-
         <DialogActions sx={styles.confirmActionsStyles}>
           <Box sx={styles.confirmButtonBoxStyles}>
             <Button
@@ -584,6 +699,90 @@ const DAFormApprovalDialog = ({
             </Button>
           </Box>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={fileViewerOpen}
+        onClose={handleCloseViewer}
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            width: "77vw",
+            height: "92vh",
+            maxWidth: "80vw",
+            maxHeight: "92vh",
+            borderRadius: 2,
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            py: 1.5,
+            backgroundColor: "#f8f9fa",
+          }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+            {attachmentFilename}
+          </Typography>
+          <IconButton size="small" onClick={handleCloseViewer}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: "100%", overflow: "hidden" }}>
+          {attachmentLoading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={2}>
+              <CircularProgress size={48} />
+              <Typography variant="body1" color="text.secondary">
+                Loading attachment...
+              </Typography>
+            </Box>
+          ) : attachmentFetchError ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <Typography variant="h6" color="error">
+                Error loading attachment
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to load the file. Please try again.
+              </Typography>
+            </Box>
+          ) : fileUrl ? (
+            <iframe
+              src={fileUrl}
+              width="100%"
+              height="100%"
+              style={{ border: "none" }}
+              title="KPI Attachment"
+            />
+          ) : (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <AttachFileIcon sx={{ fontSize: 64, color: "text.secondary" }} />
+              <Typography variant="h6" color="text.secondary">
+                {attachmentFilename}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
       </Dialog>
     </>
   );

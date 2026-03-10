@@ -13,6 +13,7 @@ import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
 } from "@mui/icons-material";
+import { useGetMrfAttachmentByIdQuery } from "../../../../features/api/forms/mrfApi";
 
 const FileViewerDialog = ({
   open,
@@ -23,8 +24,6 @@ const FileViewerDialog = ({
 }) => {
   const { watch } = useFormContext();
   const [fileUrl, setFileUrl] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
 
   const watchedAttachments = watch("attachments");
 
@@ -48,41 +47,54 @@ const FileViewerDialog = ({
     return "Attachment";
   };
 
-  const getDownloadUrl = () => {
+  const getAttachmentId = () => {
     if (
       attachmentIndex !== undefined &&
-      watchedAttachments?.[attachmentIndex]?.existing_file_path
+      watchedAttachments?.[attachmentIndex]
     ) {
-      return watchedAttachments[attachmentIndex].existing_file_path;
+      const att = watchedAttachments[attachmentIndex];
+      if (att.existing_file_id) return att.existing_file_id;
     }
     if (
       selectedEntry?.submittable?.attachments &&
       attachmentIndex !== null &&
       attachmentIndex !== undefined
     ) {
-      const att = selectedEntry.submittable.attachments[attachmentIndex];
-      if (att?.download_url) return att.download_url;
+      return selectedEntry.submittable.attachments[attachmentIndex]?.id;
     }
-    return "";
+    return null;
   };
 
-  const handleFileDownload = () => {
-    const url = getDownloadUrl();
-    if (!url) return;
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = getDisplayFilename();
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const getSubmittableId = () => {
+    return selectedEntry?.submittable?.id || null;
   };
+
+  const submittableId = getSubmittableId();
+  const attachmentId = getAttachmentId();
+  const isNewFile =
+    attachmentIndex !== undefined &&
+    watchedAttachments?.[attachmentIndex]?.file_attachment instanceof File;
+
+  const {
+    data: attachmentData,
+    isLoading: attachmentLoading,
+    error: attachmentError,
+  } = useGetMrfAttachmentByIdQuery(
+    { submissionId: submittableId, attachmentId },
+    {
+      skip:
+        !open ||
+        isNewFile ||
+        !submittableId ||
+        !attachmentId ||
+        attachmentIndex === null ||
+        attachmentIndex === undefined,
+    },
+  );
 
   useEffect(() => {
     return () => {
-      if (fileUrl && fileUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(fileUrl);
-      }
+      if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
     };
   }, [fileUrl]);
 
@@ -90,48 +102,26 @@ const FileViewerDialog = ({
     if (!open) {
       if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
       setFileUrl(null);
-      setIsLoading(false);
-      setLoadError(false);
       return;
     }
 
-    if (
-      attachmentIndex !== undefined &&
-      watchedAttachments?.[attachmentIndex]?.file_attachment instanceof File
-    ) {
+    // New local file — create blob URL directly
+    if (isNewFile) {
       const file = watchedAttachments[attachmentIndex].file_attachment;
       if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
       setFileUrl(URL.createObjectURL(file));
-      setLoadError(false);
       return;
     }
 
-    const downloadUrl = getDownloadUrl();
-    if (downloadUrl) {
-      setIsLoading(true);
-      setLoadError(false);
-
-      fetch(downloadUrl, { credentials: "include" })
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch");
-          return res.blob();
-        })
-        .then((blob) => {
-          if (fileUrl && fileUrl.startsWith("blob:"))
-            URL.revokeObjectURL(fileUrl);
-          setFileUrl(URL.createObjectURL(blob));
-        })
-        .catch(() => {
-          setLoadError(true);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+    // Existing file — use RTK Query blob response
+    if (attachmentData instanceof Blob) {
+      if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(attachmentData));
       return;
     }
 
     setFileUrl(null);
-  }, [open, attachmentIndex, watchedAttachments]);
+  }, [open, attachmentData, attachmentIndex, watchedAttachments, isNewFile]);
 
   return (
     <Dialog
@@ -188,7 +178,7 @@ const FileViewerDialog = ({
           height: "calc(90vh - 140px)",
           overflow: "hidden",
         }}>
-        {isLoading ? (
+        {attachmentLoading ? (
           <Box
             display="flex"
             justifyContent="center"
@@ -200,7 +190,7 @@ const FileViewerDialog = ({
               Loading attachment...
             </Typography>
           </Box>
-        ) : loadError ? (
+        ) : attachmentError ? (
           <Box
             display="flex"
             justifyContent="center"

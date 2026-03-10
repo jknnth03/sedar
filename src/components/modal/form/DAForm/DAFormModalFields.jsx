@@ -13,8 +13,17 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import {
+  Visibility as VisibilityIcon,
+  Close as CloseIcon,
+  AttachFile as AttachFileIcon,
+} from "@mui/icons-material";
 import dayjs from "dayjs";
 import { sectionTitleStyles } from "./DAFormModal.styles";
 import {
@@ -22,6 +31,7 @@ import {
   useGetAllEmployeesDaQuery,
 } from "../../../../features/api/forms/daformApi";
 import { useGetAllEmployeeMovementSubmissionsQuery } from "../../../../features/api/approvalsetting/formSubmissionApi";
+import { useGetKpiAttachmentQuery } from "../../../../features/api/evaluation/kpiApi";
 
 const DAFormModalFields = ({
   isCreate,
@@ -37,38 +47,36 @@ const DAFormModalFields = ({
   } = useFormContext();
 
   const formValues = watch();
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedMrf, setSelectedMrf] = useState(null);
   const [kpisList, setKpisList] = useState([]);
-  const [shouldFetchEmployees, setShouldFetchEmployees] = useState(false);
   const [shouldFetchMrf, setShouldFetchMrf] = useState(false);
   const [isKpisLoading, setIsKpisLoading] = useState(false);
   const [hasSyncedMrf, setHasSyncedMrf] = useState(false);
+
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fileUrl, setFileUrl] = useState(null);
+  const [fetchAttachment, setFetchAttachment] = useState(false);
 
   const isInitialMount = useRef(true);
   const prevModeRef = useRef(currentMode);
   const prevSelectedMrfRef = useRef(null);
 
-  const { data: employeesData, isLoading: isEmployeesLoading } =
-    useGetAllEmployeesDaQuery(undefined, {
-      skip: !shouldFetchEmployees,
-    });
-
   const { data: mrfData, isLoading: isMrfLoading } =
     useGetAllEmployeeMovementSubmissionsQuery(
-      {
-        status: "active",
-      },
-      {
-        skip: !shouldFetchMrf,
-      },
+      { status: "active" },
+      { skip: !shouldFetchMrf },
     );
 
   const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
 
-  const employees = Array.isArray(employeesData?.result?.data)
-    ? employeesData.result.data
-    : [];
+  const positionId = formValues.to_position_id || null;
+  const {
+    data: attachmentData,
+    isLoading: attachmentLoading,
+    error: attachmentFetchError,
+  } = useGetKpiAttachmentQuery(positionId, {
+    skip: !fetchAttachment || !positionId || !fileViewerOpen,
+  });
 
   const mrfSubmissions = Array.isArray(mrfData?.result?.data)
     ? mrfData.result.data
@@ -137,13 +145,6 @@ const DAFormModalFields = ({
   ]);
 
   useEffect(() => {
-    if (selectedEmployee) {
-      setValue("employee_id", selectedEmployee.id);
-      setValue("employee_name", selectedEmployee.employee_name);
-    }
-  }, [selectedEmployee, setValue]);
-
-  useEffect(() => {
     const loadMrfData = async () => {
       const mrfChanged =
         prevSelectedMrfRef.current !== null &&
@@ -152,26 +153,21 @@ const DAFormModalFields = ({
       if (selectedMrf && (isCreate || (!isReadOnly && mrfChanged))) {
         setValue("approved_mrf_id", selectedMrf.id);
         setValue("mrf_reference_number", selectedMrf.submission_title || "");
-
         setValue("employee_id", selectedMrf.employee_id || "");
         setValue("employee_name", selectedMrf.employee_name || "");
-
         setValue("from_position_id", selectedMrf.from_position?.id || "");
         setValue("from_position_title", selectedMrf.from_position?.title || "");
         setValue(
           "from_department",
           selectedMrf.from_position?.department || "-",
         );
-
         setValue("to_position_id", selectedMrf.to_position?.id || "");
-        setValue("to_position_code", "");
         setValue("to_position_title", selectedMrf.to_position?.title || "");
         setValue("to_department", selectedMrf.to_position?.department || "-");
 
         if (selectedMrf.da_start_date) {
           setValue("start_date", dayjs(selectedMrf.da_start_date));
         }
-
         if (selectedMrf.da_end_date) {
           setValue("end_date", dayjs(selectedMrf.da_end_date));
         }
@@ -183,8 +179,17 @@ const DAFormModalFields = ({
               selectedMrf.to_position.id,
             ).unwrap();
 
-            if (kpisResponse?.result && kpisResponse.result.length > 0) {
-              const autoFilledKpis = kpisResponse.result.map((kpi) => ({
+            const kpisData = kpisResponse?.result?.kpis || [];
+            const attachmentUrl =
+              kpisResponse?.result?.kpi_download_url || null;
+            const attachmentFileName =
+              kpisResponse?.result?.kpi_attachment_file_name || null;
+
+            setValue("kpi_attachment_url", attachmentUrl);
+            setValue("kpi_attachment_filename", attachmentFileName);
+
+            if (kpisData.length > 0) {
+              const mappedKpis = kpisData.map((kpi) => ({
                 source_kpi_id: kpi.id,
                 objective_id: kpi.objective_id,
                 objective_name: kpi.objective_name,
@@ -192,8 +197,8 @@ const DAFormModalFields = ({
                 deliverable: kpi.deliverable,
                 target_percentage: kpi.target_percentage,
               }));
-              setKpisList(autoFilledKpis);
-              setValue("kpis", autoFilledKpis);
+              setKpisList(mappedKpis);
+              setValue("kpis", mappedKpis);
             } else {
               setKpisList([]);
               setValue("kpis", []);
@@ -213,9 +218,51 @@ const DAFormModalFields = ({
     loadMrfData();
   }, [selectedMrf, setValue, fetchPositionKpis, isCreate, isReadOnly]);
 
+  useEffect(() => {
+    if (!isCreate && formValues.kpis?.length > 0 && kpisList.length === 0) {
+      setKpisList(formValues.kpis);
+    }
+  }, [isCreate, formValues.kpis]);
+
   const handleMrfOpen = () => {
     setShouldFetchMrf(true);
   };
+
+  useEffect(() => {
+    if (!fileViewerOpen) {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+        setFileUrl(null);
+      }
+      return;
+    }
+    if (attachmentLoading) return;
+    if (attachmentFetchError) return;
+    if (attachmentData instanceof Blob) {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(attachmentData));
+    }
+  }, [fileViewerOpen, attachmentData, attachmentLoading, attachmentFetchError]);
+
+  const handleViewFile = () => {
+    if (!formValues.kpi_attachment_url) return;
+    setFileUrl(null);
+    setFetchAttachment(true);
+    setFileViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+  };
+
+  const attachmentUrl = formValues.kpi_attachment_url;
+  const attachmentFilename =
+    formValues.kpi_attachment_filename || "KPI Attachment";
 
   return (
     <Box sx={{ height: "100%" }}>
@@ -229,11 +276,7 @@ const DAFormModalFields = ({
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                sm: "1fr",
-                md: "repeat(2, 1fr)",
-              },
-              "@media (min-width: 750px)": {
-                gridTemplateColumns: "repeat(2, 1fr)",
+                "@media (min-width: 750px)": "repeat(2, 1fr)",
               },
               gap: 2,
             }}>
@@ -244,9 +287,7 @@ const DAFormModalFields = ({
                   getOptionLabel={(option) => option.submission_title || ""}
                   loading={isMrfLoading}
                   value={selectedMrf}
-                  onChange={(event, newValue) => {
-                    setSelectedMrf(newValue);
-                  }}
+                  onChange={(event, newValue) => setSelectedMrf(newValue)}
                   onOpen={handleMrfOpen}
                   renderInput={(params) => (
                     <TextField
@@ -341,11 +382,7 @@ const DAFormModalFields = ({
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                sm: "1fr",
-                md: "repeat(2, 1fr)",
-              },
-              "@media (min-width: 750px)": {
-                gridTemplateColumns: "repeat(2, 1fr)",
+                "@media (min-width: 750px)": "repeat(2, 1fr)",
               },
               gap: 3,
               mt: 2,
@@ -354,7 +391,6 @@ const DAFormModalFields = ({
               <Controller
                 name="start_date"
                 control={control}
-                rules={{ required: "Start date is required" }}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
@@ -365,22 +401,13 @@ const DAFormModalFields = ({
                           ? dayjs(field.value)
                           : null
                     }
-                    onChange={(date) => {
-                      field.onChange(date);
-                      if (date) {
-                        const endDate = dayjs(date).add(6, "month");
-                        setValue("end_date", endDate);
-                      } else {
-                        setValue("end_date", null);
-                      }
-                    }}
                     label={
                       <span>
                         Inclusive Dates - From{" "}
                         <span style={{ color: "red" }}>*</span>
                       </span>
                     }
-                    disabled={true}
+                    disabled
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -398,19 +425,6 @@ const DAFormModalFields = ({
               <Controller
                 name="end_date"
                 control={control}
-                rules={{
-                  required: "End date is required",
-                  validate: (value) => {
-                    const startDate = watch("start_date");
-                    if (startDate && value) {
-                      return (
-                        dayjs(value).isAfter(dayjs(startDate)) ||
-                        "End date must be after start date"
-                      );
-                    }
-                    return true;
-                  },
-                }}
                 render={({ field }) => (
                   <DatePicker
                     {...field}
@@ -421,14 +435,13 @@ const DAFormModalFields = ({
                           ? dayjs(field.value)
                           : null
                     }
-                    onChange={(date) => field.onChange(date)}
                     label={
                       <span>
                         Inclusive Dates - To{" "}
                         <span style={{ color: "red" }}>*</span>
                       </span>
                     }
-                    disabled={true}
+                    disabled
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -442,6 +455,82 @@ const DAFormModalFields = ({
               />
             </Box>
           </Box>
+        </Box>
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" sx={sectionTitleStyles}>
+          KPI ATTACHMENT
+        </Typography>
+        <Box
+          sx={{
+            border: attachmentUrl ? "2px solid #ddd" : "2px dashed #ddd",
+            borderRadius: 2,
+            p: 2,
+            backgroundColor: attachmentUrl ? "#fff" : "#fafafa",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <AttachFileIcon
+              sx={{ color: attachmentUrl ? "#1976d2" : "#bbb", fontSize: 24 }}
+            />
+            <Box>
+              {attachmentUrl ? (
+                <>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      color: "rgb(33, 61, 112)",
+                      fontSize: "0.9rem",
+                    }}>
+                    File name:{" "}
+                    <span style={{ color: "#f44336" }}>
+                      {attachmentFilename}
+                    </span>
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#666", fontSize: "11px" }}>
+                    Click VIEW to preview the file
+                  </Typography>
+                </>
+              ) : isKpisLoading ? (
+                <Typography sx={{ color: "#666", fontSize: "0.9rem" }}>
+                  Loading attachment...
+                </Typography>
+              ) : (
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: "#9ca3af",
+                    fontSize: "0.9rem",
+                  }}>
+                  No KPI attachment available
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {attachmentUrl && (
+            <IconButton
+              size="small"
+              onClick={handleViewFile}
+              sx={{
+                border: "1px solid #1976d2",
+                color: "#1976d2",
+                borderRadius: 1,
+                px: 1.5,
+                gap: 0.5,
+                "&:hover": { backgroundColor: "#e3f2fd" },
+              }}>
+              <VisibilityIcon fontSize="small" />
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                VIEW
+              </Typography>
+            </IconButton>
+          )}
         </Box>
       </Box>
 
@@ -476,19 +565,12 @@ const DAFormModalFields = ({
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      width: "50%",
-                    }}>
+                  <TableCell sx={{ fontWeight: 700, width: "50%" }}>
                     PERFORMANCE METRICS
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{
-                      fontWeight: 700,
-                      width: "50%",
-                    }}>
+                    sx={{ fontWeight: 700, width: "50%" }}>
                     ASSESSMENT
                     <br />
                     <span style={{ fontSize: "0.75rem", fontStyle: "italic" }}>
@@ -524,13 +606,13 @@ const DAFormModalFields = ({
               </TableHead>
               <TableBody>
                 {kpisList.map((kpi, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={kpi.source_kpi_id || index}>
                     <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Box sx={{ flex: 1 }}>
                           <Typography
                             variant="body2"
-                            sx={{ fontWeight: 600, mb: 1 }}>
+                            sx={{ fontWeight: 600, mb: 0.5 }}>
                             {kpi.objective_name}
                           </Typography>
                           <Typography
@@ -538,17 +620,29 @@ const DAFormModalFields = ({
                             sx={{ color: "text.secondary", display: "block" }}>
                             {kpi.deliverable}
                           </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "#1976d2",
+                              display: "block",
+                              mt: 0.5,
+                            }}>
+                            Distribution: {kpi.distribution_percentage}%
+                          </Typography>
                         </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
+                        <Box
+                          sx={{
+                            flex: 1,
+                            textAlign: "center",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}>
                           <TextField
                             size="small"
                             type="number"
                             value={kpi.target_percentage}
-                            inputProps={{
-                              min: 0,
-                              max: 100,
-                              step: "any",
-                            }}
+                            inputProps={{ min: 0, max: 100, step: "any" }}
                             sx={{ width: "80px" }}
                             disabled
                           />
@@ -557,13 +651,27 @@ const DAFormModalFields = ({
                     </TableCell>
                     <TableCell sx={{ borderRight: "1px solid #e0e0e0" }}>
                       <Box sx={{ display: "flex", gap: 1 }}>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
+                        <Box
+                          sx={{
+                            flex: 1,
+                            textAlign: "center",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}>
                           {kpi.actual_performance !== null &&
                           kpi.actual_performance !== undefined
                             ? `${kpi.actual_performance}%`
                             : "-"}
                         </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
+                        <Box
+                          sx={{
+                            flex: 1,
+                            textAlign: "center",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}>
                           {kpi.remarks || "-"}
                         </Box>
                       </Box>
@@ -597,6 +705,90 @@ const DAFormModalFields = ({
           </Box>
         )}
       </Box>
+
+      <Dialog
+        open={fileViewerOpen}
+        onClose={handleCloseViewer}
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            width: "77vw",
+            height: "92vh",
+            maxWidth: "80vw",
+            maxHeight: "92vh",
+            borderRadius: 2,
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            py: 1.5,
+            backgroundColor: "#f8f9fa",
+          }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+            {attachmentFilename}
+          </Typography>
+          <IconButton size="small" onClick={handleCloseViewer}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: "100%", overflow: "hidden" }}>
+          {attachmentLoading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={2}>
+              <CircularProgress size={48} />
+              <Typography variant="body1" color="text.secondary">
+                Loading attachment...
+              </Typography>
+            </Box>
+          ) : attachmentFetchError ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <Typography variant="h6" color="error">
+                Error loading attachment
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to load the file. Please try again.
+              </Typography>
+            </Box>
+          ) : fileUrl ? (
+            <iframe
+              src={fileUrl}
+              width="100%"
+              height="100%"
+              style={{ border: "none" }}
+              title="KPI Attachment"
+            />
+          ) : (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <AttachFileIcon sx={{ fontSize: 64, color: "text.secondary" }} />
+              <Typography variant="h6" color="text.secondary">
+                {attachmentFilename}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

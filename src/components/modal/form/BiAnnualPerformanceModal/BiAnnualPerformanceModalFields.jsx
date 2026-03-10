@@ -1,6 +1,21 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Controller, useFormContext } from "react-hook-form";
-import { TextField, Box, Autocomplete, CircularProgress } from "@mui/material";
+import {
+  TextField,
+  Box,
+  Autocomplete,
+  CircularProgress,
+  Typography,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+} from "@mui/material";
+import {
+  Visibility as VisibilityIcon,
+  Close as CloseIcon,
+  AttachFile as AttachFileIcon,
+} from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import {
@@ -8,6 +23,8 @@ import {
   useLazyGetPerformanceEvaluationPrefillQuery,
   useLazyGetPerformanceEvaluationPositionsQuery,
 } from "../../../../features/api/forms/biAnnualPerformanceApi";
+import { useGetKpiAttachmentQuery } from "../../../../features/api/evaluation/kpiApi";
+import { useLazyGetPositionKpisQuery } from "../../../../features/api/forms/daformApi";
 import FormSection, { KpiTable, CompetencyTable } from "./FormSection";
 
 const BiAnnualPerformanceModalFields = ({
@@ -36,6 +53,11 @@ const BiAnnualPerformanceModalFields = ({
   const [kpiErrors, setKpiErrors] = useState({});
   const [isLoadingData, setIsLoadingData] = useState(false);
 
+  // Attachment viewer state
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fileUrl, setFileUrl] = useState(null);
+  const [fetchAttachment, setFetchAttachment] = useState(false);
+
   const { data: employeesData, isLoading: isLoadingEmployees } =
     useGetProbationaryEmployeesQuery(undefined, {
       skip: !isCreate || !isAutocompleteOpen,
@@ -55,6 +77,51 @@ const BiAnnualPerformanceModalFields = ({
     { data: positionsData, isLoading: isLoadingPositions },
   ] = useLazyGetPerformanceEvaluationPositionsQuery();
 
+  const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
+
+  // KPI Attachment via RTK Query — same as KpiModal & DAFormModalFields
+  const positionId = formValues.kpi_position_id || null;
+  const {
+    data: attachmentData,
+    isLoading: attachmentLoading,
+    error: attachmentFetchError,
+  } = useGetKpiAttachmentQuery(positionId, {
+    skip: !fetchAttachment || !positionId || !fileViewerOpen,
+  });
+
+  // Blob URL management for attachment viewer
+  useEffect(() => {
+    if (!fileViewerOpen) {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+        setFileUrl(null);
+      }
+      return;
+    }
+    if (attachmentLoading) return;
+    if (attachmentFetchError) return;
+    if (attachmentData instanceof Blob) {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      setFileUrl(URL.createObjectURL(attachmentData));
+    }
+  }, [fileViewerOpen, attachmentData, attachmentLoading, attachmentFetchError]);
+
+  const handleViewFile = () => {
+    if (!formValues.kpi_attachment_url) return;
+    setFileUrl(null);
+    setFetchAttachment(true);
+    setFileViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setFileViewerOpen(false);
+    setFetchAttachment(false);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+  };
+
   useEffect(() => {
     if (isCreate && selectedEmployeeId && selectedYear) {
       setIsLoadingData(true);
@@ -72,6 +139,9 @@ const BiAnnualPerformanceModalFields = ({
       setPositionOptions(positionsData.result);
       setSelectedPosition(null);
       setValue("employee_position_history_id", null);
+      setValue("kpi_position_id", null);
+      setValue("kpi_attachment_url", null);
+      setValue("kpi_attachment_filename", null);
       setValue("position_title", "");
       setValue("start_date", "");
       setValue("end_date", "");
@@ -213,6 +283,9 @@ const BiAnnualPerformanceModalFields = ({
     setSelectedPosition(null);
     setPositionOptions([]);
     setValue("employee_position_history_id", null);
+    setValue("kpi_position_id", null);
+    setValue("kpi_attachment_url", null);
+    setValue("kpi_attachment_filename", null);
     setValue("position_title", "");
     setValue("start_date", "");
     setValue("end_date", "");
@@ -240,20 +313,45 @@ const BiAnnualPerformanceModalFields = ({
 
   const handlePositionChange = (event, newValue) => {
     setSelectedPosition(newValue);
+    // Reset attachment when position changes
+    setValue("kpi_position_id", null);
+    setValue("kpi_attachment_url", null);
+    setValue("kpi_attachment_filename", null);
+    setFetchAttachment(false);
+
     if (newValue) {
       setValue("employee_position_history_id", newValue.history_id);
+      setValue("kpi_position_id", newValue.position_id); // ← store position_id for KPI attachment
       setValue("position_title", newValue.position_title);
       setValue("start_date", newValue.start_date);
       setValue("end_date", newValue.end_date);
 
       if (selectedEmployeeId) {
         setIsLoadingData(true);
+        // Fetch prefill (KPIs, competency) and position KPI attachment in parallel
         fetchPrefill({
           employee_id: selectedEmployeeId,
           employee_position_history_id: newValue.history_id,
-        }).finally(() => {
-          setIsLoadingData(false);
-        });
+        }).finally(() => setIsLoadingData(false));
+
+        // Separately fetch position KPIs for attachment metadata (same as DA form)
+        fetchPositionKpis(newValue.position_id)
+          .unwrap()
+          .then((kpisResponse) => {
+            // API shape: { result: { kpi_download_url, kpi_attachment_file_name, kpis: [...] } }
+            setValue(
+              "kpi_attachment_url",
+              kpisResponse?.result?.kpi_download_url || null,
+            );
+            setValue(
+              "kpi_attachment_filename",
+              kpisResponse?.result?.kpi_attachment_file_name || null,
+            );
+          })
+          .catch(() => {
+            setValue("kpi_attachment_url", null);
+            setValue("kpi_attachment_filename", null);
+          });
       }
     } else {
       setValue("employee_position_history_id", null);
@@ -270,9 +368,7 @@ const BiAnnualPerformanceModalFields = ({
   };
 
   const validateNumericInput = (value) => {
-    if (value === "" || value === null || value === undefined) {
-      return true;
-    }
+    if (value === "" || value === null || value === undefined) return true;
     return /^[0-9]+(\.[0-9]+)?$/.test(value);
   };
 
@@ -280,24 +376,16 @@ const BiAnnualPerformanceModalFields = ({
     (index, field, value) => {
       if (field === "actual_performance") {
         const isValid = validateNumericInput(value);
-
         setKpiErrors((prev) => {
           const newErrors = { ...prev };
-          if (!newErrors[index]) {
-            newErrors[index] = {};
-          }
-
+          if (!newErrors[index]) newErrors[index] = {};
           newErrors[index].actual_performance =
             value !== "" && !isValid ? "Only numbers are allowed" : null;
-
           return newErrors;
         });
-
         if (value !== "" && !isValid) return;
-
-        if (isValid || value === "") {
+        if (isValid || value === "")
           clearErrors(`kpis.${index}.actual_performance`);
-        }
       }
 
       const updatedKpis = [...kpisList];
@@ -361,6 +449,10 @@ const BiAnnualPerformanceModalFields = ({
     return null;
   };
 
+  const attachmentUrl = formValues.kpi_attachment_url;
+  const attachmentFilename =
+    formValues.kpi_attachment_filename || "KPI Attachment";
+
   return (
     <Box sx={{ height: "100%" }}>
       <FormSection title="EMPLOYEE INFORMATION">
@@ -370,11 +462,7 @@ const BiAnnualPerformanceModalFields = ({
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr",
-                sm: "1fr",
-                md: "repeat(2, 1fr)",
-              },
-              "@media (min-width: 900px)": {
-                gridTemplateColumns: "repeat(2, 1fr)",
+                "@media (min-width: 900px)": "repeat(2, 1fr)",
               },
               gap: 2,
               mb: 2,
@@ -472,6 +560,9 @@ const BiAnnualPerformanceModalFields = ({
                         field.onChange(date);
                         setSelectedPosition(null);
                         setValue("employee_position_history_id", null);
+                        setValue("kpi_position_id", null);
+                        setValue("kpi_attachment_url", null);
+                        setValue("kpi_attachment_filename", null);
                         setValue("position_title", "");
                         setValue("start_date", "");
                         setValue("end_date", "");
@@ -590,6 +681,82 @@ const BiAnnualPerformanceModalFields = ({
               />
             )}
           </Box>
+        </Box>
+      </FormSection>
+
+      {/* KPI Attachment — same pattern as DAFormModalFields */}
+      <FormSection title="KPI ATTACHMENT">
+        <Box
+          sx={{
+            border: attachmentUrl ? "2px solid #ddd" : "2px dashed #ddd",
+            borderRadius: 2,
+            p: 2,
+            backgroundColor: attachmentUrl ? "#fff" : "#fafafa",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <AttachFileIcon
+              sx={{ color: attachmentUrl ? "#1976d2" : "#bbb", fontSize: 24 }}
+            />
+            <Box>
+              {attachmentUrl ? (
+                <>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      color: "rgb(33, 61, 112)",
+                      fontSize: "0.9rem",
+                    }}>
+                    File name:{" "}
+                    <span style={{ color: "#f44336" }}>
+                      {attachmentFilename}
+                    </span>
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#666", fontSize: "11px" }}>
+                    Click VIEW to preview the file
+                  </Typography>
+                </>
+              ) : isLoadingData || isLoadingPrefill ? (
+                <Typography sx={{ color: "#666", fontSize: "0.9rem" }}>
+                  Loading attachment...
+                </Typography>
+              ) : (
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: "#9ca3af",
+                    fontSize: "0.9rem",
+                  }}>
+                  {isCreate && !selectedPosition
+                    ? "Select a position to load KPI attachment"
+                    : "No KPI attachment available"}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {attachmentUrl && (
+            <IconButton
+              size="small"
+              onClick={handleViewFile}
+              sx={{
+                border: "1px solid #1976d2",
+                color: "#1976d2",
+                borderRadius: 1,
+                px: 1.5,
+                gap: 0.5,
+                "&:hover": { backgroundColor: "#e3f2fd" },
+              }}>
+              <VisibilityIcon fontSize="small" />
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                VIEW
+              </Typography>
+            </IconButton>
+          )}
         </Box>
       </FormSection>
 
@@ -712,6 +879,91 @@ const BiAnnualPerformanceModalFields = ({
           errors={errors}
         />
       </FormSection>
+
+      {/* File Viewer Dialog */}
+      <Dialog
+        open={fileViewerOpen}
+        onClose={handleCloseViewer}
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            width: "77vw",
+            height: "92vh",
+            maxWidth: "80vw",
+            maxHeight: "92vh",
+            borderRadius: 2,
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            py: 1.5,
+            backgroundColor: "#f8f9fa",
+          }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
+            {attachmentFilename}
+          </Typography>
+          <IconButton size="small" onClick={handleCloseViewer}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: "100%", overflow: "hidden" }}>
+          {attachmentLoading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={2}>
+              <CircularProgress size={48} />
+              <Typography variant="body1" color="text.secondary">
+                Loading attachment...
+              </Typography>
+            </Box>
+          ) : attachmentFetchError ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <Typography variant="h6" color="error">
+                Error loading attachment
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to load the file. Please try again.
+              </Typography>
+            </Box>
+          ) : fileUrl ? (
+            <iframe
+              src={fileUrl}
+              width="100%"
+              height="100%"
+              style={{ border: "none" }}
+              title="KPI Attachment"
+            />
+          ) : (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height="100%"
+              flexDirection="column"
+              gap={1}>
+              <AttachFileIcon sx={{ fontSize: 64, color: "text.secondary" }} />
+              <Typography variant="h6" color="text.secondary">
+                {attachmentFilename}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

@@ -157,7 +157,7 @@ const mrfApi = sedarApi
           if (requisition_type_id) {
             queryParams.append(
               "requisition_type_id",
-              requisition_type_id.toString()
+              requisition_type_id.toString(),
             );
           }
 
@@ -225,7 +225,7 @@ const mrfApi = sedarApi
                         ) {
                           formData.append(
                             `${key}[${index}][${itemKey}]`,
-                            item[itemKey]
+                            item[itemKey],
                           );
                         }
                       });
@@ -277,7 +277,7 @@ const mrfApi = sedarApi
                       ) {
                         formData.append(
                           `${key}[${index}][${itemKey}]`,
-                          item[itemKey]
+                          item[itemKey],
                         );
                       }
                     });
@@ -304,7 +304,16 @@ const mrfApi = sedarApi
         },
         invalidatesTags: ["mrfSubmissions"],
       }),
-
+      getMrfAttachmentById: build.query({
+        query: ({ submissionId, attachmentId }) => ({
+          url: `mrf-submissions/${submissionId}/attachments/${attachmentId}/attachment`,
+          method: "GET",
+          responseHandler: (response) => response.blob(),
+        }),
+        providesTags: (result, error, { submissionId, attachmentId }) => [
+          { type: "mrfSubmissions", id: `${submissionId}-${attachmentId}` },
+        ],
+      }),
       cancelMrfSubmission: build.mutation({
         query: ({ submissionId, reason }) => ({
           url: `form-submissions/${submissionId}/cancel`,
@@ -337,6 +346,8 @@ export const {
   useUpdateMrfSubmissionMutation,
   useResubmitMrfSubmissionMutation,
   useCancelMrfSubmissionMutation,
+  useGetMrfAttachmentByIdQuery,
+  useLazyGetMrfAttachmentByIdQuery,
 } = mrfApi;
 
 export default mrfApi;

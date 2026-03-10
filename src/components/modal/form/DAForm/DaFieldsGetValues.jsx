@@ -16,6 +16,8 @@ export const getCreateModeInitialValues = () => ({
   kpis: [],
   approved_mrf_id: null,
   mrf_reference_number: "",
+  kpi_attachment_url: null,
+  kpi_attachment_filename: null,
 });
 
 export const getViewEditModeFormData = (selectedEntry) => {
@@ -30,6 +32,7 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const objectives = submittable.objectives || [];
   const mrfDetails =
     submittable.mrf_details || selectedEntry?.mrf_details || {};
+  const kpisAttachment = submittable.kpis_attachment || {};
 
   return {
     form_id: selectedEntry?.form?.id || selectedEntry?.result?.form?.id || 7,
@@ -46,6 +49,8 @@ export const getViewEditModeFormData = (selectedEntry) => {
     end_date: submittable.end_date ? dayjs(submittable.end_date) : null,
     approved_mrf_id: mrfDetails.id || null,
     mrf_reference_number: mrfDetails.linked_mrf_title || "",
+    kpi_attachment_url: kpisAttachment.download_url || null,
+    kpi_attachment_filename: kpisAttachment.filename || null,
     kpis: objectives.map((obj) => ({
       id: obj.id || null,
       source_kpi_id: obj.source_kpi_id || null,
@@ -121,24 +126,24 @@ export const validateDAFormData = (formData) => {
         kpi.distribution_percentage > 100
       ) {
         errors.push(
-          `KPI #${index + 1}: Distribution percentage must be between 0 and 100`
+          `KPI #${index + 1}: Distribution percentage must be between 0 and 100`,
         );
       }
       if (kpi.target_percentage < 0 || kpi.target_percentage > 100) {
         errors.push(
-          `KPI #${index + 1}: Target percentage must be between 0 and 100`
+          `KPI #${index + 1}: Target percentage must be between 0 and 100`,
         );
       }
     });
 
     const totalDistribution = formData.kpis.reduce(
       (sum, kpi) => sum + Number(kpi.distribution_percentage || 0),
-      0
+      0,
     );
 
     if (totalDistribution !== 100) {
       errors.push(
-        `Total distribution percentage must equal 100% (current: ${totalDistribution}%)`
+        `Total distribution percentage must equal 100% (current: ${totalDistribution}%)`,
       );
     }
   }
