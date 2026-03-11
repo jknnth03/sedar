@@ -33,7 +33,7 @@ const receivingApi = sedarApi
           });
 
           const queryString = queryParams.toString();
-          const url = `me/receiver/tasks?${queryString}`;
+          const url = `me/receiver/mrf?${queryString}`;
 
           return {
             url,
@@ -41,6 +41,17 @@ const receivingApi = sedarApi
           };
         },
         providesTags: ["receiving"],
+      }),
+
+      getSingleMrf: build.query({
+        query: (id) => ({
+          url: `me/receiver/mrf/${id}`,
+          method: "GET",
+        }),
+        providesTags: (result, error, id) => [
+          { type: "receiving", id },
+          "receiving",
+        ],
       }),
 
       getReceiverHistory: build.query({
@@ -109,7 +120,7 @@ const receivingApi = sedarApi
           try {
             await queryFulfilled;
             dispatch(
-              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"]),
             );
           } catch (err) {
             console.error("Failed to receive submission:", err);
@@ -134,7 +145,7 @@ const receivingApi = sedarApi
           try {
             await queryFulfilled;
             dispatch(
-              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"])
+              dashboardApi.util.invalidateTags(["Dashboard", "Notifications"]),
             );
           } catch (err) {
             console.error("Failed to return submission:", err);
@@ -146,6 +157,7 @@ const receivingApi = sedarApi
 
 export const {
   useGetReceiverTasksQuery,
+  useGetSingleMrfQuery,
   useGetReceiverHistoryQuery,
   useGetSingleFormForReceivingQuery,
   useReceiveSubmissionMutation,

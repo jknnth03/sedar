@@ -26,23 +26,23 @@ const MrfReceivingTable = ({
 }) => {
   const theme = useTheme();
 
-  const renderEmployee = (submission) => {
-    const employeeName = submission?.submitted_by?.full_name;
-    const employeeCode = submission?.submitted_by?.username;
+  const renderRequestedBy = (submission) => {
+    const requestedBy = submission?.requested_by;
+    const department = submission?.department_name;
 
-    if (!employeeName) return "-";
+    if (!requestedBy) return "-";
 
     return (
       <Box>
         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "16px" }}>
-          {employeeName}
+          {requestedBy}
         </Typography>
-        {employeeCode && (
+        {department && (
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ fontSize: "14px" }}>
-            {employeeCode}
+            {department}
           </Typography>
         )}
       </Box>
@@ -101,7 +101,13 @@ const MrfReceivingTable = ({
               <TableCell sx={styles.columnStyles.referenceNumber}>
                 REFERENCE NO.
               </TableCell>
-              <TableCell sx={styles.columnStyles.position}>EMPLOYEE</TableCell>
+              <TableCell sx={styles.columnStyles.position}>
+                REQUESTED BY
+              </TableCell>
+              <TableCell sx={styles.columnStyles.position}>POSITION</TableCell>
+              <TableCell sx={styles.columnStyles.position}>
+                REQUISITION TYPE
+              </TableCell>
               <TableCell sx={styles.columnStyles.status}>STATUS</TableCell>
               <TableCell sx={styles.columnStyles.dateCreated}>
                 DATE SUBMITTED
@@ -122,6 +128,12 @@ const MrfReceivingTable = ({
                       <Skeleton animation="wave" height={20} width="60%" />
                     </TableCell>
                     <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton animation="wave" height={30} />
+                    </TableCell>
+                    <TableCell>
                       <Skeleton
                         animation="wave"
                         height={24}
@@ -137,55 +149,79 @@ const MrfReceivingTable = ({
               </>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={styles.errorCell}>
+                <TableCell colSpan={6} align="center" sx={styles.errorCell}>
                   <Typography color="error">
                     Error loading data: {error.message || "Unknown error"}
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : submissionsList.length > 0 ? (
-              submissionsList.map((submission) => {
-                return (
-                  <TableRow
-                    key={submission.id}
-                    onClick={() => handleRowClick(submission)}
+              submissionsList.map((submission) => (
+                <TableRow
+                  key={submission.id}
+                  onClick={() => handleRowClick(submission)}
+                  sx={{
+                    ...styles.tableRowHover(theme),
+                    cursor: "pointer",
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  }}>
+                  <TableCell
                     sx={{
-                      ...styles.tableRowHover(theme),
-                      cursor: "pointer",
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
+                      ...styles.columnStyles.referenceNumber,
+                      ...styles.cellContentStyles,
+                      ...styles.referenceNumberCell,
                     }}>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.referenceNumber,
-                        ...styles.cellContentStyles,
-                        ...styles.referenceNumberCell,
-                      }}>
-                      {submission.submittable?.reference_number || "-"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.position,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {renderEmployee(submission)}
-                    </TableCell>
-                    <TableCell sx={styles.columnStyles.status}>
-                      {renderStatusChip(submission)}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.dateCreated,
-                        ...styles.cellContentStyles,
-                      }}>
-                      {submission.created_at
-                        ? dayjs(submission.created_at).format("MMM D, YYYY")
-                        : "-"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                    {submission.reference_number || "-"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.position,
+                      ...styles.cellContentStyles,
+                    }}>
+                    {renderRequestedBy(submission)}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.position,
+                      ...styles.cellContentStyles,
+                    }}>
+                    <Typography variant="body2" sx={{ fontSize: "14px" }}>
+                      {submission.position_title || "-"}
+                    </Typography>
+                    {submission.job_level && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: "12px" }}>
+                        {submission.job_level}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.position,
+                      ...styles.cellContentStyles,
+                    }}>
+                    <Typography variant="body2" sx={{ fontSize: "14px" }}>
+                      {submission.requisition_type || "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={styles.columnStyles.status}>
+                    {renderStatusChip(submission)}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.dateCreated,
+                      ...styles.cellContentStyles,
+                    }}>
+                    {submission.created_at
+                      ? dayjs(submission.created_at).format("MMM D, YYYY")
+                      : "-"}
+                  </TableCell>
+                </TableRow>
+              ))
             ) : (
               <TableRow
                 sx={{

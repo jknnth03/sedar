@@ -3,7 +3,10 @@ import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { useGetReceiverHistoryQuery } from "../../../features/api/receiving/receivingApi";
+import {
+  useGetReceiverHistoryQuery,
+  useGetSingleMrfQuery,
+} from "../../../features/api/receiving/receivingApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import MrfReceivingTable from "./MrfReceivingTable";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
@@ -21,9 +24,9 @@ const MrfReceived = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const methods = useForm();
@@ -53,6 +56,11 @@ const MrfReceived = ({
     skip: false,
   });
 
+  const { data: singleMrfData, isLoading: isSingleMrfLoading } =
+    useGetSingleMrfQuery(selectedId, {
+      skip: !selectedId,
+    });
+
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
@@ -62,7 +70,7 @@ const MrfReceived = ({
       filtered = filterDataByDate(
         filtered,
         dateFilters.startDate,
-        dateFilters.endDate
+        dateFilters.endDate,
       );
     }
 
@@ -80,13 +88,13 @@ const MrfReceived = ({
   ]);
 
   const handleRowClick = useCallback((submission) => {
-    setSelectedSubmission(submission);
+    setSelectedId(submission.id);
     setDialogOpen(true);
   }, []);
 
   const handleDialogClose = useCallback(() => {
     setDialogOpen(false);
-    setSelectedSubmission(null);
+    setSelectedId(null);
   }, []);
 
   const handlePageChange = useCallback(
@@ -100,11 +108,11 @@ const MrfReceived = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -120,11 +128,11 @@ const MrfReceived = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching;
@@ -159,7 +167,8 @@ const MrfReceived = ({
         <ReceivingDialog.SubmissionDialog
           open={dialogOpen}
           onClose={handleDialogClose}
-          submission={selectedSubmission}
+          submission={singleMrfData?.result || null}
+          isDialogLoading={isSingleMrfLoading}
           onReceive={() => {}}
           onReturn={() => {}}
         />

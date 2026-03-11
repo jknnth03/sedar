@@ -3,7 +3,10 @@ import { Box } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import "../../../pages/GeneralStyle.scss";
-import { useGetReceiverTasksQuery } from "../../../features/api/receiving/receivingApi";
+import {
+  useGetReceiverTasksQuery,
+  useGetSingleMrfQuery,
+} from "../../../features/api/receiving/receivingApi";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import CustomTablePagination from "../../zzzreusable/CustomTablePagination";
 import MrfReceivingTable from "./MrfReceivingTable";
@@ -23,9 +26,9 @@ const MrfForReceiving = ({
 
   const [page, setPage] = useState(parseInt(queryParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(queryParams?.rowsPerPage) || 10
+    parseInt(queryParams?.rowsPerPage) || 10,
   );
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -56,6 +59,11 @@ const MrfForReceiving = ({
     skip: false,
   });
 
+  const { data: singleMrfData, isLoading: isSingleMrfLoading } =
+    useGetSingleMrfQuery(selectedId, {
+      skip: !selectedId,
+    });
+
   const filteredSubmissions = useMemo(() => {
     const rawData = submissionsData?.result?.data || [];
 
@@ -65,7 +73,7 @@ const MrfForReceiving = ({
       filtered = filterDataByDate(
         filtered,
         dateFilters.startDate,
-        dateFilters.endDate
+        dateFilters.endDate,
       );
     }
 
@@ -83,13 +91,13 @@ const MrfForReceiving = ({
   ]);
 
   const handleRowClick = useCallback((submission) => {
-    setSelectedSubmission(submission);
+    setSelectedId(submission.id);
     setDialogOpen(true);
   }, []);
 
   const handleDialogClose = useCallback(() => {
     setDialogOpen(false);
-    setSelectedSubmission(null);
+    setSelectedId(null);
   }, []);
 
   const handleReceiveSubmission = useCallback(
@@ -98,14 +106,14 @@ const MrfForReceiving = ({
       try {
         await onReceiveSubmission(submission.id, "", refetch);
         setDialogOpen(false);
-        setSelectedSubmission(null);
+        setSelectedId(null);
       } catch (error) {
         console.error("Error receiving submission:", error);
       } finally {
         setIsProcessing(false);
       }
     },
-    [onReceiveSubmission, refetch]
+    [onReceiveSubmission, refetch],
   );
 
   const handleReturnSubmission = useCallback(
@@ -114,14 +122,14 @@ const MrfForReceiving = ({
       try {
         await onReturnSubmission(submission.id, reason, refetch);
         setDialogOpen(false);
-        setSelectedSubmission(null);
+        setSelectedId(null);
       } catch (error) {
         console.error("Error returning submission:", error);
       } finally {
         setIsProcessing(false);
       }
     },
-    [onReturnSubmission, refetch]
+    [onReturnSubmission, refetch],
   );
 
   const handleReceiveClick = useCallback(
@@ -136,7 +144,7 @@ const MrfForReceiving = ({
         setIsProcessing(false);
       }
     },
-    [onReceiveSubmission, refetch]
+    [onReceiveSubmission, refetch],
   );
 
   const handleReturnClick = useCallback(
@@ -151,7 +159,7 @@ const MrfForReceiving = ({
         setIsProcessing(false);
       }
     },
-    [onReturnSubmission, refetch]
+    [onReturnSubmission, refetch],
   );
 
   const handlePageChange = useCallback(
@@ -165,11 +173,11 @@ const MrfForReceiving = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, rowsPerPage, queryParams]
+    [setQueryParams, rowsPerPage, queryParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -185,11 +193,11 @@ const MrfForReceiving = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: false }
+          { retain: false },
         );
       }
     },
-    [setQueryParams, queryParams]
+    [setQueryParams, queryParams],
   );
 
   const isLoadingState = queryLoading || isFetching;
@@ -226,7 +234,8 @@ const MrfForReceiving = ({
         <ReceivingDialog.SubmissionDialog
           open={dialogOpen}
           onClose={handleDialogClose}
-          submission={selectedSubmission}
+          submission={singleMrfData?.result || null}
+          isDialogLoading={isSingleMrfLoading}
           onReceive={handleReceiveSubmission}
           onReturn={handleReturnSubmission}
           isLoading={isProcessing}
