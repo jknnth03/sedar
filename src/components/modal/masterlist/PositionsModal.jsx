@@ -142,6 +142,17 @@ function PositionsModal({
 
   const isProcessing = isSwitchingMode || isInitialLoad;
 
+  const buildTitleInitialOption = (apiData) => {
+    if (!apiData?.title) return [];
+    return [
+      {
+        id: apiData.title.id,
+        name: apiData.title_with_unit || apiData.title.name,
+        code: apiData.title.code,
+      },
+    ];
+  };
+
   useEffect(() => {
     if (open) {
       setCurrentMode(edit);
@@ -166,7 +177,10 @@ function PositionsModal({
           const apiData = response.result;
 
           setFullPositionData(apiData);
-          setInitialOptions(setInitialDropdownOptions(apiData));
+          setInitialOptions({
+            ...setInitialDropdownOptions(apiData),
+            titlesList: buildTitleInitialOption(apiData),
+          });
           setFormData(setFormValuesFromResponse(apiData));
           setRequestorSequence(setRequestorsFromResponse(apiData.requesters));
         } catch (error) {
@@ -219,11 +233,17 @@ function PositionsModal({
           const apiData = response.result;
 
           setFullPositionData(apiData);
-          setInitialOptions(setInitialDropdownOptions(apiData));
+          setInitialOptions({
+            ...setInitialDropdownOptions(apiData),
+            titlesList: buildTitleInitialOption(apiData),
+          });
           setFormData(setFormValuesFromResponse(apiData));
           setRequestorSequence(setRequestorsFromResponse(apiData.requesters));
         } else {
-          setInitialOptions(setInitialDropdownOptions(fullPositionData));
+          setInitialOptions({
+            ...setInitialDropdownOptions(fullPositionData),
+            titlesList: buildTitleInitialOption(fullPositionData),
+          });
           setFormData(setFormValuesFromResponse(fullPositionData));
           setRequestorSequence(
             setRequestorsFromResponse(fullPositionData.requesters),
@@ -436,7 +456,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box>
                   <Skeleton
                     variant="text"
@@ -446,7 +465,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box>
                   <Skeleton
                     variant="text"
@@ -456,7 +474,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box>
                   <Skeleton
                     variant="text"
@@ -466,7 +483,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box>
                   <Skeleton
                     variant="text"
@@ -476,7 +492,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box>
                   <Skeleton
                     variant="text"
@@ -486,7 +501,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box>
                   <Skeleton
                     variant="text"
@@ -496,7 +510,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box sx={styles.fullWidthColumn}>
                   <Skeleton
                     variant="text"
@@ -506,7 +519,6 @@ function PositionsModal({
                   />
                   <Skeleton variant="rounded" height={56} />
                 </Box>
-
                 <Box sx={styles.fullWidthColumn}>
                   <Skeleton
                     variant="text"
@@ -517,7 +529,6 @@ function PositionsModal({
                   <Skeleton variant="rounded" height={56} />
                 </Box>
               </Box>
-
               <Box sx={{ mt: 3 }}>
                 <Skeleton
                   variant="text"
@@ -535,7 +546,9 @@ function PositionsModal({
                   {isReadOnly ? (
                     <TextField
                       label="Titles"
-                      value={displayTitle || ""}
+                      value={
+                        dataToDisplay?.title_with_unit || displayTitle || ""
+                      }
                       disabled
                       fullWidth
                       required
@@ -593,14 +606,12 @@ function PositionsModal({
                 ) : (
                   <Autocomplete
                     options={usersList}
-                    getOptionLabel={(option) => {
-                      return (
-                        option?.full_name ||
-                        option?.name ||
-                        option?.username ||
-                        ""
-                      );
-                    }}
+                    getOptionLabel={(option) =>
+                      option?.full_name ||
+                      option?.name ||
+                      option?.username ||
+                      ""
+                    }
                     value={
                       usersList.find((u) => u.id === formData.superior_name) ||
                       null
@@ -745,9 +756,7 @@ function PositionsModal({
                 ) : (
                   <Autocomplete
                     options={chargingList}
-                    getOptionLabel={(option) => {
-                      return option?.name || "";
-                    }}
+                    getOptionLabel={(option) => option?.name || ""}
                     value={
                       chargingList.find((c) => c.id === formData.charging) ||
                       null
@@ -773,9 +782,9 @@ function PositionsModal({
                         required
                       />
                     )}
-                    isOptionEqualToValue={(option, value) => {
-                      return option?.id === value?.id;
-                    }}
+                    isOptionEqualToValue={(option, value) =>
+                      option?.id === value?.id
+                    }
                   />
                 )}
 
@@ -801,9 +810,7 @@ function PositionsModal({
                               <IconButton
                                 onClick={handleViewAttachment}
                                 size="small"
-                                sx={{
-                                  color: "rgb(33, 61, 112)",
-                                }}>
+                                sx={{ color: "rgb(33, 61, 112)" }}>
                                 <VisibilityIcon />
                               </IconButton>
                             </Tooltip>
@@ -874,9 +881,9 @@ function PositionsModal({
                       onOpen={handleToolsOpen}
                       disabled={isReadOnly}
                       loading={toolsLoading}
-                      isOptionEqualToValue={(option, value) => {
-                        return option?.id === value?.id;
-                      }}
+                      isOptionEqualToValue={(option, value) =>
+                        option?.id === value?.id
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}

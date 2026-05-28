@@ -102,7 +102,7 @@ const EmployeeWizardForm = ({
     mode,
     initialStep,
     initialData,
-    open
+    open,
   );
   const {
     activeStep,
@@ -255,7 +255,7 @@ const EmployeeWizardForm = ({
     setSubmissionResult,
     isDisabled,
     isViewMode,
-    validateCurrentStep
+    validateCurrentStep,
   );
 
   const enhancedHandleNext = useCallback(async () => {
@@ -287,7 +287,13 @@ const EmployeeWizardForm = ({
 
       handleStepClick(stepIndex);
     },
-    [isViewMode, isDisabled, activeStep, collectAttainmentData, handleStepClick]
+    [
+      isViewMode,
+      isDisabled,
+      activeStep,
+      collectAttainmentData,
+      handleStepClick,
+    ],
   );
 
   useEffect(() => {
@@ -315,8 +321,8 @@ const EmployeeWizardForm = ({
                 (item) =>
                   typeof item === "object" &&
                   Object.values(item).some(
-                    (val) => val !== null && val !== undefined && val !== ""
-                  )
+                    (val) => val !== null && val !== undefined && val !== "",
+                  ),
               )
             );
           }
@@ -365,10 +371,11 @@ const EmployeeWizardForm = ({
 
   const handleCancelEdit = () => {
     if (isDisabled) return;
-    setCurrentMode(originalMode === "view" ? "view" : "view");
-    if (originalMode !== "view") handleClose();
+    setCurrentMode("view");
     setSubmissionResult(null);
     clearErrors();
+    const formData = initializeFormData(initialData);
+    reset(formData);
   };
 
   const stepComponents = {
@@ -444,72 +451,73 @@ const EmployeeWizardForm = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="h5">{getDialogTitle(currentMode)}</Typography>
 
-            {isViewMode && (
-              <Tooltip
-                title={
-                  isEmployeeInactive
-                    ? "INACTIVE EMPLOYEE - EDITING NOT ALLOWED"
-                    : canEdit
-                    ? "EDIT EMPLOYEE"
-                    : "EDITING NOT ALLOWED - ENABLE EDIT PERMISSION REQUIRED"
-                }>
-                <span>
-                  <IconButton
-                    onClick={handleEditClick}
-                    disabled={isDisabled || !canEditEmployee}
-                    size="small"
-                    sx={{
-                      ml: 1,
-                      padding: "8px",
-                      "&:hover": canEditEmployee
-                        ? {
-                            backgroundColor: "rgba(0, 136, 32, 0.08)",
-                            transform: "scale(1.1)",
-                            transition: "all 0.2s ease-in-out",
-                          }
-                        : {},
-                      opacity: canEditEmployee ? 1 : 0.5,
-                      cursor: canEditEmployee ? "pointer" : "not-allowed",
-                    }}>
-                    <EditIcon
+            {isViewOrEditMode &&
+              (isEditMode ? (
+                <Tooltip title="CANCEL EDIT">
+                  <span>
+                    <IconButton
+                      onClick={handleCancelEdit}
+                      disabled={isDisabled}
+                      size="small"
                       sx={{
-                        fontSize: "20px",
-                        "& path": {
-                          fill: canEditEmployee
-                            ? "rgba(0, 136, 32, 1)"
-                            : "rgba(158, 158, 158, 1)",
+                        ml: 1,
+                        padding: "8px",
+                        "&:hover": {
+                          backgroundColor: "rgba(235, 0, 0, 0.08)",
+                          transform: "scale(1.1)",
+                          transition: "all 0.2s ease-in-out",
                         },
-                      }}
-                    />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {isEditMode && originalMode === "view" && (
-              <Tooltip title="CANCEL EDIT">
-                <IconButton
-                  onClick={handleCancelEdit}
-                  disabled={isDisabled}
-                  size="small"
-                  sx={{
-                    ml: 1,
-                    padding: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgba(235, 0, 0, 0.08)",
-                      transform: "scale(1.1)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                  }}>
-                  <EditOff
-                    sx={{
-                      fontSize: "20px",
-                      "& path": { fill: "rgba(235, 0, 0, 1)" },
-                    }}
-                  />
-                </IconButton>
-              </Tooltip>
-            )}
+                      }}>
+                      <EditOff
+                        sx={{
+                          fontSize: "20px",
+                          "& path": { fill: "rgba(235, 0, 0, 1)" },
+                        }}
+                      />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Tooltip
+                  title={
+                    isEmployeeInactive
+                      ? "INACTIVE EMPLOYEE - EDITING NOT ALLOWED"
+                      : canEdit
+                        ? "EDIT EMPLOYEE"
+                        : "EDITING NOT ALLOWED - ENABLE EDIT PERMISSION REQUIRED"
+                  }>
+                  <span>
+                    <IconButton
+                      onClick={handleEditClick}
+                      disabled={isDisabled || !canEditEmployee}
+                      size="small"
+                      sx={{
+                        ml: 1,
+                        padding: "8px",
+                        "&:hover": canEditEmployee
+                          ? {
+                              backgroundColor: "rgba(0, 136, 32, 0.08)",
+                              transform: "scale(1.1)",
+                              transition: "all 0.2s ease-in-out",
+                            }
+                          : {},
+                        opacity: canEditEmployee ? 1 : 0.5,
+                        cursor: canEditEmployee ? "pointer" : "not-allowed",
+                      }}>
+                      <EditIcon
+                        sx={{
+                          fontSize: "20px",
+                          "& path": {
+                            fill: canEditEmployee
+                              ? "rgba(0, 136, 32, 1)"
+                              : "rgba(158, 158, 158, 1)",
+                          },
+                        }}
+                      />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              ))}
           </Box>
 
           <Typography variant="body2">

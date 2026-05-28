@@ -18,11 +18,11 @@ import { useSnackbar } from "notistack";
 import { useGetPositionQuery } from "../../features/api/employee/positionsempApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const Positions = ({
   searchQuery: parentSearchQuery,
@@ -478,28 +478,19 @@ const Positions = ({
                   <TableCell
                     colSpan={9}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT.BUTTONS.NODATA.icon}
-                      <Typography variant="h6" color="text.secondary">
-                        No positions found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message="No positions found"
+                      subMessage={
+                        searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
                                 (v) => v && v !== "ACTIVE",
                               )
-                            ? `No positions with selected filters`
-                            : "No positions"}
-                      </Typography>
-                    </Box>
+                            ? "No positions with selected filters"
+                            : "No positions"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

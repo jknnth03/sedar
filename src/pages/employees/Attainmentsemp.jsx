@@ -28,12 +28,12 @@ import {
 } from "../../features/api/employee/attainmentsempApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import AttainmentDialog from "./AttainmentDialog";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const Attainmentsemp = ({
   searchQuery: parentSearchQuery,
@@ -645,7 +645,6 @@ const Attainmentsemp = ({
                     <TableCell className="table-cell">
                       {safelyDisplayValue(attainment.institution)}
                     </TableCell>
-
                     <TableCell className="table-cell2">
                       {attainment.attainment_attachment ? (
                         <Link
@@ -684,28 +683,19 @@ const Attainmentsemp = ({
                   <TableCell
                     colSpan={10}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT.BUTTONS.NODATA.icon}
-                      <Typography variant="h6" color="text.secondary">
-                        No attainments found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message="No attainments found"
+                      subMessage={
+                        searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
                                 (v) => v && v !== "ACTIVE",
                               )
-                            ? `No attainments with selected filters`
-                            : "No attainments"}
-                      </Typography>
-                    </Box>
+                            ? "No attainments with selected filters"
+                            : "No attainments"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

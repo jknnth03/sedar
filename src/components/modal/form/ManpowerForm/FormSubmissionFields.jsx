@@ -477,14 +477,7 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
   );
 
   const employmentTypeOptions = useMemo(
-    () => [
-      "REGULAR",
-      "PROBATIONARY",
-      "PROJECT-BASED",
-      "SEASONAL",
-      "FIXED-TERM",
-      "CASUAL",
-    ],
+    () => ["PROBATIONARY", "REGULAR", "PROJECT BASED", "AGENCY HIRED"],
     [],
   );
 

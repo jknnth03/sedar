@@ -128,7 +128,15 @@ const DataChangeModal = ({
   onSuccessfulSave,
   onCreateMDA,
 }) => {
-  const { handleSubmit, reset, trigger, setValue } = useFormContext();
+  const { handleSubmit, reset, trigger, setValue, watch } = useFormContext();
+
+  const watchedMovementType = watch("movement_type_id");
+
+  const isTransferDueToPromotion = (() => {
+    const name =
+      watchedMovementType?.name || watchedMovementType?.type_name || "";
+    return name.toLowerCase() === "transfer due to promotion";
+  })();
 
   const [getFormDataForSubmission, setGetFormDataForSubmission] =
     useState(null);
@@ -241,17 +249,19 @@ const DataChangeModal = ({
     try {
       setIsUpdating(true);
 
-      const attachments = data.attachments || [];
-      const hasValidAttachment = attachments.some(
-        (att) =>
-          att.file_attachment instanceof File ||
-          (att.existing_file_name && !att.is_new_file),
-      );
+      if (!isTransferDueToPromotion) {
+        const attachments = data.attachments || [];
+        const hasValidAttachment = attachments.some(
+          (att) =>
+            att.file_attachment instanceof File ||
+            (att.existing_file_name && !att.is_new_file),
+        );
 
-      if (!hasValidAttachment) {
-        alert("Please upload at least one attachment before submitting.");
-        setIsUpdating(false);
-        return;
+        if (!hasValidAttachment) {
+          alert("Please upload at least one attachment before submitting.");
+          setIsUpdating(false);
+          return;
+        }
       }
 
       const isFormValid = await trigger();

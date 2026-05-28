@@ -147,7 +147,7 @@ const employmentTypeSchema = yup.object().shape({
         }
 
         return endDate > startDate;
-      }
+      },
     ),
   regularization_date: yup
     .date()
@@ -240,23 +240,7 @@ const fileSchema = yup.object().shape({
 });
 
 const fieldSchemas = {
-  submission_title: yup.mixed().when("$mode", {
-    is: (mode) => mode === "create",
-    then: (schema) =>
-      schema
-        .nullable()
-        .test("is-valid-submission", "Form is required.", function (value) {
-          if (!value || typeof value !== "object") {
-            return false;
-          }
-          return !!(
-            value.id ||
-            value.submission_title ||
-            value.linked_mrf_title
-          );
-        }),
-    otherwise: (schema) => schema.nullable(),
-  }),
+  submission_title: yup.string().nullable(),
   first_name: yup.string().required("First name is required."),
   middle_name: yup.string().nullable(),
   last_name: yup.string().required("Last Name is required."),
@@ -368,7 +352,7 @@ const fieldSchemas = {
           return false;
         }
         return true;
-      }
+      },
     )
     .transform(transformObjectField),
   sub_municipality: yup.string().nullable(),
@@ -448,7 +432,7 @@ const fieldSchemas = {
           return false;
         }
         return true;
-      }
+      },
     ),
   program_id: yup
     .mixed()
@@ -507,7 +491,7 @@ const fieldSchemas = {
         const { academic_year_from } = this.parent || {};
         if (!value || !academic_year_from) return true;
         return parseInt(value) >= parseInt(academic_year_from);
-      }
+      },
     ),
   gpa: yup
     .string()
@@ -520,7 +504,7 @@ const fieldSchemas = {
     })
     .matches(
       /^\d+(\.\d{1,2})?$/,
-      "GPA must be a valid number with up to 2 decimal places."
+      "GPA must be a valid number with up to 2 decimal places.",
     ),
   institution: yup.string().nullable(),
   attainment_attachment: yup
@@ -543,7 +527,7 @@ const fieldSchemas = {
         }
 
         return false;
-      }
+      },
     )
     .test(
       "fileType",
@@ -572,7 +556,7 @@ const fieldSchemas = {
           allowedTypes.includes(value.type) ||
           allowedExtensions.some((ext) => fileName.endsWith(ext))
         );
-      }
+      },
     )
     .test("fileSize", "File size must be less than 10MB", (value) => {
       if (!value || !(value instanceof File)) return true;
@@ -584,21 +568,21 @@ const fieldSchemas = {
     .required("SSS Number is required.")
     .matches(
       /^\d{2}-\d{7}-\d{1}$/,
-      "SSS Number format should be XX-XXXXXXX-X."
+      "SSS Number format should be XX-XXXXXXX-X.",
     ),
   pag_ibig_number: yup
     .string()
     .required("Pag-IBIG Number is required.")
     .matches(
       /^\d{4}-\d{4}-\d{4}$/,
-      "Pag-IBIG Number format should be XXXX-XXXX-XXXX."
+      "Pag-IBIG Number format should be XXXX-XXXX-XXXX.",
     ),
   philhealth_number: yup
     .string()
     .required("PhilHealth Number is required.")
     .matches(
       /^\d{2}-\d{9}-\d{1}$/,
-      "PhilHealth Number format should be XX-XXXXXXXXX-X."
+      "PhilHealth Number format should be XX-XXXXXXXXX-X.",
     ),
   tin_number: yup
     .string()
@@ -651,7 +635,7 @@ const fieldSchemas = {
     .required("Mobile Number is required.")
     .matches(
       /^\d{3}-\d{3}-\d{4}$/,
-      "Mobile Number format should be XXX-XXX-XXXX."
+      "Mobile Number format should be XXX-XXX-XXXX.",
     ),
   mobile_number_remarks: yup.string().nullable(),
   email_address_remarks: yup.string().nullable(),

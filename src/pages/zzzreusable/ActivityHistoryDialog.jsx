@@ -327,27 +327,9 @@ const ActivityHistoryDialog = ({
     return null;
   }
 
-  const sortedActivityLog = [...data.activity_log].sort((a, b) => {
-    const eventTypeA = (
-      a?.event_type ||
-      a?.status ||
-      a?.action ||
-      ""
-    ).toLowerCase();
-    const eventTypeB = (
-      b?.event_type ||
-      b?.status ||
-      b?.action ||
-      ""
-    ).toLowerCase();
-
-    if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return -1;
-    if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return 1;
-
-    const dateA = new Date(a.timestamp || 0);
-    const dateB = new Date(b.timestamp || 0);
-    return dateB - dateA;
-  });
+  const sortedActivityLog = [...data.activity_log].sort(
+    (a, b) => a.sort_index - b.sort_index,
+  );
 
   const headerFields = getHeaderFields();
 

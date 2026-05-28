@@ -491,10 +491,8 @@ const CatTwoApproval = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApprovalId, setSelectedApprovalId] = useState(null);
-  const [detailsDialog, setDetailsDialog] = useState({
-    open: false,
-    submission: null,
-  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogSubmission, setDialogSubmission] = useState(null);
 
   const methods = useForm({
     defaultValues: {
@@ -509,10 +507,20 @@ const CatTwoApproval = () => {
   const [createPdpTwo, { isLoading: createPdpTwoLoading }] =
     useCreatePdpTwoMutation();
 
-  const { data: selectedApprovalData, isLoading: selectedApprovalLoading } =
-    useGetCatTwoTaskByIdQuery(selectedApprovalId, {
-      skip: !selectedApprovalId,
-    });
+  const {
+    data: selectedApprovalData,
+    isLoading: selectedApprovalLoading,
+    refetch: refetchSelectedApproval,
+  } = useGetCatTwoTaskByIdQuery(selectedApprovalId, {
+    skip: !selectedApprovalId,
+    refetchOnMountOrArgChange: true,
+  });
+
+  useEffect(() => {
+    if (selectedApprovalId && dialogOpen) {
+      refetchSelectedApproval();
+    }
+  }, [selectedApprovalId, dialogOpen]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -524,18 +532,18 @@ const CatTwoApproval = () => {
   }, []);
 
   const handleRowClick = useCallback((approval) => {
-    setSelectedApprovalId(approval.id);
-    setDetailsDialog({
-      open: true,
-      submission: approval,
-    });
+    setSelectedApprovalId(null);
+    setDialogSubmission(approval);
+    setDialogOpen(true);
+    setTimeout(() => {
+      setSelectedApprovalId(approval.id);
+    }, 0);
   }, []);
 
   const handleApprove = useCallback(
     async ({ comments }) => {
-      const { submission } = detailsDialog;
       try {
-        const payload = { id: submission.id };
+        const payload = { id: dialogSubmission.id };
         if (comments && comments.trim()) {
           payload.comments = comments.trim();
         }
@@ -543,7 +551,8 @@ const CatTwoApproval = () => {
         enqueueSnackbar("Category 2 approved successfully!", {
           variant: "success",
         });
-        setDetailsDialog({ open: false, submission: null });
+        setDialogOpen(false);
+        setDialogSubmission(null);
         setSelectedApprovalId(null);
       } catch (error) {
         enqueueSnackbar(
@@ -552,19 +561,19 @@ const CatTwoApproval = () => {
         );
       }
     },
-    [detailsDialog, approveCatTwo, enqueueSnackbar],
+    [dialogSubmission, approveCatTwo, enqueueSnackbar],
   );
 
   const handleReturn = useCallback(
     async ({ correction_remarks }) => {
-      const { submission } = detailsDialog;
       try {
-        const payload = { id: submission.id, correction_remarks };
+        const payload = { id: dialogSubmission.id, correction_remarks };
         await returnCatTwo(payload).unwrap();
         enqueueSnackbar("Category 2 returned successfully!", {
           variant: "success",
         });
-        setDetailsDialog({ open: false, submission: null });
+        setDialogOpen(false);
+        setDialogSubmission(null);
         setSelectedApprovalId(null);
       } catch (error) {
         enqueueSnackbar(error?.data?.message || "Failed to return Category 2", {
@@ -572,25 +581,26 @@ const CatTwoApproval = () => {
         });
       }
     },
-    [detailsDialog, returnCatTwo, enqueueSnackbar],
+    [dialogSubmission, returnCatTwo, enqueueSnackbar],
   );
 
   const handleCreatePdpTwo = useCallback(async () => {
-    const { submission } = detailsDialog;
     try {
-      await createPdpTwo({ id: submission.da_submission_id }).unwrap();
+      await createPdpTwo({ id: dialogSubmission.da_submission_id }).unwrap();
       enqueueSnackbar("PDP II created successfully!", { variant: "success" });
-      setDetailsDialog({ open: false, submission: null });
+      setDialogOpen(false);
+      setDialogSubmission(null);
       setSelectedApprovalId(null);
     } catch (error) {
       enqueueSnackbar(error?.data?.message || "Failed to create PDP II", {
         variant: "error",
       });
     }
-  }, [detailsDialog, createPdpTwo, enqueueSnackbar]);
+  }, [dialogSubmission, createPdpTwo, enqueueSnackbar]);
 
   const handleDetailsDialogClose = useCallback(() => {
-    setDetailsDialog({ open: false, submission: null });
+    setDialogOpen(false);
+    setDialogSubmission(null);
     setSelectedApprovalId(null);
   }, []);
 
@@ -614,8 +624,7 @@ const CatTwoApproval = () => {
     };
   };
 
-  const currentApproval =
-    selectedApprovalData?.result || detailsDialog.submission;
+  const currentApproval = selectedApprovalData?.result || dialogSubmission;
 
   return (
     <FormProvider {...methods}>
@@ -701,13 +710,14 @@ const CatTwoApproval = () => {
         </Box>
 
         <CatTwoApprovalDialog
-          open={detailsDialog.open}
+          open={dialogOpen}
           onClose={handleDetailsDialogClose}
           approval={currentApproval}
           onApprove={handleApprove}
           onReturn={handleReturn}
           onCreatePdpTwo={handleCreatePdpTwo}
-          isLoading={approveLoading || returnLoading || selectedApprovalLoading}
+          isLoading={approveLoading || returnLoading}
+          isLoadingData={selectedApprovalLoading}
           isCreatingPdpTwo={createPdpTwoLoading}
         />
       </Box>

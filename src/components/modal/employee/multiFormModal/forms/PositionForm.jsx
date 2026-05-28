@@ -1,10 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import {
   Box,
@@ -16,10 +10,9 @@ import {
 } from "@mui/material";
 import { useLazyGetAllShowSchedulesQuery } from "../../../../../features/api/extras/schedulesApi";
 import { useLazyGetAllJobLevelsQuery } from "../../../../../features/api/masterlist/joblevelsApi";
-import { useLazyGetAllPositionsQuery } from "../../../../../features/api/masterlist/positionsApi";
+import { useGetAllPositionsQuery } from "../../../../../features/api/masterlist/positionsApi";
 import EmployeeHeader from "./EmployeeHeader";
 import "./General.scss";
-import { useSelector } from "react-redux";
 
 const PositionForm = ({
   selectedPosition,
@@ -31,22 +24,20 @@ const PositionForm = ({
     control,
     formState: { errors },
     watch,
-    trigger,
     setValue,
     getValues,
   } = useFormContext();
 
-  const watchedValues = watch();
-  const [fieldsInitialized, setFieldsInitialized] = useState(false);
-
   const [dropdownsLoaded, setDropdownsLoaded] = useState({
-    positions: false,
     schedules: false,
     jobLevels: false,
   });
 
-  const approvalFormData = useSelector((state) => state.form.approvalForm);
-  const submissionTitle = watch("submission_title");
+  const {
+    data: positionsApiData,
+    isLoading: positionsLoading,
+    error: positionsError,
+  } = useGetAllPositionsQuery({ page: 1, per_page: 1000, status: "active" });
 
   const [
     triggerSchedules,
@@ -75,6 +66,40 @@ const PositionForm = ({
       : data.result || data.data || data.items || data.results || [];
   }, []);
 
+  const positions = useMemo(() => {
+    if (mode === "view" && employeeData?.position_title) {
+      return [
+        {
+          id: employeeData.position_id || employeeData.position_title,
+          name: employeeData.position_title,
+          title: employeeData.position_title,
+          title_with_unit: employeeData.position_title,
+        },
+      ];
+    }
+    if (mode === "edit" && employeeData?.position_title) {
+      const existingPosition = {
+        id: employeeData.position_id || employeeData.position_title,
+        name: employeeData.position_title,
+        title: employeeData.position_title,
+        title_with_unit: employeeData.position_title,
+      };
+      const apiPositions = normalizeApiData(positionsApiData);
+      if (!positionsApiData) return [existingPosition];
+      const hasExisting = apiPositions.some(
+        (p) => p.id === existingPosition.id,
+      );
+      return hasExisting ? apiPositions : [existingPosition, ...apiPositions];
+    }
+    return normalizeApiData(positionsApiData);
+  }, [
+    mode,
+    positionsApiData,
+    employeeData?.position_title,
+    employeeData?.position_id,
+    normalizeApiData,
+  ]);
+
   const schedules = useMemo(() => {
     if (mode === "view" && employeeData?.schedule_id) {
       return [employeeData.schedule_id];
@@ -82,20 +107,11 @@ const PositionForm = ({
     if (mode === "edit" && employeeData?.schedule_id) {
       const existingSchedule = employeeData.schedule_id;
       const apiSchedules = normalizeApiData(schedulesApiData);
-
-      if (!schedulesApiData) {
-        return [existingSchedule];
-      }
-
-      const hasExistingInApi = apiSchedules.some(
-        (schedule) => schedule.id === existingSchedule.id
+      if (!schedulesApiData) return [existingSchedule];
+      const hasExisting = apiSchedules.some(
+        (s) => s.id === existingSchedule.id,
       );
-
-      if (!hasExistingInApi) {
-        return [existingSchedule, ...apiSchedules];
-      }
-
-      return apiSchedules;
+      return hasExisting ? apiSchedules : [existingSchedule, ...apiSchedules];
     }
     return normalizeApiData(schedulesApiData);
   }, [mode, schedulesApiData, employeeData?.schedule_id, normalizeApiData]);
@@ -107,99 +123,14 @@ const PositionForm = ({
     if (mode === "edit" && employeeData?.job_level_id) {
       const existingJobLevel = employeeData.job_level_id;
       const apiJobLevels = normalizeApiData(jobLevelsApiData);
-
-      if (!jobLevelsApiData) {
-        return [existingJobLevel];
-      }
-
-      const hasExistingInApi = apiJobLevels.some(
-        (jobLevel) => jobLevel.id === existingJobLevel.id
+      if (!jobLevelsApiData) return [existingJobLevel];
+      const hasExisting = apiJobLevels.some(
+        (j) => j.id === existingJobLevel.id,
       );
-
-      if (!hasExistingInApi) {
-        return [existingJobLevel, ...apiJobLevels];
-      }
-
-      return apiJobLevels;
+      return hasExisting ? apiJobLevels : [existingJobLevel, ...apiJobLevels];
     }
     return normalizeApiData(jobLevelsApiData);
   }, [mode, jobLevelsApiData, employeeData?.job_level_id, normalizeApiData]);
-
-  useEffect(() => {
-    let positionTitle = "";
-    let positionId = null;
-    let positionObject = null;
-
-    if (approvalFormData) {
-      if (approvalFormData.position_title) {
-        positionTitle = approvalFormData.position_title;
-      }
-
-      if (approvalFormData.position_id) {
-        positionId = approvalFormData.position_id;
-      }
-
-      if (positionId && positionTitle) {
-        positionObject = {
-          id: positionId,
-          title: positionTitle,
-          title_with_unit: positionTitle,
-        };
-      }
-    }
-
-    if (!positionTitle && !positionId) {
-      if (submissionTitle?.position?.title_with_unit) {
-        positionTitle = submissionTitle.position.title_with_unit;
-        positionObject = submissionTitle.position;
-      } else if (submissionTitle?.position?.title) {
-        positionTitle = submissionTitle.position.title;
-        positionObject = submissionTitle.position;
-      } else if (submissionTitle?.submittable?.position?.title_with_unit) {
-        positionTitle = submissionTitle.submittable.position.title_with_unit;
-        positionObject = submissionTitle.submittable.position;
-      } else if (submissionTitle?.submittable?.position?.title) {
-        positionTitle = submissionTitle.submittable.position.title;
-        positionObject = submissionTitle.submittable.position;
-      }
-    }
-
-    if (!positionTitle) {
-      let titleString = null;
-
-      if (submissionTitle?.submission_title) {
-        titleString = submissionTitle.submission_title;
-      } else if (approvalFormData?.submission_title) {
-        titleString = approvalFormData.submission_title;
-      }
-
-      if (titleString) {
-        const titleParts = titleString.split(" | ");
-        if (titleParts.length >= 2) {
-          positionTitle = titleParts[1].trim();
-        }
-      }
-    }
-
-    if (positionTitle) {
-      setValue("position_title", positionTitle);
-    }
-
-    if (positionObject && positionObject.id) {
-      setValue("position", positionObject);
-      setValue("position_id", positionObject.id);
-    } else if (positionId) {
-      setValue("position_id", positionId);
-    }
-
-    if (!positionId) {
-      if (submissionTitle?.position_id) {
-        setValue("position_id", submissionTitle.position_id);
-      } else if (submissionTitle?.submittable?.position_id) {
-        setValue("position_id", submissionTitle.submittable.position_id);
-      }
-    }
-  }, [submissionTitle, approvalFormData, setValue]);
 
   const handleDropdownFocus = useCallback(
     (dropdownName) => {
@@ -218,7 +149,7 @@ const PositionForm = ({
 
       setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
     },
-    [dropdownsLoaded, triggerSchedules, triggerJobLevels, mode]
+    [dropdownsLoaded, triggerSchedules, triggerJobLevels, mode],
   );
 
   return (
@@ -226,6 +157,12 @@ const PositionForm = ({
       className="general-form"
       sx={{ width: "100%", maxWidth: "1200px", overflow: "0" }}>
       <EmployeeHeader getValues={getValues} selectedGeneral={employeeData} />
+
+      {positionsError && (
+        <Alert severity="warning" sx={{ mb: 1 }}>
+          Failed to load positions from server.
+        </Alert>
+      )}
       {schedulesError && (
         <Alert severity="warning" sx={{ mb: 1 }}>
           Failed to load schedules from server.
@@ -259,26 +196,99 @@ const PositionForm = ({
                 field: { onChange, value, onBlur },
                 fieldState: { error },
               }) => (
-                <TextField
-                  onChange={onChange}
-                  onBlur={onBlur}
-                  value={value || ""}
+                <FormControl
                   fullWidth
                   variant="outlined"
-                  label={
-                    <>
-                      Position Title <span style={{ color: "red" }}>*</span>
-                    </>
-                  }
-                  disabled={true}
                   error={!!error}
-                  helperText={
-                    error?.message || "Auto-filled from selected form"
-                  }
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                />
+                  disabled={isLoading || positionsLoading || isReadOnly}>
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      if (!isReadOnly) {
+                        const titleValue =
+                          item?.title_with_unit ||
+                          item?.title ||
+                          item?.name ||
+                          null;
+                        onChange(titleValue);
+                        setValue("position_id", item?.id || null);
+                        setValue("position", item || null);
+                      }
+                    }}
+                    onBlur={onBlur}
+                    value={
+                      value
+                        ? positions.find(
+                            (p) =>
+                              (p.title_with_unit || p.title || p.name) ===
+                              value,
+                          ) || {
+                            name: value,
+                            title: value,
+                            title_with_unit: value,
+                          }
+                        : null
+                    }
+                    disabled={isLoading || isReadOnly}
+                    options={positions ?? []}
+                    loading={positionsLoading}
+                    getOptionLabel={(item) => {
+                      if (!item) return "";
+                      return (
+                        item?.title_with_unit || item?.title || item?.name || ""
+                      );
+                    }}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return (
+                        option.id === value.id ||
+                        (option.title_with_unit ||
+                          option.title ||
+                          option.name) ===
+                          (value.title_with_unit || value.title || value.name)
+                      );
+                    }}
+                    renderOption={(props, item) => (
+                      <li {...props} key={item.id}>
+                        <Box sx={{ display: "flex", flexDirection: "column" }}>
+                          <span style={{ fontSize: "0.875rem" }}>
+                            {item?.title_with_unit ||
+                              item?.title ||
+                              item?.name ||
+                              ""}
+                          </span>
+                          {item?.code && (
+                            <span
+                              style={{ fontSize: "0.75rem", color: "#888" }}>
+                              {item.code}
+                              {item?.charging?.name
+                                ? ` • ${item.charging.name}`
+                                : ""}
+                              {item?.team ? ` • ${item.team}` : ""}
+                            </span>
+                          )}
+                        </Box>
+                      </li>
+                    )}
+                    readOnly={isReadOnly}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            Position Title{" "}
+                            <span style={{ color: "red" }}>*</span>
+                          </>
+                        }
+                        error={!!error}
+                        helperText={error?.message || ""}
+                        InputProps={{
+                          ...params.InputProps,
+                          readOnly: isReadOnly,
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
               )}
             />
           </Box>
@@ -322,14 +332,10 @@ const PositionForm = ({
                       return option.id === value.id;
                     }}
                     onOpen={() => {
-                      if (!isReadOnly) {
-                        handleDropdownFocus("schedules");
-                      }
+                      if (!isReadOnly) handleDropdownFocus("schedules");
                     }}
                     onFocus={() => {
-                      if (!isReadOnly) {
-                        handleDropdownFocus("schedules");
-                      }
+                      if (!isReadOnly) handleDropdownFocus("schedules");
                     }}
                     readOnly={isReadOnly}
                     renderInput={(params) => (
@@ -345,9 +351,7 @@ const PositionForm = ({
                         onBlur={params.InputProps.onBlur}
                         onFocus={() => {
                           params.InputProps.onFocus?.();
-                          if (!isReadOnly) {
-                            handleDropdownFocus("schedules");
-                          }
+                          if (!isReadOnly) handleDropdownFocus("schedules");
                         }}
                         InputProps={{
                           ...params.InputProps,
@@ -401,14 +405,10 @@ const PositionForm = ({
                       return option.id === value.id;
                     }}
                     onOpen={() => {
-                      if (!isReadOnly) {
-                        handleDropdownFocus("jobLevels");
-                      }
+                      if (!isReadOnly) handleDropdownFocus("jobLevels");
                     }}
                     onFocus={() => {
-                      if (!isReadOnly) {
-                        handleDropdownFocus("jobLevels");
-                      }
+                      if (!isReadOnly) handleDropdownFocus("jobLevels");
                     }}
                     readOnly={isReadOnly}
                     renderInput={(params) => (
@@ -424,9 +424,7 @@ const PositionForm = ({
                         onBlur={params.InputProps.onBlur}
                         onFocus={() => {
                           params.InputProps.onFocus?.();
-                          if (!isReadOnly) {
-                            handleDropdownFocus("jobLevels");
-                          }
+                          if (!isReadOnly) handleDropdownFocus("jobLevels");
                         }}
                         InputProps={{
                           ...params.InputProps,

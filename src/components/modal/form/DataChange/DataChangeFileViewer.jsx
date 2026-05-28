@@ -107,7 +107,7 @@ const DataChangeFileViewer = ({
         attachmentIndex === null ||
         attachmentIndex === undefined ||
         !attachmentId,
-    }
+    },
   );
 
   const getDisplayFilename = () => {

@@ -319,27 +319,7 @@ const MrfHistoryDialog = ({
   }
 
   const sortedActivityLog = [...selectedMrfHistory.activity_log].sort(
-    (a, b) => {
-      const eventTypeA = (
-        a?.event_type ||
-        a?.status ||
-        a?.action ||
-        ""
-      ).toLowerCase();
-      const eventTypeB = (
-        b?.event_type ||
-        b?.status ||
-        b?.action ||
-        ""
-      ).toLowerCase();
-
-      if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return 1;
-      if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return -1;
-
-      const dateA = a.timestamp ? new Date(a.timestamp) : new Date();
-      const dateB = b.timestamp ? new Date(b.timestamp) : new Date();
-      return dateB - dateA;
-    },
+    (a, b) => a.sort_index - b.sort_index,
   );
 
   return (

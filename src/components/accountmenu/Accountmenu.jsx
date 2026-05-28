@@ -15,24 +15,32 @@ export default function AccountMenu() {
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
 
-  // 🔤 Extract initials (first two letters from first and last name)
-  const getInitial = () => {
+  const getUserData = () => {
     try {
       const storedUser = localStorage.getItem("user");
-      if (!storedUser) return "";
+      if (!storedUser) return { initials: "", displayName: "" };
       const user = JSON.parse(storedUser);
 
-      const fullName = user.full_name || user.name || user.first_name || "";
-      const nameParts = fullName.trim().split(" ");
+      const firstName = user.first_name?.trim() || "";
+      const lastName = user.last_name?.trim() || "";
 
-      const firstInitial = nameParts[0]?.charAt(0).toUpperCase() || "";
-      const secondInitial = nameParts[1]?.charAt(0).toUpperCase() || "";
+      const initials = (firstName.charAt(0) || "") + (lastName.charAt(0) || "");
 
-      return firstInitial + secondInitial;
+      const displayName =
+        firstName && lastName
+          ? `${firstName} ${lastName}`
+          : user.full_name || "";
+
+      return {
+        initials: initials.toUpperCase(),
+        displayName: displayName.toUpperCase(),
+      };
     } catch (e) {
-      return "";
+      return { initials: "", displayName: "" };
     }
   };
+
+  const { initials, displayName } = getUserData();
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -53,13 +61,28 @@ export default function AccountMenu() {
     <React.Fragment>
       <Tooltip title="Account">
         <IconButton
-          sx={{ color: "yellow", ml: 2 }}
+          sx={{
+            color: "yellow",
+            ml: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
           className="logoutbutton"
           onClick={handleClick}
           size="small"
           aria-controls={open ? "account-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={open ? "true" : undefined}>
+          <span
+            style={{
+              color: "rgb(33, 61, 112)",
+              fontWeight: "bold",
+              fontSize: "0.85rem",
+              whiteSpace: "nowrap",
+            }}>
+            {displayName}
+          </span>
           <Avatar
             sx={{
               width: 32,
@@ -67,7 +90,7 @@ export default function AccountMenu() {
               bgcolor: "#FF4500",
               fontSize: "0.96rem",
             }}>
-            {getInitial()}
+            {initials}
           </Avatar>
         </IconButton>
       </Tooltip>

@@ -8,10 +8,7 @@ import {
   useLazyCheckEmployeeIdUniqueQuery,
 } from "../../../../../features/api/extras/prefixesApi";
 import { useLazyGetAllGeneralsQuery } from "../../../../../features/api/employee/generalApi";
-import { useLazyGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
 import { useLazyGetAllShowNationalitiesQuery } from "../../../../../features/api/extras/nationalitiesApi";
-import { useDispatch } from "react-redux";
-import { setApprovalForm } from "../../../../../features/slice/formSlice";
 import GeneralFormFields from "./GeneralFormFields";
 import EmployeeHeader from "./EmployeeHeader";
 
@@ -39,7 +36,6 @@ const GeneralForm = ({
     religions: false,
     prefixes: false,
     referrers: false,
-    approvalForms: false,
     nationalities: false,
   });
 
@@ -75,15 +71,6 @@ const GeneralForm = ({
   ] = useLazyCheckEmployeeIdUniqueQuery();
 
   const [
-    triggerApprovalForms,
-    {
-      data: approvalFormsData,
-      isLoading: approvalFormsLoading,
-      error: approvalFormsError,
-    },
-  ] = useLazyGetAllManpowerQuery();
-
-  const [
     triggerNationalities,
     {
       data: nationalitiesData,
@@ -94,11 +81,8 @@ const GeneralForm = ({
 
   const isReadOnly = mode === "view" || isViewMode;
   const isFieldDisabled = isLoading || isReadOnly || readOnly || disabled;
-  const dispatch = useDispatch();
 
-  const watchedSubmissionTitle = watch("submission_title");
   const watchedPrefix = watch("prefix");
-  const watchedIdNumber = watch("id_number");
 
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
@@ -125,7 +109,7 @@ const GeneralForm = ({
       }
 
       const hasExistingInApi = apiReligions.some(
-        (religion) => religion.id === existingReligion.id
+        (religion) => religion.id === existingReligion.id,
       );
 
       if (!hasExistingInApi) {
@@ -156,7 +140,7 @@ const GeneralForm = ({
       }
 
       const hasExistingInApi = apiPrefixes.some(
-        (prefix) => prefix.id === existingPrefix.id
+        (prefix) => prefix.id === existingPrefix.id,
       );
 
       if (!hasExistingInApi) {
@@ -194,7 +178,7 @@ const GeneralForm = ({
       });
 
       const hasExistingInApi = filtered.some(
-        (general) => general.id === existingReferrer.id
+        (general) => general.id === existingReferrer.id,
       );
 
       if (!hasExistingInApi) {
@@ -213,39 +197,6 @@ const GeneralForm = ({
     return filtered;
   }, [generalsData, selectedGeneral, normalizeApiData, mode, isViewMode]);
 
-  const approvalForms = useMemo(() => {
-    if ((mode === "view" || isViewMode) && selectedGeneral?.submission_title) {
-      return [selectedGeneral.submission_title];
-    }
-    if (mode === "edit" && selectedGeneral?.submission_title) {
-      const existingForm = selectedGeneral.submission_title;
-      const apiForms = normalizeApiData(approvalFormsData);
-
-      if (!approvalFormsData) {
-        return [existingForm];
-      }
-
-      const hasExistingInApi = apiForms.some(
-        (form) =>
-          (form.id || form.submission_title) ===
-          (existingForm.id || existingForm.submission_title)
-      );
-
-      if (!hasExistingInApi) {
-        return [existingForm, ...apiForms];
-      }
-
-      return apiForms;
-    }
-    return normalizeApiData(approvalFormsData);
-  }, [
-    approvalFormsData,
-    normalizeApiData,
-    selectedGeneral?.submission_title,
-    mode,
-    isViewMode,
-  ]);
-
   const nationalities = useMemo(() => {
     if ((mode === "view" || isViewMode) && selectedGeneral?.nationality) {
       return [selectedGeneral.nationality];
@@ -259,7 +210,7 @@ const GeneralForm = ({
       }
 
       const hasExistingInApi = apiNationalities.some(
-        (nationality) => nationality.id === existingNationality.id
+        (nationality) => nationality.id === existingNationality.id,
       );
 
       if (!hasExistingInApi) {
@@ -296,16 +247,6 @@ const GeneralForm = ({
 
     fetchNextId();
   }, [watchedPrefix, getNextId, setValue, mode, isReadOnly]);
-
-  useEffect(() => {
-    if (
-      watchedSubmissionTitle &&
-      typeof watchedSubmissionTitle === "object" &&
-      (watchedSubmissionTitle.id || watchedSubmissionTitle.submission_title)
-    ) {
-      dispatch(setApprovalForm(watchedSubmissionTitle));
-    }
-  }, [watchedSubmissionTitle, dispatch]);
 
   useEffect(() => {
     let retryCount = 0;
@@ -350,9 +291,6 @@ const GeneralForm = ({
         case "referrers":
           triggerGenerals(fetchParams);
           break;
-        case "approvalForms":
-          triggerApprovalForms(fetchParams);
-          break;
         case "nationalities":
           triggerNationalities(fetchParams);
           break;
@@ -365,11 +303,10 @@ const GeneralForm = ({
       triggerReligions,
       triggerPrefixes,
       triggerGenerals,
-      triggerApprovalForms,
       triggerNationalities,
       mode,
       isViewMode,
-    ]
+    ],
   );
 
   const validateIdUniqueness = useCallback(
@@ -391,14 +328,13 @@ const GeneralForm = ({
         }
       } catch (error) {}
     },
-    [checkIdUnique, setError, clearErrors, mode]
+    [checkIdUnique, setError, clearErrors, mode],
   );
 
   const hasErrors =
     religionsError ||
     prefixesError ||
     generalsError ||
-    approvalFormsError ||
     nationalitiesError ||
     nextIdError ||
     uniqueCheckError;
@@ -440,18 +376,14 @@ const GeneralForm = ({
         religions={religions}
         prefixes={prefixes}
         referrers={referrers}
-        approvalForms={approvalForms}
         nationalities={nationalities}
         religionsLoading={religionsLoading}
         prefixesLoading={prefixesLoading}
         generalsLoading={generalsLoading}
-        approvalFormsLoading={approvalFormsLoading}
         nationalitiesLoading={nationalitiesLoading}
         nextIdLoading={nextIdLoading}
         uniqueCheckLoading={uniqueCheckLoading}
         handleDropdownFocus={handleDropdownFocus}
-        dispatch={dispatch}
-        setApprovalForm={setApprovalForm}
         watch={watch}
         setValue={setValue}
         getNextId={getNextId}

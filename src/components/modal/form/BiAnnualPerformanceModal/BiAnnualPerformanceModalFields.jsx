@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   TextField,
@@ -53,10 +53,11 @@ const BiAnnualPerformanceModalFields = ({
   const [kpiErrors, setKpiErrors] = useState({});
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Attachment viewer state
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
   const [fetchAttachment, setFetchAttachment] = useState(false);
+
+  const prefillAppliedForRef = useRef(null);
 
   const { data: employeesData, isLoading: isLoadingEmployees } =
     useGetProbationaryEmployeesQuery(undefined, {
@@ -79,7 +80,6 @@ const BiAnnualPerformanceModalFields = ({
 
   const [fetchPositionKpis] = useLazyGetPositionKpisQuery();
 
-  // KPI Attachment via RTK Query — same as KpiModal & DAFormModalFields
   const positionId = formValues.kpi_position_id || null;
   const {
     data: attachmentData,
@@ -89,7 +89,6 @@ const BiAnnualPerformanceModalFields = ({
     skip: !fetchAttachment || !positionId || !fileViewerOpen,
   });
 
-  // Blob URL management for attachment viewer
   useEffect(() => {
     if (!fileViewerOpen) {
       if (fileUrl) {
@@ -145,6 +144,13 @@ const BiAnnualPerformanceModalFields = ({
       setValue("position_title", "");
       setValue("start_date", "");
       setValue("end_date", "");
+      setKpisList([]);
+      setCompetencyItems([]);
+      setRatingScales([]);
+      setTemplateId(null);
+      setValue("kpis", []);
+      setValue("competency_assessment", { template_id: null, answers: [] });
+      prefillAppliedForRef.current = null;
     }
   }, [positionsData, setValue]);
 
@@ -207,68 +213,76 @@ const BiAnnualPerformanceModalFields = ({
   }, [isCreate, formValues.competency_assessment]);
 
   useEffect(() => {
-    if (prefillData?.result && isCreate) {
-      if (prefillData.result.employee) {
-        const empData = prefillData.result.employee;
-        setValue("employee_code", empData.code || empData.id_number || "");
-        setValue("employee_name", empData.full_name);
+    if (!prefillData?.result || !isCreate) return;
+
+    const currentKey = `${selectedEmployeeId}-${selectedPosition?.history_id}`;
+    if (prefillAppliedForRef.current === currentKey) return;
+
+    prefillAppliedForRef.current = currentKey;
+
+    if (prefillData.result.employee) {
+      const empData = prefillData.result.employee;
+      setValue("employee_code", empData.code || empData.id_number || "");
+      setValue("employee_name", empData.full_name);
+    }
+
+    if (prefillData.result.kpis && Array.isArray(prefillData.result.kpis)) {
+      const formattedKpis = prefillData.result.kpis.map((kpi) => ({
+        source_kpi_id: kpi.source_kpi_id,
+        objective_id: kpi.objective_id,
+        objective_name: kpi.objective_name || "",
+        deliverable: kpi.deliverable || "",
+        distribution_percentage: kpi.distribution_percentage || 0,
+        target_percentage: kpi.target_percentage || 0,
+        actual_performance: "",
+        remarks: "",
+      }));
+      setKpisList(formattedKpis);
+      setValue("kpis", formattedKpis);
+    } else {
+      setKpisList([]);
+      setValue("kpis", []);
+    }
+
+    setValue("demerits", []);
+
+    if (prefillData.result.competency_template) {
+      const template = prefillData.result.competency_template;
+      const compTemplateId = template.id;
+      setTemplateId(compTemplateId);
+
+      if (template.rating_scale && Array.isArray(template.rating_scale)) {
+        setRatingScales(template.rating_scale);
       }
 
-      if (prefillData.result.kpis && Array.isArray(prefillData.result.kpis)) {
-        const formattedKpis = prefillData.result.kpis.map((kpi) => ({
-          source_kpi_id: kpi.source_kpi_id,
-          objective_id: kpi.objective_id,
-          objective_name: kpi.objective_name || "",
-          deliverable: kpi.deliverable || "",
-          distribution_percentage: kpi.distribution_percentage || 0,
-          target_percentage: kpi.target_percentage || 0,
-          actual_performance: "",
-          remarks: "",
-        }));
-        setKpisList(formattedKpis);
-        setValue("kpis", formattedKpis);
-      }
-
-      setValue("demerits", []);
-
-      if (prefillData.result.competency_template) {
-        const template = prefillData.result.competency_template;
-        const compTemplateId = template.id;
-        setTemplateId(compTemplateId);
-
-        if (template.rating_scale && Array.isArray(template.rating_scale)) {
-          setRatingScales(template.rating_scale);
-        }
-
-        if (template.sections) {
-          const allItems = [];
-          template.sections.forEach((section) => {
-            if (section.items && Array.isArray(section.items)) {
-              section.items.forEach((item) => {
-                if (item.children && Array.isArray(item.children)) {
-                  item.children.forEach((child) => {
-                    if (child.is_ratable) {
-                      allItems.push({
-                        template_item_id: child.id,
-                        template_item_name: child.text,
-                        rating_scale_id: null,
-                        rating_scale_name: null,
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          });
-          setCompetencyItems(allItems);
-          setValue("competency_assessment", {
-            template_id: compTemplateId,
-            answers: allItems,
-          });
-        }
+      if (template.sections) {
+        const allItems = [];
+        template.sections.forEach((section) => {
+          if (section.items && Array.isArray(section.items)) {
+            section.items.forEach((item) => {
+              if (item.children && Array.isArray(item.children)) {
+                item.children.forEach((child) => {
+                  if (child.is_ratable) {
+                    allItems.push({
+                      template_item_id: child.id,
+                      template_item_name: child.text,
+                      rating_scale_id: null,
+                      rating_scale_name: null,
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+        setCompetencyItems(allItems);
+        setValue("competency_assessment", {
+          template_id: compTemplateId,
+          answers: allItems,
+        });
       }
     }
-  }, [prefillData, setValue, isCreate]);
+  }, [prefillData, setValue, isCreate, selectedEmployeeId, selectedPosition]);
 
   useEffect(() => {
     if (prefillData?.result && !isCreate) {
@@ -294,6 +308,7 @@ const BiAnnualPerformanceModalFields = ({
     setRatingScales([]);
     setTemplateId(null);
     setKpiErrors({});
+    prefillAppliedForRef.current = null;
 
     if (newValue) {
       setValue("employee_id", newValue.id);
@@ -313,32 +328,29 @@ const BiAnnualPerformanceModalFields = ({
 
   const handlePositionChange = (event, newValue) => {
     setSelectedPosition(newValue);
-    // Reset attachment when position changes
     setValue("kpi_position_id", null);
     setValue("kpi_attachment_url", null);
     setValue("kpi_attachment_filename", null);
     setFetchAttachment(false);
+    prefillAppliedForRef.current = null;
 
     if (newValue) {
       setValue("employee_position_history_id", newValue.history_id);
-      setValue("kpi_position_id", newValue.position_id); // ← store position_id for KPI attachment
+      setValue("kpi_position_id", newValue.position_id);
       setValue("position_title", newValue.position_title);
       setValue("start_date", newValue.start_date);
       setValue("end_date", newValue.end_date);
 
       if (selectedEmployeeId) {
         setIsLoadingData(true);
-        // Fetch prefill (KPIs, competency) and position KPI attachment in parallel
         fetchPrefill({
           employee_id: selectedEmployeeId,
           employee_position_history_id: newValue.history_id,
         }).finally(() => setIsLoadingData(false));
 
-        // Separately fetch position KPIs for attachment metadata (same as DA form)
         fetchPositionKpis(newValue.position_id)
           .unwrap()
           .then((kpisResponse) => {
-            // API shape: { result: { kpi_download_url, kpi_attachment_file_name, kpis: [...] } }
             setValue(
               "kpi_attachment_url",
               kpisResponse?.result?.kpi_download_url || null,
@@ -575,6 +587,7 @@ const BiAnnualPerformanceModalFields = ({
                           template_id: null,
                           answers: [],
                         });
+                        prefillAppliedForRef.current = null;
                       }}
                       label={
                         <span>
@@ -684,7 +697,6 @@ const BiAnnualPerformanceModalFields = ({
         </Box>
       </FormSection>
 
-      {/* KPI Attachment — same pattern as DAFormModalFields */}
       <FormSection title="KPI ATTACHMENT">
         <Box
           sx={{
@@ -880,7 +892,6 @@ const BiAnnualPerformanceModalFields = ({
         />
       </FormSection>
 
-      {/* File Viewer Dialog */}
       <Dialog
         open={fileViewerOpen}
         onClose={handleCloseViewer}

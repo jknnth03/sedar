@@ -8,9 +8,12 @@ import {
   DialogTitle,
   DialogContent,
   CircularProgress,
+  FormControl,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
-import { useFormContext } from "react-hook-form";
-import { useSelector } from "react-redux";
+import { useFormContext, Controller } from "react-hook-form";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Visibility as VisibilityIcon,
   Close as CloseIcon,
@@ -18,10 +21,33 @@ import {
 } from "@mui/icons-material";
 import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsEmpApi";
 import { useGetFileEmpAttachmentQuery } from "../../../../../features/api/employee/filesempApi";
+import { useLazyGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
+import { setApprovalForm } from "../../../../../features/slice/formSlice";
 
-const ReviewStep = ({ initialData, showHeader = true }) => {
-  const { getValues, watch } = useFormContext();
+const viewIconButtonSx = {
+  color: "#1976d2",
+  backgroundColor: "rgba(25, 118, 210, 0.08)",
+  border: "1px solid rgba(25, 118, 210, 0.3)",
+  borderRadius: "6px",
+  padding: "4px 8px",
+  transition: "all 0.2s ease-in-out",
+  cursor: "pointer",
+  "&:hover": {
+    backgroundColor: "rgba(25, 118, 210, 0.18)",
+    borderColor: "#1976d2",
+    transform: "scale(1.08)",
+    boxShadow: "0 2px 8px rgba(25, 118, 210, 0.25)",
+  },
+  "&:active": {
+    transform: "scale(0.97)",
+    boxShadow: "none",
+  },
+};
+
+const ReviewStep = ({ initialData, showHeader = true, mode = "create" }) => {
+  const { getValues, watch, control } = useFormContext();
   const approvalFormData = useSelector((state) => state.form.approvalForm);
+  const dispatch = useDispatch();
 
   const formValues = watch();
 
@@ -31,6 +57,52 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
   const [fileUrl, setFileUrl] = useState(null);
   const [isPreviewingNewFile, setIsPreviewingNewFile] = useState(false);
   const [viewerType, setViewerType] = useState(null);
+  const [approvalFormsLoaded, setApprovalFormsLoaded] = useState(false);
+
+  const [
+    triggerApprovalForms,
+    { data: approvalFormsData, isLoading: approvalFormsLoading },
+  ] = useLazyGetAllManpowerQuery();
+
+  const normalizeApiData = useCallback((data) => {
+    if (!data) return [];
+    if (data.result && data.result.data) {
+      return Array.isArray(data.result.data) ? data.result.data : [];
+    }
+    return Array.isArray(data)
+      ? data
+      : data.result || data.data || data.items || data.results || [];
+  }, []);
+
+  const approvalForms = normalizeApiData(approvalFormsData);
+  const safeApprovalForms = Array.isArray(approvalForms)
+    ? approvalForms.filter((item) => item && typeof item === "object")
+    : [];
+
+  const currentSubmissionTitle = formValues.submission_title;
+  const hasSubmissionValue = (() => {
+    if (!currentSubmissionTitle) {
+      const fallback =
+        initialData?.general_info?.linked_mrf_title ||
+        initialData?.linked_mrf_title ||
+        initialData?.submission_title;
+      return !!fallback;
+    }
+    if (typeof currentSubmissionTitle === "string") {
+      return currentSubmissionTitle.trim() !== "";
+    }
+    if (typeof currentSubmissionTitle === "object") {
+      return !!(
+        currentSubmissionTitle.id ||
+        currentSubmissionTitle.submission_title ||
+        currentSubmissionTitle.linked_mrf_title
+      );
+    }
+    return false;
+  })();
+
+  const isSubmissionEditable =
+    (mode === "create" || mode === "edit") && !hasSubmissionValue;
 
   const {
     data: attainmentAttachment,
@@ -334,7 +406,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
       label: "Additional Rate Remarks",
       value: getValue(
         "position_details.additional_rate_remarks",
-        "additional_rate_remarks"
+        "additional_rate_remarks",
       ),
     },
     {
@@ -599,7 +671,167 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
 
   return (
     <Box className="review-step">
-      <Paper className="review-step__section">
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
+        <Typography
+          variant="h6"
+          className="review-step__section-title"
+          gutterBottom>
+          MRF
+        </Typography>
+        <Box>
+          {isSubmissionEditable ? (
+            <Controller
+              name="submission_title"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControl fullWidth variant="outlined">
+                  <Autocomplete
+                    onChange={(event, item) => {
+                      onChange(item || null);
+                      if (item && typeof item === "object") {
+                        dispatch(setApprovalForm(item));
+                      }
+                    }}
+                    value={value || null}
+                    options={safeApprovalForms}
+                    loading={approvalFormsLoading}
+                    onFocus={() => {
+                      if (!approvalFormsLoaded) {
+                        triggerApprovalForms({
+                          page: 1,
+                          per_page: 1000,
+                          status: "active",
+                        });
+                        setApprovalFormsLoaded(true);
+                      }
+                    }}
+                    getOptionLabel={(item) => {
+                      if (!item || typeof item !== "object") return "";
+                      return (
+                        item.submission_title ||
+                        item.linked_mrf_title ||
+                        item.title ||
+                        item.name ||
+                        ""
+                      );
+                    }}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      const optionId =
+                        option.id ||
+                        option.submission_title ||
+                        option.linked_mrf_title;
+                      const valueId =
+                        value.id ||
+                        value.submission_title ||
+                        value.linked_mrf_title;
+                      const optionTitle =
+                        option.submission_title ||
+                        option.linked_mrf_title ||
+                        option.title ||
+                        option.name;
+                      const valueTitle =
+                        value.submission_title ||
+                        value.linked_mrf_title ||
+                        value.title ||
+                        value.name;
+                      return optionId === valueId || optionTitle === valueTitle;
+                    }}
+                    renderOption={(props, option) => {
+                      if (!option || typeof option !== "object") return null;
+                      const label =
+                        option.submission_title ||
+                        option.linked_mrf_title ||
+                        option.title ||
+                        option.name ||
+                        "";
+                      return (
+                        <li
+                          {...props}
+                          key={
+                            option.id ||
+                            option.submission_title ||
+                            option.linked_mrf_title ||
+                            Math.random().toString(36)
+                          }
+                          style={{
+                            whiteSpace: "normal",
+                            wordWrap: "break-word",
+                          }}>
+                          {label}
+                        </li>
+                      );
+                    }}
+                    onBlur={() => {
+                      if (
+                        !value ||
+                        typeof value !== "object" ||
+                        (!value.id &&
+                          !value.submission_title &&
+                          !value.linked_mrf_title)
+                      ) {
+                        onChange(null);
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="MRF (Optional)"
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {approvalFormsLoading ? (
+                                <CircularProgress color="inherit" size={20} />
+                              ) : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                        placeholder={
+                          approvalFormsLoading ? "Loading..." : "Select a form"
+                        }
+                      />
+                    )}
+                    noOptionsText="No forms found"
+                    loadingText="Loading forms..."
+                  />
+                </FormControl>
+              )}
+            />
+          ) : (
+            <TextField
+              value={
+                typeof currentSubmissionTitle === "object" &&
+                currentSubmissionTitle
+                  ? currentSubmissionTitle.submission_title ||
+                    currentSubmissionTitle.linked_mrf_title ||
+                    currentSubmissionTitle.title ||
+                    currentSubmissionTitle.name ||
+                    ""
+                  : currentSubmissionTitle ||
+                    initialData?.general_info?.linked_mrf_title ||
+                    initialData?.linked_mrf_title ||
+                    initialData?.submission_title ||
+                    ""
+              }
+              label="MRF"
+              variant="outlined"
+              fullWidth
+              disabled
+              InputProps={{ readOnly: true }}
+            />
+          )}
+        </Box>
+      </Paper>
+
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
         <Typography
           variant="h6"
           className="review-step__section-title"
@@ -620,7 +852,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Box>
       </Paper>
 
-      <Paper className="review-step__section">
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
         <Typography
           variant="h6"
           className="review-step__section-title"
@@ -641,7 +876,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Box>
       </Paper>
 
-      <Paper className="review-step__section">
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
         <Typography
           variant="h6"
           className="review-step__section-title"
@@ -662,7 +900,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Box>
       </Paper>
 
-      <Paper className="review-step__section">
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
         <Typography
           variant="h6"
           className="review-step__section-title"
@@ -684,7 +925,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
       </Paper>
 
       {hasAttainmentData && (
-        <Paper className="review-step__section">
+        <Paper
+          className="review-step__section"
+          elevation={0}
+          sx={{ border: "none", boxShadow: "none" }}>
           <Typography
             variant="h6"
             className="review-step__section-title"
@@ -707,7 +951,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                   </Typography>
                   <Typography variant="body2" className="field-value">
                     {formatValue(
-                      attainment.program_id?.name || attainment.program?.name
+                      attainment.program_id?.name || attainment.program?.name,
                     )}
                   </Typography>
                 </Box>
@@ -717,7 +961,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                   </Typography>
                   <Typography variant="body2" className="field-value">
                     {formatValue(
-                      attainment.degree_id?.name || attainment.degree?.name
+                      attainment.degree_id?.name || attainment.degree?.name,
                     )}
                   </Typography>
                 </Box>
@@ -728,7 +972,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                   <Typography variant="body2" className="field-value">
                     {formatValue(
                       attainment.honor_title_id?.name ||
-                        attainment.honor_title?.name
+                        attainment.honor_title?.name,
                     )}
                   </Typography>
                 </Box>
@@ -739,7 +983,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                   <Typography variant="body2" className="field-value">
                     {formatValue(
                       attainment.attainment_id?.name ||
-                        attainment.attainment?.name
+                        attainment.attainment?.name,
                     )}
                   </Typography>
                 </Box>
@@ -812,8 +1056,8 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                       <IconButton
                         size="small"
                         onClick={() => handleAttainmentPreview(attainment)}
-                        color="primary"
-                        title="View attachment">
+                        title="View attachment"
+                        sx={viewIconButtonSx}>
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
                     </Box>
@@ -825,7 +1069,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Paper>
       )}
 
-      <Paper className="review-step__section">
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
         <Typography
           variant="h6"
           className="review-step__section-title"
@@ -846,7 +1093,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
         </Box>
       </Paper>
 
-      <Paper className="review-step__section">
+      <Paper
+        className="review-step__section"
+        elevation={0}
+        sx={{ border: "none", boxShadow: "none" }}>
         <Typography
           variant="h6"
           className="review-step__section-title"
@@ -868,7 +1118,10 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
       </Paper>
 
       {hasFilesData && (
-        <Paper className="review-step__section">
+        <Paper
+          className="review-step__section"
+          elevation={0}
+          sx={{ border: "none", boxShadow: "none" }}>
           <Typography
             variant="h6"
             className="review-step__section-title"
@@ -893,7 +1146,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                       </Typography>
                       <Typography variant="body2" className="field-value">
                         {formatValue(
-                          file.file_type_id?.name || file.file_type?.name
+                          file.file_type_id?.name || file.file_type?.name,
                         )}
                       </Typography>
                     </Box>
@@ -905,7 +1158,7 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                         {formatValue(
                           file.file_cabinet_id?.name ||
                             file.file_cabinet?.name ||
-                            file.cabinet?.name
+                            file.cabinet?.name,
                         )}
                       </Typography>
                     </Box>
@@ -944,15 +1197,15 @@ const ReviewStep = ({ initialData, showHeader = true }) => {
                         <IconButton
                           size="small"
                           onClick={() => handleFilePreview(file)}
-                          color="primary"
-                          title="View file">
+                          title="View file"
+                          sx={viewIconButtonSx}>
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Box>
                     </Box>
                   </Box>
                 </Box>
-              )
+              ),
           )}
         </Paper>
       )}

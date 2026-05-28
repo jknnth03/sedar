@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import { CONSTANT } from "../../config/router/index";
+import NoDataFound from "../NoDataFound";
 
 const StatusesTable = ({
   employeeStatusList,
@@ -603,22 +603,11 @@ const StatusesTable = ({
               <TableCell
                 colSpan={6}
                 align="center"
-                sx={{ border: "none", py: 8 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 2,
-                  }}>
-                  {CONSTANT.BUTTONS.NODATA.icon}
-                  <Typography variant="h6" color="text.secondary">
-                    No employee statuses found
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {getNoDataMessage?.()}
-                  </Typography>
-                </Box>
+                sx={{ border: "none", py: 4 }}>
+                <NoDataFound
+                  message="No employee statuses found"
+                  subMessage={getNoDataMessage?.()}
+                />
               </TableCell>
             </TableRow>
           )}

@@ -2,10 +2,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import {
   Typography,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Chip,
   Box,
@@ -18,7 +14,6 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import SearchIcon from "@mui/icons-material/Search";
-import HelpIcon from "@mui/icons-material/Help";
 import {
   useDeletePositionMutation,
   useGetPositionsQuery,
@@ -32,6 +27,7 @@ import "../../../pages/GeneralStyle.scss";
 import { useSnackbar } from "notistack";
 import CustomTablePagination from "../../../pages/zzzreusable/CustomTablePagination";
 import { styles } from "../../forms/manpowerform/formSubmissionStyles";
+import ConfirmationDialog from "../../../styles/ConfirmationDialog";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -162,7 +158,6 @@ const Positions = () => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -173,7 +168,7 @@ const Positions = () => {
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
     }),
-    [debouncedSearchQuery, page, rowsPerPage, showArchived]
+    [debouncedSearchQuery, page, rowsPerPage, showArchived],
   );
 
   const {
@@ -186,12 +181,11 @@ const Positions = () => {
   });
 
   const [getPositionById] = useLazyGetPositionByIdQuery();
-
   const [archivePosition] = useDeletePositionMutation();
 
   const positionList = useMemo(
     () => positions?.result?.data || [],
-    [positions]
+    [positions],
   );
   const totalCount = positions?.result?.total || 0;
 
@@ -209,7 +203,6 @@ const Positions = () => {
     if (position.position_attachment_filename) {
       return position.position_attachment_filename;
     }
-
     if (position.position_attachment) {
       try {
         const urlParts = position.position_attachment.split("/");
@@ -219,7 +212,6 @@ const Positions = () => {
         return position.position_attachment;
       }
     }
-
     return null;
   };
 
@@ -234,19 +226,16 @@ const Positions = () => {
 
   const handleArchiveRestoreClick = useCallback(
     (position, event) => {
-      if (event) {
-        event.stopPropagation();
-      }
+      if (event) event.stopPropagation();
       setSelectedPosition(position);
       setConfirmOpen(true);
       handleMenuClose(position.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedPosition) return;
-
     setIsLoading(true);
     try {
       await archivePosition(selectedPosition.id).unwrap();
@@ -254,20 +243,18 @@ const Positions = () => {
         selectedPosition.deleted_at
           ? "Position restored successfully!"
           : "Position archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
-    } catch (error) {
-      enqueueSnackbar(
-        error?.data?.message || "Action failed. Please try again.",
-        {
-          variant: "error",
-          autoHideDuration: 2000,
-        }
-      );
-    } finally {
       setConfirmOpen(false);
       setSelectedPosition(null);
+    } catch (error) {
+      const message =
+        typeof error?.data?.message === "string"
+          ? error.data.message
+          : "Action failed. Please try again.";
+      enqueueSnackbar(message, { variant: "error", autoHideDuration: 2000 });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -285,7 +272,7 @@ const Positions = () => {
       setEdit(true);
       setModalOpen(true);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleRowClick = (position) => {
@@ -346,7 +333,6 @@ const Positions = () => {
 
   const renderStatusChip = useCallback((position) => {
     const isActive = !position.deleted_at;
-
     return (
       <Chip
         label={isActive ? "ACTIVE" : "ARCHIVED"}
@@ -359,15 +345,24 @@ const Positions = () => {
           fontSize: "11px",
           height: "24px",
           borderRadius: "12px",
-          "& .MuiChip-label": {
-            padding: "0 8px",
-          },
+          "& .MuiChip-label": { padding: "0 8px" },
         }}
       />
     );
   }, []);
 
   const isLoadingState = isFetching || isLoading;
+
+  const confirmItemName = selectedPosition
+    ? [
+        selectedPosition.code,
+        typeof selectedPosition.title === "object"
+          ? selectedPosition.title?.name || selectedPosition.title?.code || ""
+          : selectedPosition.title || "",
+      ]
+        .filter(Boolean)
+        .join(" - ")
+    : "";
 
   return (
     <>
@@ -402,12 +397,8 @@ const Positions = () => {
                     backgroundColor: "rgb(33, 61, 112)",
                     color: "white",
                     borderRadius: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgb(25, 45, 84)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "#ccc",
-                    },
+                    "&:hover": { backgroundColor: "rgb(25, 45, 84)" },
+                    "&:disabled": { backgroundColor: "#ccc" },
                   }}>
                   <AddIcon sx={{ fontSize: "18px" }} />
                 </IconButton>
@@ -419,9 +410,7 @@ const Positions = () => {
                   sx={{
                     ...styles.createButton,
                     backgroundColor: "rgb(33, 61, 112)",
-                    "&:hover": {
-                      backgroundColor: "rgb(25, 45, 84)",
-                    },
+                    "&:hover": { backgroundColor: "rgb(25, 45, 84)" },
                   }}>
                   CREATE
                 </Button>
@@ -517,66 +506,18 @@ const Positions = () => {
         />
       )}
 
-      <Dialog
+      <ConfirmationDialog
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3 },
-        }}>
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <HelpIcon sx={{ fontSize: 60, color: "#55b8ff" }} />
-          </Box>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            textAlign="center"
-            color="rgb(33, 61, 112)">
-            Confirmation
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom textAlign="center">
-            Are you sure you want to{" "}
-            <strong>
-              {selectedPosition?.deleted_at ? "restore" : "archive"}
-            </strong>{" "}
-            this position?
-          </Typography>
-          {selectedPosition && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mt: 1 }}>
-              {selectedPosition.code} - {selectedPosition.title || ""}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Box
-            display="flex"
-            justifyContent="center"
-            width="100%"
-            gap={2}
-            mb={2}>
-            <Button
-              onClick={() => setConfirmOpen(false)}
-              variant="outlined"
-              color="error">
-              No
-            </Button>
-            <Button
-              onClick={handleArchiveRestoreConfirm}
-              variant="contained"
-              color="success">
-              Yes
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+        onClose={() => {
+          setConfirmOpen(false);
+          setSelectedPosition(null);
+        }}
+        onConfirm={handleArchiveRestoreConfirm}
+        isLoading={isLoading}
+        action={selectedPosition?.deleted_at ? "restore" : "archive"}
+        itemName={confirmItemName}
+        module="position"
+      />
     </>
   );
 };

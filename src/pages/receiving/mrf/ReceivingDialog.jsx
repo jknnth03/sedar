@@ -160,7 +160,10 @@ const SubmissionDialog = ({
     submittable.justification || "No justification provided";
   const getRemarks = () => submittable.remarks || "No remarks";
 
-  const isProcessed = submission?.status === "APPROVED";
+  const isProcessed =
+    submission?.status === "APPROVED" ||
+    submission?.status === "RECEIVED" ||
+    submission?.status === "RETURNED";
 
   return (
     <>
@@ -503,7 +506,11 @@ const SubmissionDialog = ({
                     variant="h6"
                     color="text.secondary"
                     sx={{ fontSize: "16px" }}>
-                    This submission has already been approved
+                    {submission?.status === "RECEIVED"
+                      ? "This submission has already been received"
+                      : submission?.status === "RETURNED"
+                        ? "This submission has been returned"
+                        : "This submission has already been approved"}
                   </Typography>
                 </Box>
               )}

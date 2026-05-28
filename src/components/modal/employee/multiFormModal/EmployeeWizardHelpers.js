@@ -9,7 +9,7 @@ export const STEPS = [
   "Account",
   "Contact",
   "Files",
-  "Review",
+  "Final Summary",
 ];
 
 const formatDateForForm = (dateValue) => {
@@ -26,7 +26,7 @@ const formatDateForForm = (dateValue) => {
       momentDate = moment(
         dateValue,
         ["MMM D, YYYY", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD-MM-YYYY"],
-        true
+        true,
       );
 
       if (!momentDate.isValid()) {
@@ -40,7 +40,7 @@ const formatDateForForm = (dateValue) => {
         String(dateValue.getMonth() + 1).padStart(2, "0") +
         "-" +
         String(dateValue.getDate()).padStart(2, "0"),
-      "YYYY-MM-DD"
+      "YYYY-MM-DD",
     );
   } else {
     momentDate = moment(dateValue);
@@ -63,7 +63,7 @@ const normalizeDateForComparison = (dateValue) => {
       momentDate = moment(
         dateValue,
         ["MMM D, YYYY", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD-MM-YYYY"],
-        true
+        true,
       );
 
       if (!momentDate.isValid()) {
@@ -77,7 +77,7 @@ const normalizeDateForComparison = (dateValue) => {
         String(dateValue.getMonth() + 1).padStart(2, "0") +
         "-" +
         String(dateValue.getDate()).padStart(2, "0"),
-      "YYYY-MM-DD"
+      "YYYY-MM-DD",
     );
   } else {
     momentDate = moment(dateValue);
@@ -216,13 +216,13 @@ export const initializeFormData = (initialData) => {
             index: index,
             employment_type_label: employment.employment_type_label || "",
             employment_start_date: formatDateForForm(
-              employment.start_date || employment.employment_start_date
+              employment.start_date || employment.employment_start_date,
             ),
             employment_end_date: formatDateForForm(
-              employment.end_date || employment.employment_end_date
+              employment.end_date || employment.employment_end_date,
             ),
             regularization_date: formatDateForForm(
-              employment.regularization_date
+              employment.regularization_date,
             ),
           }))
         : [
@@ -311,7 +311,7 @@ export const handleEmploymentTypeChange = (
   index,
   newType,
   setValue,
-  getValues
+  getValues,
 ) => {
   const currentEmploymentTypes = getValues("employment_types") || [];
   const updatedEmploymentTypes = [...currentEmploymentTypes];
@@ -337,7 +337,7 @@ export const handleStartDateChange = (
   index,
   newStartDate,
   setValue,
-  getValues
+  getValues,
 ) => {
   const currentEmploymentTypes = getValues("employment_types") || [];
   const updatedEmploymentTypes = [...currentEmploymentTypes];
@@ -381,7 +381,7 @@ export const createDialogConfig = (
   currentMode,
   maxWidth = "lg",
   fullWidth = true,
-  height = "90vh"
+  height = "90vh",
 ) => ({
   open,
   onClose: handleClose,
@@ -403,7 +403,7 @@ export const createDialogConfig = (
 
 export const createLoadingDialog = (
   open,
-  message = "Loading employee data..."
+  message = "Loading employee data...",
 ) => ({
   open,
   maxWidth: "lg",
@@ -425,7 +425,7 @@ export const createLoadingDialog = (
 export const createErrorDialog = (
   open,
   handleClose,
-  error = "Failed to load employee data. Please try again."
+  error = "Failed to load employee data. Please try again.",
 ) => ({
   open,
   maxWidth: "lg",
@@ -538,24 +538,24 @@ export const hasEmploymentTypesChanged = (currentData, originalData) => {
     }
 
     const currentStartDate = normalizeDateForComparison(
-      current.employment_start_date
+      current.employment_start_date,
     );
     const originalStartDate = normalizeDateForComparison(
-      original.start_date || original.employment_start_date
+      original.start_date || original.employment_start_date,
     );
 
     const currentEndDate = normalizeDateForComparison(
-      current.employment_end_date
+      current.employment_end_date,
     );
     const originalEndDate = normalizeDateForComparison(
-      original.end_date || original.employment_end_date
+      original.end_date || original.employment_end_date,
     );
 
     const currentRegDate = normalizeDateForComparison(
-      current.regularization_date
+      current.regularization_date,
     );
     const originalRegDate = normalizeDateForComparison(
-      original.regularization_date
+      original.regularization_date,
     );
 
     if (
@@ -575,7 +575,7 @@ export const hasFormDataChanged = (currentData, originalData) => {
 
   const employmentChanged = hasEmploymentTypesChanged(
     currentData.employment_types,
-    originalData.employment_types
+    originalData.employment_types,
   );
 
   if (employmentChanged) return true;

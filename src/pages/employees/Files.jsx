@@ -24,7 +24,6 @@ import {
   Close as CloseIcon,
   Download as DownloadIcon,
 } from "@mui/icons-material";
-import NoDataGIF from "../../assets/no-data.gif";
 import { useSnackbar } from "notistack";
 import {
   useGetShowFileTypesEmpQuery,
@@ -34,9 +33,9 @@ import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainA
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const Files = ({
   searchQuery,
@@ -604,36 +603,19 @@ const Files = ({
                   <TableCell
                     colSpan={3}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT?.BUTTONS?.NODATA?.icon || (
-                        <>
-                          <img
-                            src={NoDataGIF}
-                            alt="No data"
-                            style={{ width: 150 }}
-                          />
-                        </>
-                      )}
-                      <Typography variant="h6" color="text.secondary">
-                        No files found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {debounceValue && debounceValue.trim() !== ""
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message="No files found"
+                      subMessage={
+                        debounceValue && debounceValue.trim() !== ""
                           ? `No results for "${debounceValue}"`
                           : Object.values(filters).some(
                                 (v) => v && v !== "ACTIVE",
                               )
-                            ? `No files with selected filters`
-                            : "No files"}
-                      </Typography>
-                    </Box>
+                            ? "No files with selected filters"
+                            : "No files"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

@@ -27,11 +27,11 @@ import {
 } from "../../features/api/employee/accountsApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const Accounts = ({
   searchQuery: parentSearchQuery,
@@ -512,26 +512,17 @@ const Accounts = ({
                   <TableCell
                     colSpan={7}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT.BUTTONS.NODATA.icon}
-                      <Typography variant="h6" color="text.secondary">
-                        No accounts found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message="No accounts found"
+                      subMessage={
+                        searchQuery
                           ? `No results for "${searchQuery}"`
                           : showArchived
                             ? "No archived accounts"
-                            : "No active accounts"}
-                      </Typography>
-                    </Box>
+                            : "No active accounts"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

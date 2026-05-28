@@ -18,11 +18,11 @@ import { useSnackbar } from "notistack";
 import { useGetEmploymentTypesQuery } from "../../features/api/employee/employeetypesApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const EmployeeTypes = ({
   searchQuery: parentSearchQuery,
@@ -497,28 +497,19 @@ const EmployeeTypes = ({
                   <TableCell
                     colSpan={6}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT.BUTTONS.NODATA.icon}
-                      <Typography variant="h6" color="text.secondary">
-                        No employment types found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message="No employment types found"
+                      subMessage={
+                        searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
                                 (v) => v && v !== "ACTIVE",
                               )
-                            ? `No employment types with selected filters`
-                            : "No employment types"}
-                      </Typography>
-                    </Box>
+                            ? "No employment types with selected filters"
+                            : "No employment types"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

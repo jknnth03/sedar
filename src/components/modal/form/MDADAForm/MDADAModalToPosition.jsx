@@ -95,7 +95,7 @@ export const ToPositionFields = ({
   };
 
   useEffect(() => {
-    if (toPositionId && positions.length > 0) {
+    if (toPositionId && positions.length > 0 && currentMode !== "view") {
       const selectedPosition = positions.find((p) => p.id === toPositionId);
       if (selectedPosition) {
         const positionTitle =
@@ -110,10 +110,10 @@ export const ToPositionFields = ({
         setValue("to_sub_unit", subUnitName, { shouldValidate: true });
       }
     }
-  }, [toPositionId, positions, setValue]);
+  }, [toPositionId, positions, setValue, currentMode]);
 
   useEffect(() => {
-    if (toJobLevelId && jobLevels.length > 0) {
+    if (toJobLevelId && jobLevels.length > 0 && currentMode !== "view") {
       const selectedJobLevel = jobLevels.find((jl) => jl.id === toJobLevelId);
       if (selectedJobLevel) {
         setValue("to_job_level", selectedJobLevel.name || "", {
@@ -121,7 +121,7 @@ export const ToPositionFields = ({
         });
       }
     }
-  }, [toJobLevelId, jobLevels, setValue]);
+  }, [toJobLevelId, jobLevels, setValue, currentMode]);
 
   useEffect(() => {
     if (currentMode === "edit" && !toJobLevelId && formValues.to_job_level) {

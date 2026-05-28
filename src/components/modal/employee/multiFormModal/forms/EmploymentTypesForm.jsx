@@ -40,7 +40,7 @@ const formatDateForInput = (dateValue) => {
         date = new Date(
           parseInt(parts[0]),
           parseInt(parts[1]) - 1,
-          parseInt(parts[2])
+          parseInt(parts[2]),
         );
       } else {
         date = new Date(dateValue);
@@ -105,39 +105,12 @@ const EmploymentTypesForm = ({
   const isReadOnly = mode === "view";
   const isFieldDisabled = isLoading || isReadOnly;
 
-  const getMinDateWithOneMonthBack = () => {
-    const today = new Date();
-    const oneMonthBack = new Date(today);
-    oneMonthBack.setMonth(oneMonthBack.getMonth() - 1);
-    return oneMonthBack.toISOString().split("T")[0];
-  };
-
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  };
-
-  const getMaxDate = () => {
-    const today = new Date();
-    const nextYear = today.getFullYear() + 1;
-    return `${nextYear}-12-31`;
-  };
-
-  const isDateBeyondNextYear = (dateString) => {
-    if (!dateString) return false;
-    const inputDate = new Date(dateString);
-    const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    return inputDate.getFullYear() > nextYear;
-  };
-
-  const isDateBeforeMinAllowed = (dateString) => {
-    if (!dateString) return false;
-    const inputDate = new Date(dateString);
-    const minDate = new Date(getMinDateWithOneMonthBack());
-    minDate.setHours(0, 0, 0, 0);
-    inputDate.setHours(0, 0, 0, 0);
-    return inputDate < minDate;
+  const getProbationaryStartDate = () => {
+    const currentEmploymentTypes = watchedEmploymentTypes || [];
+    const probationaryEntry = currentEmploymentTypes.find(
+      (emp) => emp.employment_type_label === "PROBATIONARY",
+    );
+    return probationaryEntry?.employment_start_date || null;
   };
 
   const isDateBeforeStartDate = (dateString, startDate) => {
@@ -147,84 +120,30 @@ const EmploymentTypesForm = ({
     return inputDate < startDateObj;
   };
 
-  const getProbationaryStartDate = () => {
-    const currentEmploymentTypes = watchedEmploymentTypes || [];
-    const probationaryEntry = currentEmploymentTypes.find(
-      (emp) => emp.employment_type_label === "PROBATIONARY"
-    );
-    return probationaryEntry?.employment_start_date || null;
-  };
-
-  const getRegularizationDateConstraints = () => {
-    const probationaryStartDate = getProbationaryStartDate();
-    const today = getCurrentDate();
-
-    let minDate = today;
-    if (probationaryStartDate) {
-      minDate = probationaryStartDate > today ? probationaryStartDate : today;
-    }
-
-    return {
-      min: minDate,
-      max: getMaxDate(),
-      probationaryStartDate,
-    };
-  };
-
   const getAvailableEmploymentTypes = (currentIndex) => {
-    const baseOptions = getEmploymentTypeLabelOptions(mode);
-    return baseOptions;
+    return getEmploymentTypeLabelOptions(mode);
   };
 
-  const isLineDisabled = (index) => {
+  const isTypeLabelDisabled = (index) => {
     if (mode === "view") return true;
     if (mode === "create") return false;
     if (mode === "edit") {
-      if (index === 0) return true;
-
       const currentEmploymentTypes = watchedEmploymentTypes || [];
-      const currentLineType =
-        currentEmploymentTypes[index]?.employment_type_label;
-
-      if (currentLineType === "REGULAR") {
-        return false;
-      }
-
       const hasRegularInOtherLine = currentEmploymentTypes.some(
-        (emp, idx) => idx !== index && emp.employment_type_label === "REGULAR"
+        (emp, idx) => idx !== index && emp.employment_type_label === "REGULAR",
       );
-
       return hasRegularInOtherLine;
     }
     return false;
   };
 
+  const isDateFieldDisabled = () => {
+    if (mode === "view") return true;
+    return false;
+  };
+
   const handleDateValidation = (value, field, index) => {
     if (isReadOnly) return true;
-
-    if (value && isDateBeyondNextYear(value)) {
-      const currentYear = new Date().getFullYear();
-      const nextYear = currentYear + 1;
-      enqueueSnackbar(
-        `Cannot select dates beyond ${nextYear}. Current year is ${currentYear}.`,
-        { variant: "error" }
-      );
-      return false;
-    }
-
-    if (
-      field === "employment_start_date" &&
-      value &&
-      isDateBeforeMinAllowed(value)
-    ) {
-      enqueueSnackbar(
-        "Cannot select dates more than 1 month in the past for employment start date.",
-        {
-          variant: "error",
-        }
-      );
-      return false;
-    }
 
     if (field === "employment_end_date" && value && index !== undefined) {
       const currentEmploymentTypes = watchedEmploymentTypes || [];
@@ -240,23 +159,13 @@ const EmploymentTypesForm = ({
     if (field === "regularization_date" && value) {
       const probationaryStartDate = getProbationaryStartDate();
 
-      if (isDateBeforeMinAllowed(value)) {
-        enqueueSnackbar(
-          "Cannot select dates more than 1 month in the past for regularization date.",
-          {
-            variant: "error",
-          }
-        );
-        return false;
-      }
-
       if (
         probationaryStartDate &&
         isDateBeforeStartDate(value, probationaryStartDate)
       ) {
         enqueueSnackbar(
           "Regularization date cannot be before probationary start date.",
-          { variant: "error" }
+          { variant: "error" },
         );
         return false;
       }
@@ -264,7 +173,7 @@ const EmploymentTypesForm = ({
       if (!probationaryStartDate) {
         enqueueSnackbar(
           "Please add a probationary employment entry first to set regularization date constraints.",
-          { variant: "warning" }
+          { variant: "warning" },
         );
       }
     }
@@ -279,7 +188,7 @@ const EmploymentTypesForm = ({
         emp.employment_type_label ||
         emp.employment_start_date ||
         emp.employment_end_date ||
-        emp.regularization_date
+        emp.regularization_date,
     );
 
     if (!hasValidData) {
@@ -313,15 +222,15 @@ const EmploymentTypesForm = ({
             index: index,
             employment_type_label: employment.employment_type_label || "",
             employment_start_date: formatDateForInput(
-              employment.employment_start_date
+              employment.employment_start_date,
             ),
             employment_end_date: formatDateForInput(
-              employment.employment_end_date
+              employment.employment_end_date,
             ),
             regularization_date: formatDateForInput(
-              employment.regularization_date
+              employment.regularization_date,
             ),
-          })
+          }),
         );
         replace(newEmploymentLines);
       } else {
@@ -331,7 +240,7 @@ const EmploymentTypesForm = ({
       setErrorMessage(null);
       setIsInitialized(true);
     },
-    [replace, clearErrors, initializeEmptyForm]
+    [replace, clearErrors, initializeEmptyForm],
   );
 
   const shouldReinitialize = useCallback(() => {
@@ -345,10 +254,10 @@ const EmploymentTypesForm = ({
     if (isInitialized && lastInitializedMode.current === mode) {
       if (mode === "edit" || mode === "view") {
         const currentDataString = JSON.stringify(
-          employeeData?.employment_types || []
+          employeeData?.employment_types || [],
         );
         const lastDataString = JSON.stringify(
-          lastInitializedData.current || []
+          lastInitializedData.current || [],
         );
         return currentDataString !== lastDataString;
       }
@@ -430,7 +339,7 @@ const EmploymentTypesForm = ({
       } else {
         const hasStartDate = !!line.employment_start_date;
         const needsEndDate = ["AGENCY HIRED", "PROJECT BASED"].includes(
-          line.employment_type_label
+          line.employment_type_label,
         );
         const hasEndDate = !!line.employment_end_date;
 
@@ -474,15 +383,13 @@ const EmploymentTypesForm = ({
           const currentEmploymentType = watchedEmploymentTypes?.[index];
           const isRegular =
             currentEmploymentType?.employment_type_label === "REGULAR";
-          const isNonRegular =
-            currentEmploymentType?.employment_type_label && !isRegular;
           const isEndDateRequired =
             currentEmploymentType?.employment_type_label === "AGENCY HIRED" ||
             currentEmploymentType?.employment_type_label === "PROJECT BASED";
 
-          const regularizationConstraints = getRegularizationDateConstraints();
           const availableEmploymentTypes = getAvailableEmploymentTypes(index);
-          const lineDisabled = isLineDisabled(index);
+          const typeLabelDisabled = isTypeLabelDisabled(index);
+          const dateDisabled = isDateFieldDisabled();
 
           return (
             <Box
@@ -518,7 +425,7 @@ const EmploymentTypesForm = ({
                         className="general-form__text-field"
                         fullWidth
                         variant="outlined"
-                        disabled={isFieldDisabled || lineDisabled}
+                        disabled={isFieldDisabled || typeLabelDisabled}
                         error={!!error}>
                         <InputLabel>
                           Employment Type Label{" "}
@@ -526,11 +433,11 @@ const EmploymentTypesForm = ({
                         </InputLabel>
                         <Select
                           onChange={(e) => {
-                            if (!lineDisabled) {
+                            if (!typeLabelDisabled) {
                               onChange(e);
                               setTimeout(() => {
                                 trigger(
-                                  `employment_types.${index}.employment_type_label`
+                                  `employment_types.${index}.employment_type_label`,
                                 );
                                 setForceUpdate((prev) => prev + 1);
                               }, 100);
@@ -539,10 +446,10 @@ const EmploymentTypesForm = ({
                           onBlur={onBlur}
                           value={value || ""}
                           label="Employment Type Label *"
-                          readOnly={isReadOnly || lineDisabled}
+                          readOnly={isReadOnly || typeLabelDisabled}
                           sx={{
                             borderRadius: 2,
-                            ...(lineDisabled && {
+                            ...(typeLabelDisabled && {
                               backgroundColor: "#f5f5f5",
                               "& .MuiOutlinedInput-notchedOutline": {
                                 borderColor: "#e0e0e0",
@@ -579,17 +486,16 @@ const EmploymentTypesForm = ({
                           onChange={(e) => {
                             if (
                               !isReadOnly &&
-                              !lineDisabled &&
                               handleDateValidation(
                                 e.target.value,
                                 "employment_start_date",
-                                index
+                                index,
                               )
                             ) {
                               onChange(e);
                               setTimeout(() => {
                                 trigger(
-                                  `employment_types.${index}.employment_start_date`
+                                  `employment_types.${index}.employment_start_date`,
                                 );
                               }, 100);
                             }
@@ -606,36 +512,21 @@ const EmploymentTypesForm = ({
                           type="date"
                           variant="outlined"
                           fullWidth
-                          disabled={isFieldDisabled || lineDisabled}
+                          disabled={isFieldDisabled || dateDisabled}
                           error={!!error}
-                          helperText={
-                            error?.message ||
-                            "Cannot select dates more than 1 month in the past"
-                          }
-                          inputProps={{
-                            min: getMinDateWithOneMonthBack(),
-                            max: getMaxDate(),
-                          }}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
+                          helperText={error?.message || ""}
+                          InputLabelProps={{ shrink: true }}
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
                                 <CalendarIcon />
                               </InputAdornment>
                             ),
-                            readOnly: isReadOnly || lineDisabled,
+                            readOnly: isReadOnly,
                           }}
                           sx={{
                             "& .MuiOutlinedInput-root": {
                               borderRadius: 2,
-                              ...(lineDisabled && {
-                                backgroundColor: "#f5f5f5",
-                                "& .MuiOutlinedInput-notchedOutline": {
-                                  borderColor: "#e0e0e0",
-                                },
-                              }),
                             },
                           }}
                         />
@@ -657,17 +548,16 @@ const EmploymentTypesForm = ({
                           onChange={(e) => {
                             if (
                               !isReadOnly &&
-                              !lineDisabled &&
                               handleDateValidation(
                                 e.target.value,
                                 "employment_end_date",
-                                index
+                                index,
                               )
                             ) {
                               onChange(e);
                               setTimeout(() => {
                                 trigger(
-                                  `employment_types.${index}.employment_end_date`
+                                  `employment_types.${index}.employment_end_date`,
                                 );
                               }, 100);
                             }
@@ -686,7 +576,7 @@ const EmploymentTypesForm = ({
                           type="date"
                           variant="outlined"
                           fullWidth
-                          disabled={isFieldDisabled || lineDisabled}
+                          disabled={isFieldDisabled || dateDisabled}
                           error={!!error}
                           helperText={
                             error?.message ||
@@ -697,29 +587,20 @@ const EmploymentTypesForm = ({
                           inputProps={{
                             min:
                               currentEmploymentType?.employment_start_date ||
-                              getMinDateWithOneMonthBack(),
-                            max: getMaxDate(),
+                              undefined,
                           }}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
+                          InputLabelProps={{ shrink: true }}
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
                                 <CalendarIcon />
                               </InputAdornment>
                             ),
-                            readOnly: isReadOnly || lineDisabled,
+                            readOnly: isReadOnly,
                           }}
                           sx={{
                             "& .MuiOutlinedInput-root": {
                               borderRadius: 2,
-                              ...(lineDisabled && {
-                                backgroundColor: "#f5f5f5",
-                                "& .MuiOutlinedInput-notchedOutline": {
-                                  borderColor: "#e0e0e0",
-                                },
-                              }),
                             },
                           }}
                         />
@@ -741,17 +622,16 @@ const EmploymentTypesForm = ({
                           onChange={(e) => {
                             if (
                               !isReadOnly &&
-                              !lineDisabled &&
                               handleDateValidation(
                                 e.target.value,
                                 "regularization_date",
-                                index
+                                index,
                               )
                             ) {
                               onChange(e);
                               setTimeout(() => {
                                 trigger(
-                                  `employment_types.${index}.regularization_date`
+                                  `employment_types.${index}.regularization_date`,
                                 );
                               }, 100);
                             }
@@ -768,38 +648,23 @@ const EmploymentTypesForm = ({
                           type="date"
                           variant="outlined"
                           fullWidth
-                          disabled={isFieldDisabled || lineDisabled}
+                          disabled={isFieldDisabled || dateDisabled}
                           error={!!error}
                           helperText={
-                            error?.message ||
-                            (regularizationConstraints.probationaryStartDate
-                              ? "Required and cannot be before probationary start date or more than 1 month in the past"
-                              : "Required for regular employees. Add probationary employment first for proper validation.")
+                            error?.message || "Required for regular employees."
                           }
-                          inputProps={{
-                            min: regularizationConstraints.min,
-                            max: regularizationConstraints.max,
-                          }}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
+                          InputLabelProps={{ shrink: true }}
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
                                 <CalendarIcon />
                               </InputAdornment>
                             ),
-                            readOnly: isReadOnly || lineDisabled,
+                            readOnly: isReadOnly,
                           }}
                           sx={{
                             "& .MuiOutlinedInput-root": {
                               borderRadius: 2,
-                              ...(lineDisabled && {
-                                backgroundColor: "#f5f5f5",
-                                "& .MuiOutlinedInput-notchedOutline": {
-                                  borderColor: "#e0e0e0",
-                                },
-                              }),
                             },
                           }}
                         />

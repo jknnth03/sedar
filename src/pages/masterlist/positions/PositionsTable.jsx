@@ -57,6 +57,12 @@ const PositionsTable = ({
       align: "center",
       width: styles.columnStyles.status,
     },
+    {
+      id: "team",
+      label: "TEAM",
+      width: styles.columnStyles.formName,
+      hideOnMobile: true,
+    },
     { id: "superior", label: "SUPERIOR", width: styles.columnStyles.formName },
     {
       id: "req",
@@ -73,12 +79,6 @@ const PositionsTable = ({
     {
       id: "schedule",
       label: "SCHEDULE",
-      width: styles.columnStyles.formName,
-      hideOnMobile: true,
-    },
-    {
-      id: "team",
-      label: "TEAM",
       width: styles.columnStyles.formName,
       hideOnMobile: true,
     },
@@ -146,6 +146,13 @@ const PositionsTable = ({
           </IconButton>
         );
 
+      case "team":
+        const teamValue =
+          typeof position.team === "object" && position.team !== null
+            ? position.team.name || position.team.code || "—"
+            : position.team || "—";
+        return <span style={styles.cellContentStyles}>{teamValue}</span>;
+
       case "superior":
         const superiorValue =
           typeof position.superior === "object" && position.superior !== null
@@ -181,13 +188,6 @@ const PositionsTable = ({
             ? position.schedule.name || position.schedule.code || "—"
             : position.schedule || "—";
         return <span style={styles.cellContentStyles}>{scheduleValue}</span>;
-
-      case "team":
-        const teamValue =
-          typeof position.team === "object" && position.team !== null
-            ? position.team.name || position.team.code || "—"
-            : position.team || "—";
-        return <span style={styles.cellContentStyles}>{teamValue}</span>;
 
       case "tools":
         return (

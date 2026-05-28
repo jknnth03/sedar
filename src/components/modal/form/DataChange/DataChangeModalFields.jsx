@@ -44,6 +44,7 @@ import {
   containerStyles,
   hiddenInputStyles,
 } from "./DataChangeModalStyles";
+import { useGetAllShowSchedulesQuery } from "../../../../features/api/extras/schedulesApi";
 
 const DataChangeModalFields = ({
   isLoading = false,
@@ -71,6 +72,7 @@ const DataChangeModalFields = ({
     movementTypes: false,
     positions: false,
     mrfSubmissions: false,
+    schedules: false,
   });
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [editModeEmployees, setEditModeEmployees] = useState([]);
@@ -107,6 +109,11 @@ const DataChangeModalFields = ({
       { skip: !shouldLoadDropdowns || !dropdownsLoaded.mrfSubmissions },
     );
 
+  const { data: schedulesData, isLoading: schedulesLoading } =
+    useGetAllShowSchedulesQuery(undefined, {
+      skip: !shouldLoadDropdowns || !dropdownsLoaded.schedules,
+    });
+
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -139,6 +146,23 @@ const DataChangeModalFields = ({
     () => normalizeApiData(mrfSubmissionsData),
     [mrfSubmissionsData, normalizeApiData],
   );
+
+  const schedules = useMemo(
+    () => normalizeApiData(schedulesData),
+    [schedulesData, normalizeApiData],
+  );
+
+  const getScheduleLabel = (item) => {
+    if (!item) return "";
+    if (typeof item === "string") return item;
+    if (item?.label) return item.label;
+    const name = item?.name || "";
+    const restDay = item?.rest_day?.name || "";
+    const workWeek = item?.work_week?.name || "";
+    if (restDay && workWeek) return `${name} | ${restDay} | ${workWeek}`;
+    if (restDay) return `${name} | ${restDay}`;
+    return name;
+  };
 
   const excludedMovementTypes = [
     "Position Alignment",
@@ -238,6 +262,17 @@ const DataChangeModalFields = ({
 
   useEffect(() => {
     if (mode === "edit" && selectedEntry?.result?.submittable) {
+      setDropdownsLoaded({
+        forms: true,
+        employees: true,
+        movementTypes: true,
+        positions: true,
+        mrfSubmissions: true,
+        schedules: true,
+      });
+
+      triggerGetEmployees({ page: 1, per_page: 1000, status: "active" });
+
       const submittable = selectedEntry.result.submittable;
 
       if (submittable.employee_id) {
@@ -254,14 +289,52 @@ const DataChangeModalFields = ({
           department:
             submittable.from_position?.charging?.department_name || "N/A",
           sub_unit: submittable.from_position?.charging?.sub_unit_name || "N/A",
-          schedule: submittable.from_position?.schedule?.name || "N/A",
+          location: submittable.from_position?.charging?.location_name || "N/A",
+          schedule:
+            submittable.from_schedule?.label ||
+            submittable.from_schedule?.name ||
+            "N/A",
           job_rate: submittable.from_position?.job_rate || 0,
         };
 
         setValue("employee_id", singleEmployee, { shouldValidate: false });
       }
+
+      if (submittable.movement_type) {
+        setValue("movement_type_id", submittable.movement_type, {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.effective_date) {
+        setValue("effective_date", dayjs(submittable.effective_date), {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.to_position) {
+        setValue("to_position_id", submittable.to_position, {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.to_schedule?.id) {
+        setValue("to_schedule_id", submittable.to_schedule.id, {
+          shouldValidate: false,
+        });
+      }
+
+      if (submittable.approved_mrf_id) {
+        setValue(
+          "approved_mrf_id",
+          { id: submittable.approved_mrf_id },
+          {
+            shouldValidate: false,
+          },
+        );
+      }
     }
-  }, [mode, selectedEntry, setValue]);
+  }, [mode, selectedEntry, setValue, triggerGetEmployees]);
 
   const createFormData = useCallback(() => {
     const formData = new FormData();
@@ -284,6 +357,10 @@ const DataChangeModalFields = ({
 
     if (values.to_position_id?.id) {
       formData.append("to_position_id", values.to_position_id.id);
+    }
+
+    if (values.to_schedule_id) {
+      formData.append("to_schedule_id", values.to_schedule_id);
     }
 
     if (values.approved_mrf_id?.id && showMrfField) {
@@ -322,15 +399,28 @@ const DataChangeModalFields = ({
       ? watchedEmployee
       : watchedEmployee;
 
+  const displayCharging =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? selectedEntry.result.submittable.from_position?.charging?.name || "N/A"
+      : displayEmployee?.charging || "N/A";
+
   const displayDepartment =
     mode === "view" && selectedEntry?.result?.submittable
       ? selectedEntry.result.submittable.from_position?.charging
           ?.department_name || "N/A"
       : displayEmployee?.department || "N/A";
 
+  const displayLocation =
+    mode === "view" && selectedEntry?.result?.submittable
+      ? selectedEntry.result.submittable.from_position?.charging
+          ?.location_name || "N/A"
+      : displayEmployee?.location || "N/A";
+
   const displaySchedule =
     mode === "view" && selectedEntry?.result?.submittable
-      ? selectedEntry.result.submittable.from_position?.schedule?.name || "N/A"
+      ? selectedEntry.result.submittable.from_schedule?.label ||
+        selectedEntry.result.submittable.from_schedule?.name ||
+        "N/A"
       : displayEmployee?.schedule || "N/A";
 
   const displayPositionFrom =
@@ -343,6 +433,23 @@ const DataChangeModalFields = ({
       ? selectedEntry.result.submittable.from_position?.charging
           ?.sub_unit_name || "N/A"
       : displayEmployee?.sub_unit || "N/A";
+
+  const labelStyle = {
+    fontWeight: "bold",
+    color: "rgb(33, 61, 112)",
+    marginBottom: 1.5,
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  };
+
+  const valueStyle = {
+    fontSize: "14px",
+    fontWeight: 600,
+    lineHeight: 1.3,
+    color: "#1a1a1a",
+    marginBottom: 2.5,
+  };
 
   return (
     <Box>
@@ -362,22 +469,8 @@ const DataChangeModalFields = ({
               },
               gap: 2,
             }}>
-            <Box
-              sx={{
-                padding: 2,
-                border: "none",
-                borderRadius: "4px",
-              }}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: "bold",
-                  color: "rgb(33, 61, 112)",
-                  marginBottom: 1.5,
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
+            <Box sx={{ padding: 2, border: "none", borderRadius: "4px" }}>
+              <Typography variant="subtitle2" sx={labelStyle}>
                 DEPARTMENT
               </Typography>
               {isLoadingEmployeeData ? (
@@ -388,62 +481,43 @@ const DataChangeModalFields = ({
                   sx={{ marginBottom: 2.5 }}
                 />
               ) : (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    lineHeight: 1.3,
-                    color: "#1a1a1a",
-                    marginBottom: 2.5,
-                  }}>
+                <Typography variant="body2" sx={valueStyle}>
                   {displayDepartment}
                 </Typography>
               )}
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: "bold",
-                  color: "rgb(33, 61, 112)",
-                  marginBottom: 1.5,
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
-                SCHEDULE
+
+              <Typography variant="subtitle2" sx={labelStyle}>
+                CHARGING
               </Typography>
               {isLoadingEmployeeData ? (
-                <Skeleton variant="text" width="60%" height={24} />
+                <Skeleton
+                  variant="text"
+                  width="80%"
+                  height={24}
+                  sx={{ marginBottom: 2.5 }}
+                />
+              ) : (
+                <Typography variant="body2" sx={valueStyle}>
+                  {displayCharging}
+                </Typography>
+              )}
+
+              <Typography variant="subtitle2" sx={labelStyle}>
+                LOCATION
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="text" width="50%" height={24} />
               ) : (
                 <Typography
                   variant="body2"
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    lineHeight: 1.3,
-                    color: "#1a1a1a",
-                  }}>
-                  {displaySchedule}
+                  sx={{ ...valueStyle, marginBottom: 0 }}>
+                  {displayLocation}
                 </Typography>
               )}
             </Box>
 
-            <Box
-              sx={{
-                padding: 2,
-                border: "none",
-                borderRadius: "4px",
-              }}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: "bold",
-                  color: "rgb(33, 61, 112)",
-                  marginBottom: 1.5,
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
+            <Box sx={{ padding: 2, border: "none", borderRadius: "4px" }}>
+              <Typography variant="subtitle2" sx={labelStyle}>
                 POSITION FROM
               </Typography>
               {isLoadingEmployeeData ? (
@@ -454,29 +528,12 @@ const DataChangeModalFields = ({
                   sx={{ marginBottom: 2.5 }}
                 />
               ) : (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    lineHeight: 1.3,
-                    color: "#1a1a1a",
-                    marginBottom: 2.5,
-                  }}>
+                <Typography variant="body2" sx={valueStyle}>
                   {displayPositionFrom}
                 </Typography>
               )}
 
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: "bold",
-                  color: "rgb(33, 61, 112)",
-                  marginBottom: 1.5,
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}>
+              <Typography variant="subtitle2" sx={labelStyle}>
                 SUB UNIT
               </Typography>
               {isLoadingEmployeeData ? (
@@ -487,16 +544,21 @@ const DataChangeModalFields = ({
                   sx={{ marginBottom: 2.5 }}
                 />
               ) : (
+                <Typography variant="body2" sx={valueStyle}>
+                  {displaySubUnit}
+                </Typography>
+              )}
+
+              <Typography variant="subtitle2" sx={labelStyle}>
+                SCHEDULE
+              </Typography>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="text" width="60%" height={24} />
+              ) : (
                 <Typography
                   variant="body2"
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    lineHeight: 1.3,
-                    color: "#1a1a1a",
-                    marginBottom: 2.5,
-                  }}>
-                  {displaySubUnit}
+                  sx={{ ...valueStyle, marginBottom: 0 }}>
+                  {displaySchedule}
                 </Typography>
               )}
             </Box>
@@ -726,6 +788,7 @@ const DataChangeModalFields = ({
                       <TextField
                         label="Position to"
                         value={
+                          value?.title_with_unit ||
                           value?.title?.name ||
                           value?.name ||
                           value?.position_name ||
@@ -744,6 +807,7 @@ const DataChangeModalFields = ({
                         getOptionLabel={(item) => {
                           if (typeof item === "string") return item;
                           return (
+                            item?.title_with_unit ||
                             item?.title?.name ||
                             item?.name ||
                             item?.position_name ||
@@ -756,6 +820,35 @@ const DataChangeModalFields = ({
                         }
                         onOpen={() => handleDropdownFocus("positions")}
                         disabled={isLoading}
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id || option}>
+                            <Box
+                              sx={{ display: "flex", flexDirection: "column" }}>
+                              <span style={{ fontSize: "0.875rem" }}>
+                                {typeof option === "string"
+                                  ? option
+                                  : option?.title_with_unit ||
+                                    option?.title?.name ||
+                                    option?.name ||
+                                    option?.position_name ||
+                                    ""}
+                              </span>
+                              {option?.code && (
+                                <span
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "#888",
+                                  }}>
+                                  {option.code}
+                                  {option?.charging?.name
+                                    ? ` • ${option.charging.name}`
+                                    : ""}
+                                  {option?.team ? ` • ${option.team}` : ""}
+                                </span>
+                              )}
+                            </Box>
+                          </li>
+                        )}
                         renderInput={(params) => (
                           <TextField
                             {...params}
@@ -790,14 +883,84 @@ const DataChangeModalFields = ({
                             ? "Loading positions..."
                             : "No positions found"
                         }
+                      />
+                    )}
+                  </FormControl>
+                )}
+              />
+            )}
+          </Box>
+
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            {isLoadingEmployeeData ? (
+              <Skeleton variant="rounded" width="100%" height={56} />
+            ) : (
+              <Controller
+                name="to_schedule_id"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <FormControl fullWidth>
+                    {isReadOnly ? (
+                      <TextField
+                        label="Schedule To"
+                        value={getScheduleLabel(
+                          schedules.find((s) => s.id === value) ||
+                            selectedEntry?.result?.submittable?.to_schedule ||
+                            null,
+                        )}
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : (
+                      <Autocomplete
+                        value={
+                          schedules.find((s) => s.id === value) ||
+                          (value &&
+                          selectedEntry?.result?.submittable?.to_schedule
+                            ?.id === value
+                            ? selectedEntry.result.submittable.to_schedule
+                            : null)
+                        }
+                        onChange={(event, item) => onChange(item?.id || null)}
+                        options={schedules}
+                        loading={schedulesLoading}
+                        getOptionLabel={getScheduleLabel}
+                        isOptionEqualToValue={(option, val) =>
+                          option?.id === val?.id
+                        }
+                        onOpen={() => handleDropdownFocus("schedules")}
+                        disabled={isLoading}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Schedule To"
+                            fullWidth
+                            sx={textFieldStyles.outlinedInput}
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {schedulesLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          schedulesLoading
+                            ? "Loading schedules..."
+                            : "No schedules found"
+                        }
                         renderOption={(props, option) => (
-                          <li {...props} key={option.id || option}>
-                            {typeof option === "string"
-                              ? option
-                              : option?.title?.name ||
-                                option?.name ||
-                                option?.position_name ||
-                                ""}
+                          <li {...props} key={option.id}>
+                            {getScheduleLabel(option)}
                           </li>
                         )}
                       />

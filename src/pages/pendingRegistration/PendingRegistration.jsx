@@ -33,6 +33,7 @@ import pendingApi from "../../features/api/employee/pendingApi";
 import mainApi from "../../features/api/employee/mainApi";
 import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import PendingRegistrationForapproval from "./PendingRegistrationForapproval";
+import PendingRegistrationDraft from "./PendingRegistrationDraft";
 import PendingRegistrationAwaitingresubmission from "./PendingRegistrationAwaitingresubmission";
 import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
@@ -103,7 +104,7 @@ const CustomSearchBar = ({
     if (dateFilters.startDate && dateFilters.endDate) {
       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
         dateFilters.endDate,
-        "MMM dd"
+        "MMM dd",
       )}`;
     }
     if (dateFilters.startDate) {
@@ -307,6 +308,7 @@ const PendingRegistration = () => {
 
   const tabLabels = [
     "ForApproval",
+    "Draft",
     "AwaitingResubmission",
     "Rejected",
     "Cancelled",
@@ -367,7 +369,7 @@ const PendingRegistration = () => {
           tab: tabLabels[initialTab],
           q: searchQuery || "",
         },
-        { retain: false }
+        { retain: false },
       );
     }
   }, []);
@@ -416,7 +418,7 @@ const PendingRegistration = () => {
         tab: tabLabels[newValue],
         q: searchQuery,
       },
-      { retain: true }
+      { retain: true },
     );
   };
 
@@ -428,10 +430,10 @@ const PendingRegistration = () => {
         {
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams]
+    [setQueryParams],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -475,7 +477,7 @@ const PendingRegistration = () => {
         setModalLoading(false);
       }
     },
-    [getSingleEmployee, enqueueSnackbar]
+    [getSingleEmployee, enqueueSnackbar],
   );
 
   const handleSave = useCallback(async (employeeData, mode) => {
@@ -532,7 +534,7 @@ const PendingRegistration = () => {
         });
       }
     },
-    [enqueueSnackbar]
+    [enqueueSnackbar],
   );
 
   const retryApiCall = useCallback(() => {
@@ -564,7 +566,7 @@ const PendingRegistration = () => {
           {
             variant: "success",
             autoHideDuration: 2000,
-          }
+          },
         );
 
         handleCloseCreateModal();
@@ -581,7 +583,7 @@ const PendingRegistration = () => {
       refetchDashboard,
       enqueueSnackbar,
       handleCloseCreateModal,
-    ]
+    ],
   );
 
   const tabsData = [
@@ -600,6 +602,22 @@ const PendingRegistration = () => {
         />
       ),
       badgeCount: registrationCounts?.result?.pending || 0,
+    },
+    {
+      label: "DRAFT",
+      component: (
+        <PendingRegistrationDraft
+          searchQuery={debounceValue}
+          startDate={formatDateForAPI(dateFilters.startDate)}
+          endDate={formatDateForAPI(dateFilters.endDate)}
+          onError={handleApiError}
+          queryParams={buildQueryParams({
+            approval_status: "draft",
+          })}
+          onRowClick={handleRowClick}
+        />
+      ),
+      badgeCount: registrationCounts?.result?.draft || 0,
     },
     {
       label: "AWAITING RESUBMISSION",

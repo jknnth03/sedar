@@ -7,7 +7,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
   Typography,
   Box,
   IconButton,
@@ -70,7 +69,19 @@ const PendingRegistrationTable = ({
 
   const handleHistoryClick = (registration, event) => {
     event.stopPropagation();
-    setSelectedRegistrationHistory(registration);
+    setSelectedRegistrationHistory({
+      ...registration.submittable,
+      activity_log: registration.activity_log,
+      reference_number:
+        registration.reference_number ||
+        registration.submittable?.general_info?.reference_number ||
+        registration.submittable?.reference_number,
+      employee_name:
+        registration.submittable?.employee_name ||
+        registration.submittable?.general_info?.full_name,
+      employee_number: registration.submittable?.general_info?.employee_code,
+      employee_code: registration.submittable?.general_info?.employee_code,
+    });
     setHistoryDialogOpen(true);
   };
 
@@ -108,13 +119,8 @@ const PendingRegistrationTable = ({
   };
 
   const handleConfirmCancel = async () => {
-    if (!cancelRemarks || cancelRemarks.trim().length < 10) {
-      return;
-    }
-
-    if (!pendingCancelRegistration?.id) {
-      return;
-    }
+    if (!cancelRemarks || cancelRemarks.trim().length < 10) return;
+    if (!pendingCancelRegistration?.id) return;
 
     setIsProcessing(true);
 
@@ -128,9 +134,7 @@ const PendingRegistrationTable = ({
       dispatch(mainApi.util.invalidateTags(["employees"]));
       dispatch(moduleApi.util.invalidateTags(["dashboard"]));
 
-      if (onRefetch) {
-        onRefetch();
-      }
+      if (onRefetch) onRefetch();
 
       handleCancelDialogClose();
     } catch (error) {
@@ -142,11 +146,7 @@ const PendingRegistrationTable = ({
 
   const renderStatusChip = useCallback((registration) => {
     const statusConfig = {
-      pending: {
-        color: "#f57c00",
-        bgColor: "#fff8e1",
-        label: "PENDING",
-      },
+      pending: { color: "#f57c00", bgColor: "#fff8e1", label: "PENDING" },
       "awaiting resubmission": {
         color: "#4c00ffff",
         bgColor: "#f0f1ffff",
@@ -157,31 +157,15 @@ const PendingRegistrationTable = ({
         bgColor: "#f0f1ffff",
         label: "AWAITING RESUBMISSION",
       },
-      submitted: {
-        color: "#1976d2",
-        bgColor: "#e3f2fd",
-        label: "SUBMITTED",
-      },
+      submitted: { color: "#1976d2", bgColor: "#e3f2fd", label: "SUBMITTED" },
       resubmitted: {
         color: "#ed6c02",
         bgColor: "#fff3e0",
         label: "RESUBMITTED",
       },
-      rejected: {
-        color: "#d32f2f",
-        bgColor: "#ffebee",
-        label: "REJECTED",
-      },
-      returned: {
-        color: "#d32f2f",
-        bgColor: "#ffebee",
-        label: "RETURNED",
-      },
-      approved: {
-        color: "#2e7d32",
-        bgColor: "#e8f5e8",
-        label: "APPROVED",
-      },
+      rejected: { color: "#d32f2f", bgColor: "#ffebee", label: "REJECTED" },
+      returned: { color: "#d32f2f", bgColor: "#ffebee", label: "RETURNED" },
+      approved: { color: "#2e7d32", bgColor: "#e8f5e8", label: "APPROVED" },
       cancelled: {
         color: "#5f5f5fff",
         bgColor: "#eeeeeeff",
@@ -220,12 +204,10 @@ const PendingRegistrationTable = ({
         "CANCELLED",
       ];
       let cleanName = fullName;
-
       statusWords.forEach((status) => {
         const regex = new RegExp(`\\s+${status}\\s*$`, "i");
         cleanName = cleanName.replace(regex, "");
       });
-
       return cleanName.trim();
     }
 
@@ -387,9 +369,7 @@ const PendingRegistrationTable = ({
                         disabled={isProcessing || isCancelling}
                         sx={{
                           ...styles.actionIconButton(theme),
-                          "&.Mui-disabled": {
-                            opacity: 0.5,
-                          },
+                          "&.Mui-disabled": { opacity: 0.5 },
                         }}>
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
@@ -451,17 +431,9 @@ const PendingRegistrationTable = ({
           );
           if (openKey) handleMenuClose(openKey);
         }}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}
-        PaperProps={{
-          sx: styles.actionMenu(theme),
-        }}>
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ sx: styles.actionMenu(theme) }}>
         <MenuItem
           onClick={() => {
             const selectedReg = pendingList.find((reg) => menuAnchor[reg.id]);

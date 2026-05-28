@@ -17,11 +17,11 @@ import {
 import { useSnackbar } from "notistack";
 import { useGetGeneralsQuery } from "../../features/api/employee/generalApi";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
-import { CONSTANT } from "../../config/router/index";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import "../../pages/GeneralStyle.scss";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const General = ({
   searchQuery: parentSearchQuery,
@@ -468,28 +468,18 @@ const General = ({
                   <TableCell
                     colSpan={8}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT.BUTTONS.NODATA.icon}
-                      <Typography variant="h6" color="text.secondary">
-                        No employees found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message={
+                        searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
                                 (v) => v && v !== "ACTIVE",
                               )
-                            ? `No employees with selected filters`
-                            : "No employees"}
-                      </Typography>
-                    </Box>
+                            ? "No employees with selected filters"
+                            : "No employees found"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

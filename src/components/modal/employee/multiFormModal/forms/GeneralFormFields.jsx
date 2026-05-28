@@ -26,18 +26,14 @@ const GeneralFormFields = ({
   religions,
   prefixes,
   referrers,
-  approvalForms,
   nationalities,
   religionsLoading,
   prefixesLoading,
   generalsLoading,
-  approvalFormsLoading,
   nationalitiesLoading,
   nextIdLoading,
   uniqueCheckLoading,
   handleDropdownFocus,
-  dispatch,
-  setApprovalForm,
   watch,
   initialData,
   setValue,
@@ -109,7 +105,7 @@ const GeneralFormFields = ({
     const eighteenYearsAgo = new Date(
       today.getFullYear() - 18,
       today.getMonth(),
-      today.getDate()
+      today.getDate(),
     );
     return eighteenYearsAgo.toISOString().split("T")[0];
   };
@@ -169,188 +165,6 @@ const GeneralFormFields = ({
           },
           gap: 2,
         }}>
-        {mode === "create" && (
-          <Box sx={{ gridColumn: "1 / -1" }}>
-            <Controller
-              name="submission_title"
-              control={control}
-              render={({ field: { onChange, value } }) => {
-                const safeApprovalForms = Array.isArray(approvalForms)
-                  ? approvalForms.filter(
-                      (item) => item && typeof item === "object"
-                    )
-                  : [];
-
-                return (
-                  <FormControl
-                    fullWidth
-                    variant="outlined"
-                    error={!!errors.submission_title}
-                    disabled={isFieldDisabled || approvalFormsLoading}>
-                    <Autocomplete
-                      onChange={(event, item) => {
-                        if (!isReadOnly) {
-                          onChange(item || null);
-                          if (item && typeof item === "object") {
-                            dispatch(setApprovalForm(item));
-                          }
-                        }
-                      }}
-                      value={value || null}
-                      options={safeApprovalForms}
-                      loading={approvalFormsLoading}
-                      disabled={isFieldDisabled}
-                      readOnly={isReadOnly}
-                      onFocus={() => {
-                        if (!isReadOnly) {
-                          handleDropdownFocus("approvalForms");
-                        }
-                      }}
-                      getOptionLabel={(item) => {
-                        if (!item || typeof item !== "object") {
-                          return "";
-                        }
-
-                        return (
-                          item.submission_title ||
-                          item.linked_mrf_title ||
-                          item.title ||
-                          item.name ||
-                          ""
-                        );
-                      }}
-                      isOptionEqualToValue={(option, value) => {
-                        if (
-                          !option ||
-                          !value ||
-                          typeof option !== "object" ||
-                          typeof value !== "object"
-                        ) {
-                          return false;
-                        }
-
-                        const optionId =
-                          option.id ||
-                          option.submission_title ||
-                          option.linked_mrf_title;
-                        const valueId =
-                          value.id ||
-                          value.submission_title ||
-                          value.linked_mrf_title;
-
-                        const optionTitle =
-                          option.submission_title ||
-                          option.linked_mrf_title ||
-                          option.title ||
-                          option.name;
-                        const valueTitle =
-                          value.submission_title ||
-                          value.linked_mrf_title ||
-                          value.title ||
-                          value.name;
-
-                        const isEqual =
-                          optionId === valueId || optionTitle === valueTitle;
-                        return isEqual;
-                      }}
-                      renderOption={(props, option) => {
-                        if (!option || typeof option !== "object") {
-                          return null;
-                        }
-
-                        const label =
-                          option.submission_title ||
-                          option.linked_mrf_title ||
-                          option.title ||
-                          option.name ||
-                          "";
-                        return (
-                          <li
-                            {...props}
-                            key={
-                              option.id ||
-                              option.submission_title ||
-                              option.linked_mrf_title ||
-                              Math.random().toString(36)
-                            }
-                            style={{
-                              whiteSpace: "normal",
-                              wordWrap: "break-word",
-                            }}>
-                            {label}
-                          </li>
-                        );
-                      }}
-                      onBlur={() => {
-                        if (
-                          !value ||
-                          typeof value !== "object" ||
-                          (!value.id &&
-                            !value.submission_title &&
-                            !value.linked_mrf_title)
-                        ) {
-                          onChange(null);
-                        }
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Form *"
-                          error={!!errors.submission_title}
-                          helperText={errors.submission_title?.message}
-                          InputProps={{
-                            ...params.InputProps,
-                            readOnly: isReadOnly,
-                          }}
-                          placeholder={
-                            approvalFormsLoading
-                              ? "Loading..."
-                              : "Select a form"
-                          }
-                        />
-                      )}
-                      noOptionsText="No forms found"
-                      loadingText="Loading forms..."
-                    />
-                  </FormControl>
-                );
-              }}
-            />
-          </Box>
-        )}
-
-        {(mode === "edit" || mode === "view") && (
-          <Box sx={{ gridColumn: "1 / -1" }}>
-            <Controller
-              name="submission_title"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  value={
-                    typeof field.value === "object" && field.value
-                      ? field.value.submission_title ||
-                        field.value.linked_mrf_title ||
-                        field.value.title ||
-                        field.value.name ||
-                        ""
-                      : field.value ||
-                        initialData?.general_info?.linked_mrf_title ||
-                        initialData?.linked_mrf_title ||
-                        initialData?.submission_title ||
-                        ""
-                  }
-                  label="Form"
-                  variant="outlined"
-                  fullWidth
-                  disabled={true}
-                  InputProps={{ readOnly: true }}
-                />
-              )}
-            />
-          </Box>
-        )}
-
         <Box sx={{ gridColumn: "1 / -1" }}>
           <ImageUploadField
             control={control}
@@ -613,10 +427,10 @@ const GeneralFormFields = ({
                   mode === "edit" || mode === "view"
                     ? ""
                     : nextIdLoading
-                    ? "Generating ID..."
-                    : isManualIdEntry
-                    ? "Enter ID manually"
-                    : "Auto-generated ID"
+                      ? "Generating ID..."
+                      : isManualIdEntry
+                        ? "Enter ID manually"
+                        : "Auto-generated ID"
                 }
               />
             )}
@@ -884,8 +698,7 @@ const GeneralFormFields = ({
                     }}
                     isOptionEqualToValue={(option, value) => {
                       if (!option || !value) return false;
-                      const isEqual = option.id === value.id;
-                      return isEqual;
+                      return option.id === value.id;
                     }}
                     onFocus={() => {
                       if (!isReadOnly) {

@@ -69,27 +69,7 @@ const MrfTable = ({
 
   const renderStatusChip = (submission) => {
     const sortedActivityLog = [...(submission.activity_log || [])].sort(
-      (a, b) => {
-        const eventTypeA = (
-          a?.event_type ||
-          a?.status ||
-          a?.action ||
-          ""
-        ).toLowerCase();
-        const eventTypeB = (
-          b?.event_type ||
-          b?.status ||
-          b?.action ||
-          ""
-        ).toLowerCase();
-
-        if (eventTypeA === "upcoming" && eventTypeB !== "upcoming") return 1;
-        if (eventTypeA !== "upcoming" && eventTypeB === "upcoming") return -1;
-
-        const dateA = new Date(a.timestamp || 0);
-        const dateB = new Date(b.timestamp || 0);
-        return dateB - dateA;
-      },
+      (a, b) => a.sort_index - b.sort_index,
     );
 
     const latestActivity = sortedActivityLog.find((activity) => {
@@ -139,6 +119,11 @@ const MrfTable = ({
         color: "#f57c00",
         bgColor: "#fff8e1",
         label: "FOR APPROVAL",
+      },
+      "for receiving": {
+        color: "#ff9800",
+        bgColor: "#fff3e0",
+        label: "FOR RECEIVING",
       },
     };
 
@@ -201,17 +186,14 @@ const MrfTable = ({
 
   const canCancelSubmission = (submission) => {
     const status = submission?.status?.toUpperCase() || "";
-
     if (status === "RECEIVED" || status === "CANCELLED") {
       return false;
     }
-
     return submission?.actions?.can_cancel === true;
   };
 
   const canUpdateSubmission = (submission) => {
     const status = submission?.status?.toUpperCase() || "";
-
     if (
       status === "RECEIVED" ||
       status === "CANCELLED" ||
@@ -219,17 +201,14 @@ const MrfTable = ({
     ) {
       return false;
     }
-
     return true;
   };
 
   const canResubmitSubmission = (submission) => {
     const status = submission?.status?.toUpperCase() || "";
-
     if (status === "RECEIVED" || status === "CANCELLED") {
       return false;
     }
-
     return submission?.actions?.can_resubmit === true;
   };
 

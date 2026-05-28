@@ -18,11 +18,11 @@ import { useSnackbar } from "notistack";
 import { useGetAddressQuery } from "../../features/api/employee/addressApi";
 import "../../pages/GeneralStyle.scss";
 import "../../pages/GeneralTable.scss";
-import { CONSTANT } from "../../config/router/index";
 import { useRememberQueryParams } from "../../hooks/useRememberQueryParams";
 import EmployeeWizardForm from "../../components/modal/employee/multiFormModal/EmployeeWizardForm";
 import { useLazyGetSingleEmployeeQuery } from "../../features/api/employee/mainApi";
 import CustomTablePagination from "../zzzreusable/CustomTablePagination";
+import NoDataFound from "../NoDataFound";
 
 const Address = ({
   searchQuery: parentSearchQuery,
@@ -490,28 +490,19 @@ const Address = ({
                   <TableCell
                     colSpan={8}
                     align="center"
-                    sx={{ border: "none", py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}>
-                      {CONSTANT.BUTTONS.NODATA.icon}
-                      <Typography variant="h6" color="text.secondary">
-                        No addresses found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchQuery
+                    sx={{ border: "none", py: 4 }}>
+                    <NoDataFound
+                      message="No addresses found"
+                      subMessage={
+                        searchQuery
                           ? `No results for "${searchQuery}"`
                           : Object.values(filters).some(
                                 (v) => v && v !== "ACTIVE",
                               )
-                            ? `No addresses with selected filters`
-                            : "No addresses"}
-                      </Typography>
-                    </Box>
+                            ? "No addresses with selected filters"
+                            : "No addresses"
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               )}

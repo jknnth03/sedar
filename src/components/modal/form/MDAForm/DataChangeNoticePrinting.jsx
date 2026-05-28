@@ -99,14 +99,9 @@ export function DataChangeNoticePrinting({ data = blankData }) {
                 Dear {actualData.employee_name || "[Employee Name]"},
               </p>
 
-              <p className="body-text" style={{ fontStyle: "italic" }}>
-                <strong>Congratulations!</strong>
-              </p>
-
               <p className="body-text">
-                We are delighted to inform you that you have successfully
-                completed your Developmental Assignment. Therefore, you are
-                promoted to your new position, effective{" "}
+                This is to inform you that the request for your data change has
+                been approved. Please note of your new employment data effective{" "}
                 {formatDate(actualData.effective_date)}.
               </p>
 

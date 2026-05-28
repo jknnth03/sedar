@@ -178,7 +178,7 @@ const Schedule = () => {
       per_page: rowsPerPage,
       status: showArchived ? "inactive" : "active",
     }),
-    [debouncedSearchQuery, page, rowsPerPage, showArchived]
+    [debouncedSearchQuery, page, rowsPerPage, showArchived],
   );
 
   const {
@@ -193,7 +193,7 @@ const Schedule = () => {
   const [deleteSchedule] = useDeleteSchedulesMutation();
   const schedules = useMemo(
     () => backendData?.result?.data || [],
-    [backendData]
+    [backendData],
   );
   const totalCount = backendData?.result?.total || 0;
 
@@ -225,7 +225,7 @@ const Schedule = () => {
       setConfirmOpen(true);
       handleMenuClose(schedule.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleArchiveRestoreConfirm = async () => {
@@ -238,7 +238,7 @@ const Schedule = () => {
         selectedSchedule.deleted_at
           ? "Schedule restored successfully!"
           : "Schedule archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {
@@ -264,7 +264,7 @@ const Schedule = () => {
       setModalOpen(true);
       handleMenuClose(schedule.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handlePageChange = useCallback((event, newPage) => {
@@ -299,7 +299,14 @@ const Schedule = () => {
     );
   }, []);
 
+  const formatRelatedField = (obj) => {
+    if (!obj) return "N/A";
+    return `(${obj.code}) - ${obj.name}`;
+  };
+
   const isLoadingState = backendFetching || isLoading;
+
+  const skeletonCols = isMobile ? 5 : 7;
 
   return (
     <>
@@ -403,6 +410,31 @@ const Schedule = () => {
                     SCHEDULE
                   </TableCell>
                   {!isMobile && (
+                    <>
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.formName,
+                          borderBottom: "none",
+                        }}>
+                        WORK HOUR
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.formName,
+                          borderBottom: "none",
+                        }}>
+                        REST DAY
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...styles.columnStyles.formName,
+                          borderBottom: "none",
+                        }}>
+                        WORK WEEK
+                      </TableCell>
+                    </>
+                  )}
+                  {!isMobile && (
                     <TableCell
                       sx={{
                         ...styles.columnStyles.status,
@@ -427,35 +459,33 @@ const Schedule = () => {
                   <>
                     {[...Array(5)].map((_, index) => (
                       <TableRow key={index}>
-                        <TableCell align="left">
-                          <Skeleton animation="wave" height={30} />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton animation="wave" height={30} />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton animation="wave" height={30} />
-                        </TableCell>
-                        {!isMobile && (
-                          <TableCell align="center">
-                            <Skeleton
-                              animation="wave"
-                              variant="rounded"
-                              width={80}
-                              height={24}
-                              sx={{ margin: "0 auto" }}
-                            />
+                        {[...Array(skeletonCols)].map((__, colIdx) => (
+                          <TableCell
+                            key={colIdx}
+                            align={
+                              colIdx === skeletonCols - 1 ? "center" : "left"
+                            }>
+                            {colIdx === skeletonCols - 1 ? (
+                              <Skeleton
+                                animation="wave"
+                                variant="circular"
+                                width={32}
+                                height={32}
+                                sx={{ margin: "0 auto" }}
+                              />
+                            ) : colIdx === skeletonCols - 2 && !isMobile ? (
+                              <Skeleton
+                                animation="wave"
+                                variant="rounded"
+                                width={80}
+                                height={24}
+                                sx={{ margin: "0 auto" }}
+                              />
+                            ) : (
+                              <Skeleton animation="wave" height={30} />
+                            )}
                           </TableCell>
-                        )}
-                        <TableCell align="center">
-                          <Skeleton
-                            animation="wave"
-                            variant="circular"
-                            width={32}
-                            height={32}
-                            sx={{ margin: "0 auto" }}
-                          />
-                        </TableCell>
+                        ))}
                       </TableRow>
                     ))}
                   </>
@@ -504,6 +534,37 @@ const Schedule = () => {
                           </span>
                         </Tooltip>
                       </TableCell>
+                      {!isMobile && (
+                        <>
+                          <TableCell sx={styles.formNameCell}>
+                            <Tooltip
+                              title={formatRelatedField(schedule.work_hour)}
+                              placement="top">
+                              <span style={styles.cellContentStyles}>
+                                {formatRelatedField(schedule.work_hour)}
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={styles.formNameCell}>
+                            <Tooltip
+                              title={formatRelatedField(schedule.rest_day)}
+                              placement="top">
+                              <span style={styles.cellContentStyles}>
+                                {formatRelatedField(schedule.rest_day)}
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell sx={styles.formNameCell}>
+                            <Tooltip
+                              title={formatRelatedField(schedule.work_week)}
+                              placement="top">
+                              <span style={styles.cellContentStyles}>
+                                {formatRelatedField(schedule.work_week)}
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                        </>
+                      )}
                       {!isMobile && (
                         <TableCell align="center">
                           {renderStatusChip(schedule)}
