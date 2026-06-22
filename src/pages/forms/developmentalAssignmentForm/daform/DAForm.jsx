@@ -320,13 +320,13 @@ const DAForm = () => {
   }, [dateFilters]);
 
   const daCounts = useMemo(() => {
-    const approval = dashboardData?.result?.approval?.da?.form || 0;
+    // const approval = dashboardData?.result?.approval?.da?.form || 0;
     const requisition = dashboardData?.result?.requisition?.da || {};
     const mda = dashboardData?.result?.requisition?.mda?.da || {};
     const hrProcessing = dashboardData?.result?.hr_processing?.da_mda || 0;
 
     return {
-      forApproval: approval,
+      // forApproval: approval,
       awaitingResubmission: requisition.awaiting_resubmission || 0,
       rejected: requisition.rejected || 0,
       cancelled: 0,

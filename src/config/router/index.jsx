@@ -443,7 +443,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
               displayName: "DA Form",
               path: "daform",
               icon: <DescriptionIcon sx={iconStyles.child} />,
-              notificationCount: counts.daFormApprovals || 0,
+              notificationCount: counts.daTotal || 0,
             },
             DARECOMMENDATION: {
               name: "DA Recommendation",

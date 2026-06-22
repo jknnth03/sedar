@@ -85,94 +85,112 @@ const EvaluationFormModalFields = ({
     }
   }, [isCreate, formValues.objectives]);
 
+  const extractPositionId = (emp) => {
+    return (
+      emp?.position?.position?.id ||
+      emp?.position?.id ||
+      emp?.position_id ||
+      emp?.position_details?.position?.id ||
+      emp?.position_details?.id ||
+      null
+    );
+  };
+
   useEffect(() => {
     const loadEmployeeKpis = async () => {
-      if (selectedEmployee) {
-        setValue("employee_id", selectedEmployee.id);
+      if (!selectedEmployee) return;
+
+      setValue("employee_id", selectedEmployee.id);
+      setValue(
+        "employee_name",
+        selectedEmployee.full_name || selectedEmployee.employee_name,
+      );
+      setValue("employee_code", selectedEmployee.code || "");
+
+      if (selectedEmployee.probation_start_date) {
         setValue(
-          "employee_name",
-          selectedEmployee.full_name || selectedEmployee.employee_name,
+          "probation_start_date",
+          dayjs(selectedEmployee.probation_start_date),
         );
-        setValue("employee_code", selectedEmployee.code || "");
+      }
+      if (selectedEmployee.probation_end_date) {
+        setValue(
+          "probation_end_date",
+          dayjs(selectedEmployee.probation_end_date),
+        );
+      }
 
-        if (selectedEmployee.probation_start_date) {
-          setValue(
-            "probation_start_date",
-            dayjs(selectedEmployee.probation_start_date),
-          );
+      let positionId = extractPositionId(selectedEmployee);
+
+      if (!positionId) {
+        try {
+          const employeeDetails = await fetchSingleEmployee(
+            selectedEmployee.id,
+          ).unwrap();
+
+          const result = employeeDetails?.result || employeeDetails;
+
+          positionId =
+            result?.position_details?.position?.id ||
+            result?.position_details?.id ||
+            result?.position?.position?.id ||
+            result?.position?.id ||
+            result?.position_id ||
+            null;
+        } catch (error) {
+          console.error("Failed to fetch single employee:", error);
         }
-        if (selectedEmployee.probation_end_date) {
-          setValue(
-            "probation_end_date",
-            dayjs(selectedEmployee.probation_end_date),
-          );
+      }
+
+      const positionTitle =
+        selectedEmployee.position?.position?.title?.name ||
+        selectedEmployee.position?.title?.name ||
+        selectedEmployee.position_title ||
+        "";
+
+      setValue("position_title", positionTitle);
+
+      if (!positionId) {
+        console.warn(
+          "Could not resolve positionId for employee:",
+          selectedEmployee,
+        );
+        setKpisList([]);
+        setValue("objectives", []);
+        return;
+      }
+
+      try {
+        setIsKpisLoading(true);
+        const kpisResponse = await fetchPositionKpis(positionId).unwrap();
+
+        const kpisArray =
+          kpisResponse?.result?.kpis || kpisResponse?.result || [];
+
+        if (kpisArray.length > 0) {
+          const autoFilledKpis = kpisArray.map((kpi) => ({
+            source_kpi_id: kpi.id,
+            objective_id: kpi.objective_id,
+            objective_name: kpi.objective_name,
+            distribution_percentage: kpi.distribution_percentage,
+            deliverable: kpi.deliverable,
+            target_percentage: kpi.target_percentage,
+            actual_performance: kpi.actual_performance ?? null,
+            rating: kpi.rating ?? null,
+            remarks: kpi.remarks || "",
+          }));
+          setKpisList(autoFilledKpis);
+          setValue("objectives", autoFilledKpis);
+        } else {
+          setKpisList([]);
+          setValue("objectives", []);
         }
-
-        let positionId =
-          selectedEmployee.position?.position?.id ||
-          selectedEmployee.position_id;
-
-        if (!positionId) {
-          try {
-            const employeeDetails = await fetchSingleEmployee(
-              selectedEmployee.id,
-            ).unwrap();
-
-            const positionDetailsObj =
-              employeeDetails?.result?.position_details;
-            const positionObj = positionDetailsObj?.position;
-            const extractedId = positionObj?.id;
-
-            if (extractedId) {
-              positionId = extractedId;
-            } else {
-              positionId =
-                employeeDetails?.result?.position?.id ||
-                employeeDetails?.result?.position_id ||
-                employeeDetails?.position_details?.position?.id ||
-                employeeDetails?.position?.id ||
-                employeeDetails?.position_id;
-            }
-          } catch (error) {}
-        }
-
-        const positionTitle =
-          selectedEmployee.position?.position?.title?.name ||
-          selectedEmployee.position_title ||
-          "";
-
-        setValue("position_title", positionTitle);
-
-        if (positionId) {
-          try {
-            setIsKpisLoading(true);
-            const kpisResponse = await fetchPositionKpis(positionId).unwrap();
-
-            if (kpisResponse?.result && kpisResponse.result.length > 0) {
-              const autoFilledKpis = kpisResponse.result.map((kpi) => ({
-                source_kpi_id: kpi.id,
-                objective_id: kpi.objective_id,
-                objective_name: kpi.objective_name,
-                distribution_percentage: kpi.distribution_percentage,
-                deliverable: kpi.deliverable,
-                target_percentage: kpi.target_percentage,
-                actual_performance: kpi.actual_performance || null,
-                rating: kpi.rating || null,
-                remarks: kpi.remarks || "",
-              }));
-              setKpisList(autoFilledKpis);
-              setValue("objectives", autoFilledKpis);
-            } else {
-              setKpisList([]);
-              setValue("objectives", []);
-            }
-          } catch (error) {
-            setKpisList([]);
-            setValue("objectives", []);
-          } finally {
-            setIsKpisLoading(false);
-          }
-        }
+      } catch (error) {
+        console.error("Failed to fetch position KPIs:", error);
+        setKpisList([]);
+        setValue("objectives", []);
+      } finally {
+        setIsKpisLoading(false);
       }
     };
 
@@ -186,37 +204,23 @@ const EvaluationFormModalFields = ({
 
         if (field === "actual_performance") {
           let numValue = value === "" || value === null ? null : Number(value);
-
           if (numValue !== null) {
             if (numValue < 0) numValue = 0;
             if (numValue > 100) numValue = 100;
           }
-
-          updatedKpis[index] = {
-            ...updatedKpis[index],
-            [field]: numValue,
-          };
+          updatedKpis[index] = { ...updatedKpis[index], [field]: numValue };
         } else if (field === "rating") {
           let numValue = value === "" || value === null ? null : Number(value);
-
           if (numValue !== null) {
             if (numValue < 0) numValue = 0;
             if (numValue > 5) numValue = 5;
           }
-
-          updatedKpis[index] = {
-            ...updatedKpis[index],
-            [field]: numValue,
-          };
+          updatedKpis[index] = { ...updatedKpis[index], [field]: numValue };
         } else {
-          updatedKpis[index] = {
-            ...updatedKpis[index],
-            [field]: value,
-          };
+          updatedKpis[index] = { ...updatedKpis[index], [field]: value };
         }
 
         setValue("objectives", updatedKpis, { shouldValidate: false });
-
         return updatedKpis;
       });
     },
@@ -257,7 +261,7 @@ const EvaluationFormModalFields = ({
                 <Autocomplete
                   options={employees}
                   getOptionLabel={(option) =>
-                    option.full_name || option.employee_name
+                    option.full_name || option.employee_name || ""
                   }
                   loading={isEmployeesLoading}
                   value={selectedEmployee}
@@ -265,6 +269,10 @@ const EvaluationFormModalFields = ({
                     setSelectedEmployee(newValue);
                   }}
                   onOpen={() => setShouldFetchEmployees(true)}
+                  filterOptions={(x) => x}
+                  isOptionEqualToValue={(option, value) =>
+                    option.id === value?.id
+                  }
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -459,9 +467,7 @@ const EvaluationFormModalFields = ({
                   <TableCell
                     colSpan={2}
                     align="center"
-                    sx={{
-                      fontWeight: 700,
-                    }}>
+                    sx={{ fontWeight: 700 }}>
                     ASSESSMENT
                   </TableCell>
                 </TableRow>
@@ -542,11 +548,7 @@ const EvaluationFormModalFields = ({
                         size="small"
                         type="number"
                         value={kpi.target_percentage}
-                        inputProps={{
-                          min: 0,
-                          max: 100,
-                          step: "any",
-                        }}
+                        inputProps={{ min: 0, max: 100, step: "any" }}
                         sx={{ width: "100px" }}
                         disabled
                       />
@@ -580,12 +582,8 @@ const EvaluationFormModalFields = ({
                           width: "100px",
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: "white",
-                            "& fieldset": {
-                              borderColor: "#e0e0e0",
-                            },
-                            "&:hover fieldset": {
-                              borderColor: "#e0e0e0",
-                            },
+                            "& fieldset": { borderColor: "#e0e0e0" },
+                            "&:hover fieldset": { borderColor: "#e0e0e0" },
                             "&.Mui-focused fieldset": {
                               borderColor: "#e0e0e0",
                             },
@@ -604,19 +602,13 @@ const EvaluationFormModalFields = ({
                         placeholder="-"
                         multiline
                         maxRows={2}
-                        inputProps={{
-                          readOnly: true,
-                        }}
+                        inputProps={{ readOnly: true }}
                         sx={{
                           width: "100%",
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: "white",
-                            "& fieldset": {
-                              borderColor: "#e0e0e0",
-                            },
-                            "&:hover fieldset": {
-                              borderColor: "#e0e0e0",
-                            },
+                            "& fieldset": { borderColor: "#e0e0e0" },
+                            "&:hover fieldset": { borderColor: "#e0e0e0" },
                             "&.Mui-focused fieldset": {
                               borderColor: "#e0e0e0",
                             },
