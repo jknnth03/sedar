@@ -27,6 +27,10 @@ import EvaluationRecommendationModalFields from "./EvaluationRecommendationModal
 import {
   getCreateModeInitialValues,
   getViewEditModeFormData,
+  getCompetencyAssessmentTemplateId,
+  isCompetencyAssessmentEvaluation,
+  buildCompetencyAssessmentPayload,
+  buildCdpItemsPayload,
 } from "./EvaluationRecommendationGetValues";
 import * as styles from "../DAForm/DAFormModal.styles";
 
@@ -180,11 +184,11 @@ const EvaluationRecommendationModal = ({
       }
       const totalDistribution = data.objectives.reduce(
         (sum, obj) => sum + Number(obj.distribution_percentage || 0),
-        0
+        0,
       );
       if (totalDistribution !== 100) {
         alert(
-          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`
+          `Total distribution percentage must equal 100%. Current total: ${totalDistribution}%`,
         );
         return;
       }
@@ -226,8 +230,8 @@ const EvaluationRecommendationModal = ({
       if (invalidObjectives.length > 0) {
         alert(
           `Please fill in the Actual Performance for objective(s) #${invalidObjectives.join(
-            ", "
-          )} before submitting.`
+            ", ",
+          )} before submitting.`,
         );
         return;
       }
@@ -240,14 +244,27 @@ const EvaluationRecommendationModal = ({
 
       const formattedData = {
         final_recommendation: finalRecommendation,
+        recommendation_remarks: data.recommendation_remarks || "",
         objectives: objectives,
       };
 
-      if (data.for_extension && data.extension_end_date) {
-        formattedData.extension_end_date = dayjs(
-          data.extension_end_date
-        ).format("YYYY-MM-DD");
+      if (isCompetencyAssessmentEvaluation(selectedEntry)) {
+        const templateId = getCompetencyAssessmentTemplateId(selectedEntry);
+        const answers = buildCompetencyAssessmentPayload(
+          data.competency_assessment_items,
+        );
+
+        formattedData.competency_assessment = {
+          template_id: templateId,
+          answers: answers,
+        };
+        formattedData.cdp_items = buildCdpItemsPayload(data.cdp_items);
       }
+
+      formattedData.extension_end_date =
+        data.for_extension && data.extension_end_date
+          ? dayjs(data.extension_end_date).format("YYYY-MM-DD")
+          : null;
 
       const entryId =
         editingEntryId ||
@@ -422,7 +439,7 @@ const EvaluationRecommendationModal = ({
                     sx={styles.editIconButtonStyles}>
                     <EditIcon
                       sx={styles.editIconStyles(
-                        !shouldEnableEditButton() || isProcessing
+                        !shouldEnableEditButton() || isProcessing,
                       )}
                     />
                   </IconButton>
@@ -457,6 +474,7 @@ const EvaluationRecommendationModal = ({
                 isReadOnly={isReadOnly}
                 submissionId={submissionId}
                 currentMode={currentMode}
+                selectedEntry={selectedEntry}
               />
             ) : (
               <Box
@@ -482,7 +500,7 @@ const EvaluationRecommendationModal = ({
                 }
                 sx={styles.resubmitButtonStyles(
                   shouldEnableResubmitButton(),
-                  isProcessing
+                  isProcessing,
                 )}>
                 {isProcessing ? "Resubmitting..." : "Resubmit"}
               </Button>

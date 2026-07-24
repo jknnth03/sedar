@@ -1,5 +1,120 @@
 import dayjs from "dayjs";
 
+export const CDP_ROW_COUNT = 7;
+
+const getEmptyCdpRow = () => ({
+  competency: "",
+  action_plan_types: [],
+  action_plan_other: null,
+  target_date: null,
+  person_responsible: "",
+  date_of_completion: null,
+});
+
+export const getCDPInitialValues = () => {
+  return Array.from({ length: CDP_ROW_COUNT }, () => getEmptyCdpRow());
+};
+
+export const getCDPFromEntry = (selectedEntry) => {
+  const submittable =
+    selectedEntry?.submittable || selectedEntry?.result?.submittable;
+  const cdpItems = submittable?.cdp_items || [];
+
+  const rows = cdpItems.map((item) => ({
+    competency: item.competency || "",
+    action_plan_types: item.action_plan_types || [],
+    action_plan_other: item.action_plan_other || null,
+    target_date: item.target_date ? dayjs(item.target_date) : null,
+    person_responsible: item.person_responsible || "",
+    date_of_completion: item.date_of_completion
+      ? dayjs(item.date_of_completion)
+      : null,
+  }));
+
+  while (rows.length < CDP_ROW_COUNT) {
+    rows.push(getEmptyCdpRow());
+  }
+
+  return rows;
+};
+
+export const isCompetencyAssessmentEvaluation = (selectedEntry) => {
+  const submittable =
+    selectedEntry?.submittable || selectedEntry?.result?.submittable;
+
+  return submittable?.evaluation_number === 3;
+};
+
+export const getCompetencyAssessmentTemplate = (selectedEntry) => {
+  if (!isCompetencyAssessmentEvaluation(selectedEntry)) return null;
+
+  const submittable =
+    selectedEntry?.submittable || selectedEntry?.result?.submittable;
+
+  return submittable?.competency_assessment?.template || null;
+};
+
+export const getCompetencyAssessmentTemplateId = (selectedEntry) => {
+  if (!isCompetencyAssessmentEvaluation(selectedEntry)) return null;
+
+  const submittable =
+    selectedEntry?.submittable || selectedEntry?.result?.submittable;
+
+  return submittable?.competency_assessment?.assessment_template_id || null;
+};
+
+export const getCompetencyAssessmentInitialValues = (selectedEntry) => {
+  const template = getCompetencyAssessmentTemplate(selectedEntry);
+  if (!template) return {};
+
+  const values = {};
+
+  const collectItems = (items) => {
+    items?.forEach((item) => {
+      if (item.is_rateable) {
+        values[item.id] = {
+          rating_id: item.rating_id || null,
+          comments: item.comments || "",
+        };
+      }
+      if (item.children?.length) {
+        collectItems(item.children);
+      }
+    });
+  };
+
+  template.sections?.forEach((section) => collectItems(section.items));
+
+  return values;
+};
+
+export const buildCompetencyAssessmentPayload = (competencyAssessmentItems) => {
+  const answers = Object.entries(competencyAssessmentItems || {})
+    .filter(([, value]) => value?.rating_id)
+    .map(([itemId, value]) => ({
+      template_item_id: Number(itemId),
+      rating_scale_id: value.rating_id,
+      comments:
+        value.comments && value.comments.trim() !== "" ? value.comments : null,
+    }));
+
+  return answers;
+};
+
+export const buildCdpItemsPayload = (cdpItems) => {
+  return (cdpItems || [])
+    .filter((item) => item.competency && item.competency.trim() !== "")
+    .map((item) => ({
+      competency: item.competency,
+      action_plan_types: item.action_plan_types || [],
+      action_plan_other: item.action_plan_other || null,
+      target_date: item.target_date
+        ? dayjs(item.target_date).format("YYYY-MM-DD")
+        : null,
+      person_responsible: item.person_responsible || "",
+    }));
+};
+
 export const getCreateModeInitialValues = () => ({
   form_id: 8,
   employee_id: null,
@@ -13,6 +128,9 @@ export const getCreateModeInitialValues = () => ({
   not_for_permanent_appointment: false,
   for_extension: false,
   extension_end_date: null,
+  recommendation_remarks: "",
+  cdp_items: getCDPInitialValues(),
+  competency_assessment_items: {},
 });
 
 export const getViewEditModeFormData = (selectedEntry) => {
@@ -26,7 +144,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
   const objectives = submittable.objectives || [];
   const finalRecommendation = submittable.final_recommendation;
 
-  // Extract position title from the nested structure
   const positionTitle =
     employee.position?.position?.title?.name ||
     position.title?.name ||
@@ -34,7 +151,6 @@ export const getViewEditModeFormData = (selectedEntry) => {
     employee.position_title ||
     "";
 
-  // Extract employee code
   const employeeCode =
     employee.code || employee.employee_code || submittable.employee_code || "";
 
@@ -67,10 +183,14 @@ export const getViewEditModeFormData = (selectedEntry) => {
     extension_end_date: submittable.extension_end_date
       ? dayjs(submittable.extension_end_date)
       : null,
+    recommendation_remarks: submittable.recommendation_remarks || "",
+    cdp_items: getCDPFromEntry(selectedEntry),
+    competency_assessment_items:
+      getCompetencyAssessmentInitialValues(selectedEntry),
   };
 };
 
-export const formatFormDataForSubmission = (formData) => {
+export const formatFormDataForSubmission = (formData, selectedEntry) => {
   const baseData = {
     form_id: formData.form_id || 8,
   };
@@ -90,7 +210,6 @@ export const formatFormDataForSubmission = (formData) => {
     }));
   }
 
-  // Add recommendation fields
   if (formData.for_permanent_appointment) {
     baseData.final_recommendation = "FOR PERMANENT";
   } else if (formData.not_for_permanent_appointment) {
@@ -100,6 +219,21 @@ export const formatFormDataForSubmission = (formData) => {
     baseData.extension_end_date = formData.extension_end_date
       ? dayjs(formData.extension_end_date).format("YYYY-MM-DD")
       : null;
+  }
+
+  baseData.recommendation_remarks = formData.recommendation_remarks || "";
+
+  if (formData.cdp_items?.length) {
+    baseData.cdp_items = buildCdpItemsPayload(formData.cdp_items);
+  }
+
+  if (isCompetencyAssessmentEvaluation(selectedEntry)) {
+    baseData.competency_assessment = {
+      template_id: getCompetencyAssessmentTemplateId(selectedEntry),
+      answers: buildCompetencyAssessmentPayload(
+        formData.competency_assessment_items,
+      ),
+    };
   }
 
   return baseData;
@@ -123,12 +257,12 @@ export const validateEvaluationRecommendationData = (formData) => {
         errors.push(
           `Objective #${
             index + 1
-          }: Distribution percentage must be between 0 and 100`
+          }: Distribution percentage must be between 0 and 100`,
         );
       }
       if (obj.target_percentage < 0 || obj.target_percentage > 100) {
         errors.push(
-          `Objective #${index + 1}: Target percentage must be between 0 and 100`
+          `Objective #${index + 1}: Target percentage must be between 0 and 100`,
         );
       }
       if (
@@ -138,24 +272,23 @@ export const validateEvaluationRecommendationData = (formData) => {
         errors.push(
           `Objective #${
             index + 1
-          }: Actual performance must be between 0 and 100`
+          }: Actual performance must be between 0 and 100`,
         );
       }
     });
 
     const totalDistribution = formData.objectives.reduce(
       (sum, obj) => sum + Number(obj.distribution_percentage || 0),
-      0
+      0,
     );
 
     if (totalDistribution !== 100) {
       errors.push(
-        `Total distribution percentage must equal 100% (current: ${totalDistribution}%)`
+        `Total distribution percentage must equal 100% (current: ${totalDistribution}%)`,
       );
     }
   }
 
-  // Validate recommendation selection
   if (
     !formData.for_permanent_appointment &&
     !formData.not_for_permanent_appointment &&
@@ -164,7 +297,6 @@ export const validateEvaluationRecommendationData = (formData) => {
     errors.push("Please select a recommendation option");
   }
 
-  // Validate extension date if extension is selected
   if (formData.for_extension && !formData.extension_end_date) {
     errors.push("Extension end date is required when selecting extension");
   }

@@ -172,8 +172,14 @@ const SubmissionDetailsDialog = ({
   };
   const getRequisitionType = () =>
     submissionData?.form_details?.requisition_type?.name || "N/A";
-  const getEmployeeToBeReplaced = () =>
-    submissionData?.form_details?.employee_to_be_replaced?.full_name || "N/A";
+  const getEmployeeToBeReplaced = () => {
+    const replacementInfo = submissionData?.form_details?.replacement_info;
+    if (replacementInfo?.name) return replacementInfo.name;
+
+    const legacyReplacement =
+      submissionData?.form_details?.employee_to_be_replaced;
+    return legacyReplacement?.full_name || "N/A";
+  };
   const getJustification = () =>
     submissionData?.form_details?.justification || "N/A";
   const getRemarks = () => submissionData?.form_details?.remarks || "N/A";

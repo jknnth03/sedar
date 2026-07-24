@@ -52,7 +52,7 @@ import MonitorIcon from "@mui/icons-material/Monitor";
 import { useShowDashboardQuery } from "../../features/api/usermanagement/dashboardApi";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import { iconStyles, imageStyles } from "../iconStyles";
+import { iconStyles } from "../iconStyles";
 import LooksOneIcon from "@mui/icons-material/LooksOne";
 import LooksTwoIcon from "@mui/icons-material/LooksTwo";
 import AssessmentIcon from "@mui/icons-material/Assessment";

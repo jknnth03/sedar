@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   TextField,
@@ -14,15 +20,33 @@ import {
   Paper,
   FormControlLabel,
   Checkbox,
+  RadioGroup,
+  Radio,
+  FormControl,
+  FormLabel,
+  Divider,
+  LinearProgress,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { sectionTitleStyles } from "../DAForm/DAFormModal.styles";
+import {
+  getCompetencyAssessmentTemplate,
+  isCompetencyAssessmentEvaluation,
+} from "./EvaluationRecommendationGetValues";
+
+const CDP_ACTION_PLAN_OPTIONS = [
+  { value: "coaching", label: "Coaching" },
+  { value: "training", label: "Training" },
+  { value: "shadowing", label: "Shadowing/Buddy System" },
+  { value: "others", label: "Others" },
+];
 
 const EvaluationRecommendationModalFields = ({
   isCreate,
   isReadOnly,
   currentMode,
+  selectedEntry,
 }) => {
   const {
     control,
@@ -42,6 +66,20 @@ const EvaluationRecommendationModalFields = ({
   const forPermanentAppointment = watch("for_permanent_appointment");
   const notForPermanentAppointment = watch("not_for_permanent_appointment");
   const forExtension = watch("for_extension");
+  const cdpItems = watch("cdp_items") || [];
+  const competencyAssessmentItems = watch("competency_assessment_items") || {};
+
+  const isViewMode = isReadOnly;
+
+  const showCompetencyAndCdp = useMemo(
+    () => isCreate || isCompetencyAssessmentEvaluation(selectedEntry),
+    [isCreate, selectedEntry],
+  );
+
+  const competencyTemplate = useMemo(
+    () => getCompetencyAssessmentTemplate(selectedEntry),
+    [selectedEntry],
+  );
 
   useEffect(() => {
     if (!isCreate && currentMode !== prevModeRef.current) {
@@ -92,7 +130,7 @@ const EvaluationRecommendationModalFields = ({
         return updatedKpis;
       });
     },
-    [setValue]
+    [setValue],
   );
 
   const handleCheckboxChange = (field, value) => {
@@ -112,6 +150,66 @@ const EvaluationRecommendationModalFields = ({
     }
   };
 
+  const handleCdpActionPlanChange = (index, value, checked) => {
+    const current = cdpItems[index]?.action_plan_types || [];
+    let updated;
+
+    if (checked) {
+      updated = [...current, value];
+    } else {
+      updated = current.filter((v) => v !== value);
+      if (value === "others") {
+        setValue(`cdp_items.${index}.action_plan_other`, null);
+      }
+    }
+
+    setValue(`cdp_items.${index}.action_plan_types`, updated, {
+      shouldValidate: false,
+    });
+  };
+
+  const getRatingForItem = (itemId) => {
+    return competencyAssessmentItems?.[itemId]?.rating_id || null;
+  };
+
+  const getCommentsForItem = (itemId) => {
+    return competencyAssessmentItems?.[itemId]?.comments || "";
+  };
+
+  const handleRatingChange = (itemId, ratingId) => {
+    setValue(`competency_assessment_items.${itemId}.rating_id`, ratingId, {
+      shouldValidate: false,
+    });
+  };
+
+  const handleCommentsChange = (itemId, value) => {
+    setValue(`competency_assessment_items.${itemId}.comments`, value, {
+      shouldValidate: false,
+    });
+  };
+
+  const calculateSectionProgress = (sectionItems) => {
+    let totalRateable = 0;
+    let totalAnswered = 0;
+
+    const countItems = (items) => {
+      items.forEach((item) => {
+        if (item.is_rateable) {
+          totalRateable++;
+          if (getRatingForItem(item.id) !== null) {
+            totalAnswered++;
+          }
+        }
+        if (item.children && item.children.length > 0) {
+          countItems(item.children);
+        }
+      });
+    };
+
+    countItems(sectionItems);
+    return totalRateable > 0 ? (totalAnswered / totalRateable) * 100 : 0;
+  };
+
   useEffect(() => {
     return () => {
       if (updateTimeoutRef.current) {
@@ -119,6 +217,130 @@ const EvaluationRecommendationModalFields = ({
       }
     };
   }, []);
+
+  const renderCompetencyItem = (item, level = 0) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isRateable = item.is_rateable;
+
+    return (
+      <Box key={item.id} sx={{ mb: isRateable ? 2 : 1 }}>
+        {isRateable ? (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              border: "1px solid #e0e0e0",
+              backgroundColor: isViewMode ? "#fafafa" : "white",
+            }}>
+            <FormControl component="fieldset" fullWidth disabled={isViewMode}>
+              <FormLabel
+                component="legend"
+                sx={{
+                  fontWeight: 500,
+                  fontSize: "0.95rem",
+                  color: "text.primary",
+                  mb: 2,
+                  "&.Mui-focused": {
+                    color: "text.primary",
+                  },
+                }}>
+                {item.text}
+              </FormLabel>
+              <RadioGroup
+                row
+                value={getRatingForItem(item.id) || ""}
+                onChange={(e) =>
+                  handleRatingChange(item.id, parseInt(e.target.value))
+                }
+                sx={{
+                  gap: 3,
+                  flexWrap: "wrap",
+                  justifyContent: "flex-start",
+                }}>
+                {competencyTemplate?.rating_scale?.map((scale) => (
+                  <FormControlLabel
+                    key={scale.id}
+                    value={scale.id}
+                    control={
+                      <Radio
+                        sx={{
+                          color: isViewMode ? "#9e9e9e" : "rgb(33, 61, 112)",
+                          "&.Mui-checked": {
+                            color: isViewMode ? "#757575" : "rgb(33, 61, 112)",
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {scale.label}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{
+                      border: "1px solid #e0e0e0",
+                      borderRadius: "8px",
+                      px: 4,
+                      py: 2,
+                      m: 0,
+                      minWidth: "180px",
+                      flex: "1 1 auto",
+                      maxWidth: "240px",
+                      backgroundColor:
+                        getRatingForItem(item.id) === scale.id
+                          ? isViewMode
+                            ? "#e0e0e0"
+                            : "rgba(33, 61, 112, 0.08)"
+                          : "white",
+                      "&:hover": {
+                        backgroundColor: !isViewMode
+                          ? "rgba(33, 61, 112, 0.04)"
+                          : undefined,
+                      },
+                    }}
+                  />
+                ))}
+              </RadioGroup>
+              <TextField
+                value={getCommentsForItem(item.id)}
+                onChange={(e) => handleCommentsChange(item.id, e.target.value)}
+                fullWidth
+                size="small"
+                placeholder="Comments (optional)"
+                disabled={isViewMode}
+                sx={{
+                  mt: 2,
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: isViewMode ? "#f5f5f5" : "white",
+                  },
+                }}
+              />
+            </FormControl>
+          </Paper>
+        ) : (
+          <Typography
+            variant="body1"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 2,
+              pl: level * 2,
+            }}>
+            {item.text}
+          </Typography>
+        )}
+
+        {hasChildren && (
+          <Box sx={{ pl: 3 }}>
+            {item.children.map((child) =>
+              renderCompetencyItem(child, level + 1),
+            )}
+          </Box>
+        )}
+      </Box>
+    );
+  };
 
   return (
     <Box sx={{ height: "100%" }}>
@@ -196,8 +418,8 @@ const EvaluationRecommendationModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
                     label="PROBATION START DATE"
@@ -226,8 +448,8 @@ const EvaluationRecommendationModalFields = ({
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
                         : field.value
-                        ? dayjs(field.value)
-                        : null
+                          ? dayjs(field.value)
+                          : null
                     }
                     onChange={(date) => field.onChange(date)}
                     label="PROBATION END DATE"
@@ -413,7 +635,7 @@ const EvaluationRecommendationModalFields = ({
                           handleKpiFieldChange(
                             index,
                             "actual_performance",
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         inputProps={{
@@ -442,37 +664,37 @@ const EvaluationRecommendationModalFields = ({
                             backgroundColor: isReadOnly
                               ? "transparent"
                               : kpi.actual_performance !== null &&
-                                kpi.actual_performance !== undefined &&
-                                kpi.actual_performance !== ""
-                              ? "#f1f8f4"
-                              : "#fffef7",
+                                  kpi.actual_performance !== undefined &&
+                                  kpi.actual_performance !== ""
+                                ? "#f1f8f4"
+                                : "#fffef7",
                             "& fieldset": {
                               borderColor: isReadOnly
                                 ? "#e0e0e0"
                                 : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#4caf50"
-                                : "#ffa726",
+                                    kpi.actual_performance !== undefined &&
+                                    kpi.actual_performance !== ""
+                                  ? "#4caf50"
+                                  : "#ffa726",
                               borderWidth: isReadOnly ? "1px" : "2px",
                             },
                             "&:hover fieldset": {
                               borderColor: isReadOnly
                                 ? "#e0e0e0"
                                 : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#45a049"
-                                : "#ff9800",
+                                    kpi.actual_performance !== undefined &&
+                                    kpi.actual_performance !== ""
+                                  ? "#45a049"
+                                  : "#ff9800",
                             },
                             "&.Mui-focused fieldset": {
                               borderColor: isReadOnly
                                 ? "#e0e0e0"
                                 : kpi.actual_performance !== null &&
-                                  kpi.actual_performance !== undefined &&
-                                  kpi.actual_performance !== ""
-                                ? "#45a049"
-                                : "#ff9800",
+                                    kpi.actual_performance !== undefined &&
+                                    kpi.actual_performance !== ""
+                                  ? "#45a049"
+                                  : "#ff9800",
                             },
                             "&.Mui-error fieldset": {
                               borderColor: "#d32f2f",
@@ -589,7 +811,7 @@ const EvaluationRecommendationModalFields = ({
                         field.onChange(e.target.checked);
                         handleCheckboxChange(
                           "for_permanent_appointment",
-                          e.target.checked
+                          e.target.checked,
                         );
                       }}
                       disabled={isReadOnly}
@@ -614,7 +836,7 @@ const EvaluationRecommendationModalFields = ({
                         field.onChange(e.target.checked);
                         handleCheckboxChange(
                           "not_for_permanent_appointment",
-                          e.target.checked
+                          e.target.checked,
                         );
                       }}
                       disabled={isReadOnly}
@@ -640,7 +862,7 @@ const EvaluationRecommendationModalFields = ({
                           field.onChange(e.target.checked);
                           handleCheckboxChange(
                             "for_extension",
-                            e.target.checked
+                            e.target.checked,
                           );
                         }}
                         disabled={isReadOnly}
@@ -659,8 +881,8 @@ const EvaluationRecommendationModalFields = ({
                             dateField.value && dayjs.isDayjs(dateField.value)
                               ? dateField.value
                               : dateField.value
-                              ? dayjs(dateField.value)
-                              : null
+                                ? dayjs(dateField.value)
+                                : null
                           }
                           onChange={(date) => dateField.onChange(date)}
                           disabled={isReadOnly}
@@ -680,8 +902,281 @@ const EvaluationRecommendationModalFields = ({
               )}
             />
           </Box>
+
+          <Box sx={{ mt: 2 }}>
+            <Controller
+              name="recommendation_remarks"
+              control={control}
+              defaultValue=""
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Recommendation Remarks"
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  disabled={isReadOnly}
+                  placeholder="Optional remarks about the recommendation"
+                  sx={{ bgcolor: "white" }}
+                />
+              )}
+            />
+          </Box>
         </Box>
       </Box>
+
+      {showCompetencyAndCdp && competencyTemplate && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={sectionTitleStyles}>
+            PART III - COMPETENCY ASSESSMENT
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, color: "text.secondary", mb: 2 }}>
+            {competencyTemplate.name}
+          </Typography>
+
+          <Divider sx={{ my: 2 }} />
+
+          {competencyTemplate.sections?.map((section) => (
+            <Box key={section.id} sx={{ mb: 4 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 600,
+                    color: "rgb(33, 61, 112)",
+                    backgroundColor: "#f0f4f8",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
+                    flex: 1,
+                  }}>
+                  {section.title}
+                </Typography>
+                {!isReadOnly && (
+                  <Box sx={{ ml: 2, minWidth: "120px" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Progress:{" "}
+                      {calculateSectionProgress(section.items).toFixed(0)}%
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={calculateSectionProgress(section.items)}
+                      sx={{
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: "#e0e0e0",
+                        "& .MuiLinearProgress-bar": {
+                          backgroundColor: "#4CAF50",
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
+              </Box>
+
+              {section.items.map((item) => renderCompetencyItem(item))}
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {showCompetencyAndCdp && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={sectionTitleStyles}>
+            PART IV - CAREER DEVELOPMENT PLAN
+          </Typography>
+          <TableContainer component={Paper} sx={{ width: "100%" }}>
+            <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#3d4a5c" }}>
+                  <TableCell sx={{ color: "#fff", fontWeight: 600 }}>
+                    Needs Improvement
+                    <br />
+                    <span style={{ fontSize: "0.7rem", fontStyle: "italic" }}>
+                      (Competency related to the CAT that needs to be improved)
+                    </span>
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: 600 }}>
+                    Action Plan
+                    <br />
+                    <span style={{ fontSize: "0.7rem", fontStyle: "italic" }}>
+                      (e.g. Training, Coaching, Shadowing, etc.)
+                    </span>
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: 600 }}>
+                    Target Date
+                    <br />
+                    <span style={{ fontSize: "0.7rem", fontStyle: "italic" }}>
+                      (Should be within 30 days after the CAT Form Completion)
+                    </span>
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: 600 }}>
+                    Person Responsible
+                    <br />
+                    <span style={{ fontSize: "0.7rem", fontStyle: "italic" }}>
+                      (e.g. Immediate Superior, External/Internal Providers)
+                    </span>
+                  </TableCell>
+                  <TableCell sx={{ color: "#fff", fontWeight: 600 }}>
+                    Date of Completion
+                    <br />
+                    <span style={{ fontSize: "0.7rem", fontStyle: "italic" }}>
+                      (Note: to be accomplished by HR)
+                    </span>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {cdpItems.map((row, index) => {
+                  const actionPlanTypes = row?.action_plan_types || [];
+                  const hasOthers = actionPlanTypes.includes("others");
+
+                  return (
+                    <TableRow key={index}>
+                      <TableCell sx={{ verticalAlign: "top" }}>
+                        <Controller
+                          name={`cdp_items.${index}.competency`}
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              multiline
+                              minRows={2}
+                              size="small"
+                              disabled={isReadOnly}
+                              sx={{ bgcolor: "white" }}
+                            />
+                          )}
+                        />
+                      </TableCell>
+
+                      <TableCell sx={{ verticalAlign: "top" }}>
+                        {CDP_ACTION_PLAN_OPTIONS.map((opt) => (
+                          <Box key={opt.value}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  size="small"
+                                  checked={actionPlanTypes.includes(opt.value)}
+                                  disabled={isReadOnly}
+                                  onChange={(e) =>
+                                    handleCdpActionPlanChange(
+                                      index,
+                                      opt.value,
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                              }
+                              label={opt.label}
+                            />
+                          </Box>
+                        ))}
+                        {hasOthers && (
+                          <Controller
+                            name={`cdp_items.${index}.action_plan_other`}
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                value={field.value || ""}
+                                fullWidth
+                                size="small"
+                                disabled={isReadOnly}
+                                sx={{ mt: 1, bgcolor: "white" }}
+                              />
+                            )}
+                          />
+                        )}
+                      </TableCell>
+
+                      <TableCell sx={{ verticalAlign: "top" }}>
+                        <Controller
+                          name={`cdp_items.${index}.target_date`}
+                          control={control}
+                          render={({ field }) => (
+                            <DatePicker
+                              {...field}
+                              value={
+                                field.value && dayjs.isDayjs(field.value)
+                                  ? field.value
+                                  : field.value
+                                    ? dayjs(field.value)
+                                    : null
+                              }
+                              onChange={(date) => field.onChange(date)}
+                              disabled={isReadOnly}
+                              slotProps={{
+                                textField: {
+                                  size: "small",
+                                  fullWidth: true,
+                                  sx: { bgcolor: "white" },
+                                },
+                              }}
+                            />
+                          )}
+                        />
+                      </TableCell>
+
+                      <TableCell sx={{ verticalAlign: "top" }}>
+                        <Controller
+                          name={`cdp_items.${index}.person_responsible`}
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              size="small"
+                              disabled={isReadOnly}
+                              sx={{ bgcolor: "white" }}
+                            />
+                          )}
+                        />
+                      </TableCell>
+
+                      <TableCell sx={{ verticalAlign: "top" }}>
+                        <Controller
+                          name={`cdp_items.${index}.date_of_completion`}
+                          control={control}
+                          render={({ field }) => (
+                            <DatePicker
+                              {...field}
+                              value={
+                                field.value && dayjs.isDayjs(field.value)
+                                  ? field.value
+                                  : field.value
+                                    ? dayjs(field.value)
+                                    : null
+                              }
+                              onChange={(date) => field.onChange(date)}
+                              disabled
+                              slotProps={{
+                                textField: {
+                                  size: "small",
+                                  fullWidth: true,
+                                  sx: { bgcolor: "#f5f5f5" },
+                                },
+                              }}
+                            />
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
     </Box>
   );
 };
