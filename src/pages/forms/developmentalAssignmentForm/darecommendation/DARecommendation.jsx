@@ -75,7 +75,7 @@ const CustomSearchBar = ({
     if (dateFilters.startDate && dateFilters.endDate) {
       return `${format(dateFilters.startDate, "MMM dd")} - ${format(
         dateFilters.endDate,
-        "MMM dd"
+        "MMM dd",
       )}`;
     }
     if (dateFilters.startDate) {
@@ -282,7 +282,7 @@ const DARecommendation = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
   const [dateFilters, setDateFilters] = useState({
@@ -306,13 +306,12 @@ const DARecommendation = () => {
   }, [dateFilters]);
 
   const daCounts = useMemo(() => {
-    const approval = dashboardData?.result?.approval?.da || {};
     const requisition =
       dashboardData?.result?.requisition?.da_recommendation || {};
 
     return {
       forRecommendation: requisition.for_recommendation || 0,
-      forApproval: approval.recommendation || 0,
+      forApproval: 0,
       awaitingResubmission: requisition.awaiting_resubmission || 0,
       rejected: requisition.rejected || 0,
       forMDAProcessing: requisition.for_mda_processing || 0,
@@ -329,10 +328,10 @@ const DARecommendation = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery],
   );
 
   const handleSearchChange = useCallback(
@@ -343,10 +342,10 @@ const DARecommendation = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab],
   );
 
   const handleFilterClick = useCallback(() => {
@@ -457,7 +456,7 @@ const DARecommendation = () => {
       setQueryParams,
       currentParams,
       daCounts,
-    ]
+    ],
   );
 
   const a11yProps = (index) => {

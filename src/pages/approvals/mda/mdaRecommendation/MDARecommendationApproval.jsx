@@ -534,11 +534,8 @@ const MdaRecommendationApproval = () => {
     });
 
   const mdaRecommendationCounts = useMemo(() => {
-    const daRecommendation =
-      dashboardData?.result?.approval?.da?.recommendation || 0;
-
     return {
-      forApproval: daRecommendation,
+      forApproval: 0,
       approved: 0,
     };
   }, [dashboardData]);

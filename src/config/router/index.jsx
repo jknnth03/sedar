@@ -30,7 +30,6 @@ import SaveIcon from "@mui/icons-material/Save";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import StarIcon from "@mui/icons-material/Star";
 import EditIcon from "@mui/icons-material/Edit";
-// import NoDataGIF from "../assets/no-data.gif";
 import CancelIcon from "@mui/icons-material/Cancel";
 import InfoIcon from "@mui/icons-material/Info";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
@@ -294,7 +293,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
               displayName: "MDA (Recommendation)",
               path: "mdarecommendationapproval",
               icon: <RecommendIcon sx={iconStyles.child} />,
-              notificationCount: 0,
+              notificationCount: counts.mdaDaRecommendationTotal,
             },
             MDAEVALUATIONAPPROVAL: {
               name: "MDA (For Evaluation)",
@@ -452,7 +451,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
               displayName: "DA Recommendation",
               path: "darecommendation",
               icon: <RecommendIcon sx={iconStyles.child} />,
-              notificationCount: counts.daRecommendationApprovals || 0,
+              notificationCount: counts.daRecommendationTotal || 0,
             },
           },
         },
@@ -489,7 +488,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
               displayName: "MDA (For Recommendation)",
               path: "mdarecommendation",
               icon: <VerifiedIcon sx={iconStyles.child} />,
-              notificationCount: 0,
+              notificationCount: counts.mdaDaRecommendationTotal,
             },
             MDAEVALUATIONRECOMMENDATION: {
               name: "MDA (For Evaluation)",
@@ -960,9 +959,6 @@ export const CONSTANT = {
     LOGIN: {
       label: "Log In",
     },
-    // NODATA: {
-    //   icon: <img src={NoDataGIF} alt="No Data" style={imageStyles.noData} />,
-    // },
     ADD: {
       label1: "Save",
       label2: "Update",

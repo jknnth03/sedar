@@ -8,17 +8,13 @@ import {
   IconButton,
   Skeleton,
   TextField,
-  Grid,
-  FormControl,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import {
   Close as CloseIcon,
   Assignment as AssignmentIcon,
 } from "@mui/icons-material";
-import { useFormContext, Controller } from "react-hook-form";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import { useGetMRFSubmissionByIdQuery } from "../../../features/api/monitoring/mrfMonitoringApi";
@@ -26,52 +22,21 @@ import MonitoringAttachmentField from "./MonitoringAttachmentFields";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
-    maxWidth: "900px",
+    height: "80vh",
+    maxHeight: "80vh",
+    minHeight: "80vh",
     width: "100%",
-    height: "70vh",
-    maxHeight: "70vh",
+    maxWidth: "900px",
     display: "flex",
     flexDirection: "column",
-    position: "relative",
   },
 }));
 
-const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  backgroundColor: "#fff",
-  flexShrink: 0,
-  padding: "16px 24px",
-  "& .MuiTypography-root": {
-    fontSize: "1.25rem",
-    fontWeight: 600,
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-}));
-
-const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
-  backgroundColor: "#fff",
-  flex: 1,
-  padding: "0px 10px",
-  overflow: "auto",
-  "&::-webkit-scrollbar": {
-    width: "8px",
-  },
-  "&::-webkit-scrollbar-track": {
-    backgroundColor: "#f1f1f1",
-    borderRadius: "4px",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    backgroundColor: "#c1c1c1",
-    borderRadius: "4px",
-    "&:hover": {
-      backgroundColor: "#a1a1a1",
-    },
-  },
-}));
+const readOnlyTextFieldSx = {
+  backgroundColor: "#f5f5f5",
+  minWidth: "412px",
+  maxWidth: "412px",
+};
 
 const MrfMonitoringModal = ({
   open,
@@ -80,11 +45,6 @@ const MrfMonitoringModal = ({
   submissionData,
   isLoading: externalLoading,
 }) => {
-  const { reset, setValue, control, watch } = useFormContext();
-
-  const [formInitialized, setFormInitialized] = useState(false);
-  const watchedPosition = watch("position_id");
-
   const {
     data: fetchedData,
     isLoading: isFetchingData,
@@ -97,68 +57,85 @@ const MrfMonitoringModal = ({
   const isLoading = externalLoading || isFetchingData || isFetching;
 
   const handleClose = () => {
-    setFormInitialized(false);
-    reset();
     onClose();
   };
 
-  useEffect(() => {
-    if (open) {
-      setFormInitialized(false);
+  const getResult = () => {
+    const result = effectiveSubmissionData?.result || effectiveSubmissionData;
+    return result;
+  };
+
+  const getSubmittable = () => {
+    const result = getResult();
+    return result?.submittable || result;
+  };
+
+  const getRequisitionTypeName = () => {
+    return getSubmittable()?.requisition_type?.name || "N/A";
+  };
+
+  const getPositionLabel = () => {
+    return getSubmittable()?.position?.title_with_unit || "N/A";
+  };
+
+  const isEmployeeMovement = () => {
+    return getRequisitionTypeName() === "REPLACEMENT DUE TO EMPLOYEE MOVEMENT";
+  };
+
+  const getEmployeeToBeReplaced = () => {
+    const replacementInfo = getSubmittable()?.replacement_info;
+    if (replacementInfo?.type === "direct_replacement") {
+      return (
+        replacementInfo.name ||
+        replacementInfo.details?.employee?.full_name ||
+        "N/A"
+      );
     }
-  }, [open]);
+    return "N/A";
+  };
 
-  useEffect(() => {
-    if (open && effectiveSubmissionData && !formInitialized && !isLoading) {
-      const result = effectiveSubmissionData.result || effectiveSubmissionData;
-      const submittable = result.submittable || result;
-
-      if (submittable) {
-        const formData = {
-          form_id: { id: result.form?.id || 1 },
-          position_id: submittable.position
-            ? {
-                id: submittable.position.id,
-                name: submittable.position.title?.name || "Unknown Position",
-                department:
-                  submittable.position.charging?.department_name || "N/A",
-                sub_unit: submittable.position.charging?.sub_unit_name || "N/A",
-                schedule: submittable.position.schedule?.name || "N/A",
-              }
-            : null,
-          requisition_type_id: submittable.requisition_type
-            ? {
-                id: submittable.requisition_type.id,
-                name: submittable.requisition_type.name,
-              }
-            : null,
-          job_level_id: submittable.job_level
-            ? {
-                id: submittable.job_level.id,
-                label: submittable.job_level.label,
-              }
-            : null,
-          expected_salary: submittable.expected_salary || "",
-          employment_type: submittable.employment_type || "",
-          justification: submittable.justification || "",
-          remarks: submittable.remarks || "",
-        };
-
-        Object.keys(formData).forEach((key) => {
-          setValue(key, formData[key], { shouldValidate: false });
-        });
-
-        setFormInitialized(true);
-      }
+  const getMovementEmployee = () => {
+    const replacementInfo = getSubmittable()?.replacement_info;
+    if (replacementInfo?.type === "employee_movement") {
+      return (
+        replacementInfo.name ||
+        replacementInfo.details?.employee?.full_name ||
+        "N/A"
+      );
     }
-  }, [open, effectiveSubmissionData, formInitialized, isLoading, setValue]);
+    return "N/A";
+  };
 
-  const isLoadingPositionData = false;
+  const getMovementNewPosition = () => {
+    const replacementInfo = getSubmittable()?.replacement_info;
+    return replacementInfo?.details?.new_position?.title_with_unit || "N/A";
+  };
+
+  const getReasonForChange = () => {
+    const replacementInfo = getSubmittable()?.replacement_info;
+    return replacementInfo?.details?.reason_for_change || "N/A";
+  };
+
+  const getJobLevelLabel = () => {
+    return getSubmittable()?.job_level?.label || "N/A";
+  };
+
+  const isAdditionalManpower = () => {
+    return getRequisitionTypeName() === "ADDITIONAL MANPOWER";
+  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <StyledDialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <StyledDialogTitle>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pb: 1,
+            backgroundColor: "#fff",
+            flexShrink: 0,
+          }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <AssignmentIcon sx={{ color: "rgb(33, 61, 112)" }} />
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
@@ -177,519 +154,226 @@ const MrfMonitoringModal = ({
             }}>
             <CloseIcon sx={{ fontSize: "18px", color: "#333" }} />
           </IconButton>
-        </StyledDialogTitle>
+        </DialogTitle>
 
-        <StyledDialogContent>
-          {isLoading || !formInitialized ? (
-            <Box sx={{ p: 3 }}>
-              <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
-              <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
-              <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
-              <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
-              <Skeleton variant="rectangular" height={100} />
-            </Box>
-          ) : (
-            <Box>
-              {(watchedPosition && watchedPosition.name) ||
-              isLoadingPositionData ? (
-                <Box sx={{ marginLeft: 2.1 }}>
-                  <Grid container spacing={0}>
-                    <Grid item xs={12} md={6}>
-                      <Box
-                        sx={{
-                          padding: 2,
-                          border: "none",
-                          borderRadius: "4px",
-                          width: "403px",
-                        }}>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: "bold",
-                            color: "rgb(33, 61, 112)",
-                            marginBottom: 1.5,
-                            fontSize: "11px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}>
-                          DEPARTMENT
-                        </Typography>
-                        {isLoadingPositionData ? (
-                          <Skeleton
-                            variant="text"
-                            width="70%"
-                            height={24}
-                            sx={{ marginBottom: 2.5 }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              lineHeight: 1.3,
-                              color: "#1a1a1a",
-                              marginBottom: 2.5,
-                            }}>
-                            {watchedPosition.department ||
-                              effectiveSubmissionData?.result?.submittable
-                                ?.position?.charging?.department_name ||
-                              "N/A"}
-                          </Typography>
-                        )}
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: "bold",
-                            color: "rgb(33, 61, 112)",
-                            marginBottom: 1.5,
-                            fontSize: "11px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}>
-                          SCHEDULE
-                        </Typography>
-                        {isLoadingPositionData ? (
-                          <Skeleton variant="text" width="60%" height={24} />
-                        ) : (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              lineHeight: 1.3,
-                              color: "#1a1a1a",
-                            }}>
-                            {watchedPosition.schedule ||
-                              effectiveSubmissionData?.result?.submittable
-                                ?.position?.schedule?.name ||
-                              "N/A"}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <Box
-                        sx={{
-                          padding: 2,
-                          border: "none",
-                          borderRadius: "4px",
-                          width: "403px",
-                        }}>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: "bold",
-                            color: "rgb(33, 61, 112)",
-                            marginBottom: 1.5,
-                            fontSize: "11px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}>
-                          POSITION
-                        </Typography>
-                        {isLoadingPositionData ? (
-                          <Skeleton
-                            variant="text"
-                            width="85%"
-                            height={24}
-                            sx={{ marginBottom: 2.5 }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              lineHeight: 1.3,
-                              color: "#1a1a1a",
-                              marginBottom: 2.5,
-                            }}>
-                            {effectiveSubmissionData?.result?.submittable
-                              ?.position?.title?.name ||
-                              watchedPosition.name ||
-                              "N/A"}
-                          </Typography>
-                        )}
-
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: "bold",
-                            color: "rgb(33, 61, 112)",
-                            marginBottom: 1.5,
-                            fontSize: "11px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}>
-                          SUB UNIT
-                        </Typography>
-                        {isLoadingPositionData ? (
-                          <Skeleton
-                            variant="text"
-                            width="65%"
-                            height={24}
-                            sx={{ marginBottom: 2.5 }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              lineHeight: 1.3,
-                              color: "#1a1a1a",
-                              marginBottom: 2.5,
-                            }}>
-                            {watchedPosition.sub_unit ||
-                              effectiveSubmissionData?.result?.submittable
-                                ?.position?.charging?.sub_unit_name ||
-                              "N/A"}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Box>
-              ) : null}
-
+        <DialogContent
+          sx={{
+            backgroundColor: "#fff",
+            flex: 1,
+            overflow: "auto",
+            padding: "16px 24px",
+            "&::-webkit-scrollbar": { width: "8px" },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "#f1f1f1",
+              borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "#c1c1c1",
+              borderRadius: "4px",
+              "&:hover": { backgroundColor: "#a1a1a1" },
+            },
+          }}>
+          {isLoading ? (
+            <Box sx={{ p: 1 }}>
               <Box
                 sx={{
-                  padding: "24px",
-                  paddingLeft: "40px",
-                  paddingRight: "40px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: 2,
+                  mb: 2,
                 }}>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Controller
-                    name="form_id"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        type="hidden"
-                        {...field}
-                        value={field.value?.id || 1}
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={56} />
+              </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: 2,
+                  mb: 2,
+                }}>
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={56} />
+                <Skeleton variant="rounded" height={100} />
+                <Skeleton variant="rounded" height={100} />
+              </Box>
+              <Skeleton variant="rounded" height={80} />
+            </Box>
+          ) : (
+            <Box sx={{ width: "100%", paddingTop: "12px" }}>
+              {getResult()?.updated_at && (
+                <Box sx={{ mb: 2, p: 0.5, borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Last Updated:{" "}
+                    {dayjs(getResult().updated_at).format("MMM DD, YYYY HH:mm")}
+                  </Typography>
+                </Box>
+              )}
+
+              <Box sx={{ mb: 3 }}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+                    gap: 2,
+                  }}>
+                  <Box>
+                    <TextField
+                      label="Requisition Type"
+                      value={getRequisitionTypeName()}
+                      fullWidth
+                      disabled
+                      sx={readOnlyTextFieldSx}
+                    />
+                  </Box>
+
+                  <Box>
+                    <TextField
+                      label="Position"
+                      value={getPositionLabel()}
+                      fullWidth
+                      disabled
+                      sx={readOnlyTextFieldSx}
+                    />
+                  </Box>
+
+                  <Box>
+                    {isEmployeeMovement() ? (
+                      <TextField
+                        label="Select Employee"
+                        value={getMovementEmployee()}
+                        fullWidth
+                        disabled
+                        sx={readOnlyTextFieldSx}
                       />
-                    )}
-                  />
-
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingPositionData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="requisition_type_id"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <FormControl fullWidth>
-                              <TextField
-                                label={
-                                  <span>
-                                    Requisition Type{" "}
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        marginLeft: "2px",
-                                      }}>
-                                      *
-                                    </span>
-                                  </span>
-                                }
-                                value={value?.name || ""}
-                                fullWidth
-                                disabled
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "&:hover fieldset": {
-                                      borderColor: "rgba(0, 0, 0, 0.23)",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#1976d2",
-                                    },
-                                  },
-                                }}
-                              />
-                            </FormControl>
-                          )}
-                        />
-                      )}
-                    </Box>
-
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingPositionData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="position_id"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <FormControl fullWidth>
-                              <TextField
-                                label={
-                                  <span>
-                                    Position{" "}
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        marginLeft: "2px",
-                                      }}>
-                                      *
-                                    </span>
-                                  </span>
-                                }
-                                value={
-                                  value?.title_with_unit || value?.name || ""
-                                }
-                                fullWidth
-                                disabled
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "&:hover fieldset": {
-                                      borderColor: "rgba(0, 0, 0, 0.23)",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#1976d2",
-                                    },
-                                  },
-                                }}
-                              />
-                            </FormControl>
-                          )}
-                        />
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingPositionData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="job_level_id"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <FormControl fullWidth>
-                              <TextField
-                                label={
-                                  <span>
-                                    Job Level{" "}
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        marginLeft: "2px",
-                                      }}>
-                                      *
-                                    </span>
-                                  </span>
-                                }
-                                value={value?.label || value?.name || ""}
-                                fullWidth
-                                disabled
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "&:hover fieldset": {
-                                      borderColor: "rgba(0, 0, 0, 0.23)",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#1976d2",
-                                    },
-                                  },
-                                }}
-                              />
-                            </FormControl>
-                          )}
-                        />
-                      )}
-                    </Box>
-
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingPositionData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="expected_salary"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <FormControl fullWidth>
-                              <TextField
-                                label={
-                                  <span>
-                                    Expected Salary{" "}
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        marginLeft: "2px",
-                                      }}>
-                                      *
-                                    </span>
-                                  </span>
-                                }
-                                value={value || ""}
-                                fullWidth
-                                disabled
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "&:hover fieldset": {
-                                      borderColor: "rgba(0, 0, 0, 0.23)",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#1976d2",
-                                    },
-                                  },
-                                }}
-                              />
-                            </FormControl>
-                          )}
-                        />
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingPositionData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="employment_type"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <FormControl fullWidth>
-                              <TextField
-                                label={
-                                  <span>
-                                    Employment Type{" "}
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        marginLeft: "2px",
-                                      }}>
-                                      *
-                                    </span>
-                                  </span>
-                                }
-                                value={value || ""}
-                                fullWidth
-                                disabled
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "&:hover fieldset": {
-                                      borderColor: "rgba(0, 0, 0, 0.23)",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#1976d2",
-                                    },
-                                  },
-                                }}
-                              />
-                            </FormControl>
-                          )}
-                        />
-                      )}
-                    </Box>
-
-                    <Box sx={{ flex: 1 }}>
-                      {isLoadingPositionData ? (
-                        <Skeleton variant="rounded" width="100%" height={56} />
-                      ) : (
-                        <Controller
-                          name="justification"
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <FormControl fullWidth>
-                              <TextField
-                                label={
-                                  <span>
-                                    Justification{" "}
-                                    <span
-                                      style={{
-                                        color: "red",
-                                        marginLeft: "2px",
-                                      }}>
-                                      *
-                                    </span>
-                                  </span>
-                                }
-                                value={value || ""}
-                                fullWidth
-                                multiline
-                                rows={2}
-                                disabled
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "&:hover fieldset": {
-                                      borderColor: "rgba(0, 0, 0, 0.23)",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#1976d2",
-                                    },
-                                  },
-                                }}
-                              />
-                            </FormControl>
-                          )}
-                        />
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ flex: 1 }}>
-                    {isLoadingPositionData ? (
-                      <Skeleton variant="rounded" width="100%" height={120} />
                     ) : (
-                      <Controller
-                        name="remarks"
-                        control={control}
-                        render={({ field: { onChange, value } }) => (
-                          <FormControl fullWidth>
-                            <TextField
-                              label="Remarks"
-                              value={value || ""}
-                              fullWidth
-                              multiline
-                              rows={3}
-                              disabled
-                              sx={{
-                                "& .MuiOutlinedInput-root": {
-                                  "&:hover fieldset": {
-                                    borderColor: "rgba(0, 0, 0, 0.23)",
-                                  },
-                                  "&.Mui-focused fieldset": {
-                                    borderColor: "#1976d2",
-                                  },
-                                },
-                              }}
-                            />
-                          </FormControl>
-                        )}
+                      <TextField
+                        label="Employee to be Replaced"
+                        value={
+                          isAdditionalManpower()
+                            ? "Not required for Additional Manpower"
+                            : getEmployeeToBeReplaced()
+                        }
+                        fullWidth
+                        disabled
+                        sx={readOnlyTextFieldSx}
                       />
                     )}
                   </Box>
 
-                  <Box sx={{ mt: 2 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: "bold",
-                        color: "rgb(33, 61, 112)",
-                        marginBottom: 1.5,
-                        fontSize: "11px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}>
-                      ATTACHMENT
-                    </Typography>
-                    <MonitoringAttachmentField
-                      submissionData={effectiveSubmissionData}
+                  {isEmployeeMovement() && (
+                    <Box>
+                      <TextField
+                        label="New Position"
+                        value={getMovementNewPosition()}
+                        fullWidth
+                        disabled
+                        sx={readOnlyTextFieldSx}
+                      />
+                    </Box>
+                  )}
+
+                  <Box>
+                    <TextField
+                      label="Job Level"
+                      value={getJobLevelLabel()}
+                      fullWidth
+                      disabled
+                      sx={readOnlyTextFieldSx}
                     />
                   </Box>
                 </Box>
               </Box>
+
+              <Box sx={{ mb: 3 }}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+                    gap: 2,
+                  }}>
+                  <Box>
+                    <TextField
+                      label="Expected Salary"
+                      value={getSubmittable()?.expected_salary || "N/A"}
+                      fullWidth
+                      disabled
+                      sx={readOnlyTextFieldSx}
+                    />
+                  </Box>
+
+                  <Box>
+                    <TextField
+                      label="Employment Type"
+                      value={getSubmittable()?.employment_type || "N/A"}
+                      fullWidth
+                      disabled
+                      sx={readOnlyTextFieldSx}
+                    />
+                  </Box>
+
+                  {isEmployeeMovement() && (
+                    <Box>
+                      <TextField
+                        label="Reason for Change"
+                        value={getReasonForChange()}
+                        fullWidth
+                        disabled
+                        sx={readOnlyTextFieldSx}
+                      />
+                    </Box>
+                  )}
+
+                  <Box>
+                    <TextField
+                      label="Justification"
+                      value={getSubmittable()?.justification || "N/A"}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      disabled
+                      sx={readOnlyTextFieldSx}
+                    />
+                  </Box>
+
+                  <Box>
+                    <TextField
+                      label="Remarks"
+                      value={getSubmittable()?.remarks || ""}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      disabled
+                      sx={readOnlyTextFieldSx}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 3, minWidth: "834px", maxWidth: "834px" }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "rgb(33, 61, 112)",
+                    marginBottom: 1.5,
+                    fontSize: "11px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}>
+                  ATTACHMENT
+                </Typography>
+                <MonitoringAttachmentField
+                  submissionData={effectiveSubmissionData}
+                />
+              </Box>
             </Box>
           )}
-        </StyledDialogContent>
+        </DialogContent>
       </StyledDialog>
     </LocalizationProvider>
   );

@@ -66,7 +66,7 @@ const MRFMonitoringReceived = ({ searchQuery, startDate, endDate }) => {
       per_page: rowsPerPage,
       status: "active",
       pagination: true,
-      approval_status: "APPROVED",
+      approval_status: "RECEIVED",
     };
 
     if (debounceValue && debounceValue.trim() !== "") {
@@ -99,7 +99,7 @@ const MRFMonitoringReceived = ({ searchQuery, startDate, endDate }) => {
     const data = submissionsData?.result?.data || [];
     return data.filter((submission) => {
       const hasReceivedEvent = submission.activity_log?.some(
-        (log) => log.event_type === "RECEIVED"
+        (log) => log.event_type === "RECEIVED",
       );
       return hasReceivedEvent;
     });

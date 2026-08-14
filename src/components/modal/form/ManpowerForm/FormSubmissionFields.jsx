@@ -60,6 +60,7 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
   const watchedRequisitionType = watch("requisition_type_id");
   const watchedPositionId = watch("position_id");
   const watchedForDevelopmentalAssignment = watch("movement_is_da");
+  const watchedStartDate = watch("movement_da_start_date");
 
   const isReadOnly = mode === "view" || disabled;
   const isEditMode = mode === "edit";
@@ -220,7 +221,6 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
       if (submittable.remarks)
         setValue("remarks", submittable.remarks, { shouldValidate: false });
 
-      // API shape: submittable.attachments[].{ id, filename, download_url }
       const existingAttachments = submittable.attachments;
       if (
         existingAttachments &&
@@ -445,6 +445,20 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
       if (value && value !== "") clearErrors("movement_reason_for_change");
     },
     [disabled, setValue, clearErrors],
+  );
+
+  const handleStartDateChange = useCallback(
+    (newValue) => {
+      setValue("movement_da_start_date", newValue, { shouldValidate: true });
+      if (newValue && dayjs(newValue).isValid()) {
+        setValue("movement_da_end_date", dayjs(newValue).add(6, "month"), {
+          shouldValidate: true,
+        });
+      } else {
+        setValue("movement_da_end_date", null, { shouldValidate: false });
+      }
+    },
+    [setValue],
   );
 
   const getErrorMessage = useCallback((error) => {
@@ -1116,7 +1130,7 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                       label="Start Date"
                       disabled={isReadOnly}
                       value={field.value || null}
-                      onChange={(newValue) => field.onChange(newValue)}
+                      onChange={handleStartDateChange}
                       slotProps={{
                         textField: {
                           required: true,
@@ -1147,8 +1161,8 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                       value={field.value || null}
                       onChange={(newValue) => field.onChange(newValue)}
                       minDate={
-                        watch("movement_da_start_date")
-                          ? dayjs(watch("movement_da_start_date")).add(1, "day")
+                        watchedStartDate
+                          ? dayjs(watchedStartDate).add(1, "day")
                           : undefined
                       }
                       slotProps={{

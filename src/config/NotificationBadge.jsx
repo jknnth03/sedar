@@ -103,14 +103,17 @@ export const calculateCounts = (dashboardData = {}) => {
   const mda = requisition.mda || {};
   const mdaDataChange = mda.data_change || {};
   const mdaDa = mda.da || {};
+  const mdaDaRecommendation = mda.da_recommendation || {};
   const mdaProbationary = mda.probationary || {};
   const daTasks = apiResult.da_tasks || {};
   const cat1Tasks = daTasks.cat1 || {};
   const cat2Tasks = daTasks.cat2 || {};
   const pdpTasks = daTasks.pdp || {};
+  const pdp2Tasks = daTasks.pdp2 || {};
   const approval = apiResult.approval || {};
   const approvalDataChange = approval.data_change || {};
   const approvalDa = approval.da || {};
+  const approvalDaTasks = approval.da_tasks || {};
   const approvalProbationary = approval.probationary || {};
   const receiving = apiResult.receiving || {};
   const hrProcessing = apiResult.hr_processing || {};
@@ -128,7 +131,9 @@ export const calculateCounts = (dashboardData = {}) => {
   const daRecommendationTotal =
     (daRecommendation.for_recommendation || 0) +
     (daRecommendation.rejected || 0) +
-    (daRecommendation.awaiting_resubmission || 0);
+    (daRecommendation.awaiting_resubmission || 0) +
+    (daRecommendation.for_mda_processing || 0) +
+    (daRecommendation.mda_in_progress || 0);
 
   const probationaryTotal =
     (probationary.rejected || 0) + (probationary.awaiting_resubmission || 0);
@@ -151,10 +156,29 @@ export const calculateCounts = (dashboardData = {}) => {
     (mdaDa.rejected || 0) +
     (mdaDa.awaiting_resubmission || 0);
 
+  const mdaDaRecommendationTotal =
+    (mdaDaRecommendation.pending_final_mda || 0) +
+    (mdaDaRecommendation.rejected || 0) +
+    (mdaDaRecommendation.awaiting_resubmission || 0);
+
   const mdaProbationaryTotal =
     (mdaProbationary.pending_mda_creation || 0) +
     (mdaProbationary.rejected || 0) +
     (mdaProbationary.awaiting_resubmission || 0);
+
+  const computedRequisitionTotal =
+    pendingRegistrations +
+    manpowerTotal +
+    dataChangeTotal +
+    daTotal +
+    daRecommendationTotal +
+    probationaryTotal +
+    probationaryRecommendationTotal +
+    performanceTotal +
+    mdaDataChangeTotal +
+    mdaDaTotal +
+    mdaDaRecommendationTotal +
+    mdaProbationaryTotal;
 
   return {
     openMrfs: employees.open_mrfs || 0,
@@ -223,6 +247,15 @@ export const calculateCounts = (dashboardData = {}) => {
     pdpTotal: pdpTasks.total || 0,
     pdpTotalOverdue: pdpTasks.total_overdue || 0,
 
+    pdpTwoForAssessment: pdp2Tasks.for_assessment || 0,
+    pdpTwoForAssessmentOverdue: pdp2Tasks.for_assessment_overdue || 0,
+    pdpTwoForSubmission: pdp2Tasks.for_submission || 0,
+    pdpTwoForSubmissionOverdue: pdp2Tasks.for_submission_overdue || 0,
+    pdpTwoReturned: pdp2Tasks.returned || 0,
+    pdpTwoReturnedOverdue: pdp2Tasks.returned_overdue || 0,
+    pdpTwoTotal: pdp2Tasks.total || 0,
+    pdpTwoTotalOverdue: pdp2Tasks.total_overdue || 0,
+
     daTasksTotal: daTasks.total || 0,
     daTasksTotalOverdue: daTasks.total_overdue || 0,
 
@@ -236,23 +269,20 @@ export const calculateCounts = (dashboardData = {}) => {
     mdaDaAwaiting: mdaDa.awaiting_resubmission || 0,
     mdaDaTotal: mdaDaTotal,
 
+    mdaDaRecommendationPendingFinal: mdaDaRecommendation.pending_final_mda || 0,
+    mdaDaRecommendationRejected: mdaDaRecommendation.rejected || 0,
+    mdaDaRecommendationAwaiting: mdaDaRecommendation.awaiting_resubmission || 0,
+    mdaDaRecommendationTotal: mdaDaRecommendationTotal,
+
     mdaProbationaryPendingCreation: mdaProbationary.pending_mda_creation || 0,
     mdaProbationaryRejected: mdaProbationary.rejected || 0,
     mdaProbationaryAwaiting: mdaProbationary.awaiting_resubmission || 0,
     mdaProbationaryTotal: mdaProbationaryTotal,
 
     totalRequisitionCount:
-      pendingRegistrations +
-      manpowerTotal +
-      dataChangeTotal +
-      daTotal +
-      daRecommendationTotal +
-      probationaryTotal +
-      probationaryRecommendationTotal +
-      performanceTotal +
-      mdaDataChangeTotal +
-      mdaDaTotal +
-      mdaProbationaryTotal,
+      typeof requisition.total === "number"
+        ? requisition.total
+        : computedRequisitionTotal,
 
     manpowerFormApprovals: approval.manpower || 0,
     registrationApprovals: approval.registration || 0,
@@ -260,12 +290,13 @@ export const calculateCounts = (dashboardData = {}) => {
     mdaApprovals: approvalDataChange.mda || 0,
     daFormApprovals: approvalDa.form || 0,
     daRecommendationApprovals: approvalDa.recommendation || 0,
-    daMdaApprovals: approvalDa.mda || 0,
     daMdaInitialApprovals: approvalDa.mda_initial || 0,
     daMdaFinalApprovals: approvalDa.mda_final || 0,
-    daCat1Approvals: approvalDa.cat1 || 0,
-    daCat2Approvals: approvalDa.cat2 || 0,
-    daPdpApprovals: approvalDa.pdp || 0,
+    daMdaApprovals: (approvalDa.mda_initial || 0) + (approvalDa.mda_final || 0),
+    daCat1Approvals: approvalDaTasks.cat1 || 0,
+    daCat2Approvals: approvalDaTasks.cat2 || 0,
+    daPdpApprovals: approvalDaTasks.pdp || 0,
+    pdpTwoApprovals: approvalDaTasks.pdp2 || 0,
     probationaryFormApprovals: approvalProbationary.form || 0,
     probationaryRecommendationApprovals:
       approvalProbationary.recommendation || 0,
@@ -285,6 +316,7 @@ export const calculateCounts = (dashboardData = {}) => {
 
     hrDataChangeMda: hrProcessing.data_change_mda || 0,
     hrDaMda: hrProcessing.da_mda || 0,
+    hrDaFinalMda: hrProcessing.da_final_mda || 0,
     hrProbationaryMda: hrProcessing.probationary_mda || 0,
     hrEvaluationMda: hrProcessing.probationary_mda || 0,
     totalHrProcessing: hrProcessing.total || 0,

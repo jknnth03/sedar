@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, FormControl, Button } from "@mui/material";
 import {
-  AttachFile as AttachFileIcon,
+  CloudUpload as CloudUploadIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import {
@@ -22,43 +22,48 @@ const MonitoringAttachmentField = ({ submissionData }) => {
   const [loading, setLoading] = useState(false);
   const [blobUrl, setBlobUrl] = useState(null);
   const [error, setError] = useState(null);
+  const [activeAttachment, setActiveAttachment] = useState(null);
 
-  const getDisplayFilename = () => {
+  const getSubmittable = () => {
     const result = submissionData?.result || submissionData;
-    const submittable = result?.submittable || result;
-
-    if (submittable?.manpower_attachment_filename) {
-      return submittable.manpower_attachment_filename;
-    }
-
-    if (submittable?.manpower_form_attachment) {
-      return submittable.manpower_form_attachment.split("/").pop();
-    }
-
-    return "No attachment available";
+    return result?.submittable || result;
   };
 
-  const getDownloadUrl = () => {
-    const result = submissionData?.result || submissionData;
-    const submittable = result?.submittable || result;
-
-    if (submittable?.manpower_form_attachment) {
-      return submittable.manpower_form_attachment;
+  const getAttachments = () => {
+    const submittable = getSubmittable();
+    if (
+      submittable?.attachments &&
+      Array.isArray(submittable.attachments) &&
+      submittable.attachments.length > 0
+    ) {
+      return submittable.attachments;
     }
+    return [];
+  };
 
+  const getDisplayFilename = (attachment) => {
+    if (attachment?.filename) {
+      return attachment.filename;
+    }
+    return "Unknown file";
+  };
+
+  const getDownloadUrl = (attachment) => {
+    if (attachment?.download_url) {
+      return attachment.download_url;
+    }
     return "";
   };
 
-  const hasAttachment = () => {
-    return Boolean(getDownloadUrl());
-  };
+  const attachments = getAttachments();
+  const hasAttachments = attachments.length > 0;
 
-  const fetchFileAsBlob = async () => {
+  const fetchFileAsBlob = async (attachment) => {
     setLoading(true);
     setError(null);
 
     try {
-      const url = getDownloadUrl();
+      const url = getDownloadUrl(attachment);
       const token = localStorage.getItem("token");
 
       const response = await fetch(url, {
@@ -82,13 +87,10 @@ const MonitoringAttachmentField = ({ submissionData }) => {
     }
   };
 
-  const handleViewFile = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (hasAttachment()) {
-      setFileViewerOpen(true);
-      fetchFileAsBlob();
-    }
+  const handleViewFile = (attachment) => {
+    setActiveAttachment(attachment);
+    setFileViewerOpen(true);
+    fetchFileAsBlob(attachment);
   };
 
   const handleFileViewerClose = () => {
@@ -98,10 +100,11 @@ const MonitoringAttachmentField = ({ submissionData }) => {
       setBlobUrl(null);
     }
     setError(null);
+    setActiveAttachment(null);
   };
 
   const handleDownload = async () => {
-    const filename = getDisplayFilename();
+    const filename = getDisplayFilename(activeAttachment);
 
     if (blobUrl) {
       const link = document.createElement("a");
@@ -111,7 +114,7 @@ const MonitoringAttachmentField = ({ submissionData }) => {
       link.click();
       document.body.removeChild(link);
     } else {
-      const url = getDownloadUrl();
+      const url = getDownloadUrl(activeAttachment);
       const link = document.createElement("a");
       link.href = url;
       link.download = filename;
@@ -130,76 +133,67 @@ const MonitoringAttachmentField = ({ submissionData }) => {
     };
   }, [blobUrl]);
 
+  if (!hasAttachments) {
+    return (
+      <Box
+        sx={{
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+          padding: "16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          backgroundColor: "#fff",
+        }}>
+        <CloudUploadIcon sx={{ color: "#bbb", fontSize: 24 }} />
+        <Typography sx={{ color: "#666", fontSize: "0.9rem" }}>
+          No attachment available
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <>
       <FormControl fullWidth>
-        <Box
-          sx={{
-            border: "2px dashed #d1d5db",
-            borderRadius: 2,
-            p: 3,
-            textAlign: "center",
-            backgroundColor: "#fafafa",
-            cursor: "default",
-          }}>
-          {hasAttachment() ? (
-            <>
-              <AttachFileIcon
-                sx={{ color: "#6b7280", fontSize: 48, mb: 1.5 }}
-              />
-              <Typography
-                onClick={handleViewFile}
-                sx={{
-                  color: "#1976d2",
-                  fontWeight: 500,
-                  mb: 0.5,
-                  fontSize: "15px",
-                  textDecoration: "none",
-                  cursor: "pointer",
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                }}>
-                {getDisplayFilename()}
+        {attachments.map((attachment) => (
+          <Box
+            key={attachment.id}
+            sx={{
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              padding: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: "#fff",
+              mb: 1,
+            }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <CloudUploadIcon sx={{ color: "#1976d2", fontSize: 24 }} />
+              <Typography sx={{ fontSize: "0.9rem", color: "#333" }}>
+                File name:{" "}
+                <Box
+                  component="span"
+                  sx={{ color: "#f44336", fontWeight: 600 }}>
+                  {getDisplayFilename(attachment)}
+                </Box>
               </Typography>
-              <Typography
-                variant="body2"
-                onClick={handleViewFile}
-                sx={{
-                  color: "#6b7280",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                  "&:hover": {
-                    color: "#4b5563",
-                  },
-                }}>
-                Click to view file
-              </Typography>
-            </>
-          ) : (
-            <>
-              <AttachFileIcon sx={{ color: "#9ca3af", fontSize: 48 }} />
-              <Typography
-                variant="body1"
-                sx={{
-                  color: "#9ca3af",
-                  fontWeight: 500,
-                  mb: 1,
-                  mt: 1.5,
-                }}>
-                ATTACHMENT
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "#9ca3af",
-                  fontSize: "13px",
-                }}>
-                No attachment available
-              </Typography>
-            </>
-          )}
-        </Box>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<VisibilityIcon />}
+              onClick={() => handleViewFile(attachment)}
+              sx={{
+                textTransform: "none",
+                borderRadius: "20px",
+                px: 2,
+              }}>
+              VIEW
+            </Button>
+          </Box>
+        ))}
       </FormControl>
 
       <Dialog
@@ -221,17 +215,12 @@ const MonitoringAttachmentField = ({ submissionData }) => {
             borderBottom: "1px solid #e0e0e0",
           }}>
           <Typography variant="h6" component="div">
-            {getDisplayFilename()}
+            {getDisplayFilename(activeAttachment)}
           </Typography>
-          <IconButton
-            onClick={handleFileViewerClose}
-            sx={{
-              color: "#666",
-            }}>
+          <IconButton onClick={handleFileViewerClose} sx={{ color: "#666" }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <DialogContent
           sx={{
             p: 0,
