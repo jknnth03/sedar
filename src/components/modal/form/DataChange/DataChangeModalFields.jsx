@@ -66,6 +66,12 @@ const movementTypeRequiresMrf = (type) => {
   return !EXCLUDED_MOVEMENT_TYPES.includes(name.toLowerCase());
 };
 
+const movementTypeKeepsPosition = (type) => {
+  const name = type?.name || type?.type_name;
+  if (!name) return false;
+  return name.toLowerCase() === "merit increase";
+};
+
 const getPositionTitle = (position) => {
   if (!position) return "";
   if (typeof position === "string") return position;
@@ -221,6 +227,11 @@ const DataChangeModalFields = ({
     [watchedMovementType],
   );
 
+  const keepsPosition = useMemo(
+    () => movementTypeKeepsPosition(watchedMovementType),
+    [watchedMovementType],
+  );
+
   const attachmentInstructions = useMemo(() => {
     const movementTypeName =
       watchedMovementType?.name || watchedMovementType?.type_name;
@@ -290,17 +301,46 @@ const DataChangeModalFields = ({
     [dropdownsLoaded, triggerGetEmployees, shouldLoadDropdowns],
   );
 
-  const handleMovementTypeChange = (item, onChange) => {
-    const requiredBefore = movementTypeRequiresMrf(
-      getValues("movement_type_id"),
+  const applyCurrentPosition = (employee) => {
+    if (!employee?.position_id) {
+      setValue("to_position_id", null, { shouldValidate: false });
+      return;
+    }
+
+    setValue(
+      "to_position_id",
+      {
+        id: employee.position_id,
+        name: employee.position_title || "",
+      },
+      { shouldValidate: true },
     );
+  };
+
+  const handleEmployeeChange = (item, onChange) => {
+    onChange(item);
+
+    if (keepsPosition) {
+      applyCurrentPosition(item);
+    }
+  };
+
+  const handleMovementTypeChange = (item, onChange) => {
+    const previousType = getValues("movement_type_id");
+    const requiredBefore = movementTypeRequiresMrf(previousType);
     const requiredAfter = movementTypeRequiresMrf(item);
+    const keepsBefore = movementTypeKeepsPosition(previousType);
+    const keepsAfter = movementTypeKeepsPosition(item);
 
     onChange(item);
 
     if (requiredBefore !== requiredAfter) {
       setValue("approved_mrf_id", null, { shouldValidate: false });
       setValue("employee_id", null, { shouldValidate: false });
+      setValue("to_position_id", null, { shouldValidate: false });
+    } else if (keepsAfter) {
+      applyCurrentPosition(getValues("employee_id"));
+    } else if (keepsBefore) {
       setValue("to_position_id", null, { shouldValidate: false });
     }
 
@@ -887,7 +927,9 @@ const DataChangeModalFields = ({
                     ) : (
                       <Autocomplete
                         value={value || null}
-                        onChange={(event, item) => onChange(item)}
+                        onChange={(event, item) =>
+                          handleEmployeeChange(item, onChange)
+                        }
                         options={employees}
                         loading={employeesLoading}
                         getOptionLabel={(item) => {
@@ -977,6 +1019,27 @@ const DataChangeModalFields = ({
                           (value
                             ? "From the MRF (its position)"
                             : "Pick the MRF first")
+                        }
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : keepsPosition ? (
+                      <TextField
+                        label={
+                          <span>
+                            Position to <span style={labelWithRequired}>*</span>
+                          </span>
+                        }
+                        value={
+                          value ? `${getPositionTitle(value)} (current)` : ""
+                        }
+                        error={!!errors.to_position_id}
+                        helperText={
+                          errors.to_position_id?.message ||
+                          (value
+                            ? "From the employee's current position"
+                            : "Pick the employee first")
                         }
                         fullWidth
                         disabled
