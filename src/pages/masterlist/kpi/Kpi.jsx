@@ -249,6 +249,7 @@ const Kpi = () => {
               `kpis[${index}][target_percentage]`,
               kpi.target_percentage,
             );
+            payload.append(`kpis[${index}][remarks]`, kpi.remarks ?? "");
           });
 
           payload.append("_method", "PUT");

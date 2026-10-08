@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,6 +10,8 @@ import {
   TextField,
   IconButton,
   CircularProgress,
+  Autocomplete,
+  Chip,
 } from "@mui/material";
 import {
   CheckCircle as ReceiveIcon,
@@ -18,8 +20,136 @@ import {
   Help as HelpIcon,
   Undo as ReturnIcon,
   Visibility as VisibilityIcon,
+  SwapHoriz as InternalIcon,
+  Add as ExternalIcon,
+  RadioButtonUnchecked as UnselectedIcon,
 } from "@mui/icons-material";
+import dayjs from "dayjs";
 import { useGetMrfAttachmentByIdQuery } from "../../../features/api/forms/mrfApi";
+import { useGetHireOptionsQuery } from "../../../features/api/receiving/receivingApi";
+import {
+  useGetNextEmployeeIdQuery,
+  useCheckUniqueEmployeeIdQuery,
+} from "../../../features/api/employee/mainApi";
+import { useGetAllShowPrefixesQuery } from "../../../features/api/extras/prefixesApi";
+
+const HIRE_TYPES = {
+  MOVEMENT: "MOVEMENT",
+  INTERNAL: "INTERNAL",
+  EXTERNAL: "EXTERNAL",
+};
+
+const extractHireOptionRows = (response) =>
+  (Array.isArray(response) ? response : response?.result || response?.data) ||
+  [];
+
+const getHireOptionLabel = (option) =>
+  option?.full_name || option?.name || option?.employee_name || "";
+
+const resolveSuggestedIdNumber = (option) => {
+  if (!option) return "";
+  if (option.suggested_id_number != null) {
+    return String(option.suggested_id_number);
+  }
+  return option.employee_code || "";
+};
+
+const renderHireOption = (props, option) => {
+  const subtitleParts = [
+    option?.employee_code,
+    option?.position_title,
+    option?.current_status,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+  return (
+    <Box component="li" {...props} key={option.id}>
+      <Box sx={{ display: "flex", flexDirection: "column", py: 0.25 }}>
+        <Typography sx={{ fontSize: "13px" }}>
+          {getHireOptionLabel(option)}
+        </Typography>
+        {subtitleParts && (
+          <Typography sx={{ fontSize: "11px", color: "#666" }}>
+            {subtitleParts}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+const getPrefixLabel = (option) =>
+  option?.name || option?.code || option?.prefix || "";
+
+const getSuggestedIdNumber = (option) =>
+  option?.suggested_id_number != null ? String(option.suggested_id_number) : "";
+
+const toTitleCase = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (char) => char.toUpperCase());
+
+const getFilingHireTypeLabel = (filing) => {
+  if (filing?.hire_type_label) return filing.hire_type_label;
+  if (filing?.hire_type === "MOVEMENT") return "Internal · Employee movement";
+  if (filing?.hire_type === "INTERNAL") return "Internal · Returning employee";
+  if (filing?.hire_type === "EXTERNAL") return "External";
+  return "";
+};
+
+const getFilingMovingFromCaption = (position) => {
+  if (!position) return "";
+  const superiorFullName =
+    position.superior_name || position.superior?.full_name || "";
+  const superiorLastName = String(superiorFullName).split(",")[0].trim();
+  return [
+    position.code,
+    superiorLastName ? `under ${toTitleCase(superiorLastName)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
+
+const FilingField = ({ label, value, caption }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+    <Typography
+      variant="caption"
+      sx={{
+        color: "rgb(33, 61, 112)",
+        fontSize: "11px",
+        fontWeight: 600,
+        display: "block",
+        mb: 0.5,
+      }}>
+      {label}
+    </Typography>
+    <Typography
+      variant="body2"
+      sx={{
+        color: "#000",
+        fontSize: "13px",
+        lineHeight: 1.4,
+        wordBreak: "break-word",
+      }}>
+      {value || "N/A"}
+    </Typography>
+    {caption && (
+      <Typography
+        variant="caption"
+        sx={{ color: "#666", fontSize: "12px", wordBreak: "break-word" }}>
+        {caption}
+      </Typography>
+    )}
+  </Box>
+);
+
+const getHireOptionsLabel = (hireType, internalMode) => {
+  if (hireType === "EXTERNAL") return "Former employee record (search by name)";
+  if (internalMode === HIRE_TYPES.MOVEMENT) {
+    return "Employee movement (search by name)";
+  }
+  return "Returning employee (search by name)";
+};
 
 const SubmissionDialog = ({
   open,
@@ -36,6 +166,24 @@ const SubmissionDialog = ({
   const [fetchAttachment, setFetchAttachment] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState("");
+
+  const [hireType, setHireType] = useState(null);
+  const [internalMode, setInternalMode] = useState(HIRE_TYPES.MOVEMENT);
+
+  const [inputValue, setInputValue] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [idNumberOverride, setIdNumberOverride] = useState("");
+  const [selectedPrefix, setSelectedPrefix] = useState(null);
+  const [debouncedIdNumber, setDebouncedIdNumber] = useState("");
+  const inputReasonRef = useRef("input");
+
+  const activeHireType =
+    hireType === "INTERNAL"
+      ? internalMode
+      : hireType === "EXTERNAL"
+        ? HIRE_TYPES.EXTERNAL
+        : null;
 
   const {
     data: attachmentData,
@@ -56,6 +204,90 @@ const SubmissionDialog = ({
   );
 
   useEffect(() => {
+    if (inputReasonRef.current !== "input") return;
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(inputValue.trim());
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [inputValue]);
+
+  const { data: hireOptionsData, isFetching: isLoadingHireOptions } =
+    useGetHireOptionsQuery(
+      {
+        id: submission?.id,
+        hire_type: activeHireType,
+        search: debouncedSearch,
+      },
+      {
+        skip: !open || !activeHireType || !submission?.id,
+      },
+    );
+
+  const showReturningFields =
+    hireType === "INTERNAL" &&
+    internalMode === HIRE_TYPES.INTERNAL &&
+    Boolean(selectedOption);
+
+  const { data: prefixesData, isFetching: isLoadingPrefixes } =
+    useGetAllShowPrefixesQuery(undefined, {
+      skip: !open || !showReturningFields,
+    });
+
+  const prefixOptions = useMemo(
+    () => extractHireOptionRows(prefixesData),
+    [prefixesData],
+  );
+
+  const { currentData: nextIdData } = useGetNextEmployeeIdQuery(
+    selectedPrefix?.id,
+    {
+      skip: !open || !showReturningFields || !selectedPrefix?.id,
+    },
+  );
+
+  const nextIdNumber =
+    nextIdData?.next_id_number ?? nextIdData?.result?.next_id_number ?? null;
+
+  const { currentData: uniqueIdData, isFetching: isCheckingUniqueId } =
+    useCheckUniqueEmployeeIdQuery(
+      { prefix_id: selectedPrefix?.id, id_number: debouncedIdNumber },
+      {
+        skip:
+          !open ||
+          !showReturningFields ||
+          !selectedPrefix?.id ||
+          !debouncedIdNumber,
+      },
+    );
+
+  const idNumberExists = Boolean(
+    uniqueIdData?.prefix_id_number_exists ??
+    uniqueIdData?.result?.prefix_id_number_exists,
+  );
+
+  const isIdNumberPending =
+    showReturningFields &&
+    Boolean(idNumberOverride.trim()) &&
+    (idNumberOverride.trim() !== debouncedIdNumber || isCheckingUniqueId);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedIdNumber(idNumberOverride.trim());
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [idNumberOverride]);
+
+  useEffect(() => {
+    if (!showReturningFields || nextIdNumber == null) return;
+    setIdNumberOverride(String(nextIdNumber));
+  }, [nextIdNumber, selectedPrefix?.id, showReturningFields]);
+
+  const hireOptions = useMemo(
+    () => (activeHireType ? extractHireOptionRows(hireOptionsData) : []),
+    [hireOptionsData, activeHireType],
+  );
+
+  useEffect(() => {
     if (!fileViewerOpen) {
       if (fileUrl) {
         URL.revokeObjectURL(fileUrl);
@@ -70,16 +302,87 @@ const SubmissionDialog = ({
     }
   }, [fileViewerOpen, attachmentData, isLoadingAttachment, attachmentError]);
 
+  const resetSelection = () => {
+    inputReasonRef.current = "input";
+    setInputValue("");
+    setDebouncedSearch("");
+    setSelectedOption(null);
+    setIdNumberOverride("");
+    setSelectedPrefix(null);
+    setDebouncedIdNumber("");
+  };
+
+  const resetHireState = () => {
+    setHireType(null);
+    setInternalMode(HIRE_TYPES.MOVEMENT);
+    resetSelection();
+  };
+
   useEffect(() => {
     if (!open) {
       setConfirmationOpen(false);
       setConfirmationAction("");
+      resetHireState();
     }
   }, [open]);
 
+  useEffect(() => {
+    resetHireState();
+  }, [submission?.id]);
+
   const handleClose = () => onClose();
 
+  const handleSelectHireType = (type) => {
+    setHireType(type);
+    setInternalMode(HIRE_TYPES.MOVEMENT);
+    resetSelection();
+  };
+
+  const handleSelectInternalMode = (mode) => {
+    if (mode === internalMode) return;
+    setInternalMode(mode);
+    resetSelection();
+  };
+
+  const buildHireData = () => {
+    if (!activeHireType || !selectedOption) return null;
+
+    const payload = {
+      hire_type: activeHireType,
+      employee_to_be_hired_id: selectedOption.id,
+    };
+
+    if (activeHireType === HIRE_TYPES.EXTERNAL && idNumberOverride.trim()) {
+      payload.id_number = idNumberOverride.trim();
+    }
+
+    if (activeHireType === HIRE_TYPES.INTERNAL) {
+      if (selectedPrefix) {
+        payload.prefix_id = selectedPrefix.id;
+      }
+      if (idNumberOverride.trim()) {
+        payload.id_number = idNumberOverride.trim();
+      }
+    }
+
+    return payload;
+  };
+
+  const isReturningFieldsValid =
+    !showReturningFields ||
+    Boolean(
+      selectedPrefix &&
+      idNumberOverride.trim() &&
+      !idNumberExists &&
+      !isIdNumberPending,
+    );
+
+  const isHireSelectionValid = Boolean(
+    activeHireType && selectedOption && isReturningFieldsValid,
+  );
+
   const handleReceive = () => {
+    if (!isHireSelectionValid) return;
     setConfirmationAction("receive");
     setConfirmationOpen(true);
   };
@@ -90,9 +393,10 @@ const SubmissionDialog = ({
   };
 
   const handleConfirmReceive = async () => {
+    const hireData = buildHireData();
     if (onReceive) {
       try {
-        await onReceive(submission);
+        await onReceive(submission, hireData);
       } catch (error) {}
     }
     setConfirmationOpen(false);
@@ -155,7 +459,17 @@ const SubmissionDialog = ({
     return salary ? `₱${Number(salary).toLocaleString()}` : "₱0";
   };
   const getRequisitionType = () => requisitionType.name || "N/A";
-  const getEmployeeToBeReplaced = () => employeeToReplace?.full_name || "N/A";
+  const getEmployeeToBeReplaced = () =>
+    employeeToReplace?.details?.employee?.full_name ||
+    employeeToReplace?.name ||
+    employeeToReplace?.full_name ||
+    "N/A";
+  const filing = submission?.filing || null;
+  const getFiledAt = () =>
+    filing?.filed_at
+      ? dayjs(filing.filed_at).format("MMM D, YYYY · h:mm A")
+      : "";
+
   const getJustification = () =>
     submittable.justification || "No justification provided";
   const getRemarks = () => submittable.remarks || "No remarks";
@@ -164,6 +478,36 @@ const SubmissionDialog = ({
     submission?.status === "APPROVED" ||
     submission?.status === "RECEIVED" ||
     submission?.status === "RETURNED";
+
+  const hireTypeCardSx = (type) => ({
+    flex: 1,
+    cursor: "pointer",
+    borderRadius: 2,
+    border: "2px solid",
+    borderColor: hireType === type ? "rgb(33, 61, 112)" : "#dee2e6",
+    backgroundColor: hireType === type ? "rgba(33, 61, 112, 0.06)" : "#fff",
+    p: 2,
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 1.5,
+    transition: "border-color 0.15s ease, background-color 0.15s ease",
+    "&:hover": {
+      borderColor: "rgb(33, 61, 112)",
+    },
+  });
+
+  const modeChipSx = (mode) => ({
+    fontSize: "12px",
+    fontWeight: 600,
+    border: "1px solid",
+    borderColor: internalMode === mode ? "rgb(33, 61, 112)" : "#dee2e6",
+    backgroundColor: internalMode === mode ? "rgba(33, 61, 112, 0.1)" : "#fff",
+    color: "rgb(33, 61, 112)",
+    "&:hover": {
+      backgroundColor:
+        internalMode === mode ? "rgba(33, 61, 112, 0.15)" : "#f5f6f8",
+    },
+  });
 
   return (
     <>
@@ -494,6 +838,343 @@ const SubmissionDialog = ({
                 )}
               </Box>
 
+              {filing && (
+                <Box
+                  sx={{
+                    backgroundColor: "#f3f8fd",
+                    border: "1px solid #b9d0ea",
+                    borderRadius: 2,
+                    p: 3,
+                    mb: 2,
+                  }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        color: "rgb(33, 61, 112)",
+                        fontSize: "14px",
+                      }}>
+                      MRF Filing Information
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(3, 1fr)",
+                      },
+                      columnGap: 4,
+                      rowGap: 2,
+                    }}>
+                    <FilingField
+                      label="HIRE TYPE"
+                      value={getFilingHireTypeLabel(filing)}
+                    />
+                    <FilingField
+                      label="EMPLOYEE"
+                      value={filing.employee?.full_name}
+                      caption={filing.employee?.employee_code}
+                    />
+                    {filing.moved_from_position && (
+                      <FilingField
+                        label="MOVING FROM"
+                        value={filing.moved_from_position.title}
+                        caption={getFilingMovingFromCaption(
+                          filing.moved_from_position,
+                        )}
+                      />
+                    )}
+                    <FilingField
+                      label="FILED BY"
+                      value={filing.filed_by?.full_name}
+                      caption={getFiledAt()}
+                    />
+                  </Box>
+                </Box>
+              )}
+
+              {!isProcessed && (
+                <Box
+                  sx={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #dee2e6",
+                    borderRadius: 2,
+                    p: 3,
+                    mb: 2,
+                  }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 600,
+                      color: "rgb(33, 61, 112)",
+                      mb: 1.5,
+                      fontSize: "14px",
+                    }}>
+                    Hire Type
+                  </Typography>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: hireType ? 2 : 0 }}>
+                    <Box
+                      onClick={() => handleSelectHireType("INTERNAL")}
+                      sx={hireTypeCardSx("INTERNAL")}>
+                      {hireType === "INTERNAL" ? (
+                        <ReceiveIcon
+                          sx={{ color: "rgb(33, 61, 112)", fontSize: 22 }}
+                        />
+                      ) : (
+                        <UnselectedIcon
+                          sx={{ color: "#9ca3af", fontSize: 22 }}
+                        />
+                      )}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            color: "rgb(33, 61, 112)",
+                            fontSize: "13px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}>
+                          <InternalIcon fontSize="small" /> Internal
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "#666", fontSize: "11px" }}>
+                          Someone already known to the company: an employee
+                          moving in, or a returning former employee
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      onClick={() => handleSelectHireType("EXTERNAL")}
+                      sx={hireTypeCardSx("EXTERNAL")}>
+                      {hireType === "EXTERNAL" ? (
+                        <ReceiveIcon
+                          sx={{ color: "rgb(33, 61, 112)", fontSize: 22 }}
+                        />
+                      ) : (
+                        <UnselectedIcon
+                          sx={{ color: "#9ca3af", fontSize: 22 }}
+                        />
+                      )}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            color: "rgb(33, 61, 112)",
+                            fontSize: "13px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}>
+                          <ExternalIcon fontSize="small" /> External
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "#666", fontSize: "11px" }}>
+                          New hire registered for this MRF
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {hireType && (
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {hireType === "INTERNAL" && (
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          <Chip
+                            label="Employee movement"
+                            clickable
+                            onClick={() =>
+                              handleSelectInternalMode(HIRE_TYPES.MOVEMENT)
+                            }
+                            sx={modeChipSx(HIRE_TYPES.MOVEMENT)}
+                          />
+                          <Chip
+                            label="Returning employee"
+                            clickable
+                            onClick={() =>
+                              handleSelectInternalMode(HIRE_TYPES.INTERNAL)
+                            }
+                            sx={modeChipSx(HIRE_TYPES.INTERNAL)}
+                          />
+                        </Box>
+                      )}
+
+                      <Autocomplete
+                        key={activeHireType}
+                        options={hireOptions}
+                        loading={isLoadingHireOptions}
+                        value={selectedOption}
+                        inputValue={inputValue}
+                        getOptionLabel={getHireOptionLabel}
+                        isOptionEqualToValue={(option, value) =>
+                          option.id === value.id
+                        }
+                        onInputChange={(e, newValue, reason) => {
+                          inputReasonRef.current = reason;
+                          setInputValue(newValue);
+                        }}
+                        onChange={(e, newValue) => {
+                          setSelectedOption(newValue);
+                          setSelectedPrefix(
+                            activeHireType === HIRE_TYPES.INTERNAL
+                              ? newValue?.prefix || null
+                              : null,
+                          );
+                          setIdNumberOverride(
+                            activeHireType === HIRE_TYPES.EXTERNAL
+                              ? resolveSuggestedIdNumber(newValue)
+                              : activeHireType === HIRE_TYPES.INTERNAL
+                                ? getSuggestedIdNumber(newValue)
+                                : "",
+                          );
+                        }}
+                        renderOption={renderHireOption}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={getHireOptionsLabel(hireType, internalMode)}
+                            placeholder="Type a name to search"
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {isLoadingHireOptions ? (
+                                    <CircularProgress size={16} />
+                                  ) : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                      />
+
+                      {showReturningFields && (
+                        <>
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              gap: 2,
+                            }}>
+                            <Autocomplete
+                              disableClearable
+                              options={prefixOptions}
+                              loading={isLoadingPrefixes}
+                              value={selectedPrefix}
+                              getOptionLabel={(option) =>
+                                option?.id != null &&
+                                option.id === selectedOption?.prefix?.id
+                                  ? `${getPrefixLabel(option)} (former record)`
+                                  : getPrefixLabel(option)
+                              }
+                              isOptionEqualToValue={(option, value) =>
+                                option.id === value.id
+                              }
+                              onChange={(e, newValue) =>
+                                setSelectedPrefix(newValue)
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Prefix"
+                                  size="small"
+                                  InputProps={{
+                                    ...params.InputProps,
+                                    endAdornment: (
+                                      <>
+                                        {isLoadingPrefixes ? (
+                                          <CircularProgress size={16} />
+                                        ) : null}
+                                        {params.InputProps.endAdornment}
+                                      </>
+                                    ),
+                                  }}
+                                />
+                              )}
+                            />
+                            <TextField
+                              label="ID number"
+                              value={idNumberOverride}
+                              onChange={(e) =>
+                                setIdNumberOverride(e.target.value)
+                              }
+                              placeholder="Next available"
+                              size="small"
+                              fullWidth
+                              error={idNumberExists}
+                              helperText={
+                                idNumberExists
+                                  ? "This ID number is already used for this prefix"
+                                  : ""
+                              }
+                            />
+                          </Box>
+
+                          {selectedPrefix && nextIdNumber != null && (
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666" }}>
+                              Next available for{" "}
+                              <Box component="span" sx={{ fontWeight: 700 }}>
+                                {getPrefixLabel(selectedPrefix)}
+                              </Box>
+                              :{" "}
+                              <Box component="span" sx={{ fontWeight: 700 }}>
+                                {nextIdNumber}
+                              </Box>
+                            </Typography>
+                          )}
+
+                          {selectedPrefix && idNumberOverride.trim() && (
+                            <Box
+                              sx={{
+                                backgroundColor: "#e3f4ec",
+                                border: "1px solid #b7e0cc",
+                                borderRadius: 1,
+                                px: 1.5,
+                                py: 1,
+                                fontSize: "13px",
+                                color: "#1b5e43",
+                              }}>
+                              New employee code:{" "}
+                              <Box component="span" sx={{ fontWeight: 700 }}>
+                                {getPrefixLabel(selectedPrefix)}-
+                                {idNumberOverride.trim()}
+                              </Box>
+                            </Box>
+                          )}
+                        </>
+                      )}
+
+                      {hireType === "EXTERNAL" && selectedOption && (
+                        <TextField
+                          label="ID Number"
+                          value={idNumberOverride}
+                          onChange={(e) => setIdNumberOverride(e.target.value)}
+                          placeholder="ID number"
+                          fullWidth
+                          size="small"
+                        />
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              )}
+
               {isProcessed && (
                 <Box
                   sx={{
@@ -560,7 +1241,7 @@ const SubmissionDialog = ({
                   borderRadius: 1,
                   "&:hover": { backgroundColor: "#218838" },
                 }}
-                disabled={isLoading}
+                disabled={isLoading || !isHireSelectionValid}
                 startIcon={
                   isLoading ? (
                     <CircularProgress size={16} color="inherit" />

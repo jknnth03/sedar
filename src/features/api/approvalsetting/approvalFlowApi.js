@@ -67,6 +67,38 @@ const approvalFlowApi = sedarApi
         ],
       }),
 
+      getApproverOptions: build.query({
+        query: (params = {}) => {
+          const { exclude_position_id, ...otherParams } = params;
+
+          const queryParams = new URLSearchParams();
+
+          if (
+            exclude_position_id !== undefined &&
+            exclude_position_id !== null
+          ) {
+            queryParams.append("exclude_position_id", exclude_position_id);
+          }
+
+          Object.entries(otherParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = queryString
+            ? `approval-flows/approver-options?${queryString}`
+            : "approval-flows/approver-options";
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["approvalFlows"],
+      }),
+
       createApprovalFlow: build.mutation({
         query: (body) => ({
           url: "approval-flows",
@@ -105,6 +137,8 @@ export const {
   useGetApprovalFlowsQuery,
   useGetSingleApprovalFlowQuery,
   useLazyGetSingleApprovalFlowQuery,
+  useGetApproverOptionsQuery,
+  useLazyGetApproverOptionsQuery,
   useCreateApprovalFlowMutation,
   useUpdateApprovalFlowMutation,
   useDeleteApprovalFlowMutation,

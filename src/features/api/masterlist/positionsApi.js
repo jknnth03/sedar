@@ -40,6 +40,39 @@ const positionsApi = sedarApi
         }),
         providesTags: ["positions"],
       }),
+      getSuperiorOptions: build.query({
+        query: ({ search = "" } = {}) => ({
+          url: `positions/superior-options`,
+          params: {
+            search,
+          },
+        }),
+        providesTags: ["positions"],
+      }),
+      getPositionEmployees: build.query({
+        query: (id) => ({
+          url: `positions/${id}/employees`,
+        }),
+        providesTags: ["positions"],
+      }),
+      getPositionApprovers: build.query({
+        query: (id) => ({
+          url: `approval-flows/${id}`,
+        }),
+        providesTags: ["positions"],
+      }),
+      getPositionKpis: build.query({
+        query: (id) => ({
+          url: `positions/${id}/kpis`,
+        }),
+        providesTags: ["positions"],
+      }),
+      getPositionHistory: build.query({
+        query: (id) => ({
+          url: `positions/${id}/history`,
+        }),
+        providesTags: ["positions"],
+      }),
       getManpowerOptions: build.query({
         query: () => ({
           url: `positions/manpower-options`,
@@ -74,6 +107,14 @@ const positionsApi = sedarApi
         }),
         invalidatesTags: ["positions"],
       }),
+      changePositionsSuperior: build.mutation({
+        query: ({ position_ids, superior_id }) => ({
+          url: `positions/superior`,
+          method: "PATCH",
+          body: { position_ids, superior_id },
+        }),
+        invalidatesTags: ["positions"],
+      }),
       deletePosition: build.mutation({
         query: (id) => ({
           url: `positions/${id}`,
@@ -89,6 +130,12 @@ export const {
   useLazyGetPositionsQuery,
   useGetAllPositionsQuery,
   useLazyGetAllPositionsQuery,
+  useGetSuperiorOptionsQuery,
+  useLazyGetSuperiorOptionsQuery,
+  useGetPositionEmployeesQuery,
+  useGetPositionApproversQuery,
+  useGetPositionKpisQuery,
+  useGetPositionHistoryQuery,
   useGetManpowerOptionsQuery,
   useLazyGetManpowerOptionsQuery,
   useGetPositionByIdQuery,
@@ -96,5 +143,6 @@ export const {
   useGetPositionModalQuery,
   useLazyGetPositionModalQuery,
   useUpdatePositionMutation,
+  useChangePositionsSuperiorMutation,
   useDeletePositionMutation,
 } = positionsApi;

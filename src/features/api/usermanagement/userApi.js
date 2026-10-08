@@ -123,13 +123,15 @@ const userApi = sedarApi
         invalidatesTags: ["users"],
       }),
       getAllApprovers: build.query({
-        query: () => ({
+        // Optional params: callers that pass nothing still get pagination=0.
+        // Pass { pagination: "none" } to override (e.g. in FormModal).
+        query: (params = {}) => ({
           url: "users",
           method: "GET",
           params: {
-            pagination: 0,
-            per_page: 1000,
-            status: "active",
+            pagination: params.pagination ?? 0,
+            per_page: params.per_page ?? 1000,
+            status: params.status ?? "active",
             role: "approver",
           },
         }),
@@ -190,6 +192,16 @@ const userApi = sedarApi
         },
         providesTags: ["users"],
       }),
+      // GET forms/user-options?search= (Receiver + Approver dropdowns in FormModal)
+      getFormUserOptions: build.query({
+        query: ({ search = "" } = {}) => ({
+          url: "forms/user-options",
+          params: {
+            search,
+          },
+        }),
+        providesTags: ["users"],
+      }),
     }),
   });
 
@@ -206,4 +218,5 @@ export const {
   useUpdatePendingRequestMutation,
   useGetAllApproversQuery,
   useGetAllReceiversQuery,
+  useGetFormUserOptionsQuery,
 } = userApi;

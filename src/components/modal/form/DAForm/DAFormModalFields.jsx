@@ -63,7 +63,7 @@ const DAFormModalFields = ({
 
   const { data: mrfData, isLoading: isMrfLoading } =
     useGetAllEmployeeMovementSubmissionsQuery(
-      { status: "active" },
+      { pagination: "none", form_type: "da", status: "active" },
       { skip: !shouldFetchMrf },
     );
 
@@ -166,10 +166,9 @@ const DAFormModalFields = ({
         setValue("to_department", selectedMrf.to_position?.department || "-");
 
         if (selectedMrf.da_start_date) {
-          setValue("start_date", dayjs(selectedMrf.da_start_date));
-        }
-        if (selectedMrf.da_end_date) {
-          setValue("end_date", dayjs(selectedMrf.da_end_date));
+          const startDate = dayjs(selectedMrf.da_start_date);
+          setValue("start_date", startDate);
+          setValue("end_date", startDate.add(6, "month"));
         }
 
         if (selectedMrf.to_position?.id) {
@@ -257,6 +256,16 @@ const DAFormModalFields = ({
     if (fileUrl) {
       URL.revokeObjectURL(fileUrl);
       setFileUrl(null);
+    }
+  };
+
+  const handleStartDateChange = (newValue, fieldOnChange) => {
+    fieldOnChange(newValue);
+    if (newValue && dayjs(newValue).isValid()) {
+      setValue("end_date", dayjs(newValue).add(6, "month"), {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     }
   };
 
@@ -394,6 +403,9 @@ const DAFormModalFields = ({
                 render={({ field }) => (
                   <DatePicker
                     {...field}
+                    onChange={(newValue) =>
+                      handleStartDateChange(newValue, field.onChange)
+                    }
                     value={
                       field.value && dayjs.isDayjs(field.value)
                         ? field.value
@@ -407,7 +419,7 @@ const DAFormModalFields = ({
                         <span style={{ color: "red" }}>*</span>
                       </span>
                     }
-                    disabled
+                    disabled={isReadOnly}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -441,7 +453,7 @@ const DAFormModalFields = ({
                         <span style={{ color: "red" }}>*</span>
                       </span>
                     }
-                    disabled
+                    disabled={isReadOnly}
                     slotProps={{
                       textField: {
                         fullWidth: true,

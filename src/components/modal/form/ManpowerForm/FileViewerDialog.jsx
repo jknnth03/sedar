@@ -27,6 +27,13 @@ const FileViewerDialog = ({
 
   const watchedAttachments = watch("attachments");
 
+  const entryRoot = selectedEntry?.result || selectedEntry;
+  const entryAttachments =
+    entryRoot?.request?.attachments || entryRoot?.submittable?.attachments;
+
+  const hasValidIndex =
+    attachmentIndex !== null && attachmentIndex !== undefined;
+
   const getDisplayFilename = () => {
     if (
       attachmentIndex !== undefined &&
@@ -36,12 +43,8 @@ const FileViewerDialog = ({
       if (att.file_attachment instanceof File) return att.file_attachment.name;
       if (att.existing_file_name) return att.existing_file_name;
     }
-    if (
-      selectedEntry?.submittable?.attachments &&
-      attachmentIndex !== null &&
-      attachmentIndex !== undefined
-    ) {
-      const att = selectedEntry.submittable.attachments[attachmentIndex];
+    if (Array.isArray(entryAttachments) && hasValidIndex) {
+      const att = entryAttachments[attachmentIndex];
       if (att) return att.filename || "Attachment";
     }
     return "Attachment";
@@ -55,18 +58,14 @@ const FileViewerDialog = ({
       const att = watchedAttachments[attachmentIndex];
       if (att.existing_file_id) return att.existing_file_id;
     }
-    if (
-      selectedEntry?.submittable?.attachments &&
-      attachmentIndex !== null &&
-      attachmentIndex !== undefined
-    ) {
-      return selectedEntry.submittable.attachments[attachmentIndex]?.id;
+    if (Array.isArray(entryAttachments) && hasValidIndex) {
+      return entryAttachments[attachmentIndex]?.id;
     }
     return null;
   };
 
   const getSubmittableId = () => {
-    return selectedEntry?.submittable?.id || null;
+    return entryRoot?.submittable?.id ?? entryRoot?.id ?? null;
   };
 
   const submittableId = getSubmittableId();
@@ -105,7 +104,6 @@ const FileViewerDialog = ({
       return;
     }
 
-    // New local file — create blob URL directly
     if (isNewFile) {
       const file = watchedAttachments[attachmentIndex].file_attachment;
       if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
@@ -113,7 +111,6 @@ const FileViewerDialog = ({
       return;
     }
 
-    // Existing file — use RTK Query blob response
     if (attachmentData instanceof Blob) {
       if (fileUrl && fileUrl.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
       setFileUrl(URL.createObjectURL(attachmentData));

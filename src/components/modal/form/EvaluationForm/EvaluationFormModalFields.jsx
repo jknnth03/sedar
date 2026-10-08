@@ -496,7 +496,7 @@ const EvaluationFormModalFields = ({
                       p: 2,
                       borderRight: "1px solid #e0e0e0",
                     }}>
-                    Actual
+                    Actual <span style={{ color: "red" }}>*</span>
                   </TableCell>
                   <TableCell
                     sx={{
@@ -575,21 +575,31 @@ const EvaluationFormModalFields = ({
                           min: 0,
                           max: 100,
                           step: "any",
-                          readOnly: true,
                         }}
-                        placeholder="-"
+                        placeholder={isReadOnly ? "-" : "Enter value"}
                         sx={{
                           width: "100px",
                           "& .MuiOutlinedInput-root": {
-                            backgroundColor: "white",
-                            "& fieldset": { borderColor: "#e0e0e0" },
-                            "&:hover fieldset": { borderColor: "#e0e0e0" },
+                            backgroundColor: isReadOnly ? "#f5f5f5" : "white",
+                            "& fieldset": {
+                              borderColor: isReadOnly
+                                ? "#e0e0e0"
+                                : "rgba(0, 0, 0, 0.4)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: isReadOnly ? "#e0e0e0" : "#1976d2",
+                            },
                             "&.Mui-focused fieldset": {
-                              borderColor: "#e0e0e0",
+                              borderColor: "#1976d2",
+                              borderWidth: "2px",
                             },
                           },
+                          "& .MuiOutlinedInput-input": {
+                            color: isReadOnly ? "#999" : "#1a1a1a",
+                            fontWeight: isReadOnly ? 400 : 600,
+                          },
                         }}
-                        disabled
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell sx={{ p: 2, verticalAlign: "top" }}>

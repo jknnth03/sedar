@@ -107,10 +107,9 @@ const ApprovalFlowActions = ({
       fullWidth
       PaperProps={{
         sx: {
-          minHeight: "70vh",
-          maxHeight: "90vh",
-          width: "1000px",
-          maxWidth: "1000px",
+          m: { xs: 1.5, sm: 4 },
+          maxWidth: { xs: "calc(100% - 24px)", sm: 760 },
+          maxHeight: { xs: "calc(100% - 24px)", sm: "90vh" },
         },
       }}>
       <DialogTitle
@@ -118,12 +117,24 @@ const ApprovalFlowActions = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 1,
+          px: { xs: 2, sm: 3 },
           pb: 1,
           backgroundColor: "#fff",
         }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 1,
+            minWidth: 0,
+          }}>
           <FlowIcon sx={{ color: "rgb(33, 61, 112)" }} />
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{ fontWeight: 600, fontSize: { xs: "1rem", sm: "1.25rem" } }}>
             {getModalTitle()}
           </Typography>
           {isFlowInUse && (
@@ -218,7 +229,7 @@ const ApprovalFlowActions = ({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ backgroundColor: "#fff" }}>
+      <DialogContent sx={{ backgroundColor: "#fff", px: { xs: 2, sm: 3 } }}>
         {!isCreate && selectedEntry && (
           <Box sx={{ p: 0.5, borderRadius: 1 }}>
             {selectedEntry.updated_at && (
@@ -233,8 +244,9 @@ const ApprovalFlowActions = ({
         {children}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2, backgroundColor: "#fff" }}>
-        {!isReadOnly && (
+      {!isReadOnly && (
+        <DialogActions
+          sx={{ px: { xs: 2, sm: 3 }, py: 2, backgroundColor: "#fff" }}>
           <Button
             onClick={handleSubmit(onSubmit)}
             variant="contained"
@@ -276,11 +288,11 @@ const ApprovalFlowActions = ({
             {isLoading
               ? "Saving..."
               : currentMode === "create"
-              ? "Create"
-              : "Update"}
+                ? "Create"
+                : "Update"}
           </Button>
-        )}
-      </DialogActions>
+        </DialogActions>
+      )}
     </Dialog>
   );
 };

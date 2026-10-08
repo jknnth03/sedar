@@ -159,8 +159,8 @@ const EmployeeWizardActions = ({
               {isSubmitting
                 ? "Processing..."
                 : isCreateMode
-                ? "Create Employee"
-                : "Update Employee"}
+                  ? "Create Employee"
+                  : "Update Employee"}
             </Button>
           </>
         )}

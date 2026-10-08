@@ -7,6 +7,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Box,
   TextField,
   Checkbox,
@@ -27,11 +28,11 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArchiveIcon from "@mui/icons-material/Archive";
-import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreIcon from "@mui/icons-material/Restore";
 import HelpIcon from "@mui/icons-material/Help";
 import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import {
@@ -39,9 +40,9 @@ import {
   useDeleteApprovalFlowMutation,
 } from "../../features/api/approvalsetting/approvalFlowApi";
 import ApprovalFlowModal from "../../components/modal/approvalsettings/approvalFlowModal";
+import ApproversDialog from "./approversDialog";
 import NoDataFound from "../../pages/NoDataFound";
 import { styles } from "../forms/manpowerform/formSubmissionStyles";
-import dayjs from "dayjs";
 
 const CustomSearchBar = ({
   searchQuery,
@@ -145,6 +146,10 @@ const CustomSearchBar = ({
   );
 };
 
+// "NOT_SET" -> "NOT SET"
+const formatStatusLabel = (status) =>
+  status ? String(status).replace(/_/g, " ") : "-";
+
 const ApprovalFlow = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -158,13 +163,24 @@ const ApprovalFlow = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create");
+  // Default mode is "view" (view / edit lang ang meron)
+  const [modalMode, setModalMode] = useState("view");
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  // Approvers dialog state
+  const [approversOpen, setApproversOpen] = useState(false);
+  const [approversFlow, setApproversFlow] = useState(null);
+
+  // Pagination state (MUI TablePagination is 0-based, API is 1-based)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
+      // Balik sa page 1 kapag nagbago ang search
+      setPage(0);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -174,9 +190,12 @@ const ApprovalFlow = () => {
     () => ({
       search: debouncedSearchQuery,
       status: showArchived ? "inactive" : "active",
-      pagination: "none",
+      // Pagination is enabled (was "none")
+      pagination: true,
+      page: page + 1,
+      per_page: rowsPerPage,
     }),
-    [debouncedSearchQuery, showArchived]
+    [debouncedSearchQuery, showArchived, page, rowsPerPage],
   );
 
   const {
@@ -190,10 +209,32 @@ const ApprovalFlow = () => {
 
   const [deleteApprovalFlow] = useDeleteApprovalFlowMutation();
 
-  const approvalFlowsList = useMemo(
-    () => backendData?.result || [],
-    [backendData]
-  );
+  // Supports both a plain array and the paginated response
+  // (result.data + result.total)
+  const approvalFlowsList = useMemo(() => {
+    const result = backendData?.result;
+    if (Array.isArray(result)) return result;
+    return result?.data || [];
+  }, [backendData]);
+
+  // Total number of records for the pagination footer
+  const totalCount = useMemo(() => {
+    const result = backendData?.result;
+    return (
+      result?.total ??
+      backendData?.total ??
+      backendData?.meta?.total ??
+      approvalFlowsList.length
+    );
+  }, [backendData, approvalFlowsList]);
+
+  // Kung nasa page na wala nang laman (hal. na-archive lahat ng nasa last page), umatras
+  React.useEffect(() => {
+    if (backendFetching) return;
+    if (page > 0 && page * rowsPerPage >= totalCount) {
+      setPage(Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1));
+    }
+  }, [backendFetching, page, rowsPerPage, totalCount]);
 
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
@@ -201,6 +242,18 @@ const ApprovalFlow = () => {
 
   const handleChangeArchived = useCallback((newShowArchived) => {
     setShowArchived(newShowArchived);
+    // Balik sa page 1 kapag nag-toggle ng archived
+    setPage(0);
+  }, []);
+
+  // Pagination handlers
+  const handleChangePage = useCallback((event, newPage) => {
+    setPage(newPage);
+  }, []);
+
+  const handleChangeRowsPerPage = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   }, []);
 
   const handleMenuOpen = useCallback((event, flow) => {
@@ -212,6 +265,18 @@ const ApprovalFlow = () => {
     setMenuAnchor((prev) => ({ ...prev, [flowId]: null }));
   }, []);
 
+  // Open approvers dialog (stopPropagation para hindi ma-trigger ang row click)
+  const handleViewApprovers = useCallback((event, flow) => {
+    event.stopPropagation();
+    setApproversFlow(flow);
+    setApproversOpen(true);
+  }, []);
+
+  const handleCloseApprovers = useCallback(() => {
+    setApproversOpen(false);
+    setApproversFlow(null);
+  }, []);
+
   const handleArchiveRestoreClick = useCallback(
     (flow, event) => {
       if (event) {
@@ -221,20 +286,23 @@ const ApprovalFlow = () => {
       setConfirmOpen(true);
       handleMenuClose(flow.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleArchiveRestoreConfirm = async () => {
     if (!selectedFlow) return;
 
+    // Walang deleted_at sa response, kaya gamitin din ang Archived toggle
+    const isRestore = Boolean(selectedFlow.deleted_at) || showArchived;
+
     setIsLoading(true);
     try {
       await deleteApprovalFlow(selectedFlow.id).unwrap();
       enqueueSnackbar(
-        selectedFlow.deleted_at
+        isRestore
           ? "Flow restored successfully!"
           : "Flow archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {
@@ -249,12 +317,6 @@ const ApprovalFlow = () => {
     }
   };
 
-  const handleAddFlow = useCallback(() => {
-    setSelectedFlow(null);
-    setModalMode("create");
-    setModalOpen(true);
-  }, []);
-
   const handleEditClick = useCallback(
     (flow) => {
       setSelectedFlow(flow);
@@ -262,7 +324,7 @@ const ApprovalFlow = () => {
       setModalOpen(true);
       handleMenuClose(flow.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleRowClick = useCallback((flow) => {
@@ -271,17 +333,18 @@ const ApprovalFlow = () => {
     setModalOpen(true);
   }, []);
 
+  // Status chip follows the API `status` field (e.g. "NOT_SET")
   const renderStatusChip = useCallback((flow) => {
-    const isActive = flow.is_active && !flow.deleted_at;
+    const isSet = Boolean(flow.status) && flow.status !== "NOT_SET";
 
     return (
       <Chip
-        label={isActive ? "ACTIVE" : "INACTIVE"}
+        label={formatStatusLabel(flow.status)}
         size="small"
         sx={{
-          backgroundColor: isActive ? "#e8f5e8" : "#fff7f7ff",
-          color: isActive ? "#2e7d32" : "#d32f2f",
-          border: `1px solid ${isActive ? "#4caf50" : "#d32f2f"}`,
+          backgroundColor: isSet ? "#e8f5e8" : "#fff4e5",
+          color: isSet ? "#2e7d32" : "#ed6c02",
+          border: `1px solid ${isSet ? "#4caf50" : "#ff9800"}`,
           fontWeight: 600,
           fontSize: "11px",
           height: "24px",
@@ -295,6 +358,9 @@ const ApprovalFlow = () => {
   }, []);
 
   const isLoadingState = backendFetching || isLoading;
+
+  // Para sa Restore/Archive label sa menu at dialog
+  const isRestoreAction = (flow) => Boolean(flow?.deleted_at) || showArchived;
 
   return (
     <>
@@ -320,39 +386,6 @@ const ApprovalFlow = () => {
                 }}>
                 APPROVAL FLOWS
               </Typography>
-              {isVerySmall ? (
-                <IconButton
-                  onClick={handleAddFlow}
-                  sx={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "rgb(33, 61, 112)",
-                    color: "white",
-                    borderRadius: "8px",
-                    "&:hover": {
-                      backgroundColor: "rgb(25, 45, 84)",
-                    },
-                    "&:disabled": {
-                      backgroundColor: "#ccc",
-                    },
-                  }}>
-                  <AddIcon sx={{ fontSize: "18px" }} />
-                </IconButton>
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleAddFlow}
-                  startIcon={<AddIcon />}
-                  sx={{
-                    ...styles.createButton,
-                    backgroundColor: "rgb(33, 61, 112)",
-                    "&:hover": {
-                      backgroundColor: "rgb(25, 45, 84)",
-                    },
-                  }}>
-                  CREATE
-                </Button>
-              )}
             </Box>
           </Box>
 
@@ -372,6 +405,8 @@ const ApprovalFlow = () => {
               backgroundColor: "white",
             }}>
             <Table stickyHeader>
+              {/* Columns follow the API response
+                  (id, code, title, charging, approvers, status) */}
               <TableHead>
                 <TableRow>
                   <TableCell
@@ -379,22 +414,22 @@ const ApprovalFlow = () => {
                     sx={{ ...styles.columnStyles.id, borderBottom: "none" }}>
                     ID
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      ...styles.columnStyles.formName,
-                      borderBottom: "none",
-                    }}>
-                    FLOW NAME
-                  </TableCell>
                   {!isMobile && (
                     <TableCell
                       sx={{
                         ...styles.columnStyles.formName,
                         borderBottom: "none",
                       }}>
-                      FORM
+                      CODE
                     </TableCell>
                   )}
+                  <TableCell
+                    sx={{
+                      ...styles.columnStyles.formName,
+                      borderBottom: "none",
+                    }}>
+                    POSITION
+                  </TableCell>
                   {!isMobile && !isTablet && (
                     <TableCell
                       sx={{
@@ -407,10 +442,11 @@ const ApprovalFlow = () => {
                   {!isMobile && (
                     <TableCell
                       sx={{
-                        ...styles.columnStyles.formName,
+                        ...styles.columnStyles.status,
                         borderBottom: "none",
-                      }}>
-                      RECEIVER
+                      }}
+                      align="center">
+                      APPROVERS
                     </TableCell>
                   )}
                   {!isMobile && (
@@ -421,15 +457,6 @@ const ApprovalFlow = () => {
                       }}
                       align="center">
                       STATUS
-                    </TableCell>
-                  )}
-                  {!isMobile && (
-                    <TableCell
-                      sx={{
-                        ...styles.columnStyles.formName,
-                        borderBottom: "none",
-                      }}>
-                      LAST MODIFIED
                     </TableCell>
                   )}
                   <TableCell
@@ -450,21 +477,30 @@ const ApprovalFlow = () => {
                         <TableCell align="left">
                           <Skeleton animation="wave" height={30} />
                         </TableCell>
+                        {!isMobile && (
+                          <TableCell>
+                            <Skeleton animation="wave" height={30} />
+                          </TableCell>
+                        )}
                         <TableCell>
                           <Skeleton animation="wave" height={30} />
                         </TableCell>
+                        {!isMobile && !isTablet && (
+                          <TableCell>
+                            <Skeleton animation="wave" height={30} />
+                          </TableCell>
+                        )}
                         {!isMobile && (
                           <>
-                            <TableCell>
-                              <Skeleton animation="wave" height={30} />
-                            </TableCell>
-                            {!isTablet && (
-                              <TableCell>
-                                <Skeleton animation="wave" height={30} />
-                              </TableCell>
-                            )}
-                            <TableCell>
-                              <Skeleton animation="wave" height={30} />
+                            {/* Approvers is an icon button */}
+                            <TableCell align="center">
+                              <Skeleton
+                                animation="wave"
+                                variant="circular"
+                                width={32}
+                                height={32}
+                                sx={{ margin: "0 auto" }}
+                              />
                             </TableCell>
                             <TableCell align="center">
                               <Skeleton
@@ -474,9 +510,6 @@ const ApprovalFlow = () => {
                                 height={24}
                                 sx={{ margin: "0 auto" }}
                               />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton animation="wave" height={30} />
                             </TableCell>
                           </>
                         )}
@@ -524,72 +557,47 @@ const ApprovalFlow = () => {
                       onClick={() => handleRowClick(flow)}
                       sx={styles.tableRowHover(theme)}>
                       <TableCell align="left">{flow.id}</TableCell>
+                      {!isMobile && (
+                        <TableCell sx={styles.formNameCell}>
+                          <Tooltip title={flow.code || "-"} placement="top">
+                            <span style={styles.cellContentStyles}>
+                              {flow.code || "-"}
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                      )}
                       <TableCell sx={styles.formNameCell}>
-                        <Tooltip title={flow.name} placement="top">
+                        <Tooltip title={flow.title || "-"} placement="top">
                           <span style={styles.cellContentStyles}>
-                            {flow.name}
+                            {flow.title || "-"}
                           </span>
                         </Tooltip>
                       </TableCell>
-                      {!isMobile && (
-                        <TableCell sx={styles.formNameCell}>
-                          <Tooltip
-                            title={flow.form?.name || "-"}
-                            placement="top">
-                            <span style={styles.cellContentStyles}>
-                              {flow.form?.name || "-"}
-                            </span>
-                          </Tooltip>
-                        </TableCell>
-                      )}
                       {!isMobile && !isTablet && (
                         <TableCell sx={styles.formNameCell}>
-                          <Tooltip
-                            title={flow.charging?.name || "-"}
-                            placement="top">
+                          <Tooltip title={flow.charging || "-"} placement="top">
                             <span style={styles.cellContentStyles}>
-                              {flow.charging?.name || "-"}
+                              {flow.charging || "-"}
                             </span>
                           </Tooltip>
                         </TableCell>
                       )}
+                      {/* Eye icon, bubukas ang ApproversDialog */}
                       {!isMobile && (
-                        <TableCell sx={styles.formNameCell}>
-                          <Tooltip
-                            title={
-                              flow.receiver?.full_name ||
-                              flow.receiver?.name ||
-                              "-"
-                            }
-                            placement="top">
-                            <span style={styles.cellContentStyles}>
-                              {flow.receiver?.full_name ||
-                                flow.receiver?.name ||
-                                "-"}
-                            </span>
+                        <TableCell align="center">
+                          <Tooltip title="View approvers" placement="top">
+                            <IconButton
+                              onClick={(e) => handleViewApprovers(e, flow)}
+                              size="small"
+                              sx={{ color: "rgb(33, 61, 112)" }}>
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
                           </Tooltip>
                         </TableCell>
                       )}
                       {!isMobile && (
                         <TableCell align="center">
                           {renderStatusChip(flow)}
-                        </TableCell>
-                      )}
-                      {!isMobile && (
-                        <TableCell sx={styles.formNameCell}>
-                          <Tooltip
-                            title={
-                              flow.updated_at
-                                ? dayjs(flow.updated_at).format("MMM D, YYYY")
-                                : "-"
-                            }
-                            placement="top">
-                            <span style={styles.cellContentStyles}>
-                              {flow.updated_at
-                                ? dayjs(flow.updated_at).format("MMM D, YYYY")
-                                : "-"}
-                            </span>
-                          </Tooltip>
                         </TableCell>
                       )}
                       <TableCell align="center">
@@ -602,7 +610,7 @@ const ApprovalFlow = () => {
                           anchorEl={menuAnchor[flow.id]}
                           open={Boolean(menuAnchor[flow.id])}
                           onClose={() => handleMenuClose(flow.id)}>
-                          {!flow.deleted_at && (
+                          {!isRestoreAction(flow) && (
                             <MenuItem onClick={() => handleEditClick(flow)}>
                               <EditIcon fontSize="small" sx={{ mr: 1 }} />
                               Edit
@@ -610,7 +618,7 @@ const ApprovalFlow = () => {
                           )}
                           <MenuItem
                             onClick={(e) => handleArchiveRestoreClick(flow, e)}>
-                            {flow.deleted_at ? (
+                            {isRestoreAction(flow) ? (
                               <>
                                 <RestoreIcon fontSize="small" sx={{ mr: 1 }} />
                                 Restore
@@ -659,6 +667,21 @@ const ApprovalFlow = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Pagination footer */}
+          {!error && (
+            <TablePagination
+              component="div"
+              count={totalCount}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              labelRowsPerPage={isMobile ? "Rows:" : "Rows per page:"}
+              sx={{ backgroundColor: "white" }}
+            />
+          )}
         </Box>
       </Box>
 
@@ -689,7 +712,9 @@ const ApprovalFlow = () => {
         <DialogContent>
           <Typography variant="body1" gutterBottom textAlign="center">
             Are you sure you want to{" "}
-            <strong>{selectedFlow?.deleted_at ? "restore" : "archive"}</strong>{" "}
+            <strong>
+              {isRestoreAction(selectedFlow) ? "restore" : "archive"}
+            </strong>{" "}
             this approval flow?
           </Typography>
           {selectedFlow && (
@@ -698,7 +723,10 @@ const ApprovalFlow = () => {
               color="text.secondary"
               textAlign="center"
               sx={{ mt: 1 }}>
-              {selectedFlow.name}
+              {/* `title` (+ code) imbes na `name` */}
+              {selectedFlow.code
+                ? `${selectedFlow.code} - ${selectedFlow.title}`
+                : selectedFlow.title}
             </Typography>
           )}
         </DialogContent>
@@ -725,18 +753,25 @@ const ApprovalFlow = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Approvers dialog (separate component) */}
+      <ApproversDialog
+        open={approversOpen}
+        onClose={handleCloseApprovers}
+        position={approversFlow}
+      />
+
       <ApprovalFlowModal
         open={modalOpen}
         onClose={() => {
           setModalOpen(false);
           setSelectedFlow(null);
-          setModalMode("create");
+          setModalMode("view");
         }}
         onSave={() => {
           refetch();
           setModalOpen(false);
           setSelectedFlow(null);
-          setModalMode("create");
+          setModalMode("view");
         }}
         selectedEntry={selectedFlow}
         mode={modalMode}

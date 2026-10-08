@@ -166,7 +166,13 @@ const KpiModal = ({
         setExistingAttachmentUrl(null);
         reset({
           kpis: [
-            { objective: "", distribution: "", deliverable: "", target: "" },
+            {
+              objective: "",
+              distribution: "",
+              deliverable: "",
+              target: "",
+              remarks: "",
+            },
           ],
         });
         setTimeout(() => setShowValidation(true), 100);
@@ -206,13 +212,20 @@ const KpiModal = ({
               target: kpi.target_percentage
                 ? String(kpi.target_percentage)
                 : "",
+              remarks: kpi.remarks || "",
             };
           });
         }
 
         if (existingKpis.length === 0) {
           existingKpis = [
-            { objective: "", distribution: "", deliverable: "", target: "" },
+            {
+              objective: "",
+              distribution: "",
+              deliverable: "",
+              target: "",
+              remarks: "",
+            },
           ];
         }
 
@@ -264,6 +277,7 @@ const KpiModal = ({
               : "",
             deliverable: kpi.deliverable || "",
             target: kpi.target_percentage ? String(kpi.target_percentage) : "",
+            remarks: kpi.remarks || "",
           };
         });
 
@@ -277,6 +291,7 @@ const KpiModal = ({
                     distribution: "",
                     deliverable: "",
                     target: "",
+                    remarks: "",
                   },
                 ],
         });
@@ -315,13 +330,20 @@ const KpiModal = ({
               : "",
             deliverable: kpi.deliverable || "",
             target: kpi.target_percentage ? String(kpi.target_percentage) : "",
+            remarks: kpi.remarks || "",
           };
         });
       }
 
       if (existingKpis.length === 0) {
         existingKpis = [
-          { objective: "", distribution: "", deliverable: "", target: "" },
+          {
+            objective: "",
+            distribution: "",
+            deliverable: "",
+            target: "",
+            remarks: "",
+          },
         ];
       }
 
@@ -331,7 +353,13 @@ const KpiModal = ({
 
   const addKpiLine = () => {
     if (totalDistribution < 99.9) {
-      append({ objective: "", distribution: "", deliverable: "", target: "" });
+      append({
+        objective: "",
+        distribution: "",
+        deliverable: "",
+        target: "",
+        remarks: "",
+      });
     }
   };
 
@@ -382,6 +410,7 @@ const KpiModal = ({
           distribution_percentage: parseFloat(kpi.distribution) || 0,
           deliverable: kpi.deliverable || "",
           target_percentage: parseFloat(kpi.target) || 0,
+          remarks: kpi.remarks || "",
         };
       }),
       attachment: attachedFile || null,
@@ -790,6 +819,9 @@ const KpiModal = ({
                         <TableCell sx={kpiModalStyles.tableHeaderTarget}>
                           Target (%)
                         </TableCell>
+                        <TableCell sx={kpiModalStyles.tableHeader}>
+                          Remarks
+                        </TableCell>
                         {!isReadOnly && (
                           <TableCell sx={kpiModalStyles.tableHeaderActions}>
                             Actions
@@ -1020,6 +1052,33 @@ const KpiModal = ({
                                     sx={kpiModalStyles.percentageField(
                                       isTargetDisabled,
                                     )}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+
+                            <TableCell>
+                              <Controller
+                                name={`kpis.${index}.remarks`}
+                                control={control}
+                                render={({ field }) => (
+                                  <TextField
+                                    {...field}
+                                    value={field.value ?? ""}
+                                    size="small"
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                    error={!!errors.kpis?.[index]?.remarks}
+                                    helperText={
+                                      errors.kpis?.[index]?.remarks?.message
+                                        ? String(
+                                            errors.kpis[index].remarks.message,
+                                          )
+                                        : ""
+                                    }
+                                    disabled={isReadOnly}
+                                    sx={kpiModalStyles.textField(isReadOnly)}
                                   />
                                 )}
                               />

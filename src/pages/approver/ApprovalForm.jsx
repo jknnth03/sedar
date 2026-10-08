@@ -37,7 +37,10 @@ import { useSnackbar } from "notistack";
 import "../../pages/GeneralStyle.scss";
 import {
   useGetApprovalFormsQuery,
+  useLazyGetSingleApprovalFormQuery,
   useDeleteApprovalFormMutation,
+  useCreateApprovalFormMutation,
+  useUpdateApprovalFormMutation,
 } from "../../features/api/approvalsetting/approvalFormApi";
 import ApprovalFormModal from "../../components/modal/approvalsettings/ApprovalFormModal";
 import CustomTablePagination from "../../pages/zzzreusable/CustomTablePagination";
@@ -164,6 +167,7 @@ const ApprovalForm = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
   const methods = useForm({
@@ -191,7 +195,7 @@ const ApprovalForm = () => {
       status: showArchived ? "inactive" : "active",
       pagination: true,
     }),
-    [debouncedSearchQuery, page, rowsPerPage, showArchived]
+    [debouncedSearchQuery, page, rowsPerPage, showArchived],
   );
 
   const {
@@ -204,10 +208,13 @@ const ApprovalForm = () => {
   });
 
   const [deleteApprovalForm] = useDeleteApprovalFormMutation();
+  const [createApprovalForm] = useCreateApprovalFormMutation();
+  const [updateApprovalForm] = useUpdateApprovalFormMutation();
+  const [triggerGetSingleForm] = useLazyGetSingleApprovalFormQuery();
 
   const approvalFormsList = useMemo(
     () => backendData?.result?.data || [],
-    [backendData]
+    [backendData],
   );
   const totalCount = backendData?.result?.total || 0;
 
@@ -239,7 +246,7 @@ const ApprovalForm = () => {
       setConfirmOpen(true);
       handleMenuClose(form.id);
     },
-    [handleMenuClose]
+    [handleMenuClose],
   );
 
   const handleArchiveRestoreConfirm = async () => {
@@ -252,7 +259,7 @@ const ApprovalForm = () => {
         selectedForm.deleted_at
           ? "Form restored successfully!"
           : "Form archived successfully!",
-        { variant: "success", autoHideDuration: 2000 }
+        { variant: "success", autoHideDuration: 2000 },
       );
       refetch();
     } catch (error) {
@@ -274,20 +281,37 @@ const ApprovalForm = () => {
   }, []);
 
   const handleEditClick = useCallback(
-    (form) => {
+    async (form) => {
       setSelectedForm(form);
       setModalMode("edit");
       setModalOpen(true);
       handleMenuClose(form.id);
+      try {
+        const res = await triggerGetSingleForm(form.id).unwrap();
+        const freshForm = res?.result || res?.data || res;
+        if (freshForm) setSelectedForm(freshForm);
+      } catch (err) {
+        // keep the cached row data if the fresh fetch fails
+      }
     },
-    [handleMenuClose]
+    [handleMenuClose, triggerGetSingleForm],
   );
 
-  const handleRowClick = useCallback((form) => {
-    setSelectedForm(form);
-    setModalMode("view");
-    setModalOpen(true);
-  }, []);
+  const handleRowClick = useCallback(
+    async (form) => {
+      setSelectedForm(form);
+      setModalMode("view");
+      setModalOpen(true);
+      try {
+        const res = await triggerGetSingleForm(form.id).unwrap();
+        const freshForm = res?.result || res?.data || res;
+        if (freshForm) setSelectedForm(freshForm);
+      } catch (err) {
+        // keep the cached row data if the fresh fetch fails
+      }
+    },
+    [triggerGetSingleForm],
+  );
 
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage + 1);
@@ -297,6 +321,41 @@ const ApprovalForm = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(1);
   }, []);
+
+  // Actually persists the form via the create/update mutation before closing + refetching
+  const handleSaveForm = useCallback(
+    async (payload, mode) => {
+      setIsSaving(true);
+      try {
+        if (mode === "create") {
+          await createApprovalForm(payload).unwrap();
+          enqueueSnackbar("Form created successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        } else if (mode === "edit") {
+          const { id, ...data } = payload;
+          await updateApprovalForm({ id, data }).unwrap();
+          enqueueSnackbar("Form updated successfully!", {
+            variant: "success",
+            autoHideDuration: 2000,
+          });
+        }
+        refetch();
+        setModalOpen(false);
+        setSelectedForm(null);
+        setModalMode("create");
+      } catch (err) {
+        enqueueSnackbar(
+          err?.data?.message || "Action failed. Please try again.",
+          { variant: "error", autoHideDuration: 2000 },
+        );
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [createApprovalForm, updateApprovalForm, refetch, enqueueSnackbar],
+  );
 
   const renderStatusChip = useCallback((form) => {
     const isActive = !form.deleted_at;
@@ -744,12 +803,8 @@ const ApprovalForm = () => {
           setSelectedForm(null);
           setModalMode("create");
         }}
-        onSave={() => {
-          refetch();
-          setModalOpen(false);
-          setSelectedForm(null);
-          setModalMode("create");
-        }}
+        onSave={handleSaveForm}
+        isLoading={isSaving}
         selectedEntry={selectedForm}
         mode={modalMode}
       />

@@ -1,5 +1,5 @@
 export const mergeDropdownOptions = (existingList, initialOptions) => {
-  if (!initialOptions || initialOptions.length === 0) return existingList;
+  if (!initialOptions || initialOptions.length === 0) return existingList || [];
   if (!existingList || existingList.length === 0) return initialOptions;
 
   const existingIds = new Set(existingList.map((item) => item.id));
@@ -7,7 +7,7 @@ export const mergeDropdownOptions = (existingList, initialOptions) => {
     (item) => !existingIds.has(item.id),
   );
 
-  return [...initialOptions, ...existingList];
+  return [...uniqueInitialOptions, ...existingList];
 };
 
 // NEW HELPER FUNCTIONS
@@ -29,11 +29,6 @@ export const getToolsForPayload = (formData, toolsList) => {
     .filter((id) => id !== null);
 };
 
-export const getRequestorsForPayload = (requestorSequence) => {
-  if (!requestorSequence || requestorSequence.length === 0) return [];
-  return requestorSequence.map((req) => req.id);
-};
-
 export const getAttachmentDisplayName = (attachment) => {
   if (!attachment) return "";
 
@@ -47,20 +42,26 @@ export const getAttachmentDisplayName = (attachment) => {
   return "";
 };
 
-export const validatePositionForm = (
-  formData,
-  requestorSequence,
-  currentMode,
-) => {
+export const validatePositionForm = (formData, currentMode) => {
   const newErrors = {
     titles: !formData.titles,
     code: !formData.code || !formData.code.trim(),
+    job_level: !formData.job_level,
     pay_frequency: !formData.pay_frequency,
     schedule: !formData.schedule,
     team: !formData.team,
     charging: !formData.charging,
     tools: formData.tools.length === 0,
-    requestor_sequence: requestorSequence.length === 0,
+    // expected_salary is optional for now. To make it required, uncomment:
+    // expected_salary:
+    //   formData.expected_salary === "" ||
+    //   formData.expected_salary === null ||
+    //   formData.expected_salary === undefined,
+    // headcount is optional for now. To make it required, uncomment:
+    // headcount:
+    //   formData.headcount === "" ||
+    //   formData.headcount === null ||
+    //   formData.headcount === undefined,
   };
 
   if (
@@ -82,7 +83,6 @@ export const validatePositionForm = (
 
 export const buildFormDataPayload = (
   formData,
-  requestorSequence,
   toolsList,
   showArchived,
   currentMode,
@@ -94,7 +94,10 @@ export const buildFormDataPayload = (
   if (formData.superior_name) {
     formDataToSend.append("superior_id", formData.superior_name);
   }
+  formDataToSend.append("headcount", formData.headcount ?? "");
+  formDataToSend.append("job_level_id", formData.job_level);
   formDataToSend.append("pay_frequency", formData.pay_frequency);
+  formDataToSend.append("expected_salary", formData.expected_salary ?? "");
   formDataToSend.append("schedule_id", formData.schedule);
   formDataToSend.append("team_id", formData.team);
   formDataToSend.append("charging_id", formData.charging);
@@ -104,12 +107,6 @@ export const buildFormDataPayload = (
   const toolIds = getToolsForPayload(formData, toolsList);
   toolIds.forEach((toolId) => {
     formDataToSend.append("tools[]", toolId);
-  });
-
-  // Requestors
-  const requestorIds = getRequestorsForPayload(requestorSequence);
-  requestorIds.forEach((requestorId) => {
-    formDataToSend.append("requester_user_ids[]", requestorId);
   });
 
   // Attachment

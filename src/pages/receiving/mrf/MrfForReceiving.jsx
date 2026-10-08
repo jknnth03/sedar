@@ -30,6 +30,7 @@ const MrfForReceiving = ({
   );
   const [selectedId, setSelectedId] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
 
   const methods = useForm();
@@ -101,14 +102,13 @@ const MrfForReceiving = ({
   }, []);
 
   const handleReceiveSubmission = useCallback(
-    async (submission) => {
+    async (submission, hireData) => {
       setIsProcessing(true);
       try {
-        await onReceiveSubmission(submission.id, "", refetch);
+        await onReceiveSubmission(submission.id, "", hireData, refetch);
         setDialogOpen(false);
         setSelectedId(null);
-      } catch (error) {
-        console.error("Error receiving submission:", error);
+      } catch {
       } finally {
         setIsProcessing(false);
       }
@@ -123,8 +123,7 @@ const MrfForReceiving = ({
         await onReturnSubmission(submission.id, reason, refetch);
         setDialogOpen(false);
         setSelectedId(null);
-      } catch (error) {
-        console.error("Error returning submission:", error);
+      } catch {
       } finally {
         setIsProcessing(false);
       }
@@ -138,8 +137,7 @@ const MrfForReceiving = ({
       setIsProcessing(true);
       try {
         await onReceiveSubmission(submission.id, "", refetch);
-      } catch (error) {
-        console.error("Error receiving submission:", error);
+      } catch {
       } finally {
         setIsProcessing(false);
       }
@@ -153,8 +151,7 @@ const MrfForReceiving = ({
       setIsProcessing(true);
       try {
         await onReturnSubmission(submission.id, "", refetch);
-      } catch (error) {
-        console.error("Error returning submission:", error);
+      } catch {
       } finally {
         setIsProcessing(false);
       }

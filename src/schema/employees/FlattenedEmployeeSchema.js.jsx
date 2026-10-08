@@ -240,7 +240,19 @@ const fileSchema = yup.object().shape({
 });
 
 const fieldSchemas = {
-  submission_title: yup.string().nullable(),
+  submission_title: yup
+    .mixed()
+    .nullable()
+    .transform((value, originalValue) => {
+      if (
+        originalValue === "" ||
+        originalValue === null ||
+        originalValue === undefined
+      ) {
+        return null;
+      }
+      return value;
+    }),
   first_name: yup.string().required("First name is required."),
   middle_name: yup.string().nullable(),
   last_name: yup.string().required("Last Name is required."),

@@ -269,6 +269,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
           notificationCount:
             counts.mdaApprovals +
             counts.daMdaApprovals +
+            counts.daMdaRecommendationApprovals +
             counts.probationaryMdaApprovals,
           children: {
             MDAAPPROVAL: {
@@ -293,7 +294,7 @@ export const createEnhancedModules = (dashboardData = {}) => {
               displayName: "MDA (Recommendation)",
               path: "mdarecommendationapproval",
               icon: <RecommendIcon sx={iconStyles.child} />,
-              notificationCount: counts.mdaDaRecommendationTotal,
+              notificationCount: counts.daMdaRecommendationApprovals,
             },
             MDAEVALUATIONAPPROVAL: {
               name: "MDA (For Evaluation)",

@@ -22,6 +22,7 @@ import {
 import PositionsModal from "../../../components/modal/masterlist/PositionsModal";
 import PositionDialog from "./PositionDialog";
 import CoaDialog from "./CoaDialog";
+import ChangeSuperiorDialog from "./ChangeSuperiorDialog";
 import PositionsTable from "./PositionsTable";
 import "../../../pages/GeneralStyle.scss";
 import { useSnackbar } from "notistack";
@@ -150,9 +151,12 @@ const Positions = () => {
   const [coaDialogOpen, setCoaDialogOpen] = useState(false);
   const [toolsDialogOpen, setToolsDialogOpen] = useState(false);
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
-  const [requestorsDialogOpen, setRequestorsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  // Bulk selection: { [positionId]: positionObject }
+  const [selectedRows, setSelectedRows] = useState({});
+  const [changeSuperiorOpen, setChangeSuperiorOpen] = useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -189,6 +193,11 @@ const Positions = () => {
   );
   const totalCount = positions?.result?.total || 0;
 
+  const selectedList = useMemo(
+    () => Object.values(selectedRows),
+    [selectedRows],
+  );
+
   const handleSearchChange = useCallback((newSearchQuery) => {
     setSearchQuery(newSearchQuery);
     setPage(1);
@@ -197,7 +206,57 @@ const Positions = () => {
   const handleChangeArchived = useCallback((newShowArchived) => {
     setShowArchived(newShowArchived);
     setPage(1);
+    // selection doesn't carry over between active / archived
+    setSelectedRows({});
   }, []);
+
+  // Toggle a single row's checkbox
+  const handleToggleRow = useCallback((position) => {
+    setSelectedRows((prev) => {
+      const next = { ...prev };
+      if (next[position.id]) {
+        delete next[position.id];
+      } else {
+        next[position.id] = position;
+      }
+      return next;
+    });
+  }, []);
+
+  // Select / unselect everything on the current page
+  const handleToggleAll = useCallback(
+    (checked) => {
+      setSelectedRows((prev) => {
+        const next = { ...prev };
+        positionList.forEach((position) => {
+          if (checked) {
+            next[position.id] = position;
+          } else {
+            delete next[position.id];
+          }
+        });
+        return next;
+      });
+    },
+    [positionList],
+  );
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedRows({});
+  }, []);
+
+  const handleOpenChangeSuperior = () => {
+    setChangeSuperiorOpen(true);
+  };
+
+  const handleCloseChangeSuperior = () => {
+    setChangeSuperiorOpen(false);
+  };
+
+  const handleChangeSuperiorSuccess = () => {
+    setSelectedRows({});
+    refetch();
+  };
 
   const getDisplayFileName = (position) => {
     if (position.position_attachment_filename) {
@@ -312,16 +371,6 @@ const Positions = () => {
     setAttachmentDialogOpen(false);
   };
 
-  const handleOpenRequestorsDialog = (position) => {
-    setSelectedPosition(position);
-    setRequestorsDialogOpen(true);
-  };
-
-  const handleCloseRequestorsDialog = () => {
-    setSelectedPosition(null);
-    setRequestorsDialogOpen(false);
-  };
-
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage + 1);
   }, []);
@@ -427,6 +476,48 @@ const Positions = () => {
           />
         </Box>
 
+        {/* Bulk action bar - shows only when may naka-select */}
+        {selectedList.length > 0 && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: "#e8edf5",
+              borderRadius: "4px",
+              px: 2,
+              py: 1,
+              mb: 1,
+            }}>
+            <Typography
+              sx={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "rgb(33, 61, 112)",
+              }}>
+              {selectedList.length} selected
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Button
+                onClick={handleClearSelection}
+                size="small"
+                sx={{ color: "rgb(33, 61, 112)", fontWeight: 600 }}>
+                CLEAR
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleOpenChangeSuperior}
+                sx={{
+                  backgroundColor: "rgb(33, 61, 112)",
+                  "&:hover": { backgroundColor: "rgb(25, 45, 84)" },
+                }}>
+                CHANGE SUPERIOR
+              </Button>
+            </Box>
+          </Box>
+        )}
+
         <Box sx={styles.tabsContainer}>
           <PositionsTable
             positionList={positionList}
@@ -439,13 +530,16 @@ const Positions = () => {
             handleMenuClose={handleMenuClose}
             handleRowClick={handleRowClick}
             handleOpenCoaDialog={handleOpenCoaDialog}
-            handleOpenRequestorsDialog={handleOpenRequestorsDialog}
             handleOpenToolsDialog={handleOpenToolsDialog}
             handleOpenAttachmentDialog={handleOpenAttachmentDialog}
             handleEditClick={handleEditClick}
             handleArchiveRestoreClick={handleArchiveRestoreClick}
             getDisplayFileName={getDisplayFileName}
             renderStatusChip={renderStatusChip}
+            selectedRows={selectedRows}
+            handleToggleRow={handleToggleRow}
+            handleToggleAll={handleToggleAll}
+            showSelection={!showArchived}
           />
 
           <CustomTablePagination
@@ -497,12 +591,12 @@ const Positions = () => {
         />
       )}
 
-      {requestorsDialogOpen && (
-        <PositionDialog
-          open={requestorsDialogOpen}
-          onClose={handleCloseRequestorsDialog}
-          position={selectedPosition}
-          type="requestors"
+      {changeSuperiorOpen && (
+        <ChangeSuperiorDialog
+          open={changeSuperiorOpen}
+          onClose={handleCloseChangeSuperior}
+          selectedPositions={selectedList}
+          onSuccess={handleChangeSuperiorSuccess}
         />
       )}
 

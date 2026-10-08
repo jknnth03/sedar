@@ -1,27 +1,21 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Box,
   Badge,
   Typography,
-  Button,
   TextField,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tooltip,
   CircularProgress,
   IconButton,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchIcon from "@mui/icons-material/Search";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
@@ -29,7 +23,7 @@ import {
   StyledTabs,
   StyledTab,
 } from "../../forms/manpowerform/FormSubmissionStyles";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { parseISO, isWithinInterval } from "date-fns";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import DaFormForReceiving from "./DaFormForReceiving";
@@ -37,6 +31,16 @@ import DaFormReceivingForAssessment from "./DaFormReceivingForAssessment";
 import DaFormReceivingCompleted from "./DaFormReceivingCompleted";
 import { useStartDaSubmissionMutation } from "../../../features/api/receiving/daFormReceivingApi";
 import DaFormReceivingModal from "../../../components/modal/receiving/DaFormReceivingModal";
+import FilterDaFormsDialog from "./FilterDaFormsDialog";
+
+const EMPTY_FILTERS = {
+  department: "",
+  unit: "",
+  subUnit: "",
+  chargingId: "",
+  dateFrom: "",
+  dateTo: "",
+};
 
 const TabPanel = ({ children, value, index, ...other }) => {
   return (
@@ -92,140 +96,19 @@ const filterDataBySearch = (data, searchQuery) => {
       item.reference_number?.toLowerCase().includes(query) ||
       item.employee_name?.toLowerCase().includes(query) ||
       item.employee_code?.toLowerCase().includes(query) ||
-      item.action_type?.toLowerCase().includes(query)
-  );
-};
-
-const DateFilterDialog = ({
-  open,
-  onClose,
-  dateFilters,
-  onDateFiltersChange,
-}) => {
-  const [tempStartDate, setTempStartDate] = useState(dateFilters.startDate);
-  const [tempEndDate, setTempEndDate] = useState(dateFilters.endDate);
-
-  useEffect(() => {
-    setTempStartDate(dateFilters.startDate);
-    setTempEndDate(dateFilters.endDate);
-  }, [dateFilters, open]);
-
-  const handleApply = () => {
-    onDateFiltersChange({
-      startDate: tempStartDate,
-      endDate: tempEndDate,
-    });
-    onClose();
-  };
-
-  const handleClear = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-  };
-
-  const hasFilters = tempStartDate || tempEndDate;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: styles.filterDialog,
-      }}>
-      <DialogTitle>
-        <Box sx={styles.filterDialogTitle}>
-          <Box sx={styles.filterDialogTitleLeft}>
-            <CalendarTodayIcon sx={styles.filterIcon} />
-            <Typography variant="h6" sx={styles.filterDialogTitleText}>
-              FILTER BY DATE
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleClear}
-            disabled={!hasFilters}
-            sx={styles.selectAllButton}>
-            Clear All
-          </Button>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <DatePicker
-              label="Start Date"
-              value={tempStartDate}
-              onChange={(newValue) => setTempStartDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              maxDate={tempEndDate || new Date()}
-            />
-            <DatePicker
-              label="End Date"
-              value={tempEndDate}
-              onChange={(newValue) => setTempEndDate(newValue)}
-              renderInput={(params) => (
-                <TextField {...params} fullWidth size="small" />
-              )}
-              minDate={tempStartDate}
-              maxDate={new Date()}
-            />
-          </Box>
-        </LocalizationProvider>
-      </DialogContent>
-
-      <DialogActions sx={styles.filterDialogActions}>
-        <Box sx={styles.dialogActionsContainer}>
-          <Box sx={styles.dialogButtonsContainer}>
-            <Button
-              onClick={onClose}
-              variant="outlined"
-              sx={styles.cancelButton}>
-              CANCEL
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="contained"
-              sx={styles.applyFiltersButton}>
-              APPLY FILTERS
-            </Button>
-          </Box>
-        </Box>
-      </DialogActions>
-    </Dialog>
+      item.action_type?.toLowerCase().includes(query),
   );
 };
 
 const CustomSearchBar = ({
   searchQuery,
   setSearchQuery,
-  dateFilters,
+  activeFilterCount,
   onFilterClick,
   isLoading = false,
 }) => {
   const isVerySmall = useMediaQuery("(max-width:369px)");
-  const hasActiveFilters = dateFilters.startDate || dateFilters.endDate;
-
-  const getFilterLabel = () => {
-    if (dateFilters.startDate && dateFilters.endDate) {
-      return `${format(dateFilters.startDate, "MMM dd")} - ${format(
-        dateFilters.endDate,
-        "MMM dd"
-      )}`;
-    }
-    if (dateFilters.startDate) {
-      return `From ${format(dateFilters.startDate, "MMM dd, yyyy")}`;
-    }
-    if (dateFilters.endDate) {
-      return `Until ${format(dateFilters.endDate, "MMM dd, yyyy")}`;
-    }
-    return "FILTER";
-  };
+  const hasActiveFilters = activeFilterCount > 0;
 
   const iconColor = hasActiveFilters
     ? "rgba(0, 133, 49, 1)"
@@ -265,7 +148,7 @@ const CustomSearchBar = ({
                 : "rgb(33, 61, 112)",
             },
           }}>
-          <CalendarTodayIcon sx={{ fontSize: "18px" }} />
+          <FilterListIcon sx={{ fontSize: "18px" }} />
           {hasActiveFilters && (
             <Box
               sx={{
@@ -283,26 +166,43 @@ const CustomSearchBar = ({
                 fontSize: "10px",
                 fontWeight: 600,
               }}>
-              1
+              {activeFilterCount}
             </Box>
           )}
         </IconButton>
       ) : (
-        <Tooltip title="Click here to filter by date range" arrow>
+        <Tooltip title="Click here to filter DA forms" arrow>
           <FormControlLabel
             control={
               <Checkbox
                 checked={hasActiveFilters}
                 onChange={onFilterClick}
                 disabled={isLoading}
-                icon={<CalendarTodayIcon sx={{ color: iconColor }} />}
-                checkedIcon={<CalendarTodayIcon sx={{ color: iconColor }} />}
+                icon={<FilterListIcon sx={{ color: iconColor }} />}
+                checkedIcon={<FilterListIcon sx={{ color: iconColor }} />}
                 size="small"
               />
             }
             label={
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <span>{getFilterLabel()}</span>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <span>FILTER</span>
+                {hasActiveFilters && (
+                  <Box
+                    sx={{
+                      backgroundColor: "rgba(0, 133, 49, 1)",
+                      color: "white",
+                      borderRadius: "50%",
+                      width: "18px",
+                      height: "18px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                    }}>
+                    {activeFilterCount}
+                  </Box>
+                )}
               </Box>
             }
             sx={{
@@ -412,13 +312,10 @@ const DaFormReceiving = () => {
   };
 
   const [activeTab, setActiveTab] = useState(
-    reverseTabMap[currentParams?.tab] ?? 0
+    reverseTabMap[currentParams?.tab] ?? 0,
   );
   const [searchQuery, setSearchQuery] = useState(currentParams?.q ?? "");
-  const [dateFilters, setDateFilters] = useState({
-    startDate: null,
-    endDate: null,
-  });
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -435,6 +332,30 @@ const DaFormReceiving = () => {
     completed: 0,
   };
 
+  const activeFilterCount = useMemo(
+    () => Object.values(filters).filter(Boolean).length,
+    [filters],
+  );
+
+  const dateFilters = useMemo(
+    () => ({
+      startDate: filters.dateFrom ? parseISO(filters.dateFrom) : null,
+      endDate: filters.dateTo ? parseISO(filters.dateTo) : null,
+    }),
+    [filters.dateFrom, filters.dateTo],
+  );
+
+  const apiFilters = useMemo(() => {
+    const params = {};
+    if (filters.department) params.department = filters.department;
+    if (filters.unit) params.unit = filters.unit;
+    if (filters.subUnit) params.sub_unit = filters.subUnit;
+    if (filters.chargingId) params.charging_id = filters.chargingId;
+    if (filters.dateFrom) params.from_date = filters.dateFrom;
+    if (filters.dateTo) params.to_date = filters.dateTo;
+    return params;
+  }, [filters]);
+
   const handleTabChange = useCallback(
     (event, newValue) => {
       setActiveTab(newValue);
@@ -443,10 +364,10 @@ const DaFormReceiving = () => {
           tab: tabMap[newValue],
           q: searchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, searchQuery]
+    [setQueryParams, searchQuery],
   );
 
   const handleSearchChange = useCallback(
@@ -457,18 +378,18 @@ const DaFormReceiving = () => {
           tab: tabMap[activeTab],
           q: newSearchQuery,
         },
-        { retain: true }
+        { retain: true },
       );
     },
-    [setQueryParams, activeTab]
+    [setQueryParams, activeTab],
   );
 
   const handleFilterClick = useCallback(() => {
     setFilterDialogOpen(true);
   }, []);
 
-  const handleDateFiltersChange = useCallback((newDateFilters) => {
-    setDateFilters(newDateFilters);
+  const handleFiltersApply = useCallback((newFilters) => {
+    setFilters({ ...EMPTY_FILTERS, ...newFilters });
   }, []);
 
   const handleCloseModal = useCallback(() => {
@@ -515,7 +436,7 @@ const DaFormReceiving = () => {
         return false;
       }
     },
-    [startDaSubmission, enqueueSnackbar]
+    [startDaSubmission, enqueueSnackbar],
   );
 
   const tabsData = [
@@ -525,6 +446,7 @@ const DaFormReceiving = () => {
         <DaFormForReceiving
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
+          apiFilters={apiFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
@@ -540,6 +462,7 @@ const DaFormReceiving = () => {
         <DaFormReceivingForAssessment
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
+          apiFilters={apiFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
@@ -554,6 +477,7 @@ const DaFormReceiving = () => {
         <DaFormReceivingCompleted
           searchQuery={debouncedSearchQuery}
           dateFilters={dateFilters}
+          apiFilters={apiFilters}
           filterDataByDate={filterDataByDate}
           filterDataBySearch={filterDataBySearch}
           setQueryParams={setQueryParams}
@@ -603,7 +527,7 @@ const DaFormReceiving = () => {
             <CustomSearchBar
               searchQuery={searchQuery}
               setSearchQuery={handleSearchChange}
-              dateFilters={dateFilters}
+              activeFilterCount={activeFilterCount}
               onFilterClick={handleFilterClick}
               isLoading={isLoadingState}
             />
@@ -653,11 +577,11 @@ const DaFormReceiving = () => {
             ))}
           </Box>
 
-          <DateFilterDialog
+          <FilterDaFormsDialog
             open={filterDialogOpen}
             onClose={() => setFilterDialogOpen(false)}
-            dateFilters={dateFilters}
-            onDateFiltersChange={handleDateFiltersChange}
+            onApply={handleFiltersApply}
+            initialValues={filters}
           />
 
           <DaFormReceivingModal

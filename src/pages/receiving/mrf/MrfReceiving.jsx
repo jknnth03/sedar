@@ -476,13 +476,34 @@ const MrfReceiving = () => {
   }, []);
 
   const handleReceiveSubmission = useCallback(
-    async (submissionId, comments, onSuccess) => {
+    async (submissionId, comments, hireData, onSuccess) => {
+      let resolvedHireData = hireData;
+      let resolvedOnSuccess = onSuccess;
+      if (typeof hireData === "function") {
+        resolvedHireData = undefined;
+        resolvedOnSuccess = hireData;
+      }
+
+      console.log("[MrfReceiving] handleReceiveSubmission called with:", {
+        submissionId,
+        comments,
+        resolvedHireData,
+      });
+
       try {
-        await receiveSubmission({
+        const payload = {
           id: submissionId,
           comments: comments || "",
           reason: "",
-        }).unwrap();
+          ...(resolvedHireData || {}),
+        };
+        console.log("[MrfReceiving] receiveSubmission payload:", payload);
+
+        const result = await receiveSubmission(payload).unwrap();
+        console.log(
+          "[MrfReceiving] receiveSubmission unwrapped result:",
+          result,
+        );
 
         enqueueSnackbar("Submission received successfully!", {
           variant: "success",
@@ -491,12 +512,14 @@ const MrfReceiving = () => {
 
         refetchDashboard();
 
-        if (onSuccess && typeof onSuccess === "function") {
-          onSuccess();
+        if (resolvedOnSuccess && typeof resolvedOnSuccess === "function") {
+          resolvedOnSuccess();
         }
 
         return true;
       } catch (error) {
+        console.log("[MrfReceiving] receiveSubmission error:", error);
+
         let errorMessage = "Failed to receive submission. Please try again.";
 
         if (error?.data?.message) {

@@ -8,12 +8,8 @@ import {
   DialogTitle,
   DialogContent,
   CircularProgress,
-  FormControl,
-  Autocomplete,
-  TextField,
 } from "@mui/material";
-import { useFormContext, Controller } from "react-hook-form";
-import { useSelector, useDispatch } from "react-redux";
+import { useFormContext } from "react-hook-form";
 import {
   Visibility as VisibilityIcon,
   Close as CloseIcon,
@@ -21,8 +17,6 @@ import {
 } from "@mui/icons-material";
 import { useGetAttainmentAttachmentQuery } from "../../../../../features/api/employee/attainmentsEmpApi";
 import { useGetFileEmpAttachmentQuery } from "../../../../../features/api/employee/filesempApi";
-import { useLazyGetAllManpowerQuery } from "../../../../../features/api/employee/generalApi";
-import { setApprovalForm } from "../../../../../features/slice/formSlice";
 
 const viewIconButtonSx = {
   color: "#1976d2",
@@ -45,9 +39,7 @@ const viewIconButtonSx = {
 };
 
 const ReviewStep = ({ initialData, showHeader = true, mode = "create" }) => {
-  const { getValues, watch, control } = useFormContext();
-  const approvalFormData = useSelector((state) => state.form.approvalForm);
-  const dispatch = useDispatch();
+  const { watch } = useFormContext();
 
   const formValues = watch();
 
@@ -57,52 +49,27 @@ const ReviewStep = ({ initialData, showHeader = true, mode = "create" }) => {
   const [fileUrl, setFileUrl] = useState(null);
   const [isPreviewingNewFile, setIsPreviewingNewFile] = useState(false);
   const [viewerType, setViewerType] = useState(null);
-  const [approvalFormsLoaded, setApprovalFormsLoaded] = useState(false);
-
-  const [
-    triggerApprovalForms,
-    { data: approvalFormsData, isLoading: approvalFormsLoading },
-  ] = useLazyGetAllManpowerQuery();
-
-  const normalizeApiData = useCallback((data) => {
-    if (!data) return [];
-    if (data.result && data.result.data) {
-      return Array.isArray(data.result.data) ? data.result.data : [];
-    }
-    return Array.isArray(data)
-      ? data
-      : data.result || data.data || data.items || data.results || [];
-  }, []);
-
-  const approvalForms = normalizeApiData(approvalFormsData);
-  const safeApprovalForms = Array.isArray(approvalForms)
-    ? approvalForms.filter((item) => item && typeof item === "object")
-    : [];
 
   const currentSubmissionTitle = formValues.submission_title;
-  const hasSubmissionValue = (() => {
-    if (!currentSubmissionTitle) {
-      const fallback =
-        initialData?.general_info?.linked_mrf_title ||
-        initialData?.linked_mrf_title ||
-        initialData?.submission_title;
-      return !!fallback;
-    }
-    if (typeof currentSubmissionTitle === "string") {
-      return currentSubmissionTitle.trim() !== "";
-    }
-    if (typeof currentSubmissionTitle === "object") {
-      return !!(
-        currentSubmissionTitle.id ||
+
+  const mrfValue = (() => {
+    if (typeof currentSubmissionTitle === "object" && currentSubmissionTitle) {
+      return (
         currentSubmissionTitle.submission_title ||
-        currentSubmissionTitle.linked_mrf_title
+        currentSubmissionTitle.linked_mrf_title ||
+        currentSubmissionTitle.title ||
+        currentSubmissionTitle.name ||
+        ""
       );
     }
-    return false;
+    return (
+      currentSubmissionTitle ||
+      initialData?.general_info?.linked_mrf_title ||
+      initialData?.linked_mrf_title ||
+      initialData?.submission_title ||
+      ""
+    );
   })();
-
-  const isSubmissionEditable =
-    (mode === "create" || mode === "edit") && !hasSubmissionValue;
 
   const {
     data: attainmentAttachment,
@@ -251,6 +218,12 @@ const ReviewStep = ({ initialData, showHeader = true, mode = "create" }) => {
 
   const generalFields = [
     {
+      key: "mrf",
+      label: "MRF",
+      value: mrfValue,
+      fullWidth: true,
+    },
+    {
       key: "first_name",
       label: "First Name",
       value: getValue("general_info.first_name", "first_name"),
@@ -367,9 +340,10 @@ const ReviewStep = ({ initialData, showHeader = true, mode = "create" }) => {
       key: "position",
       label: "Position",
       value:
-        getValue("position_details.position.name", "position_id") ||
-        formValues.position_id?.name ||
-        approvalFormData?.submittable?.position?.title_with_unit ||
+        getValue("position_details.position.name", "position_title") ||
+        formValues.position?.title_with_unit ||
+        formValues.position?.title ||
+        formValues.position?.name ||
         formValues.position_title,
     },
     {
@@ -679,168 +653,14 @@ const ReviewStep = ({ initialData, showHeader = true, mode = "create" }) => {
           variant="h6"
           className="review-step__section-title"
           gutterBottom>
-          MRF
-        </Typography>
-        <Box>
-          {isSubmissionEditable ? (
-            <Controller
-              name="submission_title"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <FormControl fullWidth variant="outlined">
-                  <Autocomplete
-                    onChange={(event, item) => {
-                      onChange(item || null);
-                      if (item && typeof item === "object") {
-                        dispatch(setApprovalForm(item));
-                      }
-                    }}
-                    value={value || null}
-                    options={safeApprovalForms}
-                    loading={approvalFormsLoading}
-                    onFocus={() => {
-                      if (!approvalFormsLoaded) {
-                        triggerApprovalForms({
-                          page: 1,
-                          per_page: 1000,
-                          status: "active",
-                        });
-                        setApprovalFormsLoaded(true);
-                      }
-                    }}
-                    getOptionLabel={(item) => {
-                      if (!item || typeof item !== "object") return "";
-                      return (
-                        item.submission_title ||
-                        item.linked_mrf_title ||
-                        item.title ||
-                        item.name ||
-                        ""
-                      );
-                    }}
-                    isOptionEqualToValue={(option, value) => {
-                      if (!option || !value) return false;
-                      const optionId =
-                        option.id ||
-                        option.submission_title ||
-                        option.linked_mrf_title;
-                      const valueId =
-                        value.id ||
-                        value.submission_title ||
-                        value.linked_mrf_title;
-                      const optionTitle =
-                        option.submission_title ||
-                        option.linked_mrf_title ||
-                        option.title ||
-                        option.name;
-                      const valueTitle =
-                        value.submission_title ||
-                        value.linked_mrf_title ||
-                        value.title ||
-                        value.name;
-                      return optionId === valueId || optionTitle === valueTitle;
-                    }}
-                    renderOption={(props, option) => {
-                      if (!option || typeof option !== "object") return null;
-                      const label =
-                        option.submission_title ||
-                        option.linked_mrf_title ||
-                        option.title ||
-                        option.name ||
-                        "";
-                      return (
-                        <li
-                          {...props}
-                          key={
-                            option.id ||
-                            option.submission_title ||
-                            option.linked_mrf_title ||
-                            Math.random().toString(36)
-                          }
-                          style={{
-                            whiteSpace: "normal",
-                            wordWrap: "break-word",
-                          }}>
-                          {label}
-                        </li>
-                      );
-                    }}
-                    onBlur={() => {
-                      if (
-                        !value ||
-                        typeof value !== "object" ||
-                        (!value.id &&
-                          !value.submission_title &&
-                          !value.linked_mrf_title)
-                      ) {
-                        onChange(null);
-                      }
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="MRF (Optional)"
-                        InputProps={{
-                          ...params.InputProps,
-                          endAdornment: (
-                            <>
-                              {approvalFormsLoading ? (
-                                <CircularProgress color="inherit" size={20} />
-                              ) : null}
-                              {params.InputProps.endAdornment}
-                            </>
-                          ),
-                        }}
-                        placeholder={
-                          approvalFormsLoading ? "Loading..." : "Select a form"
-                        }
-                      />
-                    )}
-                    noOptionsText="No forms found"
-                    loadingText="Loading forms..."
-                  />
-                </FormControl>
-              )}
-            />
-          ) : (
-            <TextField
-              value={
-                typeof currentSubmissionTitle === "object" &&
-                currentSubmissionTitle
-                  ? currentSubmissionTitle.submission_title ||
-                    currentSubmissionTitle.linked_mrf_title ||
-                    currentSubmissionTitle.title ||
-                    currentSubmissionTitle.name ||
-                    ""
-                  : currentSubmissionTitle ||
-                    initialData?.general_info?.linked_mrf_title ||
-                    initialData?.linked_mrf_title ||
-                    initialData?.submission_title ||
-                    ""
-              }
-              label="MRF"
-              variant="outlined"
-              fullWidth
-              disabled
-              InputProps={{ readOnly: true }}
-            />
-          )}
-        </Box>
-      </Paper>
-
-      <Paper
-        className="review-step__section"
-        elevation={0}
-        sx={{ border: "none", boxShadow: "none" }}>
-        <Typography
-          variant="h6"
-          className="review-step__section-title"
-          gutterBottom>
           General Information
         </Typography>
         <Box className="review-step__section-grid">
-          {generalFields.map(({ key, label, value }) => (
-            <Box key={key} className="review-step__section-field">
+          {generalFields.map(({ key, label, value, fullWidth }) => (
+            <Box
+              key={key}
+              className="review-step__section-field"
+              sx={fullWidth ? { gridColumn: "1 / -1" } : undefined}>
               <Typography variant="caption" className="field-label">
                 {label}
               </Typography>

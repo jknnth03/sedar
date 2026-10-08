@@ -33,7 +33,6 @@ import pendingApi from "../../features/api/employee/pendingApi";
 import mainApi from "../../features/api/employee/mainApi";
 import moduleApi from "../../features/api/usermanagement/dashboardApi";
 import PendingRegistrationForapproval from "./PendingRegistrationForapproval";
-import PendingRegistrationDraft from "./PendingRegistrationDraft";
 import PendingRegistrationAwaitingresubmission from "./PendingRegistrationAwaitingresubmission";
 import PendingRegistrationRejected from "./PendingRegistrationRejected";
 import PendingRegistrationCancelled from "./PendingRegistrationCancelled";
@@ -308,7 +307,6 @@ const PendingRegistration = () => {
 
   const tabLabels = [
     "ForApproval",
-    "Draft",
     "AwaitingResubmission",
     "Rejected",
     "Cancelled",
@@ -602,22 +600,6 @@ const PendingRegistration = () => {
         />
       ),
       badgeCount: registrationCounts?.result?.pending || 0,
-    },
-    {
-      label: "DRAFT",
-      component: (
-        <PendingRegistrationDraft
-          searchQuery={debounceValue}
-          startDate={formatDateForAPI(dateFilters.startDate)}
-          endDate={formatDateForAPI(dateFilters.endDate)}
-          onError={handleApiError}
-          queryParams={buildQueryParams({
-            approval_status: "draft",
-          })}
-          onRowClick={handleRowClick}
-        />
-      ),
-      badgeCount: registrationCounts?.result?.draft || 0,
     },
     {
       label: "AWAITING RESUBMISSION",

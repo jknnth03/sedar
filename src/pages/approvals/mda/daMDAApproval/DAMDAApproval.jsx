@@ -530,7 +530,7 @@ const DAMDAApproval = () => {
 
   const daMdaCounts = useMemo(() => {
     const da = dashboardData?.result?.approval?.da || {};
-    const forApproval = (da.mda_initial || 0) + (da.mda_final || 0);
+    const forApproval = da.mda_initial || 0;
 
     return {
       forApproval,

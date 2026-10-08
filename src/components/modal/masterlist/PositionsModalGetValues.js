@@ -2,7 +2,10 @@ export const setCreateModeValues = () => ({
   titles: "",
   code: "",
   superior_name: null,
+  headcount: "",
+  job_level: "",
   pay_frequency: "",
+  expected_salary: "",
   tools: [],
   schedule: "",
   team: "",
@@ -17,7 +20,10 @@ export const setFormValuesFromResponse = (apiResponse) => {
     code: apiResponse.code || "",
     titles: apiResponse.title_id || "",
     superior_name: apiResponse.superior_id || null,
+    headcount: apiResponse.headcount ?? "",
+    job_level: apiResponse.job_level_id || apiResponse.job_level?.id || "",
     pay_frequency: apiResponse.pay_frequency || "",
+    expected_salary: apiResponse.expected_salary ?? "",
     schedule: apiResponse.schedule_id || "",
     team: apiResponse.team_id || "",
     charging: apiResponse.charging?.id || "",
@@ -75,6 +81,7 @@ export const setInitialDropdownOptions = (apiResponse) => {
       teamsList: [],
       chargingList: [],
       usersList: [],
+      jobLevelsList: [],
     };
 
   const options = {
@@ -84,6 +91,7 @@ export const setInitialDropdownOptions = (apiResponse) => {
     teamsList: [],
     chargingList: [],
     usersList: [],
+    jobLevelsList: [],
   };
 
   if (apiResponse.title) {
@@ -127,6 +135,28 @@ export const setInitialDropdownOptions = (apiResponse) => {
       {
         id: apiResponse.superior.id,
         full_name: apiResponse.superior.full_name,
+        // shown as the sub-line in the dropdown option
+        employee_code: apiResponse.superior.employee_code,
+        position_title: apiResponse.superior.position_title,
+      },
+    ];
+  }
+
+  if (apiResponse.job_level) {
+    options.jobLevelsList = [
+      {
+        id: apiResponse.job_level.id,
+        name: apiResponse.job_level.name,
+        code: apiResponse.job_level.code,
+        label:
+          apiResponse.job_level.label ||
+          [
+            apiResponse.job_level.name,
+            apiResponse.job_level.salary_structure,
+            apiResponse.job_level.pay_frequency,
+          ]
+            .filter(Boolean)
+            .join(" | "),
       },
     ];
   }

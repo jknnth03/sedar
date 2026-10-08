@@ -1,25 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useForm } from "react-hook-form";
 import {
   Typography,
   Box,
   Grid,
-  TextField,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
+  Autocomplete,
+  TextField,
   Paper,
   Avatar,
   Chip,
-  Alert,
   Button,
   IconButton,
   Tooltip,
-  FormControlLabel,
-  Checkbox,
+  Skeleton,
 } from "@mui/material";
 import {
   DragIndicator as DragIcon,
@@ -31,24 +32,132 @@ import {
 } from "@mui/icons-material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
 import { ReactSortable } from "react-sortablejs";
 import { useSnackbar } from "notistack";
-import ApprovalFlowFormFields from "./ApprovalFlowFormFields";
 import ApprovalFlowActions from "./ApprovalFlowActions";
 import {
-  useLazyGetAllOneRdfQuery,
-  useGetAllOneRdfQuery,
-} from "../../../features/api/masterlist/realonerdfApi";
-import { useGetAllApprovalFormsQuery } from "../../../features/api/approvalsetting/approvalFormApi";
-import {
-  useGetAllApproversQuery,
-  useGetAllReceiversQuery,
-} from "../../../features/api/usermanagement/userApi";
-import {
-  useCreateApprovalFlowMutation,
+  useGetSingleApprovalFlowQuery,
+  useGetApproverOptionsQuery,
   useUpdateApprovalFlowMutation,
 } from "../../../features/api/approvalsetting/approvalFlowApi";
+
+const toText = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  if (typeof value === "object") {
+    return toText(
+      value.name ?? value.title ?? value.position_name ?? value.code ?? "",
+    );
+  }
+  return "";
+};
+
+const OptionsHintContext = createContext("");
+
+const HintPaper = ({ children, ...other }) => {
+  const hint = useContext(OptionsHintContext);
+  return (
+    <Paper {...other}>
+      {hint && (
+        <Box
+          sx={{
+            px: 1.5,
+            py: 0.75,
+            fontSize: "12px",
+            color: "#5f6b7a",
+            backgroundColor: "#fafbfc",
+            borderBottom: "1px solid #e8ebef",
+          }}>
+          {hint}
+        </Box>
+      )}
+      {children}
+    </Paper>
+  );
+};
+
+const formatStatusLabel = (status) => {
+  const text = toText(status);
+  return text ? text.replace(/_/g, " ") : "-";
+};
+
+const InfoField = ({ label, value }) => (
+  <Box>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+      {toText(value) || "-"}
+    </Typography>
+  </Box>
+);
+
+const InfoFieldSkeleton = ({ label, width = "80%" }) => (
+  <Box>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Skeleton variant="text" width={width} height={28} />
+  </Box>
+);
+
+const ApproverSkeletonItem = () => (
+  <Paper
+    sx={{
+      p: 2,
+      mb: 1,
+      display: "flex",
+      alignItems: "center",
+      backgroundColor: "white",
+      border: "1px solid #e0e0e0",
+      width: "100%",
+    }}>
+    <Skeleton
+      variant="rounded"
+      width={28}
+      height={24}
+      sx={{ mr: 2, borderRadius: "12px" }}
+    />
+    <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
+    <Box sx={{ flexGrow: 1 }}>
+      <Skeleton variant="text" width="45%" height={24} />
+      <Skeleton variant="text" width="25%" height={20} />
+    </Box>
+  </Paper>
+);
+
+const buildApproverSequence = (entry, allPositions) => {
+  const list = Array.isArray(entry?.approvers) ? entry.approvers : [];
+
+  return list
+    .filter((approver) => approver && typeof approver === "object")
+    .map((approver, index) => {
+      const id =
+        approver.position_id ?? approver.approver_position_id ?? approver.id;
+      const details = allPositions.find((p) => p.id === id);
+
+      return {
+        id,
+        name:
+          toText(approver.name) ||
+          toText(approver.title) ||
+          toText(approver.position_name) ||
+          toText(details?.name) ||
+          toText(details?.title) ||
+          toText(details?.position_name) ||
+          "Unknown Position",
+        code: toText(approver.code) || toText(details?.code) || "",
+        holder_name: toText(approver.holder?.full_name),
+        is_vacant: toText(approver.issue) === "VACANT",
+        order: approver.step_number ?? approver.sequence ?? index + 1,
+        step_id: approver.step_id,
+      };
+    })
+    .sort((a, b) => a.order - b.order)
+    .map((approver, index) => ({ ...approver, order: index + 1 }));
+};
 
 const ApprovalFlowModal = ({
   open = false,
@@ -56,210 +165,113 @@ const ApprovalFlowModal = ({
   onSave,
   selectedEntry = null,
   isLoading = false,
-  mode = "create",
-  chargings = [],
+  mode = "view",
 }) => {
   const { enqueueSnackbar } = useSnackbar();
 
-  const defaultValues = {
-    form_id: "",
-    rdf_charging: "",
-    department: "",
-    company: "",
-    business_unit: "",
-    unit: "",
-    sub_unit: "",
-    location: "",
-    name: "",
-    description: "",
-    receiver_user_id: "",
-    approver_user_id: "",
-    charging_id: "",
-  };
-
-  const {
-    control,
-    formState: { errors },
-    setValue,
-    reset,
-    handleSubmit,
-  } = useForm({
-    defaultValues,
-  });
+  const { handleSubmit } = useForm();
 
   const [currentMode, setCurrentMode] = useState(mode);
   const [approverSequence, setApproverSequence] = useState([]);
-  const [availableApprovers, setAvailableApprovers] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
-  const [filteredLocations, setFilteredLocations] = useState([]);
-  const [filteredCompanies, setFilteredCompanies] = useState([]);
-  const [filteredBusinessUnits, setFilteredBusinessUnits] = useState([]);
-  const [filteredUnits, setFilteredUnits] = useState([]);
-  const [filteredSubUnits, setFilteredSubUnits] = useState([]);
-  const [allChargings, setAllChargings] = useState([]);
-  const [selectedApprover, setSelectedApprover] = useState("");
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
-  const [processedChargingId, setProcessedChargingId] = useState(null);
-  const [isInUse, setIsInUse] = useState(false);
-  const [noChargingChecked, setNoChargingChecked] = useState(false);
+  const [selectedApprover, setSelectedApprover] = useState(null);
+  const [approverSearchInput, setApproverSearchInput] = useState("");
+  const [debouncedApproverSearch, setDebouncedApproverSearch] = useState("");
+  const approverInputReasonRef = useRef("input");
 
-  const { data: allChargingData, isLoading: isAllChargingLoading } =
-    useGetAllOneRdfQuery();
-  const [getOneRdf, { data: rdfData, isLoading: isRdfLoading }] =
-    useLazyGetAllOneRdfQuery();
+  const {
+    data: positionsData,
+    isLoading: isPositionsLoading,
+    isFetching: isPositionsFetching,
+  } = useGetApproverOptionsQuery(
+    {
+      exclude_position_id: selectedEntry?.id,
+      search: debouncedApproverSearch,
+    },
+    { skip: !open || !selectedEntry?.id },
+  );
 
-  const { data: approversData, isLoading: isApproversLoading } =
-    useGetAllApproversQuery();
-  const { data: receiversData, isLoading: isReceiversLoading } =
-    useGetAllReceiversQuery();
-
-  const { data: formsData, isLoading: isFormsLoading } =
-    useGetAllApprovalFormsQuery({
-      pagination: "none",
-      status: "active",
+  const { data: singleData, isFetching: isDetailFetching } =
+    useGetSingleApprovalFlowQuery(selectedEntry?.id, {
+      skip: !open || !selectedEntry?.id,
+      refetchOnMountOrArgChange: true,
     });
 
-  const [createApprovalFlow, { isLoading: isCreating }] =
-    useCreateApprovalFlowMutation();
   const [updateApprovalFlow, { isLoading: isUpdating }] =
     useUpdateApprovalFlowMutation();
 
-  const approvers =
-    approversData?.result?.data ||
-    approversData?.result ||
-    approversData?.data ||
-    approversData ||
-    [];
-  const receivers =
-    receiversData?.result?.data ||
-    receiversData?.result ||
-    receiversData?.data ||
-    receiversData ||
-    [];
-  const approvalForms =
-    formsData?.result?.data ||
-    formsData?.result ||
-    formsData?.data ||
-    formsData ||
-    [];
+  const detail = singleData?.result || selectedEntry;
+
+  const positions = useMemo(() => {
+    const list =
+      positionsData?.result?.data ||
+      positionsData?.result ||
+      positionsData?.data ||
+      positionsData ||
+      [];
+    return Array.isArray(list)
+      ? list
+          .filter((p) => p && !p.deleted_at)
+          .map((p) => ({
+            ...p,
+            id: p.id ?? p.position_id,
+            name: toText(p.name) || toText(p.title) || toText(p.position_name),
+            code: toText(p.code),
+            charging: toText(p.charging),
+            department: toText(p.department ?? p.department_name),
+            holder_name: toText(
+              p.holder?.full_name ?? p.holder_name ?? p.employee?.full_name,
+            ),
+          }))
+      : [];
+  }, [positionsData]);
+
+  const totalPositions =
+    positionsData?.meta?.total ??
+    positionsData?.result?.meta?.total ??
+    positionsData?.result?.total ??
+    positionsData?.total ??
+    null;
+
+  const approverOptionsHint =
+    totalPositions !== null
+      ? `${totalPositions} positions${
+          totalPositions > positions.length
+            ? ` · showing ${positions.length}, keep typing`
+            : ""
+        }`
+      : "";
+
+  const availablePositions = useMemo(() => {
+    const currentApproverIds = approverSequence.map((app) => app.id);
+    return positions.filter(
+      (position) => !currentApproverIds.includes(position.id),
+    );
+  }, [positions, approverSequence]);
 
   const resetAllState = () => {
-    reset(defaultValues);
     setApproverSequence([]);
-    setFilteredDepartments([]);
-    setFilteredLocations([]);
-    setFilteredCompanies([]);
-    setFilteredBusinessUnits([]);
-    setFilteredUnits([]);
-    setFilteredSubUnits([]);
-    setSelectedApprover("");
-    setIsAutoFilling(false);
-    setProcessedChargingId(null);
-    setIsInUse(false);
-    setNoChargingChecked(false);
+    setSelectedApprover(null);
+    approverInputReasonRef.current = "clear";
+    setApproverSearchInput("");
+    setDebouncedApproverSearch("");
   };
 
-  const getPositionDisplay = (position) => {
-    if (!position) return "";
-    if (typeof position === "string") return position;
-    if (typeof position === "object") {
-      return position.position_name || position.name || "";
-    }
-    return String(position);
-  };
-
-  const getDepartmentDisplay = (department) => {
-    if (!department) return "";
-    if (typeof department === "string") return department;
-    if (typeof department === "object") {
-      return department.department_name || department.name || "";
-    }
-    return String(department);
-  };
-
-  const isFieldDisabled = (fieldName) => {
-    const inUseDisabledFields = [
-      "form_id",
-      "rdf_charging",
-      "department",
-      "company",
-      "business_unit",
-      "unit",
-      "sub_unit",
-      "location",
-    ];
-
-    const isReadOnly = currentMode === "view";
-    const isInUseField = inUseDisabledFields.includes(fieldName);
-
-    return isReadOnly || (isInUse && isInUseField);
-  };
-
-  const handleChargingChange = (chargingId) => {
-    if (isInUse) return;
-
-    if (!chargingId) {
-      setFilteredDepartments([]);
-      setFilteredLocations([]);
-      setFilteredCompanies([]);
-      setFilteredBusinessUnits([]);
-      setFilteredUnits([]);
-      setFilteredSubUnits([]);
-      setValue("department", "", { shouldValidate: true });
-      setValue("location", "", { shouldValidate: true });
-      setValue("company", "", { shouldValidate: true });
-      setValue("business_unit", "", { shouldValidate: true });
-      setValue("unit", "", { shouldValidate: true });
-      setValue("sub_unit", "", { shouldValidate: true });
+  useEffect(() => {
+    if (
+      approverInputReasonRef.current !== "input" &&
+      approverInputReasonRef.current !== "clear"
+    ) {
       return;
     }
-
-    setProcessedChargingId(chargingId);
-    setIsAutoFilling(true);
-    getOneRdf({ id: chargingId });
-  };
-
-  useEffect(() => {
-    if (noChargingChecked) {
-      setValue("rdf_charging", null);
-      setValue("department", "");
-      setValue("company", "");
-      setValue("business_unit", "");
-      setValue("unit", "");
-      setValue("sub_unit", "");
-      setValue("location", "");
-
-      setFilteredDepartments([]);
-      setFilteredLocations([]);
-      setFilteredCompanies([]);
-      setFilteredBusinessUnits([]);
-      setFilteredUnits([]);
-      setFilteredSubUnits([]);
-    }
-  }, [noChargingChecked, setValue]);
-
-  useEffect(() => {
-    if (allChargingData?.result) {
-      setAllChargings([...allChargingData.result]);
-    }
-  }, [allChargingData]);
-
-  useEffect(() => {
-    const currentApproverIds = approverSequence.map((app) => app.id);
-    const safeApprovers = Array.isArray(approvers) ? approvers : [];
-    const filtered = safeApprovers.filter(
-      (approver) => !currentApproverIds.includes(approver.id)
-    );
-    setAvailableApprovers([...filtered]);
-  }, [approvers, approverSequence]);
+    const timeout = setTimeout(() => {
+      setDebouncedApproverSearch(approverSearchInput.trim());
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [approverSearchInput]);
 
   useEffect(() => {
     if (open) {
       setCurrentMode(mode);
-
-      if (mode === "create") {
-        resetAllState();
-      }
     } else {
       resetAllState();
       setCurrentMode(mode);
@@ -267,223 +279,11 @@ const ApprovalFlowModal = ({
   }, [open, mode]);
 
   useEffect(() => {
-    if (selectedEntry && open && (mode === "view" || mode === "edit")) {
-      setIsInUse(selectedEntry.is_in_use || false);
-
-      const formValue = selectedEntry.form ? selectedEntry.form : null;
-      const chargingValue = selectedEntry.charging
-        ? selectedEntry.charging
-        : null;
-      const receiverValue = selectedEntry.receiver
-        ? selectedEntry.receiver
-        : null;
-
-      reset({
-        form_id: formValue,
-        rdf_charging: chargingValue,
-        department: chargingValue?.department_code || "",
-        company: chargingValue?.company_code || "",
-        business_unit: chargingValue?.business_unit_code || "",
-        unit: chargingValue?.unit_code || "",
-        sub_unit: chargingValue?.sub_unit_code || "",
-        location: chargingValue?.location_code || "",
-        name: selectedEntry.name || "",
-        description: selectedEntry.description || "",
-        receiver_user_id: receiverValue,
-        approver_user_id: selectedEntry.approver_user_id || "",
-        charging_id: selectedEntry.charging_id || "",
-      });
-
-      if (chargingValue) {
-        if (chargingValue.department_name) {
-          const departmentData = {
-            id: chargingValue.department_code,
-            code: chargingValue.department_code,
-            name: chargingValue.department_name,
-          };
-          setFilteredDepartments([departmentData]);
-          setValue("department", chargingValue.department_code, {
-            shouldValidate: true,
-          });
-        }
-
-        if (chargingValue.company_name) {
-          const companyData = {
-            id: chargingValue.company_code,
-            code: chargingValue.company_code,
-            name: chargingValue.company_name,
-          };
-          setFilteredCompanies([companyData]);
-          setValue("company", chargingValue.company_code, {
-            shouldValidate: true,
-          });
-        }
-
-        if (chargingValue.business_unit_name) {
-          const businessUnitData = {
-            id: chargingValue.business_unit_code,
-            code: chargingValue.business_unit_code,
-            name: chargingValue.business_unit_name,
-          };
-          setFilteredBusinessUnits([businessUnitData]);
-          setValue("business_unit", chargingValue.business_unit_code, {
-            shouldValidate: true,
-          });
-        }
-
-        if (chargingValue.unit_name) {
-          const unitData = {
-            id: chargingValue.unit_code,
-            code: chargingValue.unit_code,
-            name: chargingValue.unit_name,
-          };
-          setFilteredUnits([unitData]);
-          setValue("unit", chargingValue.unit_code, { shouldValidate: true });
-        }
-
-        if (chargingValue.sub_unit_name) {
-          const subUnitData = {
-            id: chargingValue.sub_unit_code,
-            code: chargingValue.sub_unit_code,
-            name: chargingValue.sub_unit_name,
-          };
-          setFilteredSubUnits([subUnitData]);
-          setValue("sub_unit", chargingValue.sub_unit_code, {
-            shouldValidate: true,
-          });
-        }
-
-        if (chargingValue.location_name) {
-          const locationData = {
-            id: chargingValue.location_code,
-            code: chargingValue.location_code,
-            name: chargingValue.location_name,
-          };
-          setFilteredLocations([locationData]);
-          setValue("location", chargingValue.location_code, {
-            shouldValidate: true,
-          });
-        }
-      }
-
-      if (selectedEntry.approvers && Array.isArray(selectedEntry.approvers)) {
-        const safeApprovers = Array.isArray(approvers) ? approvers : [];
-        const approversList = [...selectedEntry.approvers]
-          .sort((a, b) => a.step_number - b.step_number)
-          .map((approver) => {
-            const approverDetails = safeApprovers.find(
-              (u) => u.id === approver.approver_id
-            );
-
-            return {
-              id: approver.approver_id,
-              name:
-                approver.approver_full_name ||
-                approverDetails?.full_name ||
-                approverDetails?.name ||
-                "Unknown User",
-              position: getPositionDisplay(approverDetails?.position),
-              department: getDepartmentDisplay(approverDetails?.department),
-              order: approver.step_number,
-              step_id: approver.step_id,
-            };
-          });
-
-        setApproverSequence([...approversList]);
-      } else if (
-        selectedEntry.approver_sequence &&
-        Array.isArray(selectedEntry.approver_sequence)
-      ) {
-        const safeApprovers = Array.isArray(approvers) ? approvers : [];
-        const approversList = selectedEntry.approver_sequence.map(
-          (approver, index) => ({
-            id: approver.id || approver.user_id || approver,
-            name:
-              approver.full_name ||
-              approver.name ||
-              approver.user_name ||
-              safeApprovers.find(
-                (u) =>
-                  u.id === approver.id ||
-                  u.id === approver.user_id ||
-                  u.id === approver
-              )?.full_name ||
-              safeApprovers.find(
-                (u) =>
-                  u.id === approver.id ||
-                  u.id === approver.user_id ||
-                  u.id === approver
-              )?.name ||
-              "Unknown User",
-            position:
-              getPositionDisplay(approver.position) ||
-              getPositionDisplay(approver.user_position) ||
-              getPositionDisplay(
-                safeApprovers.find(
-                  (u) =>
-                    u.id === approver.id ||
-                    u.id === approver.user_id ||
-                    u.id === approver
-                )?.position
-              ),
-            department:
-              getDepartmentDisplay(approver.department) ||
-              getDepartmentDisplay(approver.user_department) ||
-              getDepartmentDisplay(
-                safeApprovers.find(
-                  (u) =>
-                    u.id === approver.id ||
-                    u.id === approver.user_id ||
-                    u.id === approver
-                )?.department
-              ),
-            order: approver.order || index + 1,
-          })
-        );
-        setApproverSequence([...approversList]);
-      }
+    if (open && detail && (mode === "view" || mode === "edit")) {
+      setApproverSequence(buildApproverSequence(detail, []));
+      setSelectedApprover(null);
     }
-  }, [selectedEntry, mode, open, approvers, setValue, reset]);
-
-  useEffect(() => {
-    if (rdfData && rdfData.result && isAutoFilling) {
-      const chargingData = rdfData.result;
-      const selectedChargingData = Array.isArray(chargingData)
-        ? chargingData.find((item) => item.id === parseInt(processedChargingId))
-        : chargingData;
-
-      if (selectedChargingData) {
-        const fields = [
-          { name: "department", setter: setFilteredDepartments },
-          { name: "location", setter: setFilteredLocations },
-          { name: "company", setter: setFilteredCompanies },
-          { name: "business_unit", setter: setFilteredBusinessUnits },
-          { name: "unit", setter: setFilteredUnits },
-          { name: "sub_unit", setter: setFilteredSubUnits },
-        ];
-
-        fields.forEach(({ name, setter }) => {
-          const code = selectedChargingData[`${name}_code`];
-          const displayName = selectedChargingData[`${name}_name`];
-
-          if (code && displayName) {
-            const data = {
-              id: code || selectedChargingData.id,
-              code,
-              name: displayName,
-            };
-            setter([{ ...data }]);
-            setValue(name, data.id, { shouldValidate: true });
-          } else {
-            setter([]);
-            setValue(name, "", { shouldValidate: true });
-          }
-        });
-      }
-
-      setIsAutoFilling(false);
-    }
-  }, [rdfData, setValue, isAutoFilling, processedChargingId]);
+  }, [open, mode, detail]);
 
   const handleModeChange = (newMode) => {
     setCurrentMode(newMode);
@@ -497,27 +297,26 @@ const ApprovalFlowModal = ({
     setApproverSequence([...updatedItems]);
   };
 
-  const handleAddApprover = (userId) => {
-    if (!userId) return;
+  const handleAddApprover = (option) => {
+    if (!option) return;
 
-    const safeApprovers = Array.isArray(approvers) ? approvers : [];
-    const approver = safeApprovers.find((u) => u.id === userId);
-    if (approver) {
-      const newApprover = {
-        id: approver.id,
-        name: approver.full_name || approver.name || "Unknown User",
-        position: getPositionDisplay(approver.position),
-        department: getDepartmentDisplay(approver.department),
-        order: approverSequence.length + 1,
-      };
-      setApproverSequence([...approverSequence, newApprover]);
-      setSelectedApprover("");
-    }
+    const newApprover = {
+      id: option.id,
+      name: toText(option.name) || "Unknown Position",
+      code: toText(option.code),
+      holder_name: toText(option.holder_name),
+      is_vacant: false,
+      order: approverSequence.length + 1,
+    };
+    setApproverSequence([...approverSequence, newApprover]);
+    setSelectedApprover(null);
+    approverInputReasonRef.current = "clear";
+    setApproverSearchInput("");
   };
 
-  const handleRemoveApprover = (userId) => {
+  const handleRemoveApprover = (positionId) => {
     const updatedSequence = approverSequence
-      .filter((app) => app.id !== userId)
+      .filter((app) => app.id !== positionId)
       .map((item, index) => ({
         ...item,
         order: index + 1,
@@ -525,34 +324,23 @@ const ApprovalFlowModal = ({
     setApproverSequence([...updatedSequence]);
   };
 
-  const onSubmit = async (data) => {
+  const onSubmit = async () => {
+    if (!detail?.id) return;
+
     try {
       const formData = {
-        form_id: data.form_id?.id || null,
-        name: data.name,
-        description: data.description,
-        receiver_user_id: data.receiver_user_id?.id || null,
-        approver_sequence: approverSequence.map((app) => app.id),
-        charging_id: data.rdf_charging?.id || data.charging_id || null,
-        no_charging: noChargingChecked,
+        approver_position_ids: approverSequence.map((app) => app.id),
       };
 
-      if (currentMode === "create") {
-        await createApprovalFlow(formData).unwrap();
-        enqueueSnackbar("Approval flow created successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-      } else if (currentMode === "edit") {
-        await updateApprovalFlow({
-          id: selectedEntry.id,
-          data: formData,
-        }).unwrap();
-        enqueueSnackbar("Approval flow updated successfully!", {
-          variant: "success",
-          autoHideDuration: 2000,
-        });
-      }
+      await updateApprovalFlow({
+        id: detail.id,
+        data: formData,
+      }).unwrap();
+
+      enqueueSnackbar("Approvers updated successfully!", {
+        variant: "success",
+        autoHideDuration: 2000,
+      });
 
       if (onSave) {
         onSave();
@@ -564,7 +352,7 @@ const ApprovalFlowModal = ({
         {
           variant: "error",
           autoHideDuration: 2000,
-        }
+        },
       );
     }
   };
@@ -633,9 +421,10 @@ const ApprovalFlowModal = ({
   );
 
   const isReadOnly = currentMode === "view";
-  const isCreate = currentMode === "create";
-  const chargingOptions = allChargings.length > 0 ? allChargings : chargings;
-  const isSaving = isCreating || isUpdating;
+  const isSaving = isUpdating;
+  const showSkeleton = isLoading || isDetailFetching || isPositionsLoading;
+
+  const isStatusSet = Boolean(detail?.status) && detail.status !== "NOT_SET";
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -647,289 +436,361 @@ const ApprovalFlowModal = ({
         onSubmit={onSubmit}
         isLoading={isSaving}
         selectedEntry={selectedEntry}
-        isCreate={isCreate}
         approverSequence={approverSequence}
-        isApproversLoading={isApproversLoading}
+        isApproversLoading={isPositionsLoading}
         handleSubmit={handleSubmit}
         customActions={<EditCloseButtons />}>
         <Box sx={{ pt: 1, px: 2 }}></Box>
-        {!isCreate && selectedEntry && <Box></Box>}
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Box sx={{ mb: 1 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={noChargingChecked}
-                  onChange={(e) => setNoChargingChecked(e.target.checked)}
-                  disabled={isReadOnly || isInUse}
-                  sx={{
-                    color: "rgb(33, 61, 112)",
-                    "&.Mui-checked": {
-                      color: "rgb(33, 61, 112)",
-                    },
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  No Charging Required
-                </Typography>
-              }
-            />
-          </Box>
+          {showSkeleton ? (
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={4}>
+                <InfoFieldSkeleton label="Code" width="70%" />
+              </Grid>
 
-          <ApprovalFlowFormFields
-            control={control}
-            errors={errors}
-            isReadOnly={isReadOnly}
-            chargingOptions={chargingOptions}
-            filteredDepartments={filteredDepartments}
-            filteredLocations={filteredLocations}
-            filteredCompanies={filteredCompanies}
-            filteredBusinessUnits={filteredBusinessUnits}
-            filteredUnits={filteredUnits}
-            filteredSubUnits={filteredSubUnits}
-            users={receivers}
-            forms={approvalForms}
-            isRdfLoading={isRdfLoading}
-            isAllChargingLoading={isAllChargingLoading}
-            isUsersLoading={isReceiversLoading}
-            isFormsLoading={isFormsLoading}
-            handleChargingChange={handleChargingChange}
-            isFieldDisabled={isFieldDisabled}
-            isInUse={isInUse}
-            noChargingChecked={noChargingChecked}
-            setNoChargingChecked={setNoChargingChecked}
-            fieldOrder={[
-              "form_id",
-              "rdf_charging",
-              "department",
-              "company",
-              "business_unit",
-              "unit",
-              "sub_unit",
-              "location",
-              "receiver_user_id",
-              "name",
-              "description",
-            ]}
-          />
+              <Grid item xs={12} md={8}>
+                <InfoFieldSkeleton label="Position" width="60%" />
+              </Grid>
+
+              <Grid item xs={12} md={8}>
+                <InfoFieldSkeleton label="Charging" width="50%" />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Status
+                </Typography>
+                <Box>
+                  <Skeleton
+                    variant="rounded"
+                    width={90}
+                    height={24}
+                    sx={{ borderRadius: "12px" }}
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          ) : (
+            detail && (
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={4}>
+                  <InfoField label="Code" value={detail.code} />
+                </Grid>
+
+                <Grid item xs={12} md={8}>
+                  <InfoField label="Position" value={detail.title} />
+                </Grid>
+
+                <Grid item xs={12} md={8}>
+                  <InfoField label="Charging" value={detail.charging} />
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">
+                    Status
+                  </Typography>
+                  <Box>
+                    <Chip
+                      label={formatStatusLabel(detail.status)}
+                      size="small"
+                      sx={{
+                        backgroundColor: isStatusSet ? "#e8f5e8" : "#fff4e5",
+                        color: isStatusSet ? "#2e7d32" : "#ed6c02",
+                        border: `1px solid ${
+                          isStatusSet ? "#4caf50" : "#ff9800"
+                        }`,
+                        fontWeight: 600,
+                        fontSize: "11px",
+                        height: "24px",
+                        borderRadius: "12px",
+                        "& .MuiChip-label": {
+                          padding: "0 8px",
+                        },
+                      }}
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            )
+          )}
 
           <Box sx={{ mt: 2, width: "100%" }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Approver Sequence
-            </Typography>
+            <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Approver Sequence
+              </Typography>
+            </Box>
 
             {!isReadOnly && (
-              <Box
-                sx={{
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 1,
-                  width: "100%",
-                }}>
-                <FormControl
-                  sx={{ minWidth: 600, flex: 1 }}
-                  error={!!errors.approver_user_id}
-                  disabled={isReadOnly || isApproversLoading}>
-                  <InputLabel id="approver-select-label">
-                    Select Approver
-                  </InputLabel>
-                  <Select
-                    labelId="approver-select-label"
-                    value={selectedApprover}
-                    label="Select Approver"
-                    onChange={(e) => setSelectedApprover(e.target.value)}
-                    disabled={
-                      availableApprovers.length === 0 || isApproversLoading
-                    }
-                    sx={{
-                      backgroundColor: isReadOnly ? "#f5f5f5" : "white",
-                      height: "75px",
-                      "& .MuiSelect-select": {
-                        paddingTop: "14px",
-                        paddingBottom: "14px",
-                      },
-                    }}>
-                    {isApproversLoading ? (
-                      <MenuItem disabled>
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                          Loading approvers...
-                        </Box>
-                      </MenuItem>
-                    ) : availableApprovers.length === 0 ? (
-                      <MenuItem disabled>
-                        <em style={{ color: "#999" }}>
-                          No available approvers
-                        </em>
-                      </MenuItem>
-                    ) : (
-                      availableApprovers.map((approver) => (
-                        <MenuItem key={approver.id} value={approver.id}>
-                          <Box>
-                            <Typography variant="body2" fontWeight={500}>
-                              {approver.full_name ||
-                                approver.name ||
-                                "Unknown User"}
+              <Box sx={{ mb: 2, width: "100%" }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
+                    color: "rgb(33, 61, 112)",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.4,
+                    mb: 1,
+                  }}>
+                  Add Approver Position
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: { xs: "column", sm: "row" },
+                    alignItems: { xs: "stretch", sm: "flex-start" },
+                    gap: 1,
+                    width: "100%",
+                  }}>
+                  <OptionsHintContext.Provider value={approverOptionsHint}>
+                    <Autocomplete
+                      size="small"
+                      sx={{ flex: 1, minWidth: 0 }}
+                      options={availablePositions}
+                      loading={isPositionsFetching}
+                      value={selectedApprover}
+                      inputValue={approverSearchInput}
+                      filterOptions={(options) => options}
+                      getOptionLabel={(option) => option?.name || ""}
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
+                      onInputChange={(e, newValue, reason) => {
+                        approverInputReasonRef.current = reason;
+                        setApproverSearchInput(newValue);
+                      }}
+                      onChange={(e, newValue) => setSelectedApprover(newValue)}
+                      PaperComponent={HintPaper}
+                      noOptionsText={
+                        isPositionsFetching
+                          ? "Searching positions..."
+                          : "No available positions"
+                      }
+                      renderOption={(props, option) => {
+                        const { key, ...liProps } = props;
+                        const subtitle = [
+                          option.charging,
+                          option.department,
+                          option.holder_name,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ");
+                        return (
+                          <Box
+                            component="li"
+                            key={option.id}
+                            {...liProps}
+                            sx={{
+                              display: "block !important",
+                              py: 1,
+                            }}>
+                            <Typography
+                              sx={{
+                                fontSize: "13px",
+                                fontWeight: 700,
+                                color: "rgb(33, 61, 112)",
+                              }}>
+                              {option.name}
+                              {option.code && (
+                                <Box component="span" sx={{ color: "#5f6b7a" }}>
+                                  {" · "}
+                                  {option.code}
+                                </Box>
+                              )}
                             </Typography>
-                            {approver.position && (
+                            {subtitle && (
                               <Typography
-                                variant="caption"
-                                color="text.secondary">
-                                {typeof approver.position === "string"
-                                  ? approver.position
-                                  : approver.position.position_name ||
-                                    "No Position"}
+                                sx={{
+                                  fontSize: "12px",
+                                  color: "#5f6b7a",
+                                  wordBreak: "break-word",
+                                }}>
+                                {subtitle}
                               </Typography>
                             )}
                           </Box>
-                        </MenuItem>
-                      ))
-                    )}
-                  </Select>
-                  {errors.approver_user_id && (
-                    <FormHelperText>
-                      {errors.approver_user_id.message}
-                    </FormHelperText>
-                  )}
-                </FormControl>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleAddApprover(selectedApprover)}
-                  disabled={!selectedApprover || isApproversLoading}
-                  sx={{
-                    height: "75px",
-                    minWidth: "126px",
-                    textTransform: "none",
-                    borderColor: "rgb(33, 61, 112)",
-                    color: "rgb(33, 61, 112)",
-                    "&:hover": {
-                      backgroundColor: "rgba(33, 61, 112, 0.04)",
-                    },
-                  }}>
-                  ADD
-                </Button>
+                        );
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Search title, code, charging or department"
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {isPositionsFetching ? (
+                                  <CircularProgress size={16} />
+                                ) : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
+                  </OptionsHintContext.Provider>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => handleAddApprover(selectedApprover)}
+                    disabled={!selectedApprover || isPositionsLoading}
+                    sx={{
+                      height: "40px",
+                      minWidth: "126px",
+                      textTransform: "none",
+                      borderColor: "rgb(33, 61, 112)",
+                      color: "rgb(33, 61, 112)",
+                      "&:hover": {
+                        backgroundColor: "rgba(33, 61, 112, 0.04)",
+                      },
+                    }}>
+                    ADD
+                  </Button>
+                </Box>
               </Box>
             )}
 
             <Box sx={{ width: "100%" }}>
-              <ReactSortable
-                list={[...approverSequence]}
-                setList={handleDragEnd}
-                disabled={isReadOnly}
-                animation={200}
-                delayOnTouchStart={true}
-                delay={2}
-                ghostClass="sortable-ghost"
-                chosenClass="sortable-chosen"
-                dragClass="sortable-drag"
-                filter=".no-drag"
-                style={{ minHeight: "200px", width: "100%" }}>
-                {approverSequence.length === 0 ? (
-                  <Paper
-                    sx={{
-                      p: 3,
-                      textAlign: "center",
-                      backgroundColor: "#f8f9fa",
-                      border: "2px dashed #ddd",
-                      minHeight: "150px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: "100%",
-                    }}>
-                    <Typography color="text.secondary">
-                      No approvers added yet.{" "}
-                      {!isReadOnly &&
-                        "Select approvers from the dropdown above."}
-                    </Typography>
-                  </Paper>
-                ) : (
-                  approverSequence.map((approver) => (
+              {showSkeleton ? (
+                <Box sx={{ minHeight: "200px", width: "100%" }}>
+                  <ApproverSkeletonItem />
+                  <ApproverSkeletonItem />
+                  <ApproverSkeletonItem />
+                </Box>
+              ) : (
+                <ReactSortable
+                  list={[...approverSequence]}
+                  setList={handleDragEnd}
+                  disabled={isReadOnly}
+                  animation={200}
+                  delayOnTouchStart={true}
+                  delay={2}
+                  ghostClass="sortable-ghost"
+                  chosenClass="sortable-chosen"
+                  dragClass="sortable-drag"
+                  filter=".no-drag"
+                  style={{ minHeight: "200px", width: "100%" }}>
+                  {approverSequence.length === 0 ? (
                     <Paper
-                      key={approver.id}
                       sx={{
-                        p: 2,
-                        mb: 1,
+                        p: 3,
+                        textAlign: "center",
+                        backgroundColor: "#f8f9fa",
+                        border: "2px dashed #ddd",
+                        minHeight: "150px",
                         display: "flex",
                         alignItems: "center",
-                        backgroundColor: "white",
-                        border: "1px solid #e0e0e0",
-                        cursor: isReadOnly ? "default" : "move",
+                        justifyContent: "center",
                         width: "100%",
-                        "&.sortable-chosen": {
-                          backgroundColor: "#e3f2fd",
-                        },
-                        "&.sortable-drag": {
-                          backgroundColor: "#bbdefb",
-                        },
-                        "&.sortable-ghost": {
-                          backgroundColor: "#f5f5f5",
-                          opacity: 0.5,
-                        },
                       }}>
-                      {!isReadOnly && (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            mr: 2,
-                            color: "text.secondary",
-                            cursor: "move",
-                          }}>
-                          <DragIcon />
-                        </Box>
-                      )}
-
-                      <Chip
-                        label={approver.order}
-                        size="small"
-                        sx={{
-                          mr: 2,
-                          backgroundColor: "rgb(33, 61, 112)",
-                          color: "white",
-                          fontWeight: 600,
-                        }}
-                      />
-                      <Avatar sx={{ mr: 2, bgcolor: "rgb(33, 61, 112)" }}>
-                        <PersonIcon />
-                      </Avatar>
-
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {approver.name}
-                        </Typography>
-                        {approver.position && (
-                          <Typography variant="body2" color="text.secondary">
-                            {approver.position}
-                          </Typography>
-                        )}
-                        {approver.department && (
-                          <Typography variant="body2" color="text.secondary">
-                            {approver.department}
-                          </Typography>
-                        )}
-                      </Box>
-
-                      {!isReadOnly && (
-                        <IconButton
-                          onClick={() => handleRemoveApprover(approver.id)}
-                          size="small"
-                          className="no-drag"
-                          sx={{
-                            color: "error.main",
-                          }}>
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
+                      <Typography color="text.secondary">
+                        No approvers added yet.{" "}
+                        {!isReadOnly &&
+                          "Select approvers from the dropdown above."}
+                      </Typography>
                     </Paper>
-                  ))
-                )}
-              </ReactSortable>
+                  ) : (
+                    approverSequence.map((approver) => (
+                      <Paper
+                        key={approver.id}
+                        sx={{
+                          p: { xs: 1.5, sm: 2 },
+                          mb: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          cursor: isReadOnly ? "default" : "move",
+                          width: "100%",
+                          "&.sortable-chosen": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                          "&.sortable-drag": {
+                            backgroundColor: "#bbdefb",
+                          },
+                          "&.sortable-ghost": {
+                            backgroundColor: "#f5f5f5",
+                            opacity: 0.5,
+                          },
+                        }}>
+                        {!isReadOnly && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mr: 2,
+                              color: "text.secondary",
+                              cursor: "move",
+                            }}>
+                            <DragIcon />
+                          </Box>
+                        )}
+
+                        <Chip
+                          label={approver.order}
+                          size="small"
+                          sx={{
+                            mr: { xs: 1, sm: 2 },
+                            backgroundColor: "rgb(33, 61, 112)",
+                            color: "white",
+                            fontWeight: 600,
+                          }}
+                        />
+                        <Avatar
+                          sx={{
+                            mr: { xs: 1, sm: 2 },
+                            bgcolor: "rgb(33, 61, 112)",
+                          }}>
+                          <PersonIcon />
+                        </Avatar>
+
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          {approver.holder_name ? (
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color: "rgb(33, 61, 112)",
+                              }}>
+                              {approver.holder_name}
+                            </Typography>
+                          ) : approver.is_vacant ? (
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600, color: "#ed6c02" }}>
+                              VACANT
+                            </Typography>
+                          ) : null}
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, wordBreak: "break-word" }}>
+                            {approver.name}
+                          </Typography>
+                          {approver.code && (
+                            <Typography variant="body2" color="text.secondary">
+                              {approver.code}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {!isReadOnly && (
+                          <IconButton
+                            onClick={() => handleRemoveApprover(approver.id)}
+                            size="small"
+                            className="no-drag"
+                            sx={{
+                              color: "error.main",
+                            }}>
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
+                      </Paper>
+                    ))
+                  )}
+                </ReactSortable>
+              )}
             </Box>
           </Box>
         </form>

@@ -12,6 +12,10 @@ export const AttachmentBox = styled(Box)(({ theme, hasFile, isReadOnly }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  flexWrap: "wrap",
+  gap: "8px",
+  width: "100%",
+  boxSizing: "border-box",
   "&:hover": !isReadOnly
     ? {
         borderColor: "#1976d2",
@@ -24,6 +28,7 @@ export const fileNameStyles = {
   fontWeight: 600,
   color: "#333",
   fontSize: "0.9rem",
+  wordBreak: "break-word",
 };
 
 export const uploadAttachmentSubtextStyles = {
@@ -37,11 +42,12 @@ export const attachmentBoxContentStyles = {
   alignItems: "center",
   flex: 1,
   cursor: "pointer",
+  minWidth: 0,
 };
 
 export const attachmentBoxMainStyles = {
   width: "100%",
-  minWidth: "100%",
+  minWidth: 0,
 };
 
 const uploadIconStyles = {
@@ -99,12 +105,15 @@ export const modalStyles = {
     pb: 1,
     backgroundColor: "#fff",
     flexShrink: 0,
+    flexWrap: "wrap",
+    gap: 1,
   },
 
   titleContainer: {
     display: "flex",
     alignItems: "center",
     gap: 1,
+    minWidth: 0,
   },
 
   titleIcon: {
@@ -113,6 +122,7 @@ export const modalStyles = {
 
   titleText: {
     fontWeight: 600,
+    whiteSpace: { xs: "normal", sm: "nowrap" },
   },
 
   editButton: (isLoading) => ({
@@ -174,8 +184,10 @@ export const modalStyles = {
   dialogContent: {
     backgroundColor: "#fff",
     flex: 1,
-    overflow: "auto",
-    padding: "16px 24px",
+    overflowX: "hidden",
+    overflowY: "auto",
+    padding: { xs: "12px 16px", sm: "16px 24px" },
+    boxSizing: "border-box",
     "&::-webkit-scrollbar": {
       width: "8px",
     },
@@ -211,11 +223,13 @@ export const modalStyles = {
   },
 
   dialogActions: {
-    px: 3,
+    px: { xs: 2, sm: 3 },
     py: 2,
     backgroundColor: "#fff",
     justifyContent: "flex-end",
     flexShrink: 0,
+    flexWrap: "wrap",
+    gap: 1,
   },
 
   resubmitButton: (enabled) => ({
@@ -251,31 +265,39 @@ export const modalStyles = {
   },
 
   dialogPaper: {
-    height: "80vh",
-    maxHeight: "80vh",
-    minHeight: "80vh",
-    width: "100%",
-    maxWidth: "900px",
+    height: { xs: "100%", sm: "85vh" },
+    maxHeight: { xs: "100%", sm: "85vh" },
+    minHeight: { xs: "100%", sm: "85vh" },
+    width: { xs: "100%", sm: "calc(100% - 64px)" },
+    maxWidth: { xs: "100%", sm: "900px" },
+    margin: { xs: 0, sm: "auto" },
+    borderRadius: { xs: 0, sm: 2 },
     display: "flex",
     flexDirection: "column",
+    boxSizing: "border-box",
+    overflowX: "hidden",
   },
 };
 
 export const formStyles = {
   container: {
     paddingTop: "12px",
+    width: "100%",
+    boxSizing: "border-box",
   },
 
   textField: (isReadOnly) => ({
-    backgroundColor: isReadOnly ? "#f5f5f5" : "white",
-    minWidth: "412px",
-    maxWidth: "412px",
+    width: "100%",
+    "& .MuiOutlinedInput-root": {
+      backgroundColor: isReadOnly ? "#f5f5f5" : "white",
+    },
   }),
 
   autocompleteTextField: (isReadOnly, isEditMode) => ({
-    backgroundColor: isReadOnly || isEditMode ? "#f5f5f5" : "white",
-    minWidth: "412px",
-    maxWidth: "412px",
+    width: "100%",
+    "& .MuiOutlinedInput-root": {
+      backgroundColor: isReadOnly || isEditMode ? "#f5f5f5" : "white",
+    },
   }),
 
   checkboxContainer: {
@@ -292,8 +314,8 @@ export const formStyles = {
   }),
 
   attachmentContainer: {
-    minWidth: "834px",
-    maxWidth: "834px",
+    width: "100%",
+    boxSizing: "border-box",
   },
 
   requiredAsterisk: (isViewMode) => ({

@@ -2,7 +2,12 @@ import { sedarApi } from "..";
 
 const mrfApi = sedarApi
   .enhanceEndpoints({
-    addTagTypes: ["mrfSubmissions", "mrfPositions", "mrfEmployees"],
+    addTagTypes: [
+      "mrfSubmissions",
+      "mrfPositions",
+      "mrfEmployees",
+      "mrfMovementSources",
+    ],
   })
   .injectEndpoints({
     endpoints: (build) => ({
@@ -57,11 +62,17 @@ const mrfApi = sedarApi
 
       getAllMrfSubmissions: build.query({
         query: (params = {}) => {
-          const { search, status, approval_status, ...otherParams } = params;
+          const {
+            search,
+            status,
+            approval_status,
+            pagination = "false",
+            ...otherParams
+          } = params;
 
           const queryParams = new URLSearchParams();
 
-          queryParams.append("pagination", "false");
+          queryParams.append("pagination", String(pagination));
 
           if (status) {
             queryParams.append("status", status);
@@ -84,7 +95,7 @@ const mrfApi = sedarApi
           const queryString = queryParams.toString();
           const url = queryString
             ? `mrf/open?${queryString}`
-            : "mrf/open?pagination=false";
+            : `mrf/open?pagination=${pagination}`;
 
           return {
             url,
@@ -180,13 +191,40 @@ const mrfApi = sedarApi
         providesTags: ["mrfEmployees"],
       }),
 
+      // Fills the "Select Employee" dropdown for "Replacement due to Employee Movement".
+      // Each item carries the moved employee, old position, new position, job level,
+      // expected salary, move_status and the source_mrf_submission_id.
+      getMrfMovementSources: build.query({
+        query: (params = {}) => {
+          const queryParams = new URLSearchParams();
+
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+              queryParams.append(key, value.toString());
+            }
+          });
+
+          const queryString = queryParams.toString();
+          const url = queryString
+            ? `mrf/movement-sources?${queryString}`
+            : "mrf/movement-sources";
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: ["mrfMovementSources"],
+      }),
+
       createMrfSubmission: build.mutation({
         query: (body) => ({
           url: "form-submissions",
           method: "POST",
           body,
         }),
-        invalidatesTags: ["mrfSubmissions"],
+        // A move can only have one MRF, so refresh the movement sources too
+        invalidatesTags: ["mrfSubmissions", "mrfMovementSources"],
       }),
 
       createMrfEmployeeMovement: build.mutation({
@@ -195,7 +233,7 @@ const mrfApi = sedarApi
           method: "POST",
           body,
         }),
-        invalidatesTags: ["mrfSubmissions"],
+        invalidatesTags: ["mrfSubmissions", "mrfMovementSources"],
       }),
 
       updateMrfSubmission: build.mutation({
@@ -320,9 +358,11 @@ const mrfApi = sedarApi
           method: "POST",
           body: { reason },
         }),
+        // Cancelling frees the move up again
         invalidatesTags: (result, error, { submissionId }) => [
           { type: "mrfSubmissions", id: submissionId },
           "mrfSubmissions",
+          "mrfMovementSources",
         ],
       }),
     }),
@@ -341,6 +381,8 @@ export const {
   useLazyGetMrfPositionsQuery,
   useGetMrfEmployeeReplacementQuery,
   useLazyGetMrfEmployeeReplacementQuery,
+  useGetMrfMovementSourcesQuery,
+  useLazyGetMrfMovementSourcesQuery,
   useCreateMrfSubmissionMutation,
   useCreateMrfEmployeeMovementMutation,
   useUpdateMrfSubmissionMutation,

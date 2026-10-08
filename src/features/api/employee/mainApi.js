@@ -200,6 +200,24 @@ const mainApi = sedarApi
         providesTags: [{ type: "employees", id: "REPLACEMENT_OPTIONS" }],
       }),
 
+      getNextEmployeeId: build.query({
+        query: (prefixId) => ({
+          url: `employees/next-id/${prefixId}`,
+          method: "GET",
+        }),
+        keepUnusedDataFor: 0,
+      }),
+
+      checkUniqueEmployeeId: build.query({
+        query: ({ prefix_id, id_number }) => ({
+          url: `employees/check-unique-id/${prefix_id}/${encodeURIComponent(
+            id_number,
+          )}`,
+          method: "GET",
+        }),
+        keepUnusedDataFor: 0,
+      }),
+
       getEmployeeRegistrationCounts: build.query({
         query: () => ({
           url: "me/employee-registrations/counts",
@@ -240,7 +258,7 @@ const mainApi = sedarApi
                   ) {
                     formData.append(
                       `files[${index}][${fileKey}]`,
-                      file[fileKey]
+                      file[fileKey],
                     );
                   } else if (
                     file[fileKey] !== undefined &&
@@ -248,7 +266,7 @@ const mainApi = sedarApi
                   ) {
                     formData.append(
                       `files[${index}][${fileKey}]`,
-                      file[fileKey]
+                      file[fileKey],
                     );
                   }
                 });
@@ -322,6 +340,10 @@ export const {
   useLazyGetAllApprovedMrfQuery,
   useGetAllEmployeesToBeReplacedQuery,
   useLazyGetAllEmployeesToBeReplacedQuery,
+  useGetNextEmployeeIdQuery,
+  useLazyGetNextEmployeeIdQuery,
+  useCheckUniqueEmployeeIdQuery,
+  useLazyCheckUniqueEmployeeIdQuery,
   useGetEmployeeRegistrationCountsQuery,
   useLazyGetEmployeeRegistrationCountsQuery,
   useCreateEmployeeMutation,

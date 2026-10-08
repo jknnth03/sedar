@@ -46,6 +46,50 @@ import {
 } from "./DataChangeModalStyles";
 import { useGetAllShowSchedulesQuery } from "../../../../features/api/extras/schedulesApi";
 
+const EXCLUDED_MOVEMENT_TYPES = [
+  "position alignment",
+  "merit increase",
+  "re-evaluation of existing job",
+  "upgrading",
+];
+
+const movementTypeRequiresMrf = (type) => {
+  if (!type) return false;
+
+  if (type.requires_mrf !== undefined && type.requires_mrf !== null) {
+    return [1, true, "1", "true"].includes(type.requires_mrf);
+  }
+
+  const name = type.name || type.type_name;
+  if (!name) return false;
+
+  return !EXCLUDED_MOVEMENT_TYPES.includes(name.toLowerCase());
+};
+
+const getPositionTitle = (position) => {
+  if (!position) return "";
+  if (typeof position === "string") return position;
+  return (
+    position.title_with_unit ||
+    (typeof position.title === "string"
+      ? position.title
+      : position.title?.name) ||
+    position.name ||
+    position.position_name ||
+    ""
+  );
+};
+
+const getLockedEmployeeValue = (employee) => {
+  if (!employee) return "";
+  const name = employee.employee_name || employee.full_name || "";
+  const title =
+    employee.position_title && employee.position_title !== "N/A"
+      ? employee.position_title
+      : "";
+  return title ? `${name} · ${title}` : name;
+};
+
 const DataChangeModalFields = ({
   isLoading = false,
   mode = "create",
@@ -103,6 +147,8 @@ const DataChangeModalFields = ({
   const { data: mrfSubmissionsData, isLoading: mrfSubmissionsLoading } =
     useGetAllMrfSubmissionsQuery(
       {
+        pagination: "none",
+        form_type: "data-change",
         status: "active",
         approval_status: "approved",
       },
@@ -164,26 +210,16 @@ const DataChangeModalFields = ({
     return name;
   };
 
-  const excludedMovementTypes = [
-    "Position Alignment",
-    "Merit Increase",
-    "Re-evaluation of Existing Job",
-    "Upgrading",
-  ];
+  const getMovementTypeLabel = (item) => {
+    const name = item?.name || item?.type_name || "";
+    if (!name) return "";
+    return movementTypeRequiresMrf(item) ? `${name} · needs MRF` : name;
+  };
 
-  const showMrfField = useMemo(() => {
-    const movementTypeName =
-      watchedMovementType?.name || watchedMovementType?.type_name;
-
-    if (!movementTypeName) return false;
-
-    const isExcluded = excludedMovementTypes.some(
-      (excludedType) =>
-        excludedType.toLowerCase() === movementTypeName.toLowerCase(),
-    );
-
-    return !isExcluded;
-  }, [watchedMovementType]);
+  const showMrfField = useMemo(
+    () => movementTypeRequiresMrf(watchedMovementType),
+    [watchedMovementType],
+  );
 
   const attachmentInstructions = useMemo(() => {
     const movementTypeName =
@@ -254,6 +290,56 @@ const DataChangeModalFields = ({
     [dropdownsLoaded, triggerGetEmployees, shouldLoadDropdowns],
   );
 
+  const handleMovementTypeChange = (item, onChange) => {
+    const requiredBefore = movementTypeRequiresMrf(
+      getValues("movement_type_id"),
+    );
+    const requiredAfter = movementTypeRequiresMrf(item);
+
+    onChange(item);
+
+    if (requiredBefore !== requiredAfter) {
+      setValue("approved_mrf_id", null, { shouldValidate: false });
+      setValue("employee_id", null, { shouldValidate: false });
+      setValue("to_position_id", null, { shouldValidate: false });
+    }
+
+    if (!requiredAfter && dropdownsLoaded.employees) {
+      triggerGetEmployees({ page: 1, per_page: 1000, status: "active" }, true);
+    }
+  };
+
+  const handleMrfChange = (item, onChange) => {
+    onChange(item);
+
+    if (!item) {
+      setValue("employee_id", null, { shouldValidate: false });
+      setValue("to_position_id", null, { shouldValidate: false });
+      return;
+    }
+
+    setValue(
+      "employee_id",
+      {
+        id: item.employee_id,
+        employee_name: item.employee_name,
+        full_name: item.employee_name,
+        position_id: item.from_position?.id,
+        position_title: getPositionTitle(item.from_position) || "N/A",
+        from_mrf: true,
+      },
+      { shouldValidate: true },
+    );
+
+    setValue(
+      "to_position_id",
+      item.to_position
+        ? { ...item.to_position, name: getPositionTitle(item.to_position) }
+        : null,
+      { shouldValidate: true },
+    );
+  };
+
   useEffect(() => {
     if (mode === "create") {
       setValue("form_id", { id: 4 });
@@ -271,9 +357,11 @@ const DataChangeModalFields = ({
         schedules: true,
       });
 
-      triggerGetEmployees({ page: 1, per_page: 1000, status: "active" });
-
       const submittable = selectedEntry.result.submittable;
+
+      if (!movementTypeRequiresMrf(submittable.movement_type)) {
+        triggerGetEmployees({ page: 1, per_page: 1000, status: "active" });
+      }
 
       if (submittable.employee_id) {
         const singleEmployee = {
@@ -451,10 +539,15 @@ const DataChangeModalFields = ({
     marginBottom: 2.5,
   };
 
+  const showEmployeeInfo =
+    (watchedEmployee &&
+      watchedEmployee.employee_name &&
+      !watchedEmployee.from_mrf) ||
+    isLoadingEmployeeData;
+
   return (
     <Box>
-      {(watchedEmployee && watchedEmployee.employee_name) ||
-      isLoadingEmployeeData ? (
+      {showEmployeeInfo ? (
         <Box sx={{ mb: 3, px: 2 }}>
           <Box
             sx={{
@@ -593,6 +686,172 @@ const DataChangeModalFields = ({
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
               <Controller
+                name="movement_type_id"
+                control={control}
+                rules={{ required: "Movement type is required" }}
+                render={({ field: { onChange, value } }) => (
+                  <FormControl fullWidth error={!!errors.movement_type_id}>
+                    {isReadOnly ? (
+                      <TextField
+                        label="Movement Type"
+                        value={value?.name || value?.type_name || ""}
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) =>
+                          handleMovementTypeChange(item, onChange)
+                        }
+                        options={movementTypes}
+                        loading={movementTypesLoading}
+                        getOptionLabel={getMovementTypeLabel}
+                        isOptionEqualToValue={(option, value) =>
+                          option?.id === value?.id
+                        }
+                        onOpen={() => handleDropdownFocus("movementTypes")}
+                        disabled={isLoading}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={
+                              <span>
+                                Movement Type{" "}
+                                <span style={labelWithRequired}>*</span>
+                              </span>
+                            }
+                            error={!!errors.movement_type_id}
+                            helperText={
+                              errors.movement_type_id?.message ||
+                              (value
+                                ? showMrfField
+                                  ? "Needs an MRF: the MRF fills Employee and Position to."
+                                  : "No MRF: pick the employee from your own list."
+                                : undefined)
+                            }
+                            fullWidth
+                            sx={textFieldStyles.outlinedInput}
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {movementTypesLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          movementTypesLoading
+                            ? "Loading movement types..."
+                            : "No movement types found"
+                        }
+                      />
+                    )}
+                  </FormControl>
+                )}
+              />
+            )}
+          </Box>
+
+          {showMrfField && (
+            <Box>
+              {isLoadingEmployeeData ? (
+                <Skeleton variant="rounded" width="100%" height={56} />
+              ) : (
+                <Controller
+                  name="approved_mrf_id"
+                  control={control}
+                  rules={{ required: showMrfField ? "MRF is required" : false }}
+                  render={({ field: { onChange, value } }) => (
+                    <FormControl fullWidth error={!!errors.approved_mrf_id}>
+                      {isReadOnly ? (
+                        <TextField
+                          label="MRF"
+                          value={value?.submission_title || ""}
+                          fullWidth
+                          disabled
+                          sx={textFieldStyles.outlinedInput}
+                        />
+                      ) : (
+                        <Autocomplete
+                          value={value || null}
+                          onChange={(event, item) =>
+                            handleMrfChange(item, onChange)
+                          }
+                          options={mrfSubmissions}
+                          loading={mrfSubmissionsLoading}
+                          getOptionLabel={(item) => {
+                            return item?.submission_title || "";
+                          }}
+                          isOptionEqualToValue={(option, value) =>
+                            option?.id === value?.id
+                          }
+                          onOpen={() => handleDropdownFocus("mrfSubmissions")}
+                          disabled={isLoading}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={
+                                <span>
+                                  MRF <span style={labelWithRequired}>*</span>
+                                </span>
+                              }
+                              error={!!errors.approved_mrf_id}
+                              helperText={
+                                errors.approved_mrf_id?.message ||
+                                "Pick the MRF HR filed for this move."
+                              }
+                              fullWidth
+                              sx={textFieldStyles.outlinedInput}
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {mrfSubmissionsLoading && (
+                                      <CircularProgress
+                                        color="inherit"
+                                        size={20}
+                                      />
+                                    )}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
+                          )}
+                          noOptionsText={
+                            mrfSubmissionsLoading
+                              ? "Loading MRF submissions..."
+                              : "No MRF submissions found"
+                          }
+                          renderOption={(props, option) => (
+                            <li {...props} key={option.id}>
+                              {option?.submission_title || ""}
+                            </li>
+                          )}
+                        />
+                      )}
+                    </FormControl>
+                  )}
+                />
+              )}
+            </Box>
+          )}
+
+          <Box>
+            {isLoadingEmployeeData ? (
+              <Skeleton variant="rounded" width="100%" height={56} />
+            ) : (
+              <Controller
                 name="employee_id"
                 control={control}
                 rules={{ required: "Employee is required" }}
@@ -602,6 +861,25 @@ const DataChangeModalFields = ({
                       <TextField
                         label="Employee"
                         value={value?.employee_name || value?.full_name || ""}
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : showMrfField ? (
+                      <TextField
+                        label={
+                          <span>
+                            Employee <span style={labelWithRequired}>*</span>
+                          </span>
+                        }
+                        value={getLockedEmployeeValue(value)}
+                        error={!!errors.employee_id}
+                        helperText={
+                          errors.employee_id?.message ||
+                          (value
+                            ? "From the MRF (employee to be hired)"
+                            : "Pick the MRF first")
+                        }
                         fullWidth
                         disabled
                         sx={textFieldStyles.outlinedInput}
@@ -672,113 +950,6 @@ const DataChangeModalFields = ({
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
               <Controller
-                name="movement_type_id"
-                control={control}
-                rules={{ required: "Movement type is required" }}
-                render={({ field: { onChange, value } }) => (
-                  <FormControl fullWidth error={!!errors.movement_type_id}>
-                    {isReadOnly ? (
-                      <TextField
-                        label="Movement Type"
-                        value={value?.name || value?.type_name || ""}
-                        fullWidth
-                        disabled
-                        sx={textFieldStyles.outlinedInput}
-                      />
-                    ) : (
-                      <Autocomplete
-                        value={value || null}
-                        onChange={(event, item) => onChange(item)}
-                        options={movementTypes}
-                        loading={movementTypesLoading}
-                        getOptionLabel={(item) =>
-                          item?.name || item?.type_name || ""
-                        }
-                        isOptionEqualToValue={(option, value) =>
-                          option?.id === value?.id
-                        }
-                        onOpen={() => handleDropdownFocus("movementTypes")}
-                        disabled={isLoading}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={
-                              <span>
-                                Movement Type{" "}
-                                <span style={labelWithRequired}>*</span>
-                              </span>
-                            }
-                            error={!!errors.movement_type_id}
-                            helperText={errors.movement_type_id?.message}
-                            fullWidth
-                            sx={textFieldStyles.outlinedInput}
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {movementTypesLoading && (
-                                    <CircularProgress
-                                      color="inherit"
-                                      size={20}
-                                    />
-                                  )}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
-                        noOptionsText={
-                          movementTypesLoading
-                            ? "Loading movement types..."
-                            : "No movement types found"
-                        }
-                      />
-                    )}
-                  </FormControl>
-                )}
-              />
-            )}
-          </Box>
-
-          <Box>
-            {isLoadingEmployeeData ? (
-              <Skeleton variant="rounded" width="100%" height={56} />
-            ) : (
-              <Controller
-                name="effective_date"
-                control={control}
-                rules={{ required: "Effective date is required" }}
-                render={({ field: { onChange, value } }) => (
-                  <DatePicker
-                    label={
-                      <span>
-                        Effective Date <span style={labelWithRequired}>*</span>
-                      </span>
-                    }
-                    value={value}
-                    onChange={onChange}
-                    disabled={isLoading || isReadOnly}
-                    readOnly={isReadOnly}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        error: !!errors.effective_date,
-                        helperText: errors.effective_date?.message,
-                        sx: textFieldStyles.outlinedInput,
-                      },
-                    }}
-                  />
-                )}
-              />
-            )}
-          </Box>
-
-          <Box>
-            {isLoadingEmployeeData ? (
-              <Skeleton variant="rounded" width="100%" height={56} />
-            ) : (
-              <Controller
                 name="to_position_id"
                 control={control}
                 rules={{ required: "Position is required" }}
@@ -787,12 +958,25 @@ const DataChangeModalFields = ({
                     {isReadOnly ? (
                       <TextField
                         label="Position to"
-                        value={
-                          value?.title_with_unit ||
-                          value?.title?.name ||
-                          value?.name ||
-                          value?.position_name ||
-                          ""
+                        value={getPositionTitle(value)}
+                        fullWidth
+                        disabled
+                        sx={textFieldStyles.outlinedInput}
+                      />
+                    ) : showMrfField ? (
+                      <TextField
+                        label={
+                          <span>
+                            Position to <span style={labelWithRequired}>*</span>
+                          </span>
+                        }
+                        value={getPositionTitle(value)}
+                        error={!!errors.to_position_id}
+                        helperText={
+                          errors.to_position_id?.message ||
+                          (value
+                            ? "From the MRF (its position)"
+                            : "Pick the MRF first")
                         }
                         fullWidth
                         disabled
@@ -891,7 +1075,40 @@ const DataChangeModalFields = ({
             )}
           </Box>
 
-          <Box sx={{ gridColumn: "1 / -1" }}>
+          <Box>
+            {isLoadingEmployeeData ? (
+              <Skeleton variant="rounded" width="100%" height={56} />
+            ) : (
+              <Controller
+                name="effective_date"
+                control={control}
+                rules={{ required: "Effective date is required" }}
+                render={({ field: { onChange, value } }) => (
+                  <DatePicker
+                    label={
+                      <span>
+                        Effective Date <span style={labelWithRequired}>*</span>
+                      </span>
+                    }
+                    value={value}
+                    onChange={onChange}
+                    disabled={isLoading || isReadOnly}
+                    readOnly={isReadOnly}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        error: !!errors.effective_date,
+                        helperText: errors.effective_date?.message,
+                        sx: textFieldStyles.outlinedInput,
+                      },
+                    }}
+                  />
+                )}
+              />
+            )}
+          </Box>
+
+          <Box>
             {isLoadingEmployeeData ? (
               <Skeleton variant="rounded" width="100%" height={56} />
             ) : (
@@ -970,86 +1187,6 @@ const DataChangeModalFields = ({
               />
             )}
           </Box>
-
-          {showMrfField && (
-            <Box sx={{ gridColumn: "1 / -1" }}>
-              {isLoadingEmployeeData ? (
-                <Skeleton variant="rounded" width="100%" height={56} />
-              ) : (
-                <Controller
-                  name="approved_mrf_id"
-                  control={control}
-                  rules={{ required: showMrfField ? "MRF is required" : false }}
-                  render={({ field: { onChange, value } }) => (
-                    <FormControl fullWidth error={!!errors.approved_mrf_id}>
-                      {isReadOnly ? (
-                        <TextField
-                          label="MRF"
-                          value={value?.submission_title || ""}
-                          fullWidth
-                          disabled
-                          sx={textFieldStyles.outlinedInput}
-                        />
-                      ) : (
-                        <Autocomplete
-                          value={value || null}
-                          onChange={(event, item) => onChange(item)}
-                          options={mrfSubmissions}
-                          loading={mrfSubmissionsLoading}
-                          getOptionLabel={(item) => {
-                            return item?.submission_title || "";
-                          }}
-                          isOptionEqualToValue={(option, value) =>
-                            option?.id === value?.id
-                          }
-                          onOpen={() => handleDropdownFocus("mrfSubmissions")}
-                          disabled={isLoading}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label={
-                                <span>
-                                  MRF <span style={labelWithRequired}>*</span>
-                                </span>
-                              }
-                              error={!!errors.approved_mrf_id}
-                              helperText={errors.approved_mrf_id?.message}
-                              fullWidth
-                              sx={textFieldStyles.outlinedInput}
-                              InputProps={{
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <>
-                                    {mrfSubmissionsLoading && (
-                                      <CircularProgress
-                                        color="inherit"
-                                        size={20}
-                                      />
-                                    )}
-                                    {params.InputProps.endAdornment}
-                                  </>
-                                ),
-                              }}
-                            />
-                          )}
-                          noOptionsText={
-                            mrfSubmissionsLoading
-                              ? "Loading MRF submissions..."
-                              : "No MRF submissions found"
-                          }
-                          renderOption={(props, option) => (
-                            <li {...props} key={option.id}>
-                              {option?.submission_title || ""}
-                            </li>
-                          )}
-                        />
-                      )}
-                    </FormControl>
-                  )}
-                />
-              )}
-            </Box>
-          )}
 
           {attachmentInstructions && (
             <Box sx={{ gridColumn: "1 / -1", mb: 1 }}>

@@ -14,7 +14,7 @@ import {
   usePostJobbandMutation,
   useUpdateJobbandMutation,
 } from "../../../features/api/masterlist/jobbandsApi";
-// import { CONSTANT } from "../../../config";
+import { CONSTANT } from "../../../config/router";
 
 export default function JobbandsModal({
   open,

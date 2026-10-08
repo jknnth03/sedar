@@ -14,6 +14,7 @@ import DaFormReceivingModal from "../../../components/modal/receiving/DaFormRece
 const DaFormForReceiving = ({
   searchQuery,
   dateFilters,
+  apiFilters,
   filterDataByDate,
   filterDataBySearch,
   setQueryParams,
@@ -27,7 +28,7 @@ const DaFormForReceiving = ({
 
   const [page, setPage] = useState(parseInt(currentParams?.page) || 1);
   const [rowsPerPage, setRowsPerPage] = useState(
-    parseInt(currentParams?.rowsPerPage) || 10
+    parseInt(currentParams?.rowsPerPage) || 10,
   );
 
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -78,6 +79,8 @@ const DaFormForReceiving = ({
     },
   });
 
+  const filtersKey = JSON.stringify(apiFilters ?? {});
+
   const apiQueryParams = useMemo(() => {
     return {
       pagination: 1,
@@ -87,13 +90,14 @@ const DaFormForReceiving = ({
       search: searchQuery || "",
       assessment_progress_status: "PENDING",
       tab: "pending",
+      ...JSON.parse(filtersKey),
     };
-  }, [page, rowsPerPage, searchQuery]);
+  }, [page, rowsPerPage, searchQuery, filtersKey]);
 
   useEffect(() => {
     const newPage = 1;
     setPage(newPage);
-  }, [searchQuery, dateFilters]);
+  }, [searchQuery, dateFilters, filtersKey]);
 
   const {
     data: submissionsData,
@@ -132,7 +136,7 @@ const DaFormForReceiving = ({
         console.error("Error fetching submission details:", error);
       }
     },
-    [triggerGetSubmission]
+    [triggerGetSubmission],
   );
 
   const handleStartSubmission = useCallback(
@@ -147,7 +151,7 @@ const DaFormForReceiving = ({
       if (success) {
       }
     },
-    [onStartSubmission, refetch]
+    [onStartSubmission, refetch],
   );
 
   const handleViewModalClose = useCallback(() => {
@@ -190,11 +194,11 @@ const DaFormForReceiving = ({
             page: targetPage,
             rowsPerPage: rowsPerPage,
           },
-          { retain: true }
+          { retain: true },
         );
       }
     },
-    [setQueryParams, rowsPerPage, currentParams]
+    [setQueryParams, rowsPerPage, currentParams],
   );
 
   const handleRowsPerPageChange = useCallback(
@@ -210,11 +214,11 @@ const DaFormForReceiving = ({
             page: newPage,
             rowsPerPage: newRowsPerPage,
           },
-          { retain: true }
+          { retain: true },
         );
       }
     },
-    [setQueryParams, currentParams]
+    [setQueryParams, currentParams],
   );
 
   const handleModeChange = useCallback((newMode) => {

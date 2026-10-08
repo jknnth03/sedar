@@ -7,7 +7,10 @@ import {
   useLazyGetEmployeeNextIdQuery,
   useLazyCheckEmployeeIdUniqueQuery,
 } from "../../../../../features/api/extras/prefixesApi";
-import { useLazyGetAllGeneralsQuery } from "../../../../../features/api/employee/generalApi";
+import {
+  useLazyGetAllGeneralsQuery,
+  useLazyGetAllManpowerQuery,
+} from "../../../../../features/api/employee/generalApi";
 import { useLazyGetAllShowNationalitiesQuery } from "../../../../../features/api/extras/nationalitiesApi";
 import GeneralFormFields from "./GeneralFormFields";
 import EmployeeHeader from "./EmployeeHeader";
@@ -37,6 +40,7 @@ const GeneralForm = ({
     prefixes: false,
     referrers: false,
     nationalities: false,
+    mrf: false,
   });
 
   const [formInitialized, setFormInitialized] = useState(false);
@@ -55,6 +59,11 @@ const GeneralForm = ({
     triggerGenerals,
     { data: generalsData, isLoading: generalsLoading, error: generalsError },
   ] = useLazyGetAllGeneralsQuery();
+
+  const [
+    triggerManpower,
+    { data: manpowerData, isLoading: manpowerLoading, error: manpowerError },
+  ] = useLazyGetAllManpowerQuery();
 
   const [
     getNextId,
@@ -228,6 +237,46 @@ const GeneralForm = ({
     normalizeApiData,
   ]);
 
+  const approvalForms = useMemo(() => {
+    if ((mode === "view" || isViewMode) && selectedGeneral?.submission_title) {
+      return [selectedGeneral.submission_title];
+    }
+    if (mode === "edit" && selectedGeneral?.submission_title) {
+      const existingForm = selectedGeneral.submission_title;
+      const apiForms = normalizeApiData(manpowerData);
+
+      if (!manpowerData) {
+        return [existingForm];
+      }
+
+      const existingId =
+        existingForm?.id ||
+        existingForm?.submission_title ||
+        existingForm?.linked_mrf_title;
+
+      const hasExistingInApi = apiForms.some((formItem) => {
+        const formId =
+          formItem?.id ||
+          formItem?.submission_title ||
+          formItem?.linked_mrf_title;
+        return formId === existingId;
+      });
+
+      if (!hasExistingInApi) {
+        return [existingForm, ...apiForms];
+      }
+
+      return apiForms;
+    }
+    return normalizeApiData(manpowerData);
+  }, [
+    mode,
+    isViewMode,
+    manpowerData,
+    selectedGeneral?.submission_title,
+    normalizeApiData,
+  ]);
+
   useEffect(() => {
     const fetchNextId = async () => {
       if (
@@ -294,6 +343,9 @@ const GeneralForm = ({
         case "nationalities":
           triggerNationalities(fetchParams);
           break;
+        case "mrf":
+          triggerManpower(fetchParams);
+          break;
       }
 
       setDropdownsLoaded((prev) => ({ ...prev, [dropdownName]: true }));
@@ -304,6 +356,7 @@ const GeneralForm = ({
       triggerPrefixes,
       triggerGenerals,
       triggerNationalities,
+      triggerManpower,
       mode,
       isViewMode,
     ],
@@ -337,7 +390,8 @@ const GeneralForm = ({
     generalsError ||
     nationalitiesError ||
     nextIdError ||
-    uniqueCheckError;
+    uniqueCheckError ||
+    manpowerError;
 
   if (!formInitialized) {
     return (
@@ -377,10 +431,12 @@ const GeneralForm = ({
         prefixes={prefixes}
         referrers={referrers}
         nationalities={nationalities}
+        approvalForms={approvalForms}
         religionsLoading={religionsLoading}
         prefixesLoading={prefixesLoading}
         generalsLoading={generalsLoading}
         nationalitiesLoading={nationalitiesLoading}
+        approvalFormsLoading={manpowerLoading}
         nextIdLoading={nextIdLoading}
         uniqueCheckLoading={uniqueCheckLoading}
         handleDropdownFocus={handleDropdownFocus}

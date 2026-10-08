@@ -60,6 +60,17 @@ import FileForm from "./forms/FileForm.jsx";
 import ReviewStep from "./forms/ReviewStep";
 import GeneralForm from "./forms/GeneralForm.jsx";
 
+const isEnableEditPermission = (permission) => {
+  const value =
+    typeof permission === "string"
+      ? permission
+      : (permission?.permissionId ?? permission?.name ?? "");
+  return String(value)
+    .toUpperCase()
+    .replace(/[\s._-]/g, "")
+    .endsWith("ENABLEEDIT");
+};
+
 const EmployeeWizardForm = ({
   open,
   onClose,
@@ -76,26 +87,26 @@ const EmployeeWizardForm = ({
     React.useState(false);
 
   React.useEffect(() => {
-    const checkPermission = () => {
-      const storedRole = localStorage.getItem("userRole");
+    let localPerms = [];
+    try {
+      const roleData = JSON.parse(localStorage.getItem("userRole") ?? "null");
+      localPerms =
+        roleData?.accessPermissions ?? roleData?.access_permissions ?? [];
+    } catch {
+      localPerms = [];
+    }
 
-      if (storedRole) {
-        try {
-          const roleData = JSON.parse(storedRole);
-          const perms = roleData.accessPermissions || [];
-          setHasEnableEditPermission(perms.includes("Enable Edit"));
-          return;
-        } catch (error) {}
-      }
+    const reduxPerms =
+      fullAuthState?.user?.access_permissions ??
+      fullAuthState?.user?.role?.access_permissions ??
+      [];
 
-      const reduxPerms =
-        fullAuthState?.user?.access_permissions ||
-        fullAuthState?.user?.role?.access_permissions ||
-        [];
-      setHasEnableEditPermission(reduxPerms.includes("Enable Edit"));
-    };
+    const allPerms = [
+      ...(Array.isArray(localPerms) ? localPerms : []),
+      ...(Array.isArray(reduxPerms) ? reduxPerms : []),
+    ];
 
-    checkPermission();
+    setHasEnableEditPermission(allPerms.some(isEnableEditPermission));
   }, [fullAuthState, open]);
 
   const wizardLogic = useEmployeeWizardLogic(

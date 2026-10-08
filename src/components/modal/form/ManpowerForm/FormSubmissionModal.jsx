@@ -41,6 +41,38 @@ import {
   safeRenderText,
 } from "./formSubmissionUtils";
 
+const MOVEMENT_REQUISITION_NAME = "REPLACEMENT DUE TO EMPLOYEE MOVEMENT";
+
+// For "Replacement due to Employee Movement" the server fills position_id,
+// employee_id and new_position_id from the picked move, so they are not sent.
+// Only source_mrf_submission_id goes out.
+// TODO: move this into buildCreatePayload (formSubmissionUtils) when convenient
+const MOVEMENT_SERVER_FILLED_KEYS = [
+  "position_id",
+  "employee_id",
+  "new_position_id",
+  "movement_employee_id",
+  "movement_new_position_id",
+];
+
+const applyMovementSourceToPayload = (payload, data, requisitionType) => {
+  if (!payload) return payload;
+  if (requisitionType?.name !== MOVEMENT_REQUISITION_NAME) return payload;
+
+  const sourceId = data?.source_mrf_submission_id;
+  if (sourceId === undefined || sourceId === null) return payload;
+
+  if (typeof FormData !== "undefined" && payload instanceof FormData) {
+    payload.set("source_mrf_submission_id", sourceId);
+    MOVEMENT_SERVER_FILLED_KEYS.forEach((key) => payload.delete(key));
+    return payload;
+  }
+
+  const nextPayload = { ...payload, source_mrf_submission_id: sourceId };
+  MOVEMENT_SERVER_FILLED_KEYS.forEach((key) => delete nextPayload[key]);
+  return nextPayload;
+};
+
 const FormContent = ({
   onSave,
   onResubmit,
@@ -50,6 +82,7 @@ const FormContent = ({
   onClose,
   onModeChange,
   backendErrors = {},
+  approverPreview = null,
 }) => {
   const {
     formState: { errors },
@@ -154,10 +187,15 @@ const FormContent = ({
         const attachments = data.attachments || [];
 
         if (currentMode === "create") {
-          const payload = buildCreatePayload(
+          const builtPayload = buildCreatePayload(
             data,
             currentMode,
             attachments,
+            watchedRequisitionType,
+          );
+          const payload = applyMovementSourceToPayload(
+            builtPayload,
+            data,
             watchedRequisitionType,
           );
           if (onSave) await onSave(payload, currentMode);
@@ -276,6 +314,7 @@ const FormContent = ({
           <FormSubmissionFields
             mode={currentMode}
             selectedEntry={selectedEntry}
+            approverPreview={approverPreview}
           />
         )}
       </DialogContent>
@@ -349,6 +388,7 @@ const FormSubmissionModal = ({
   mode = "create",
   onModeChange,
   backendErrors = {},
+  approverPreview = null,
 }) => {
   const methods = useForm({
     defaultValues: formSubmissionDefaultValues,
@@ -397,6 +437,7 @@ const FormSubmissionModal = ({
             onClose={handleClose}
             onModeChange={handleModeChange}
             backendErrors={backendErrors}
+            approverPreview={approverPreview}
           />
         </FormProvider>
       </Dialog>

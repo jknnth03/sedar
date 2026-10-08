@@ -103,15 +103,56 @@ const receivingApi = sedarApi
         ],
       }),
 
+      getHireOptions: build.query({
+        query: ({ id, hire_type, search } = {}) => {
+          const queryParams = new URLSearchParams();
+
+          if (hire_type) {
+            queryParams.append("hire_type", hire_type);
+          }
+
+          if (search && search.trim() !== "") {
+            queryParams.append("search", search.trim());
+          }
+
+          const queryString = queryParams.toString();
+          const url = `me/receiver/mrf/${id}/hire-options${
+            queryString ? `?${queryString}` : ""
+          }`;
+
+          return {
+            url,
+            method: "GET",
+          };
+        },
+        providesTags: (result, error, { id }) => [
+          { type: "receiving", id },
+          "receiving",
+        ],
+      }),
+
       receiveSubmission: build.mutation({
-        query: ({ id, comments, reason }) => ({
-          url: `submissions/${id}/receive`,
-          method: "POST",
-          body: {
+        query: ({
+          id,
+          comments,
+          reason,
+          hire_type,
+          employee_to_be_hired_id,
+          id_number,
+        }) => {
+          const body = {
             comments,
             reason,
-          },
-        }),
+            ...(hire_type ? { hire_type } : {}),
+            ...(employee_to_be_hired_id ? { employee_to_be_hired_id } : {}),
+            ...(id_number ? { id_number } : {}),
+          };
+          return {
+            url: `submissions/${id}/receive`,
+            method: "POST",
+            body,
+          };
+        },
         invalidatesTags: (result, error, { id }) => [
           { type: "receiving", id },
           "receiving",
@@ -122,9 +163,7 @@ const receivingApi = sedarApi
             dispatch(
               dashboardApi.util.invalidateTags(["Dashboard", "Notifications"]),
             );
-          } catch (err) {
-            console.error("Failed to receive submission:", err);
-          }
+          } catch {}
         },
       }),
 
@@ -147,9 +186,7 @@ const receivingApi = sedarApi
             dispatch(
               dashboardApi.util.invalidateTags(["Dashboard", "Notifications"]),
             );
-          } catch (err) {
-            console.error("Failed to return submission:", err);
-          }
+          } catch {}
         },
       }),
     }),
@@ -160,6 +197,7 @@ export const {
   useGetSingleMrfQuery,
   useGetReceiverHistoryQuery,
   useGetSingleFormForReceivingQuery,
+  useGetHireOptionsQuery,
   useReceiveSubmissionMutation,
   useReturnSubmissionMutation,
 } = receivingApi;

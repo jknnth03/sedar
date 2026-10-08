@@ -5,14 +5,11 @@ import {
   TextField,
   Autocomplete,
   MenuItem,
-  FormControlLabel,
-  Checkbox,
+  Chip,
   CircularProgress,
   Alert,
   Typography,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
 import { useLazyGetManpowerOptionsQuery } from "../../../../features/api/masterlist/positionsApi";
 import { useLazyGetAllJobLevelsQuery } from "../../../../features/api/masterlist/jobLevelsApi";
 import { useLazyGetAllRequisitionsQuery } from "../../../../features/api/extras/requisitionsApi";
@@ -21,6 +18,10 @@ import { expectedSalaryInputProps } from "../../../../schema/approver/formSubmis
 import FileViewerDialog from "./FileViewerDialog";
 import AttachmentField from "./AttachmentField";
 import { formStyles } from "./FormSubmissionFieldStyles";
+import { useLazyGetMrfMovementSourcesQuery } from "../../../../features/api/forms/mrfApi";
+
+const MOVEMENT_REQUISITION_NAME = "REPLACEMENT DUE TO EMPLOYEE MOVEMENT";
+const ADDITIONAL_REQUISITION_NAME = "ADDITIONAL MANPOWER";
 
 const safeStringRender = (value, fallback = "") => {
   if (typeof value === "string") return value;
@@ -29,20 +30,71 @@ const safeStringRender = (value, fallback = "") => {
   return value || fallback;
 };
 
-const parseDateValue = (value) => {
-  if (!value) return null;
-  if (dayjs.isDayjs(value)) return value;
-  const parsed = dayjs(value);
-  return parsed.isValid() ? parsed : null;
+const formatPayFrequency = (value) => {
+  if (!value || typeof value !== "string") return "";
+  const firstWord = value.trim().split(/\s+/)[0] || "";
+  return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
 };
 
-const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
+const getJobLevelLabel = (option) => {
+  if (!option) return "";
+  if (option.label) return safeStringRender(option.label);
+  const name = safeStringRender(option.name);
+  const frequency = formatPayFrequency(option.pay_frequency);
+  return frequency ? `${name} · ${frequency}` : name;
+};
+
+const getPositionLabel = (option) => {
+  if (!option) return "";
+  const titleWithUnit = safeStringRender(option.title_with_unit);
+  if (titleWithUnit) return titleWithUnit;
+  const title =
+    option.title && typeof option.title === "object"
+      ? option.title.name
+      : option.title;
+  return safeStringRender(title) || safeStringRender(option.name);
+};
+
+const getRequisitionHelperText = (requisitionName) => {
+  if (!requisitionName) return "";
+  const name = requisitionName.toUpperCase();
+  if (name === ADDITIONAL_REQUISITION_NAME) {
+    return "A new headcount for the position";
+  }
+  if (name === MOVEMENT_REQUISITION_NAME) {
+    return "Refills the position someone moved out of";
+  }
+  if (name.includes("REPLACEMENT")) {
+    return "Refills the position of someone leaving";
+  }
+  return "";
+};
+
+const MOVE_STATUS_INFO = {
+  IN_PROGRESS: {
+    status: "DA in progress",
+    hrCanReceive: "Only after the move is final (MDA approved)",
+  },
+  FINAL: {
+    status: "Final (MDA approved)",
+    hrCanReceive: "Now, the move is final",
+  },
+};
+
+const FormSubmissionFields = ({
+  mode,
+  selectedEntry,
+  disabled = false,
+  approverPreview = null,
+}) => {
   const {
     control,
     formState: { errors },
     setValue,
+    getValues,
     watch,
     clearErrors,
+    register,
   } = useFormContext();
 
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
@@ -59,13 +111,30 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
 
   const watchedRequisitionType = watch("requisition_type_id");
   const watchedPositionId = watch("position_id");
-  const watchedForDevelopmentalAssignment = watch("movement_is_da");
-  const watchedStartDate = watch("movement_da_start_date");
+  const watchedSourceId = watch("source_mrf_submission_id");
+  const watchedMovementEmployee = watch("movement_employee_id");
+  const watchedMovementNewPosition = watch("movement_new_position_id");
 
   const isReadOnly = mode === "view" || disabled;
   const isEditMode = mode === "edit";
+  const isCreateMode = mode === "create";
   const isViewMode = mode === "view" || disabled;
   const shouldLoadDropdowns = mode === "create" || mode === "edit";
+
+  const isMovementRequisition =
+    watchedRequisitionType?.name === MOVEMENT_REQUISITION_NAME;
+  const isAdditionalRequisition =
+    watchedRequisitionType?.name === ADDITIONAL_REQUISITION_NAME;
+
+  const isReplacementDueToEmployeeMovement = useCallback(
+    () => isMovementRequisition,
+    [isMovementRequisition],
+  );
+
+  const isAdditionalManpower = useCallback(
+    () => isAdditionalRequisition,
+    [isAdditionalRequisition],
+  );
 
   const [
     triggerGetPositions,
@@ -86,6 +155,11 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
     triggerGetEmployees,
     { data: employeesData, isLoading: employeesLoading },
   ] = useLazyGetAllEmployeesToBeReplacedQuery();
+
+  const [
+    triggerGetMovementSources,
+    { data: movementSourcesData, isFetching: movementSourcesLoading },
+  ] = useLazyGetMrfMovementSourcesQuery();
 
   const normalizeApiData = useCallback((data) => {
     if (!data) return [];
@@ -112,6 +186,67 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
     () => normalizeApiData(employeesData),
     [employeesData, normalizeApiData],
   );
+  const movementSources = useMemo(
+    () => normalizeApiData(movementSourcesData),
+    [movementSourcesData, normalizeApiData],
+  );
+
+  const selectedMovementSource = useMemo(() => {
+    if (watchedSourceId !== undefined && watchedSourceId !== null) {
+      const found = movementSources.find(
+        (source) => source.source_mrf_submission_id === watchedSourceId,
+      );
+      if (found) return found;
+    }
+    if (watchedMovementEmployee) {
+      const employeeName = safeStringRender(
+        watchedMovementEmployee.full_name ||
+          watchedMovementEmployee.name ||
+          watchedMovementEmployee.employee_name,
+      );
+      const newPositionTitle = getPositionLabel(watchedMovementNewPosition);
+      return {
+        source_mrf_submission_id: watchedSourceId ?? null,
+        label: newPositionTitle
+          ? `${employeeName} · moved to ${newPositionTitle}`
+          : employeeName,
+        employee: watchedMovementEmployee,
+      };
+    }
+    return null;
+  }, [
+    watchedSourceId,
+    watchedMovementEmployee,
+    watchedMovementNewPosition,
+    movementSources,
+  ]);
+
+  const moveStatusInfo = useMemo(() => {
+    const moveStatus = selectedMovementSource?.move_status;
+    if (!moveStatus) return null;
+    return (
+      MOVE_STATUS_INFO[moveStatus] || {
+        status: safeStringRender(moveStatus),
+        hrCanReceive: "",
+      }
+    );
+  }, [selectedMovementSource]);
+
+  const approverSteps = useMemo(() => {
+    const source = Array.isArray(approverPreview)
+      ? approverPreview
+      : watchedPositionId?.approvers;
+    if (!Array.isArray(source)) return [];
+    return source
+      .map((approver) =>
+        safeStringRender(
+          typeof approver === "string"
+            ? approver
+            : approver?.title || approver?.name || approver?.position?.title,
+        ),
+      )
+      .filter(Boolean);
+  }, [approverPreview, watchedPositionId]);
 
   const attachmentInstructions = useMemo(() => {
     const requisitionName = watchedRequisitionType?.name;
@@ -179,92 +314,25 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
   }, [watchedRequisitionType]);
 
   useEffect(() => {
-    if (mode === "view" && selectedEntry?.submittable) {
-      const submittable = selectedEntry.submittable;
-      const replacementInfo = submittable.replacement_info;
-
-      if (submittable.position_id || submittable.position) {
-        setValue(
-          "position_id",
-          submittable.position || { id: submittable.position_id },
-          { shouldValidate: false },
-        );
-      }
-      if (submittable.job_level_id || submittable.job_level) {
-        setValue(
-          "job_level_id",
-          submittable.job_level || { id: submittable.job_level_id },
-          { shouldValidate: false },
-        );
-      }
-      if (submittable.requisition_type_id || submittable.requisition_type) {
-        setValue(
-          "requisition_type_id",
-          submittable.requisition_type || {
-            id: submittable.requisition_type_id,
-          },
-          { shouldValidate: false },
-        );
-      }
-      if (submittable.expected_salary)
-        setValue("expected_salary", submittable.expected_salary, {
-          shouldValidate: false,
-        });
-      if (submittable.employment_type)
-        setValue("employment_type", submittable.employment_type, {
-          shouldValidate: false,
-        });
-      if (submittable.justification)
-        setValue("justification", submittable.justification, {
-          shouldValidate: false,
-        });
-      if (submittable.remarks)
-        setValue("remarks", submittable.remarks, { shouldValidate: false });
-
-      const existingAttachments = submittable.attachments;
-      if (
-        existingAttachments &&
-        Array.isArray(existingAttachments) &&
-        existingAttachments.length > 0
-      ) {
-        setValue(
-          "attachments",
-          existingAttachments.map((att) => ({
-            id: `existing_${att.id}`,
-            file_attachment: null,
-            existing_file_name: att.filename || "Unknown file",
-            existing_file_path: att.download_url || null,
-            existing_file_id: att.id,
-            is_new_file: false,
-            keep_existing: true,
-          })),
-          { shouldValidate: false },
-        );
-      }
-
-      if (submittable.position_id && submittable.requisition_type_id) {
-        triggerGetEmployees({
-          position_id: submittable.position_id,
-          requisition_type_id: submittable.requisition_type_id,
-          ...(selectedEntry?.id && { current_mrf_id: selectedEntry.id }),
-        }).then(() => {
-          populateReplacementInfo(replacementInfo);
-        });
-      } else {
-        populateReplacementInfo(replacementInfo);
-      }
-    }
-  }, [mode, selectedEntry, setValue, triggerGetEmployees]);
+    register("source_mrf_submission_id");
+  }, [register]);
 
   const populateReplacementInfo = useCallback(
-    (replacementInfo) => {
-      if (
-        replacementInfo?.type === "employee_movement" &&
-        replacementInfo.details
-      ) {
-        const employeeData = replacementInfo.details.employee;
-        const newPositionData = replacementInfo.details.new_position;
+    (replacement, oldPosition = null) => {
+      if (!replacement) return;
 
+      const employeeData = replacement.employee;
+      const replacementType = String(replacement.type || "").toUpperCase();
+
+      if (replacementType.includes("MOVEMENT")) {
+        const newPositionData =
+          replacement.to_position || replacement.new_position;
+        const sourceId =
+          replacement.source_mrf?.id ?? replacement.source_mrf_submission_id;
+
+        if (oldPosition) {
+          setValue("position_id", oldPosition, { shouldValidate: false });
+        }
         if (employeeData) {
           setValue(
             "movement_employee_id",
@@ -284,42 +352,41 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
               code: newPositionData.code,
               title: newPositionData.title,
               title_with_unit: newPositionData.title_with_unit,
+              charging: newPositionData.charging,
             },
             { shouldValidate: false },
           );
         }
-        if (replacementInfo.details.reason_for_change) {
+        if (sourceId) {
+          setValue("source_mrf_submission_id", sourceId, {
+            shouldValidate: false,
+          });
+        }
+        if (replacement.reason_for_change) {
           setValue(
             "movement_reason_for_change",
-            replacementInfo.details.reason_for_change,
-            { shouldValidate: false },
+            replacement.reason_for_change,
+            {
+              shouldValidate: false,
+            },
           );
         }
-        if (replacementInfo.details.da_start_date) {
-          setValue(
-            "movement_da_start_date",
-            parseDateValue(replacementInfo.details.da_start_date),
-            { shouldValidate: false },
-          );
+        setValue(
+          "movement_is_da",
+          Boolean(replacement.da_start_date || replacement.da_end_date),
+          { shouldValidate: false },
+        );
+        if (replacement.da_start_date) {
+          setValue("movement_da_start_date", replacement.da_start_date, {
+            shouldValidate: false,
+          });
         }
-        if (replacementInfo.details.da_end_date) {
-          setValue(
-            "movement_da_end_date",
-            parseDateValue(replacementInfo.details.da_end_date),
-            { shouldValidate: false },
-          );
+        if (replacement.da_end_date) {
+          setValue("movement_da_end_date", replacement.da_end_date, {
+            shouldValidate: false,
+          });
         }
-        if (
-          replacementInfo.details.da_start_date ||
-          replacementInfo.details.da_end_date
-        ) {
-          setValue("movement_is_da", true, { shouldValidate: false });
-        }
-      } else if (
-        replacementInfo?.type === "direct_replacement" &&
-        replacementInfo.details?.employee
-      ) {
-        const employeeData = replacementInfo.details.employee;
+      } else if (employeeData) {
         setValue(
           "employee_to_be_replaced_id",
           {
@@ -335,8 +402,109 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
   );
 
   useEffect(() => {
+    if (mode !== "view") return;
+
+    const root = selectedEntry?.result || selectedEntry;
+    const request = root?.request;
+    if (!request) return;
+
+    const replacement = root.replacement || null;
+
+    if (request.position) {
+      setValue("position_id", request.position, { shouldValidate: false });
+    }
+    if (request.job_level) {
+      setValue("job_level_id", request.job_level, { shouldValidate: false });
+    }
+    if (request.requisition_type) {
+      setValue("requisition_type_id", request.requisition_type, {
+        shouldValidate: false,
+      });
+    }
+    if (request.expected_salary)
+      setValue("expected_salary", request.expected_salary, {
+        shouldValidate: false,
+      });
+    if (request.employment_type)
+      setValue("employment_type", request.employment_type, {
+        shouldValidate: false,
+      });
+    if (request.justification)
+      setValue("justification", request.justification, {
+        shouldValidate: false,
+      });
+    if (request.remarks)
+      setValue("remarks", request.remarks, { shouldValidate: false });
+
+    const existingAttachments = request.attachments;
+    if (
+      existingAttachments &&
+      Array.isArray(existingAttachments) &&
+      existingAttachments.length > 0
+    ) {
+      setValue(
+        "attachments",
+        existingAttachments.map((att) => ({
+          id: `existing_${att.id}`,
+          file_attachment: null,
+          existing_file_name: att.filename || "Unknown file",
+          existing_file_path: att.download_url || null,
+          existing_file_id: att.id,
+          is_new_file: false,
+          keep_existing: true,
+        })),
+        { shouldValidate: false },
+      );
+    }
+
+    const isMovementReplacement = String(replacement?.type || "")
+      .toUpperCase()
+      .includes("MOVEMENT");
+
+    if (
+      !isMovementReplacement &&
+      request.position?.id &&
+      request.requisition_type?.id
+    ) {
+      triggerGetEmployees({
+        position_id: request.position.id,
+        requisition_type_id: request.requisition_type.id,
+        ...(root?.id && { current_mrf_id: root.id }),
+      }).then(() => {
+        populateReplacementInfo(
+          replacement,
+          request.position || replacement?.from_position,
+        );
+      });
+    } else {
+      populateReplacementInfo(
+        replacement,
+        request.position || replacement?.from_position,
+      );
+    }
+  }, [
+    mode,
+    selectedEntry,
+    setValue,
+    triggerGetEmployees,
+    populateReplacementInfo,
+  ]);
+
+  useEffect(() => {
+    if (isCreateMode && isMovementRequisition) {
+      triggerGetMovementSources();
+    }
+  }, [isCreateMode, isMovementRequisition, triggerGetMovementSources]);
+
+  useEffect(() => {
     const loadEmployees = async () => {
-      if (watchedPositionId?.id && watchedRequisitionType?.id && !isEditMode) {
+      if (
+        watchedPositionId?.id &&
+        watchedRequisitionType?.id &&
+        !isEditMode &&
+        !isMovementRequisition &&
+        !isAdditionalRequisition
+      ) {
         setIsLoadingEmployees(true);
         await triggerGetEmployees({
           position_id: watchedPositionId.id,
@@ -351,6 +519,8 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
     watchedRequisitionType?.id,
     watchedPositionId?.id,
     isEditMode,
+    isMovementRequisition,
+    isAdditionalRequisition,
     triggerGetEmployees,
     selectedEntry?.id,
   ]);
@@ -383,30 +553,78 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
     ],
   );
 
-  const isReplacementDueToEmployeeMovement = useCallback(() => {
-    if (!watchedRequisitionType) return false;
-    return (
-      watchedRequisitionType.name === "REPLACEMENT DUE TO EMPLOYEE MOVEMENT"
-    );
-  }, [watchedRequisitionType]);
-
-  const isAdditionalManpower = useCallback(() => {
-    if (!watchedRequisitionType) return false;
-    return watchedRequisitionType.name === "ADDITIONAL MANPOWER";
-  }, [watchedRequisitionType]);
-
-  const shouldShowMovementFields = useCallback(
-    () => isReplacementDueToEmployeeMovement(),
-    [isReplacementDueToEmployeeMovement],
+  const handleRequisitionChange = useCallback(
+    (onChange, item) => {
+      if (isReadOnly || isEditMode) return;
+      onChange(item);
+      if (item) {
+        setValue("employee_to_be_replaced_id", null, { shouldValidate: false });
+        setValue("movement_employee_id", null, { shouldValidate: false });
+        setValue("source_mrf_submission_id", null, { shouldValidate: false });
+        setValue("position_id", null, { shouldValidate: false });
+        setValue("movement_new_position_id", null, { shouldValidate: false });
+        setValue("job_level_id", null, { shouldValidate: false });
+        setValue("expected_salary", "", { shouldValidate: false });
+        setValue("movement_reason_for_change", "", { shouldValidate: false });
+        setValue("movement_is_da", false, { shouldValidate: false });
+        setDropdownsLoaded((prev) => ({
+          ...prev,
+          employees: false,
+        }));
+      }
+    },
+    [isReadOnly, isEditMode, setValue],
   );
-  const shouldShowDateFields = useCallback(
-    () =>
-      isReplacementDueToEmployeeMovement() && watchedForDevelopmentalAssignment,
-    [isReplacementDueToEmployeeMovement, watchedForDevelopmentalAssignment],
+
+  const handlePositionChange = useCallback(
+    (onChange, item) => {
+      if (isReadOnly || isEditMode) return;
+      onChange(item);
+      setValue("employee_to_be_replaced_id", null, { shouldValidate: false });
+      setValue("movement_employee_id", null, { shouldValidate: false });
+      setValue("job_level_id", item?.job_level || null, {
+        shouldValidate: !!item,
+      });
+      setValue("expected_salary", item?.expected_salary ?? "", {
+        shouldValidate: !!item,
+      });
+      setDropdownsLoaded((prev) => ({
+        ...prev,
+        employees: false,
+      }));
+    },
+    [isReadOnly, isEditMode, setValue],
   );
-  const shouldShowReasonForChange = useCallback(
-    () => isReplacementDueToEmployeeMovement(),
-    [isReplacementDueToEmployeeMovement],
+
+  const handleMovementSourceChange = useCallback(
+    (onChange, item) => {
+      if (isReadOnly || isEditMode) return;
+      onChange(item?.employee || null);
+      setValue(
+        "source_mrf_submission_id",
+        item?.source_mrf_submission_id ?? null,
+        { shouldValidate: false },
+      );
+      setValue("position_id", item?.position || null, {
+        shouldValidate: !!item,
+      });
+      setValue("movement_new_position_id", item?.new_position || null, {
+        shouldValidate: !!item,
+      });
+      setValue("job_level_id", item?.job_level || null, {
+        shouldValidate: !!item,
+      });
+      setValue("expected_salary", item?.expected_salary ?? "", {
+        shouldValidate: !!item,
+      });
+      setValue("movement_is_da", false, { shouldValidate: false });
+      if (item && !getValues("movement_reason_for_change")) {
+        setValue("movement_reason_for_change", "Movement", {
+          shouldValidate: true,
+        });
+      }
+    },
+    [isReadOnly, isEditMode, setValue, getValues],
   );
 
   const handleFileViewerOpen = useCallback(
@@ -447,20 +665,6 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
     [disabled, setValue, clearErrors],
   );
 
-  const handleStartDateChange = useCallback(
-    (newValue) => {
-      setValue("movement_da_start_date", newValue, { shouldValidate: true });
-      if (newValue && dayjs(newValue).isValid()) {
-        setValue("movement_da_end_date", dayjs(newValue).add(6, "month"), {
-          shouldValidate: true,
-        });
-      } else {
-        setValue("movement_da_end_date", null, { shouldValidate: false });
-      }
-    },
-    [setValue],
-  );
-
   const getErrorMessage = useCallback((error) => {
     if (!error) return "";
     if (typeof error.message === "string") return error.message;
@@ -491,12 +695,13 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
   );
 
   const employmentTypeOptions = useMemo(
-    () => ["PROBATIONARY", "REGULAR", "PROJECT BASED", "AGENCY HIRED"],
+    () => ["PROBATIONARY", "PROJECT BASED", "AGENCY HIRED"],
     [],
   );
 
   const reasonForChangeOptions = useMemo(
     () => [
+      "Movement",
       "PROMOTION",
       "DEMOTION",
       "TRANSFER",
@@ -507,6 +712,17 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
     ],
     [],
   );
+
+  const positionPrerequisiteMessage =
+    !watchedPositionId || !watchedRequisitionType
+      ? "Please select Position and Requisition Type first"
+      : "";
+
+  const positionTitleForApprovers = getPositionLabel(watchedPositionId);
+
+  const entryRoot = selectedEntry?.result || selectedEntry;
+  const entryOldPosition =
+    entryRoot?.request?.position || entryRoot?.replacement?.from_position;
 
   return (
     <>
@@ -524,22 +740,9 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                 control={control}
                 render={({ field: { onChange, value } }) => (
                   <Autocomplete
-                    onChange={(event, item) => {
-                      if (isReadOnly || isEditMode) return;
-                      onChange(item);
-                      if (item) {
-                        setValue("employee_to_be_replaced_id", null, {
-                          shouldValidate: false,
-                        });
-                        setValue("movement_employee_id", null, {
-                          shouldValidate: false,
-                        });
-                        setDropdownsLoaded((prev) => ({
-                          ...prev,
-                          employees: false,
-                        }));
-                      }
-                    }}
+                    onChange={(event, item) =>
+                      handleRequisitionChange(onChange, item)
+                    }
                     onOpen={() => handleDropdownFocus("requisitions")}
                     value={value || null}
                     disabled={isReadOnly || isEditMode}
@@ -558,7 +761,10 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                         required={true}
                         fullWidth
                         error={!!errors.requisition_type_id}
-                        helperText={getErrorMessage(errors.requisition_type_id)}
+                        helperText={
+                          getErrorMessage(errors.requisition_type_id) ||
+                          getRequisitionHelperText(watchedRequisitionType?.name)
+                        }
                         sx={
                           formStyles?.autocompleteTextField?.(
                             isReadOnly,
@@ -588,286 +794,278 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
               />
             </Box>
 
-            <Box>
-              <Controller
-                name="position_id"
-                control={control}
-                render={({ field: { onChange, value } }) => (
-                  <Autocomplete
-                    onChange={(event, item) => {
-                      if (isReadOnly || isEditMode) return;
-                      onChange(item);
-                      setValue("employee_to_be_replaced_id", null, {
-                        shouldValidate: false,
-                      });
-                      setValue("movement_employee_id", null, {
-                        shouldValidate: false,
-                      });
-                      setDropdownsLoaded((prev) => ({
-                        ...prev,
-                        employees: false,
-                      }));
-                    }}
-                    onOpen={() => handleDropdownFocus("positions")}
-                    value={value || null}
-                    disabled={
-                      isReadOnly || isEditMode || !watchedRequisitionType
-                    }
-                    options={positions}
-                    loading={positionsLoading}
-                    getOptionLabel={(option) =>
-                      safeStringRender(option?.title_with_unit)
-                    }
-                    isOptionEqualToValue={(option, value) => {
-                      if (!option || !value) return false;
-                      return option.id === value.id;
-                    }}
-                    disablePortal
-                    renderInput={(params) => (
+            {isReplacementDueToEmployeeMovement() ? (
+              <>
+                <Box>
+                  <Controller
+                    name="movement_employee_id"
+                    control={control}
+                    render={({ field: { onChange } }) => (
+                      <Autocomplete
+                        onChange={(event, item) =>
+                          handleMovementSourceChange(onChange, item)
+                        }
+                        value={selectedMovementSource}
+                        disabled={isReadOnly || isEditMode}
+                        options={movementSources}
+                        loading={movementSourcesLoading}
+                        getOptionLabel={(option) =>
+                          safeStringRender(
+                            option?.label || option?.employee?.full_name,
+                          )
+                        }
+                        isOptionEqualToValue={(option, value) => {
+                          if (!option || !value) return false;
+                          if (
+                            option.source_mrf_submission_id != null &&
+                            value.source_mrf_submission_id != null
+                          ) {
+                            return (
+                              option.source_mrf_submission_id ===
+                              value.source_mrf_submission_id
+                            );
+                          }
+                          return option.employee?.id === value.employee?.id;
+                        }}
+                        disablePortal
+                        renderInput={(params) => (
+                          <StyledTextField
+                            {...params}
+                            label="Select Employee"
+                            required={true}
+                            fullWidth
+                            error={!!errors.movement_employee_id}
+                            helperText={
+                              getErrorMessage(errors.movement_employee_id) ||
+                              "People who moved out of positions you can request for. One MRF per move."
+                            }
+                            sx={
+                              formStyles?.autocompleteTextField?.(
+                                isReadOnly,
+                                isEditMode,
+                              ) || {}
+                            }
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {movementSourcesLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          movementSourcesLoading
+                            ? "Loading employees..."
+                            : "No employees have moved out of your positions"
+                        }
+                      />
+                    )}
+                  />
+                </Box>
+
+                <Box>
+                  <Controller
+                    name="position_id"
+                    control={control}
+                    render={({ field: { value } }) => (
                       <StyledTextField
-                        {...params}
                         label="Position"
                         required={true}
                         fullWidth
+                        value={
+                          getPositionLabel(value) ||
+                          getPositionLabel(watchedPositionId) ||
+                          (isCreateMode
+                            ? ""
+                            : getPositionLabel(entryOldPosition))
+                        }
+                        disabled
                         error={!!errors.position_id}
                         helperText={getErrorMessage(errors.position_id)}
                         sx={
                           formStyles?.autocompleteTextField?.(
-                            isReadOnly,
+                            true,
                             isEditMode,
                           ) || {}
                         }
-                        InputProps={{
-                          ...params.InputProps,
-                          endAdornment: (
-                            <>
-                              {positionsLoading && (
-                                <CircularProgress color="inherit" size={20} />
-                              )}
-                              {params.InputProps.endAdornment}
-                            </>
-                          ),
-                        }}
                       />
                     )}
-                    noOptionsText={
-                      positionsLoading
-                        ? "Loading positions..."
-                        : "No positions found"
-                    }
                   />
-                )}
-              />
-            </Box>
+                </Box>
 
-            <Box>
-              {isReplacementDueToEmployeeMovement() ? (
-                <Controller
-                  name="movement_employee_id"
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <Autocomplete
-                      onChange={(event, item) => {
-                        if (isReadOnly || isEditMode) return;
-                        onChange(item);
-                      }}
-                      value={value || null}
-                      disabled={
-                        isReadOnly ||
-                        isEditMode ||
-                        !watchedPositionId ||
-                        !watchedRequisitionType
-                      }
-                      options={employees}
-                      loading={isLoadingEmployees || employeesLoading}
-                      getOptionLabel={(option) =>
-                        safeStringRender(
-                          option?.full_name ||
-                            option?.name ||
-                            option?.employee_name,
-                        )
-                      }
-                      isOptionEqualToValue={(option, value) => {
-                        if (!option || !value) return false;
-                        return option.id === value.id;
-                      }}
-                      disablePortal
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          label="Select Employee"
-                          required={true}
-                          fullWidth
-                          error={!!errors.movement_employee_id}
-                          helperText={
-                            getErrorMessage(errors.movement_employee_id) ||
-                            (!watchedPositionId || !watchedRequisitionType
-                              ? "Please select Position and Requisition Type first"
-                              : "")
-                          }
-                          sx={
-                            formStyles?.autocompleteTextField?.(
-                              isReadOnly,
-                              isEditMode,
-                            ) || {}
-                          }
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {(isLoadingEmployees || employeesLoading) && (
-                                  <CircularProgress color="inherit" size={20} />
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
+                <Box>
+                  <Controller
+                    name="movement_new_position_id"
+                    control={control}
+                    render={({ field: { value } }) => (
+                      <StyledTextField
+                        label="New Position"
+                        required={true}
+                        fullWidth
+                        value={getPositionLabel(value)}
+                        disabled
+                        error={!!errors.movement_new_position_id}
+                        helperText={getErrorMessage(
+                          errors.movement_new_position_id,
+                        )}
+                        sx={formStyles?.textField?.(true) || {}}
+                      />
+                    )}
+                  />
+                </Box>
+              </>
+            ) : (
+              <>
+                <Box>
+                  <Controller
+                    name="position_id"
+                    control={control}
+                    render={({ field: { onChange, value } }) => (
+                      <Autocomplete
+                        onChange={(event, item) =>
+                          handlePositionChange(onChange, item)
+                        }
+                        onOpen={() => handleDropdownFocus("positions")}
+                        value={value || null}
+                        disabled={
+                          isReadOnly || isEditMode || !watchedRequisitionType
+                        }
+                        options={positions}
+                        loading={positionsLoading}
+                        getOptionLabel={(option) => getPositionLabel(option)}
+                        isOptionEqualToValue={(option, value) => {
+                          if (!option || !value) return false;
+                          return option.id === value.id;
+                        }}
+                        disablePortal
+                        renderInput={(params) => (
+                          <StyledTextField
+                            {...params}
+                            label="Position"
+                            required={true}
+                            fullWidth
+                            error={!!errors.position_id}
+                            helperText={
+                              getErrorMessage(errors.position_id) ||
+                              "Positions you can request for. Job Level and Expected Salary fill in from it."
+                            }
+                            sx={
+                              formStyles?.autocompleteTextField?.(
+                                isReadOnly,
+                                isEditMode,
+                              ) || {}
+                            }
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {positionsLoading && (
+                                    <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    />
+                                  )}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                        noOptionsText={
+                          positionsLoading
+                            ? "Loading positions..."
+                            : "No positions found"
+                        }
+                      />
+                    )}
+                  />
+                </Box>
+
+                {!isAdditionalManpower() && (
+                  <Box>
+                    <Controller
+                      name="employee_to_be_replaced_id"
+                      control={control}
+                      render={({ field: { onChange, value } }) => (
+                        <Autocomplete
+                          onChange={(event, item) => {
+                            if (isReadOnly || isEditMode) return;
+                            onChange(item);
                           }}
-                        />
-                      )}
-                      noOptionsText={
-                        isLoadingEmployees || employeesLoading
-                          ? "Loading employees..."
-                          : !watchedPositionId || !watchedRequisitionType
-                            ? "Select position and requisition type first"
-                            : "No employees found"
-                      }
-                    />
-                  )}
-                />
-              ) : (
-                <Controller
-                  name="employee_to_be_replaced_id"
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <Autocomplete
-                      onChange={(event, item) => {
-                        if (isReadOnly || isEditMode || isAdditionalManpower())
-                          return;
-                        onChange(item);
-                      }}
-                      value={value || null}
-                      disabled={
-                        isReadOnly ||
-                        isEditMode ||
-                        isAdditionalManpower() ||
-                        !watchedPositionId ||
-                        !watchedRequisitionType
-                      }
-                      options={employees}
-                      loading={isLoadingEmployees || employeesLoading}
-                      getOptionLabel={(option) =>
-                        safeStringRender(
-                          option?.full_name ||
-                            option?.name ||
-                            option?.employee_name,
-                        )
-                      }
-                      isOptionEqualToValue={(option, value) => {
-                        if (!option || !value) return false;
-                        return option.id === value.id;
-                      }}
-                      disablePortal
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          label="Employee to be Replaced"
-                          required={!isAdditionalManpower()}
-                          fullWidth
-                          error={!!errors.employee_to_be_replaced_id}
-                          helperText={
-                            isAdditionalManpower()
-                              ? "Not required for Additional Manpower"
-                              : getErrorMessage(
+                          value={value || null}
+                          disabled={
+                            isReadOnly ||
+                            isEditMode ||
+                            !watchedPositionId ||
+                            !watchedRequisitionType
+                          }
+                          options={employees}
+                          loading={isLoadingEmployees || employeesLoading}
+                          getOptionLabel={(option) =>
+                            safeStringRender(
+                              option?.full_name ||
+                                option?.name ||
+                                option?.employee_name,
+                            )
+                          }
+                          isOptionEqualToValue={(option, value) => {
+                            if (!option || !value) return false;
+                            return option.id === value.id;
+                          }}
+                          disablePortal
+                          renderInput={(params) => (
+                            <StyledTextField
+                              {...params}
+                              label="Employee to be Replaced"
+                              required={true}
+                              fullWidth
+                              error={!!errors.employee_to_be_replaced_id}
+                              helperText={
+                                getErrorMessage(
                                   errors.employee_to_be_replaced_id,
                                 ) ||
-                                (!watchedPositionId || !watchedRequisitionType
-                                  ? "Please select Position and Requisition Type first"
-                                  : "")
-                          }
-                          sx={formStyles?.textField?.() || {}}
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {(isLoadingEmployees || employeesLoading) && (
-                                  <CircularProgress color="inherit" size={20} />
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      noOptionsText={
-                        isLoadingEmployees || employeesLoading
-                          ? "Loading employees..."
-                          : !watchedPositionId || !watchedRequisitionType
-                            ? "Select position and requisition type first"
-                            : "No employees found"
-                      }
-                    />
-                  )}
-                />
-              )}
-            </Box>
-
-            {shouldShowMovementFields() && (
-              <Box>
-                <Controller
-                  name="movement_new_position_id"
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <Autocomplete
-                      onChange={(event, item) => {
-                        if (isReadOnly) return;
-                        onChange(item);
-                      }}
-                      onOpen={() => handleDropdownFocus("movementPosition")}
-                      value={value || null}
-                      disabled={isReadOnly}
-                      options={positions}
-                      loading={positionsLoading}
-                      getOptionLabel={(option) =>
-                        safeStringRender(option?.title_with_unit)
-                      }
-                      isOptionEqualToValue={(option, value) => {
-                        if (!option || !value) return false;
-                        return option.id === value.id;
-                      }}
-                      disablePortal
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          label="New Position"
-                          required={true}
-                          fullWidth
-                          error={!!errors.movement_new_position_id}
-                          helperText={getErrorMessage(
-                            errors.movement_new_position_id,
+                                positionPrerequisiteMessage ||
+                                "The employee leaving this position"
+                              }
+                              sx={formStyles?.textField?.() || {}}
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {(isLoadingEmployees ||
+                                      employeesLoading) && (
+                                      <CircularProgress
+                                        color="inherit"
+                                        size={20}
+                                      />
+                                    )}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
                           )}
-                          sx={formStyles?.textField?.(isReadOnly) || {}}
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {positionsLoading && (
-                                  <CircularProgress color="inherit" size={20} />
-                                )}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
+                          noOptionsText={
+                            isLoadingEmployees || employeesLoading
+                              ? "Loading employees..."
+                              : !watchedPositionId || !watchedRequisitionType
+                                ? "Select position and requisition type first"
+                                : "No employees found"
+                          }
                         />
                       )}
-                      noOptionsText={
-                        positionsLoading
-                          ? "Loading positions..."
-                          : "No positions found"
-                      }
                     />
-                  )}
-                />
-              </Box>
+                  </Box>
+                )}
+              </>
             )}
 
             <Box>
@@ -885,7 +1083,7 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                     disabled={isReadOnly}
                     options={jobLevels}
                     loading={jobLevelsLoading}
-                    getOptionLabel={(option) => safeStringRender(option?.label)}
+                    getOptionLabel={(option) => getJobLevelLabel(option)}
                     isOptionEqualToValue={(option, value) => {
                       if (!option || !value) return false;
                       return option.id === value.id;
@@ -898,7 +1096,12 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                         required={true}
                         fullWidth
                         error={!!errors.job_level_id}
-                        helperText={getErrorMessage(errors.job_level_id)}
+                        helperText={
+                          getErrorMessage(errors.job_level_id) ||
+                          (isReplacementDueToEmployeeMovement()
+                            ? "Defaults to the old position's masterlist job level"
+                            : "Defaults to the position's masterlist job level")
+                        }
                         sx={formStyles?.textField?.(isReadOnly) || {}}
                         InputProps={{
                           ...params.InputProps,
@@ -923,57 +1126,6 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
               />
             </Box>
 
-            {attachmentInstructions && (
-              <Box sx={{ gridColumn: "1 / -1", mb: 1 }}>
-                <Alert
-                  severity="info"
-                  sx={{
-                    backgroundColor: "rgba(33, 61, 112, 0.08)",
-                    border: "1px solid rgba(33, 61, 112, 0.2)",
-                    "& .MuiAlert-icon": { color: "rgb(33, 61, 112)" },
-                    "& .MuiAlert-message": { color: "rgb(33, 61, 112)" },
-                  }}>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 600, mb: 0.5 }}>
-                    Required Attachments:
-                  </Typography>
-                  {attachmentInstructions.attachments.map(
-                    (attachment, index) => (
-                      <Typography
-                        key={index}
-                        variant="body2"
-                        sx={{ fontSize: "13px" }}>
-                        {attachment}
-                      </Typography>
-                    ),
-                  )}
-                  {attachmentInstructions.remarks && (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: "12px",
-                        fontStyle: "italic",
-                        mt: 0.5,
-                        color: "rgb(33, 61, 112)",
-                        fontWeight: 600,
-                      }}>
-                      * {attachmentInstructions.remarks}
-                    </Typography>
-                  )}
-                </Alert>
-              </Box>
-            )}
-          </Box>
-        </Box>
-
-        <Box sx={{ mb: 3 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-              gap: 2,
-            }}>
             <Box>
               <Controller
                 name="expected_salary"
@@ -987,13 +1139,19 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                     type="number"
                     inputProps={expectedSalaryInputProps}
                     error={!!errors.expected_salary}
-                    helperText={getErrorMessage(errors.expected_salary)}
+                    helperText={
+                      getErrorMessage(errors.expected_salary) ||
+                      (isReplacementDueToEmployeeMovement()
+                        ? "Defaults to the old position's masterlist salary"
+                        : "Defaults to the position's masterlist salary")
+                    }
                     disabled={isReadOnly}
                     sx={formStyles?.textField?.(isReadOnly) || {}}
                   />
                 )}
               />
             </Box>
+
             <Box>
               <Controller
                 name="employment_type"
@@ -1021,7 +1179,7 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
               />
             </Box>
 
-            {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
+            {isReplacementDueToEmployeeMovement() && (
               <Box>
                 <Controller
                   name="movement_reason_for_change"
@@ -1059,13 +1217,19 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                 render={({ field }) => (
                   <StyledTextField
                     {...field}
+                    value={field.value ?? ""}
                     label="Justification"
-                    required={true}
+                    required={isAdditionalManpower()}
                     fullWidth
                     multiline
-                    rows={3}
+                    rows={1}
                     error={!!errors.justification}
-                    helperText={getErrorMessage(errors.justification)}
+                    helperText={
+                      getErrorMessage(errors.justification) ||
+                      (isAdditionalManpower()
+                        ? "Required for Additional Manpower"
+                        : "Optional")
+                    }
                     disabled={isReadOnly}
                     sx={formStyles?.textField?.(isReadOnly) || {}}
                   />
@@ -1080,10 +1244,11 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value ?? ""}
                     label="Remarks"
                     fullWidth
                     multiline
-                    rows={3}
+                    rows={1}
                     error={!!errors.remarks}
                     helperText={getErrorMessage(errors.remarks)}
                     disabled={isReadOnly}
@@ -1093,96 +1258,138 @@ const FormSubmissionFields = ({ mode, selectedEntry, disabled = false }) => {
               />
             </Box>
 
-            {(shouldShowReasonForChange() || shouldShowMovementFields()) && (
+            {isReplacementDueToEmployeeMovement() && moveStatusInfo && (
               <Box
                 sx={{
                   gridColumn: "1 / -1",
-                  ...(formStyles?.checkboxContainer || {}),
+                  display: "grid",
+                  gridTemplateColumns: "max-content 1fr",
+                  columnGap: 3,
+                  rowGap: 0.5,
+                  p: 2,
+                  border: "1px dashed",
+                  borderColor: "divider",
+                  borderRadius: 1,
                 }}>
-                <Controller
-                  name="movement_is_da"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          {...field}
-                          checked={Boolean(field.value)}
-                          disabled={isReadOnly}
+                <Typography variant="body2" color="text.secondary">
+                  Move status
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {moveStatusInfo.status}
+                </Typography>
+                {moveStatusInfo.hrCanReceive && (
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      When HR can receive
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {moveStatusInfo.hrCanReceive}
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {approverSteps.length > 0 && (
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    fontWeight: 600,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    mb: 1,
+                  }}>
+                  Approvers (preview)
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: 1,
+                  }}>
+                  {[...approverSteps, "Standard approvers"].map(
+                    (step, index, allSteps) => (
+                      <Box
+                        key={`${step}-${index}`}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}>
+                        <Chip
+                          label={step}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            textTransform: "uppercase",
+                            fontWeight: 600,
+                            fontSize: "11px",
+                          }}
                         />
-                      }
-                      label="FOR DEVELOPMENTAL ASSIGNMENT"
-                      sx={formStyles?.checkboxLabel?.(isReadOnly) || {}}
-                    />
+                        {index < allSteps.length - 1 && (
+                          <Typography variant="body2" color="text.secondary">
+                            →
+                          </Typography>
+                        )}
+                      </Box>
+                    ),
                   )}
-                />
-              </Box>
-            )}
-
-            {shouldShowDateFields() && (
-              <Box sx={{ pl: { sm: 4.4 } }}>
-                <Controller
-                  name="movement_da_start_date"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      {...field}
-                      label="Start Date"
-                      disabled={isReadOnly}
-                      value={field.value || null}
-                      onChange={handleStartDateChange}
-                      slotProps={{
-                        textField: {
-                          required: true,
-                          fullWidth: true,
-                          error: !!errors.movement_da_start_date,
-                          helperText: getErrorMessage(
-                            errors.movement_da_start_date,
-                          ),
-                          sx: formStyles?.textField?.(isReadOnly) || {},
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Box>
-            )}
-
-            {shouldShowDateFields() && (
-              <Box>
-                <Controller
-                  name="movement_da_end_date"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      {...field}
-                      label="End Date"
-                      disabled={isReadOnly}
-                      value={field.value || null}
-                      onChange={(newValue) => field.onChange(newValue)}
-                      minDate={
-                        watchedStartDate
-                          ? dayjs(watchedStartDate).add(1, "day")
-                          : undefined
-                      }
-                      slotProps={{
-                        textField: {
-                          required: true,
-                          fullWidth: true,
-                          error: !!errors.movement_da_end_date,
-                          helperText: getErrorMessage(
-                            errors.movement_da_end_date,
-                          ),
-                          sx: formStyles?.textField?.(isReadOnly) || {},
-                        },
-                      }}
-                    />
-                  )}
-                />
+                </Box>
+                {positionTitleForApprovers && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1 }}>
+                    {isReplacementDueToEmployeeMovement()
+                      ? `From the old position's approver list (${positionTitleForApprovers}).`
+                      : `From ${positionTitleForApprovers}'s approver list.`}
+                  </Typography>
+                )}
               </Box>
             )}
           </Box>
         </Box>
+
+        {attachmentInstructions && (
+          <Box sx={{ mb: 3 }}>
+            <Alert
+              severity="info"
+              sx={{
+                backgroundColor: "rgba(33, 61, 112, 0.08)",
+                border: "1px solid rgba(33, 61, 112, 0.2)",
+                "& .MuiAlert-icon": { color: "rgb(33, 61, 112)" },
+                "& .MuiAlert-message": { color: "rgb(33, 61, 112)" },
+              }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Required Attachments:
+              </Typography>
+              {attachmentInstructions.attachments.map((attachment, index) => (
+                <Typography
+                  key={index}
+                  variant="body2"
+                  sx={{ fontSize: "13px" }}>
+                  {attachment}
+                </Typography>
+              ))}
+              {attachmentInstructions.remarks && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: "12px",
+                    fontStyle: "italic",
+                    mt: 0.5,
+                    color: "rgb(33, 61, 112)",
+                    fontWeight: 600,
+                  }}>
+                  * {attachmentInstructions.remarks}
+                </Typography>
+              )}
+            </Alert>
+          </Box>
+        )}
 
         <Box sx={{ mb: 3, ...(formStyles?.attachmentContainer || {}) }}>
           <AttachmentField
